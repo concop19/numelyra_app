@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160" fill="none" role="img" aria-label="Numelyra four-point celestial sparkle">
+  <defs>
+    <linearGradient id="spark-gold" x1="42" y1="22" x2="109" y2="137" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF4C8"/>
+      <stop offset="0.42" stop-color="#FFDA96"/>
+      <stop offset="1" stop-color="#FFA967"/>
+    </linearGradient>
+    <linearGradient id="spark-pink" x1="18" y1="93" x2="49" y2="124" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFD0E4"/>
+      <stop offset="1" stop-color="#E990D2"/>
+    </linearGradient>
+    <filter id="soft-glow" x="-70%" y="-70%" width="240%" height="240%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+  </defs>
+  <!-- Airy bloom stays separate from the sharp central star. -->
+  <path d="M83 16C88 49 96 64 131 78C96 86 89 100 83 139C76 102 67 87 30 78C68 66 77 49 83 16Z" fill="#E993D9" opacity=".25" filter="url(#soft-glow)"/>
+  <path d="M83 18C88 50 97 69 130 78C97 86 89 104 83 138C76 105 66 87 31 78C67 68 77 51 83 18Z" fill="url(#spark-gold)"/>
+  <path d="M83 41C86 62 94 74 113 78C95 83 87 94 83 116C79 94 71 83 52 78C72 73 80 61 83 41Z" fill="#FFF4CF" opacity=".5"/>
+  <path d="M27 97C29 106 33 110 43 113C33 116 29 121 27 131C25 121 21 116 11 113C21 110 25 106 27 97Z" fill="url(#spark-pink)"/>
+  <path d="M130 17C131 23 134 26 141 28C134 30 131 33 130 40C128 33 125 30 118 28C125 26 128 23 130 17Z" fill="#F5A7DA"/>
+  <circle cx="143" cy="112" r="2.4" fill="#FFCC88" opacity=".85"/>
+  <circle cx="16" cy="45" r="1.7" fill="#EBA0E5" opacity=".9"/>
+</svg>

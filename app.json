@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "mobile_app",
+    "slug": "mobile_app",
+    "version": "1.0.0",
+    "scheme": "numelyra",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "online.numelyra.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "72559d68-71ee-40f8-9a28-4fce14a9558d"
+      }
+    },
+    "owner": "v1etmanh"
+  }
+}
