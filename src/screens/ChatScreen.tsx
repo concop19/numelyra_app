@@ -1329,8 +1329,8 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
 
       <KeyboardAvoidingView 
         style={[styles.container, { paddingTop: insets.top }]} 
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
       >
         {/* 🌟 2. HEADER BAR (HAMBURGER - NUMELYRA TITLE - CLOCK/HISTORY) */}
         <View style={styles.numelyraHeader}>
@@ -1538,11 +1538,14 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
 
             {/* TRẠNG THÁI 3: ANSWER / REVEAL */}
             {!isZeroState && !loading && (
-              <View style={[styles.answerStageWrap, isKeyboardVisible && { paddingTop: 8 }]}>
+              <View style={[styles.answerStageWrap, isKeyboardVisible && { paddingTop: 4 }]}>
                 {latestUserMsg && (
                   <View style={[styles.userBubbleWrapper, isKeyboardVisible && { marginBottom: 2 }]}>
-                    <View style={styles.userBubbleCard}>
-                      <Text style={styles.userBubbleContent} numberOfLines={isKeyboardVisible ? 2 : undefined}>
+                    <View style={[styles.userBubbleCard, isKeyboardVisible && styles.userBubbleCardCompact]}>
+                      <Text
+                        style={[styles.userBubbleContent, isKeyboardVisible && styles.userBubbleContentCompact]}
+                        numberOfLines={isKeyboardVisible ? 1 : undefined}
+                      >
                         {latestUserMsg.text}
                       </Text>
                     </View>
@@ -1556,6 +1559,7 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
                       senderName="Numelyra"
                       isTypingCompleted={!!latestMascotMsg.isTypingCompleted}
                       onFinishTyping={() => markMessageTypingCompleted(latestMascotMsg.id)}
+                      isCompact={isKeyboardVisible}
                     />
                   </View>
                 )}
@@ -2934,11 +2938,20 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
+  userBubbleCardCompact: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+  },
   userBubbleContent: {
     color: '#FFFFFF',
     fontSize: 16,
     lineHeight: 22,
     fontWeight: '400',
+  },
+  userBubbleContentCompact: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   thinkingBubbleCard: {
     alignSelf: 'flex-start',

@@ -23,6 +23,7 @@ interface Props {
   onFinishTyping?: () => void;
   style?: any;
   extraActions?: React.ReactNode;
+  isCompact?: boolean;
 }
 
 export const AnswerFlamePopup: React.FC<Props> = ({
@@ -32,6 +33,7 @@ export const AnswerFlamePopup: React.FC<Props> = ({
   onFinishTyping,
   style,
   extraActions,
+  isCompact = false,
 }) => {
   const [displayedLength, setDisplayedLength] = useState(
     isTypingCompleted ? text.length : 0
@@ -63,7 +65,7 @@ export const AnswerFlamePopup: React.FC<Props> = ({
       }),
     ]).start();
 
-    // Hiệu ứng bập bùng nhẹ (floating sway)
+    // Hiệu ứng bập bùng nhẹ (floating sway) cho ảnh nền
     const floatLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(floatAnim, {
@@ -154,99 +156,138 @@ export const AnswerFlamePopup: React.FC<Props> = ({
 
   const displayedText = isDone ? text : text.slice(0, displayedLength);
 
+  // Kích thước chuẩn linh hoạt (co gọn khi bàn phím mở)
+  const popupWidth = isCompact ? COMPACT_POPUP_WIDTH : NORMAL_POPUP_WIDTH;
+  const popupHeight = isCompact ? COMPACT_POPUP_HEIGHT : NORMAL_POPUP_HEIGHT;
+
+  // Tính toán vùng hiển thị khớp hoàn hảo 100% với vùng bụng kem sáng của ngọn lửa
+  const contentTop = Math.round(popupHeight * 0.19);
+  const contentLeft = Math.round(popupWidth * 0.16);
+  const contentWidth = Math.round(popupWidth * 0.68);
+  const contentHeight = Math.round(popupHeight * 0.56);
+  // Cố định chiều cao tuyệt đối cho ScrollView để cuộn mượt mà không bị giãn
+  const headerHeight = 24;
+  const scrollHeight = Math.max(contentHeight - headerHeight - 4, 100);
+
   return (
     <Animated.View
       style={[
         styles.outerContainer,
         {
+          width: popupWidth,
+          height: popupHeight,
           opacity: opacityEnterAnim,
-          transform: [{ scale: scaleEnterAnim }, { translateY: floatAnim }],
         },
         style,
       ]}
     >
-      {/* Lớp hào quang tia lửa bên ngoài */}
-      <Animated.Image
-        source={ANSWER_AURA}
+      {/* Toàn bộ lớp nền trang trí (hào quang, hạt sáng, ngọn lửa) gom vào vùng pointerEvents="none" 100% */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        {/* Lớp hào quang tia lửa bên ngoài */}
+        <Animated.View
+          style={[
+            styles.auraBackground,
+            {
+              transform: [{ scale: auraPulseAnim }, { translateY: floatAnim }],
+            },
+          ]}
+        >
+          <Image
+            source={ANSWER_AURA}
+            style={styles.fillImage}
+            resizeMode="contain"
+          />
+        </Animated.View>
+
+        {/* Lớp hạt sáng ma thuật xung quanh */}
+        <Animated.View
+          style={[
+            styles.particlesOverlay,
+            {
+              transform: [{ translateY: floatAnim }],
+            },
+          ]}
+        >
+          <Image
+            source={ANSWER_PARTICLES}
+            style={styles.fillImage}
+            resizeMode="contain"
+          />
+        </Animated.View>
+
+        {/* Lớp nền ngọn lửa kem phát sáng - khóa tĩnh đồng bộ hoàn toàn với khung chữ */}
+        <View style={styles.flameImageBg}>
+          <Image
+            source={ANSWER_BG}
+            style={styles.fillImage}
+            resizeMode="stretch"
+          />
+        </View>
+      </View>
+
+      {/* Nội dung bên trong ngọn lửa: hòa quyện tự nhiên 100% vào nền kem, không có hộp hay viền thô */}
+      <View
         style={[
-          styles.auraBackground,
+          styles.contentContainer,
           {
-            transform: [{ scale: auraPulseAnim }],
+            top: contentTop,
+            left: contentLeft,
+            width: contentWidth,
+            height: contentHeight,
           },
         ]}
-        resizeMode="contain"
-      />
+      >
+        {/* Header người gửi - chạm vào để bỏ qua gõ chữ */}
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={handleSkipTyping}
+          style={styles.headerRow}
+          accessibilityLabel="Bỏ qua hiệu ứng gõ chữ"
+        >
+          <View style={styles.senderDot} />
+          <Text style={[styles.senderTitle, isCompact && styles.senderTitleCompact]}>
+            {senderName}
+          </Text>
+        </TouchableOpacity>
 
-      {/* Lớp hạt sáng ma thuật xung quanh */}
-      <Image
-        source={ANSWER_PARTICLES}
-        style={styles.particlesOverlay}
-        resizeMode="contain"
-      />
-
-      {/* Lớp nền ngọn lửa kem phát sáng */}
-      <View style={styles.flameCard}>
-        <Image
-          source={ANSWER_BG}
-          style={styles.flameImageBg}
-          resizeMode="stretch"
-        />
-
-        {/* Nội dung bên trong ngọn lửa */}
-        <View style={styles.contentContainer}>
-          {/* Header người gửi */}
-          <View style={styles.headerRow}>
-            <View style={styles.senderDot} />
-            <Text style={styles.senderTitle}>{senderName}</Text>
-          </View>
-
-          {/* Khung văn bản có thể cuộn tự do, không bị TouchableOpacity cha nuốt gesture */}
-          <ScrollView
-            style={styles.textScroll}
-            contentContainerStyle={styles.textScrollContent}
-            showsVerticalScrollIndicator={true}
-            indicatorStyle="black"
-            nestedScrollEnabled={true}
-            keyboardShouldPersistTaps="handled"
-            bounces={true}
-            overScrollMode="always"
+        {/* Khung văn bản cuộn êm mượt, không có thanh cuộn xám thô */}
+        <ScrollView
+          style={[styles.textScroll, { height: scrollHeight, maxHeight: scrollHeight }]}
+          contentContainerStyle={styles.textScrollContent}
+          showsVerticalScrollIndicator={false}
+          scrollEnabled={true}
+          keyboardShouldPersistTaps="handled"
+          bounces={true}
+          overScrollMode="always"
+          scrollEventThrottle={16}
+          onScrollBeginDrag={handleSkipTyping}
+        >
+          <HighlightedAnswerText
+            text={displayedText}
+            style={[styles.messageBody, isCompact && styles.messageBodyCompact]}
+            emphasisStyle={styles.messageEmphasis}
           >
-            <HighlightedAnswerText
-              text={displayedText}
-              style={styles.messageBody}
-              emphasisStyle={styles.messageEmphasis}
-            >
-              {!isDone && <Text style={styles.cursor}> ▌</Text>}
-            </HighlightedAnswerText>
+            {!isDone && <Text style={styles.cursor}> ▌</Text>}
+          </HighlightedAnswerText>
 
-            {extraActions && (
-              <View style={styles.actionsContainer}>{extraActions}</View>
-            )}
-          </ScrollView>
-
-          {/* Lớp phủ chạm để bỏ qua gõ chữ - CHỈ xuất hiện khi đang gõ để không nuốt thao tác cuộn */}
-          {!isDone && (
-            <TouchableOpacity
-              activeOpacity={1}
-              onPress={handleSkipTyping}
-              style={styles.tapToSkipOverlay}
-              accessibilityLabel="Bỏ qua hiệu ứng gõ chữ"
-            />
+          {extraActions && (
+            <View style={styles.actionsContainer}>{extraActions}</View>
           )}
-        </View>
+        </ScrollView>
       </View>
     </Animated.View>
   );
 };
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const POPUP_WIDTH = Math.min(SCREEN_WIDTH * 0.9, 360);
-const POPUP_HEIGHT = POPUP_WIDTH * 1.03;
+const NORMAL_POPUP_WIDTH = Math.min(SCREEN_WIDTH * 0.9, 360);
+const NORMAL_POPUP_HEIGHT = NORMAL_POPUP_WIDTH * 1.03;
+
+const COMPACT_POPUP_WIDTH = Math.min(SCREEN_WIDTH * 0.74, 255);
+const COMPACT_POPUP_HEIGHT = COMPACT_POPUP_WIDTH * 1.03;
 
 const styles = StyleSheet.create({
   outerContainer: {
-    width: POPUP_WIDTH,
-    height: POPUP_HEIGHT,
     alignSelf: 'center',
     justifyContent: 'center',
     alignItems: 'center',
@@ -269,13 +310,6 @@ const styles = StyleSheet.create({
     left: '-10%',
     opacity: 0.9,
   },
-  flameCard: {
-    width: '100%',
-    height: '100%',
-    position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   flameImageBg: {
     position: 'absolute',
     width: '100%',
@@ -283,23 +317,25 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
   },
+  fillImage: {
+    width: '100%',
+    height: '100%',
+  },
   contentContainer: {
     position: 'absolute',
-    top: '23.5%',
-    left: '22%',
-    width: '56%',
-    height: '43%',
-    paddingHorizontal: 4,
+    paddingHorizontal: 8,
     paddingTop: 2,
     paddingBottom: 2,
-    justifyContent: 'flex-start',
     overflow: 'hidden',
-    borderRadius: 14,
+    borderRadius: 18,
+    zIndex: 10,
+    backgroundColor: 'transparent',
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
+    height: 20,
   },
   senderDot: {
     width: 7,
@@ -313,33 +349,30 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   senderTitle: {
-    fontSize: 13,
+    fontSize: 13.5,
     fontWeight: '700',
     color: '#D44A68',
     letterSpacing: 0.3,
   },
+  senderTitleCompact: {
+    fontSize: 11.5,
+  },
   textScroll: {
-    flex: 1,
-    overflow: 'hidden',
+    width: '100%',
   },
   textScrollContent: {
-    paddingBottom: 12,
+    paddingBottom: 20,
     flexGrow: 1,
   },
-  tapToSkipOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'transparent',
-    zIndex: 10,
-  },
   messageBody: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 14.5,
+    lineHeight: 21,
     color: '#281335', // Deep plum/charcoal: độ tương phản cực tốt trên nền kem sáng (WCAG AAA)
     fontWeight: '500',
+  },
+  messageBodyCompact: {
+    fontSize: 12.5,
+    lineHeight: 18,
   },
   messageEmphasis: {
     fontWeight: '800',
