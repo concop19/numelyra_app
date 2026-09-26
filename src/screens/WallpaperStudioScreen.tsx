@@ -32,20 +32,25 @@ import {
   Image,
   ImageSourcePropType,
   Keyboard,
+  KeyboardAvoidingView,
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
-  Share,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
+import { saveWallpaper } from '../services/wallpaperSaver';
 import { UserProfile } from '../store/userProfile';
 import { NumerologyCalculator, reduceNumber } from '../services/numerology24Service';
 import { API_ENDPOINTS, authenticatedFetch, resolveApiUrl } from '../services/apiConfig';
@@ -224,11 +229,30 @@ export default function WallpaperStudioScreen({ profile }: Props) {
     },
   ]);
 
-  const [activeCarouselIndex, setActiveCarouselIndex] = useState(2);
+  const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
   const [fullscreenItem, setFullscreenItem] = useState<WallpaperItem | null>(null);
   const [showMenuModal, setShowMenuModal] = useState(false);
   const [showCardsModal, setShowCardsModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isSavingWallpaper, setIsSavingWallpaper] = useState(false);
+
+  // Theo dõi hiển thị bàn phím để tối ưu không gian ô nhập capsule
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setIsKeyboardVisible(true)
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setIsKeyboardVisible(false)
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const flatListRef = useRef<FlatList>(null);
   const textInputRef = useRef<TextInput>(null);
@@ -341,21 +365,18 @@ export default function WallpaperStudioScreen({ profile }: Props) {
     return () => twinkleLoop.stop();
   }, []);
 
-  // Khi chuyển sang màn hình Kết quả, đảm bảo FlatList cuộn ngay tới vị trí thứ 3 (index 2 - chính giữa)
+  // Khi chuyển sang màn hình Kết quả, đảm bảo FlatList cuộn ngay tới vị trí đang chọn (mặc định index 0)
   useEffect(() => {
     if (step === 'result') {
-      setActiveCarouselIndex(2);
+      const targetIndex = activeCarouselIndex < history.length ? activeCarouselIndex : 0;
       const timer = setTimeout(() => {
         try {
-          flatListRef.current?.scrollToIndex({
-            index: 2,
+          flatListRef.current?.scrollToOffset({
+            offset: SNAP_INTERVAL * targetIndex,
             animated: false,
           });
         } catch {
-          flatListRef.current?.scrollToOffset({
-            offset: SNAP_INTERVAL * 2,
-            animated: false,
-          });
+          // ignore
         }
       }, 80);
       return () => clearTimeout(timer);
@@ -380,9 +401,10 @@ export default function WallpaperStudioScreen({ profile }: Props) {
   };
 
   // ==========================================
-  // HÀM TẠO HÌNH NỀN TỪ BACKEND AI NUMELYRA
+  // HÀM TẠO HÌNH NỀN TỪ BACKEND AI NUMELYRA (4 PHIÊN BẢN)
   // ==========================================
   const handleGenerate = async () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Keyboard.dismiss();
     const effectivePrompt = prompt.trim() || 'Falling asleep...';
 
@@ -396,7 +418,7 @@ export default function WallpaperStudioScreen({ profile }: Props) {
     // Thời gian chờ animation tối thiểu 2.5s
     const minWaitPromise = new Promise((resolve) => setTimeout(resolve, 2500));
 
-    let newResult: WallpaperItem | null = null;
+    let newItems: WallpaperItem[] = [];
     let errorMessage: string | null = null;
 
     try {
@@ -414,29 +436,34 @@ export default function WallpaperStudioScreen({ profile }: Props) {
           styleId: randomStyle.id,
           deviceType: 'mobile',
           customWish: effectivePrompt,
+          count: 4,
         }),
       });
 
       const data = await res.json().catch(() => ({}));
-      console.log('[LuckyWallpaper] Response status:', res.status, 'success:', data?.success, 'imageUrl:', data?.imageUrl);
+      console.log('[LuckyWallpaper] Response status:', res.status, 'success:', data?.success, 'imageUrls count:', data?.imageUrls?.length, 'imageUrl:', data?.imageUrl);
 
-      if (res.ok && data.success && data.imageUrl) {
-        const fullImageUrl = resolveApiUrl(data.imageUrl);
-        console.log('[LuckyWallpaper] Full Image URL:', fullImageUrl);
+      if (res.ok && data.success && (data.imageUrls?.length || data.imageUrl)) {
+        const rawUrls: string[] = Array.isArray(data.imageUrls) && data.imageUrls.length > 0
+          ? data.imageUrls
+          : (data.imageUrl ? [data.imageUrl] : []);
 
-        newResult = {
-          id: `ai-${Date.now()}`,
-          source: { uri: fullImageUrl },
-          isUri: true,
-          title: effectivePrompt,
-          affirmation_vi: data.affirmation_vi || getRandomAffirmation(numbers.lifePathNumber, randomIntention.label),
-          explanation_vi: data.explanation_vi || `Hội tụ năng lượng số ${numbers.lifePathNumber} với phong cách ${randomStyle.label}.`,
-          luckyColors_vi: Array.isArray(data.luckyColors_vi) && data.luckyColors_vi.length > 0
-            ? data.luckyColors_vi
-            : ['Vàng hoàng kim', 'Tím huyền bí'],
-          styleName: data.style?.name_vi || randomStyle.label,
-          intentionName: data.intention?.name_vi || randomIntention.label,
-        };
+        newItems = rawUrls.map((url: string, idx: number) => {
+          const fullImageUrl = resolveApiUrl(url);
+          return {
+            id: `ai-${Date.now()}-${idx}`,
+            source: { uri: fullImageUrl },
+            isUri: true,
+            title: `${effectivePrompt} • Bản #${idx + 1}`,
+            affirmation_vi: data.affirmation_vi || getRandomAffirmation(numbers.lifePathNumber, randomIntention.label),
+            explanation_vi: data.explanation_vi || `Hội tụ năng lượng số ${numbers.lifePathNumber} với phong cách ${randomStyle.label}.`,
+            luckyColors_vi: Array.isArray(data.luckyColors_vi) && data.luckyColors_vi.length > 0
+              ? data.luckyColors_vi
+              : ['Vàng hoàng kim', 'Tím huyền bí'],
+            styleName: data.style?.name_vi || randomStyle.label,
+            intentionName: data.intention?.name_vi || randomIntention.label,
+          };
+        });
       } else {
         errorMessage = data.error || `Máy chủ phản hồi mã ${res.status}`;
       }
@@ -447,20 +474,16 @@ export default function WallpaperStudioScreen({ profile }: Props) {
 
     await minWaitPromise;
 
-    if (newResult) {
-      // Đặt ảnh mới tạo từ Backend vào đúng VỊ TRÍ THỨ 3 (index 2 - chính giữa màn hình)
+    if (newItems.length > 0) {
+      // Đặt cả 4 ảnh mới tạo lên đầu danh sách, giữ lại các ảnh AI đã tạo trước đó
       setHistory((prev) => {
-        const next = [...prev];
-        if (next.length >= 3) {
-          next[2] = newResult!; // Thay ảnh ở giữa (vị trí thứ 3) bằng ảnh backend
-        } else {
-          next.splice(2, 0, newResult!);
-        }
-        return next;
+        const prevAiOnly = prev.filter((p) => p.isUri);
+        return [...newItems, ...prevAiOnly].slice(0, 20);
       });
-      setActiveCarouselIndex(2);
+      setActiveCarouselIndex(0);
       setStep('result');
-      showToast('✨ Đã tạo xong hình nền may mắn từ AI!');
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showToast(`✨ Đã tạo xong ${newItems.length} phiên bản hình nền may mắn!`);
     } else {
       // Thông báo lỗi cụ thể cho người dùng, KHÔNG âm thầm thay bằng ảnh mock
       setStep('input');
@@ -468,26 +491,23 @@ export default function WallpaperStudioScreen({ profile }: Props) {
     }
   };
 
-  const handleShareOrSave = async (item: WallpaperItem) => {
-    try {
-      if (Platform.OS === 'web') {
-        showToast('✨ Đang tải hình nền về máy...');
-        return;
-      }
+  const handleSaveWallpaper = async (item: WallpaperItem) => {
+    if (isSavingWallpaper) return;
 
-      if (item.isUri && typeof item.source === 'object' && 'uri' in item.source) {
-        await Share.share({
-          message: `Hình nền may mắn số ${numbers.lifePathNumber} từ NUMELYRA - ${item.affirmation_vi}`,
-          url: item.source.uri,
-        });
-      } else {
-        await Share.share({
-          message: `Hình nền may mắn "${item.title}" từ NUMELYRA ✨\n"${item.affirmation_vi}"`,
-        });
+    setIsSavingWallpaper(true);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    try {
+      const res = await saveWallpaper(item);
+      if (res.success) {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-      showToast('✨ Đã lưu hình nền may mắn!');
-    } catch {
-      showToast('Đã đóng chia sẻ.');
+      showToast(res.message);
+    } catch (error) {
+      console.error('[LuckyWallpaper] Save error:', error);
+      showToast('Không thể lưu hình nền. Vui lòng thử lại.');
+    } finally {
+      setIsSavingWallpaper(false);
     }
   };
 
@@ -495,12 +515,14 @@ export default function WallpaperStudioScreen({ profile }: Props) {
     const x = e.nativeEvent.contentOffset.x;
     const index = Math.round(x / SNAP_INTERVAL);
     if (index >= 0 && index < history.length && index !== activeCarouselIndex) {
+      void Haptics.selectionAsync();
       setActiveCarouselIndex(index);
     }
   };
 
   // Nút Back trên thanh Header
   const handleHeaderBack = () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (step === 'generating') {
       setStep('input');
     } else if (step === 'result') {
@@ -538,7 +560,7 @@ export default function WallpaperStudioScreen({ profile }: Props) {
             onPress={handleHeaderBack}
             style={styles.headerIconButton}
           >
-            <Text style={styles.headerBackArrow}>←</Text>
+            <Ionicons name="arrow-back" size={24} color="#F7CC6A" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -558,105 +580,121 @@ export default function WallpaperStudioScreen({ profile }: Props) {
         {/* MÀN HÌNH 1: NHẬP YÊU CẦU (INPUT)                         */}
         {/* ========================================================= */}
         {step === 'input' && (
-          <View style={styles.screenContainer}>
-            {/* Phía trên: Tiêu đề & Cung trăng sao trang trí */}
-            <View style={styles.inputTopSection}>
-              <View style={styles.inputTitleWrapper}>
-                <Text style={styles.inputMainTitle}>
-                  Create your{'\n'}lucky wallpaper
-                </Text>
-                <Text style={styles.inputSubtitle}>
-                  Describe your vibe, mood or what{'\n'}you need right now.
-                </Text>
-              </View>
-
-              {/* Minh họa trăng khuyết và sao lấp lánh ở góc trên phải */}
-              <View style={styles.moonDecorWrapper} pointerEvents="none">
-                <Image
-                  source={MOON_DECOR}
-                  style={styles.moonImage}
-                  resizeMode="contain"
-                />
-                <Animated.Image
-                  source={STAR_DECOR}
-                  style={[
-                    styles.moonStar1,
-                    {
-                      opacity: twinkleAnim,
-                      transform: [
-                        {
-                          scale: twinkleAnim.interpolate({
-                            inputRange: [0.35, 1],
-                            outputRange: [0.75, 1.15],
-                          }),
-                        },
-                      ],
-                    },
-                  ]}
-                  resizeMode="contain"
-                />
-                <Animated.Image
-                  source={THREE_STARS_DECOR}
-                  style={[
-                    styles.moonStar2,
-                    {
-                      opacity: twinkleAnim,
-                      transform: [
-                        {
-                          scale: twinkleAnim.interpolate({
-                            inputRange: [0.35, 1],
-                            outputRange: [1.1, 0.8],
-                          }),
-                        },
-                      ],
-                    },
-                  ]}
-                  resizeMode="contain"
-                />
-              </View>
-            </View>
-
-            {/* Ô nhập liệu dạng capsule viền tím huyền ảo */}
-            <View style={styles.inputBoxContainer}>
-              <TouchableOpacity
-                activeOpacity={1}
-                onPress={() => textInputRef.current?.focus()}
-                style={styles.searchPill}
+          <KeyboardAvoidingView
+            style={styles.keyboardAvoidingWrap}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+          >
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+              <ScrollView
+                style={styles.screenContainer}
+                contentContainerStyle={[
+                  styles.inputScrollContent,
+                  isKeyboardVisible && styles.inputScrollContentKeyboard,
+                ]}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                bounces={false}
               >
-                {/* Search Icon */}
-                <View style={styles.searchIcon} pointerEvents="none">
-                  <View style={styles.searchCircle} />
-                  <View style={styles.searchHandle} />
+                {/* Phía trên: Tiêu đề & Cung trăng sao trang trí */}
+                <View style={[styles.inputTopSection, isKeyboardVisible && styles.inputTopSectionKeyboard]}>
+                  <View style={styles.inputTitleWrapper}>
+                    <Text style={[styles.inputMainTitle, isKeyboardVisible && styles.inputMainTitleKeyboard]}>
+                      Create your{'\n'}lucky wallpaper
+                    </Text>
+                    <Text style={[styles.inputSubtitle, isKeyboardVisible && styles.inputSubtitleKeyboard]}>
+                      Describe your vibe, mood or what{'\n'}you need right now.
+                    </Text>
+                  </View>
+
+                  {/* Minh họa trăng khuyết và sao lấp lánh ở góc trên phải */}
+                  <View style={[styles.moonDecorWrapper, isKeyboardVisible && styles.moonDecorWrapperKeyboard]} pointerEvents="none">
+                    <Image
+                      source={MOON_DECOR}
+                      style={[styles.moonImage, isKeyboardVisible && { width: 58, height: 58 }]}
+                      resizeMode="contain"
+                    />
+                    <Animated.Image
+                      source={STAR_DECOR}
+                      style={[
+                        styles.moonStar1,
+                        {
+                          opacity: twinkleAnim,
+                          transform: [
+                            {
+                              scale: twinkleAnim.interpolate({
+                                inputRange: [0.35, 1],
+                                outputRange: [0.75, 1.15],
+                              }),
+                            },
+                          ],
+                        },
+                      ]}
+                      resizeMode="contain"
+                    />
+                    <Animated.Image
+                      source={THREE_STARS_DECOR}
+                      style={[
+                        styles.moonStar2,
+                        {
+                          opacity: twinkleAnim,
+                          transform: [
+                            {
+                              scale: twinkleAnim.interpolate({
+                                inputRange: [0.35, 1],
+                                outputRange: [1.1, 0.8],
+                              }),
+                            },
+                          ],
+                        },
+                      ]}
+                      resizeMode="contain"
+                    />
+                  </View>
                 </View>
 
-                {/* Input Text */}
-                <TextInput
-                  ref={textInputRef}
-                  value={prompt}
-                  onChangeText={setPrompt}
-                  placeholder="Falling asleep..."
-                  placeholderTextColor="#9F8EC0"
-                  style={styles.textInputField}
-                  returnKeyType="go"
-                  onSubmitEditing={handleGenerate}
-                  selectionColor="#F7CC6A"
-                  cursorColor="#F7CC6A"
-                  keyboardAppearance="dark"
-                  autoCorrect={false}
-                  editable={true}
-                />
+                {/* Ô nhập liệu dạng capsule viền tím huyền ảo */}
+                <View style={[styles.inputBoxContainer, isKeyboardVisible && styles.inputBoxContainerKeyboard]}>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => textInputRef.current?.focus()}
+                    style={styles.searchPill}
+                  >
+                    {/* Search Icon */}
+                    <View style={styles.searchIcon} pointerEvents="none">
+                      <Ionicons name="search-outline" size={21} color="#C8B9E4" />
+                    </View>
 
-                {/* Nút tròn màu vàng pastel với mũi tên ➔ */}
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={handleGenerate}
-                  style={styles.submitCircleButton}
-                >
-                  <Text style={styles.submitArrowText}>➔</Text>
-                </TouchableOpacity>
-              </TouchableOpacity>
-            </View>
-          </View>
+                    {/* Input Text */}
+                    <TextInput
+                      ref={textInputRef}
+                      value={prompt}
+                      onChangeText={setPrompt}
+                      placeholder="Falling asleep..."
+                      placeholderTextColor="#9F8EC0"
+                      style={styles.textInputField}
+                      returnKeyType="go"
+                      onSubmitEditing={handleGenerate}
+                      selectionColor="#F7CC6A"
+                      cursorColor="#F7CC6A"
+                      keyboardAppearance="dark"
+                      autoCorrect={false}
+                      editable={true}
+                    />
+
+                    {/* Nút tròn màu vàng pastel với mũi tên ➔ */}
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={handleGenerate}
+                      style={styles.submitCircleButton}
+                    >
+                      <Ionicons name="arrow-forward" size={21} color="#211438" />
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </TouchableWithoutFeedback>
+          </KeyboardAvoidingView>
         )}
 
       {/* ========================================================= */}
@@ -788,7 +826,7 @@ export default function WallpaperStudioScreen({ profile }: Props) {
               Here’s your{'\n'}lucky wallpaper ✨
             </Text>
             <Text style={styles.resultSubtitle}>
-              Tap to see more versions{'\n'}or refine your request.
+              Swipe to explore all 4 variations ✨{'\n'}or tap any card to view fullscreen.
             </Text>
           </View>
 
@@ -805,7 +843,7 @@ export default function WallpaperStudioScreen({ profile }: Props) {
               decelerationRate="fast"
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.carouselContent}
-              initialScrollIndex={2}
+              initialScrollIndex={0}
               getItemLayout={(_, index) => ({
                 length: SNAP_INTERVAL,
                 offset: SNAP_INTERVAL * index,
@@ -846,7 +884,7 @@ export default function WallpaperStudioScreen({ profile }: Props) {
 
             {/* Dải chấm pagination tinh tế */}
             <View style={styles.paginationDotsRow}>
-              {history.slice(0, 5).map((_, idx) => (
+              {history.slice(0, 4).map((_, idx) => (
                 <View
                   key={`dot-${idx}`}
                   style={[
@@ -855,6 +893,46 @@ export default function WallpaperStudioScreen({ profile }: Props) {
                   ]}
                 />
               ))}
+            </View>
+
+            {/* Thanh chọn 4 phiên bản thu nhỏ trực quan */}
+            <View style={styles.variationRow}>
+              {history.slice(0, 4).map((item, idx) => {
+                const isActive = idx === activeCarouselIndex;
+                return (
+                  <TouchableOpacity
+                    key={`thumb-${item.id}-${idx}`}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      void Haptics.selectionAsync();
+                      setActiveCarouselIndex(idx);
+                      try {
+                        flatListRef.current?.scrollToOffset({
+                          offset: SNAP_INTERVAL * idx,
+                          animated: true,
+                        });
+                      } catch {
+                        // ignore
+                      }
+                    }}
+                    style={[
+                      styles.variationThumb,
+                      isActive && styles.variationThumbActive,
+                    ]}
+                  >
+                    <Image
+                      source={item.source}
+                      style={styles.variationThumbImg}
+                      resizeMode="cover"
+                    />
+                    <View style={[styles.variationBadge, isActive && styles.variationBadgeActive]}>
+                      <Text style={[styles.variationBadgeText, isActive && styles.variationBadgeTextActive]}>
+                        {idx + 1}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
 
@@ -869,7 +947,7 @@ export default function WallpaperStudioScreen({ profile }: Props) {
               }}
               style={styles.tryAnotherButton}
             >
-              <Text style={styles.tryAnotherIcon}>↻</Text>
+              <Ionicons name="refresh" size={19} color="#F7CC6A" />
               <Text style={styles.tryAnotherText}>Try another</Text>
             </TouchableOpacity>
 
@@ -878,12 +956,13 @@ export default function WallpaperStudioScreen({ profile }: Props) {
               activeOpacity={0.85}
               onPress={() => {
                 const cur = history[activeCarouselIndex] || history[0];
-                if (cur) handleShareOrSave(cur);
+                if (cur) void handleSaveWallpaper(cur);
               }}
-              style={styles.saveWallpaperButton}
+              disabled={isSavingWallpaper}
+              style={[styles.saveWallpaperButton, isSavingWallpaper && styles.saveWallpaperButtonDisabled]}
             >
-              <Text style={styles.saveWallpaperIcon}>↓</Text>
-              <Text style={styles.saveWallpaperText}>Save wallpaper</Text>
+              <Ionicons name="download-outline" size={20} color="#211438" />
+              <Text style={styles.saveWallpaperText}>{isSavingWallpaper ? 'Saving...' : 'Save wallpaper'}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -912,17 +991,22 @@ export default function WallpaperStudioScreen({ profile }: Props) {
             {/* Top Bar */}
             <View style={styles.fullscreenTopBar}>
               <TouchableOpacity
-                onPress={() => setFullscreenItem(null)}
+                activeOpacity={0.7}
+                onPress={() => { void Haptics.selectionAsync(); setFullscreenItem(null); }}
                 style={styles.fullscreenCloseBtn}
               >
-                <Text style={styles.fullscreenCloseText}>✕ Đóng</Text>
+                <Ionicons name="close" size={19} color="#F7CC6A" />
+                <Text style={styles.fullscreenCloseText}>Đóng</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => fullscreenItem && handleShareOrSave(fullscreenItem)}
-                style={styles.fullscreenShareBtn}
+                activeOpacity={0.7}
+                onPress={() => fullscreenItem && void handleSaveWallpaper(fullscreenItem)}
+                disabled={isSavingWallpaper}
+                style={[styles.fullscreenShareBtn, isSavingWallpaper && styles.saveWallpaperButtonDisabled]}
               >
-                <Text style={styles.fullscreenShareText}>Lưu / Chia sẻ ✦</Text>
+                <Ionicons name="download-outline" size={18} color="#211438" />
+                <Text style={styles.fullscreenShareText}>{isSavingWallpaper ? 'Đang lưu...' : 'Lưu ảnh'}</Text>
               </TouchableOpacity>
             </View>
 
@@ -972,7 +1056,7 @@ export default function WallpaperStudioScreen({ profile }: Props) {
         <View style={styles.menuBackdrop}>
           <TouchableOpacity
             style={styles.menuBackdropDismiss}
-            activeOpacity={1}
+            activeOpacity={0.7}
             onPress={() => setShowMenuModal(false)}
           />
           <View style={styles.menuSheet}>
@@ -982,36 +1066,39 @@ export default function WallpaperStudioScreen({ profile }: Props) {
             </View>
 
             <TouchableOpacity
+              activeOpacity={0.7}
               style={styles.menuItem}
               onPress={() => {
                 setShowMenuModal(false);
                 setShowCardsModal(true);
               }}
             >
-              <Text style={styles.menuItemIcon}>🎴</Text>
+              <Ionicons name="layers-outline" size={22} color="#F7CC6A" style={styles.menuItemIcon} />
               <View style={styles.menuItemTextWrap}>
                 <Text style={styles.menuItemTitle}>Xem 24 Lá Bài Bản Mệnh</Text>
                 <Text style={styles.menuItemDesc}>Bản đồ năng lượng linh số Pythagoras</Text>
               </View>
-              <Text style={styles.menuItemChevron}>›</Text>
+              <Ionicons name="chevron-forward" size={19} color="#C9B3E9" />
             </TouchableOpacity>
 
             <TouchableOpacity
+              activeOpacity={0.7}
               style={styles.menuItem}
               onPress={() => {
                 setShowMenuModal(false);
                 setStep('result');
               }}
             >
-              <Text style={styles.menuItemIcon}>🖼️</Text>
+              <Ionicons name="images-outline" size={22} color="#F7CC6A" style={styles.menuItemIcon} />
               <View style={styles.menuItemTextWrap}>
                 <Text style={styles.menuItemTitle}>Thư viện hình nền đã tạo</Text>
                 <Text style={styles.menuItemDesc}>Xem lại {history.length} tác phẩm đã hoàn thành</Text>
               </View>
-              <Text style={styles.menuItemChevron}>›</Text>
+              <Ionicons name="chevron-forward" size={19} color="#C9B3E9" />
             </TouchableOpacity>
 
             <TouchableOpacity
+              activeOpacity={0.7}
               style={styles.menuItem}
               onPress={() => {
                 setShowMenuModal(false);
@@ -1019,15 +1106,16 @@ export default function WallpaperStudioScreen({ profile }: Props) {
                 setStep('input');
               }}
             >
-              <Text style={styles.menuItemIcon}>✨</Text>
+              <Ionicons name="sparkles" size={22} color="#F7CC6A" style={styles.menuItemIcon} />
               <View style={styles.menuItemTextWrap}>
                 <Text style={styles.menuItemTitle}>Tạo hình nền may mắn mới</Text>
                 <Text style={styles.menuItemDesc}>Nhập mong muốn và hòa vào năng lượng vũ trụ</Text>
               </View>
-              <Text style={styles.menuItemChevron}>›</Text>
+              <Ionicons name="chevron-forward" size={19} color="#C9B3E9" />
             </TouchableOpacity>
 
             <TouchableOpacity
+              activeOpacity={0.7}
               style={styles.menuCloseBtn}
               onPress={() => setShowMenuModal(false)}
             >
@@ -1063,10 +1151,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
   },
+  keyboardAvoidingWrap: {
+    flex: 1,
+  },
   screenContainer: {
     flex: 1,
     position: 'relative',
     backgroundColor: 'transparent',
+  },
+  inputScrollContent: {
+    flexGrow: 1,
+    paddingBottom: 24,
+  },
+  inputScrollContentKeyboard: {
+    paddingBottom: 40,
   },
 
   // ================= TOP HEADER =================
@@ -1110,6 +1208,9 @@ const styles = StyleSheet.create({
     position: 'relative',
     zIndex: 10,
   },
+  inputTopSectionKeyboard: {
+    paddingTop: 4,
+  },
   inputTitleWrapper: {
     maxWidth: SCREEN_WIDTH * 0.68,
   },
@@ -1120,12 +1221,21 @@ const styles = StyleSheet.create({
     lineHeight: 38,
     letterSpacing: -0.3,
   },
+  inputMainTitleKeyboard: {
+    fontSize: 26,
+    lineHeight: 31,
+  },
   inputSubtitle: {
     color: '#B6A6CE',
     fontSize: 14.5,
     lineHeight: 21,
     marginTop: 10,
     fontWeight: '400',
+  },
+  inputSubtitleKeyboard: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 4,
   },
   moonDecorWrapper: {
     position: 'absolute',
@@ -1135,6 +1245,12 @@ const styles = StyleSheet.create({
     height: 86,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  moonDecorWrapperKeyboard: {
+    width: 65,
+    height: 65,
+    top: 2,
+    right: 14,
   },
   moonImage: {
     width: 74,
@@ -1160,6 +1276,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     marginTop: 26,
     zIndex: 15,
+  },
+  inputBoxContainerKeyboard: {
+    marginTop: 14,
   },
   searchPill: {
     height: 56,
@@ -1431,6 +1550,60 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
 
+  // 4 Variations selector bar
+  variationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 12,
+  },
+  variationThumb: {
+    width: 44,
+    height: 60,
+    borderRadius: 10,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'rgba(142, 105, 196, 0.35)',
+    position: 'relative',
+    backgroundColor: '#170E28',
+  },
+  variationThumbActive: {
+    borderColor: '#F7CC6A',
+    borderWidth: 2,
+    shadowColor: '#F7CC6A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.6,
+    shadowRadius: 6,
+    elevation: 6,
+    transform: [{ scale: 1.08 }],
+  },
+  variationThumbImg: {
+    width: '100%',
+    height: '100%',
+  },
+  variationBadge: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    backgroundColor: 'rgba(33, 20, 56, 0.85)',
+    borderRadius: 4,
+    paddingHorizontal: 3.5,
+    paddingVertical: 1,
+  },
+  variationBadgeActive: {
+    backgroundColor: '#F7CC6A',
+  },
+  variationBadgeText: {
+    color: '#D8CEE8',
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  variationBadgeTextActive: {
+    color: '#211438',
+  },
+
+
   // Bottom action buttons
   resultActionsRow: {
     flexDirection: 'row',
@@ -1476,6 +1649,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 8,
     elevation: 4,
+  },
+  saveWallpaperButtonDisabled: {
+    opacity: 0.6,
   },
   saveWallpaperIcon: {
     color: '#211438',
@@ -1530,6 +1706,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
   },
   fullscreenCloseText: {
     color: '#FFFFFF',
@@ -1541,6 +1721,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     backgroundColor: '#F7CC6A',
     borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
   },
   fullscreenShareText: {
     color: '#211438',

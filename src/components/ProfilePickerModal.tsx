@@ -7,6 +7,8 @@ import {
   StyleSheet, View, Text, Modal, TouchableOpacity,
   ScrollView, TextInput, Alert, Platform
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import {
   ProfileItem, loadAllProfiles, addProfile, deleteProfile,
   setActiveProfileId, getZodiac, getZodiacEmoji, getNguHanh, getNguHanhEmoji
@@ -61,6 +63,7 @@ export default function ProfilePickerModal({
   }, [visible]);
 
   const handleSelectProfile = async (item: ProfileItem) => {
+    void Haptics.selectionAsync();
     if (!isCoupleMode) {
       // Chế độ 1 người: Chọn ngay và đóng modal
       await setActiveProfileId(item.id);
@@ -92,6 +95,7 @@ export default function ProfilePickerModal({
       return;
     }
     onProfilesSelected(chosen.slice(0, 2));
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onClose();
   };
 
@@ -152,6 +156,7 @@ export default function ProfilePickerModal({
       setFormError('');
       setIsAdding(false);
       await fetchProfiles();
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       if (isCoupleMode) {
         setTempSelectedIds(prev => [...prev.slice(0, 1), created.id]);
@@ -176,42 +181,42 @@ export default function ProfilePickerModal({
           {/* Header */}
           <View style={styles.modalHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={styles.headerIcon}>✦</Text>
+              <Ionicons name="sparkles" size={16} color="#F5BA5B" style={styles.headerIcon} />
               <Text style={styles.headerTitle}>Chọn Hồ Sơ Luận Giải</Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Text style={styles.closeBtnText}>✕</Text>
+            <TouchableOpacity activeOpacity={0.7} onPress={onClose} style={styles.closeBtn}>
+              <Ionicons name="close" size={20} color="#94A3B8" />
             </TouchableOpacity>
           </View>
 
           {/* Mode Switch: 1 người vs 2 người */}
           <View style={styles.modeTabs}>
             <TouchableOpacity
+              activeOpacity={0.7}
               style={[styles.modeTab, !isCoupleMode && styles.modeTabActive]}
               onPress={() => {
+                void Haptics.selectionAsync();
                 setIsCoupleMode(false);
                 if (tempSelectedIds.length > 1) {
                   setTempSelectedIds([tempSelectedIds[0]]);
                 }
               }}
             >
-              <Text style={[styles.modeTabText, !isCoupleMode && styles.modeTabTextActive]}>
-                👤 Cá Nhân (1 Người)
-              </Text>
+              <View style={styles.modeTabLabel}><Ionicons name="person-outline" size={15} color={!isCoupleMode ? '#F5BA5B' : '#94A3B8'} /><Text style={[styles.modeTabText, !isCoupleMode && styles.modeTabTextActive]}>Cá Nhân (1 Người)</Text></View>
             </TouchableOpacity>
 
             <TouchableOpacity
+              activeOpacity={0.7}
               style={[styles.modeTab, isCoupleMode && styles.modeTabActiveCouple]}
               onPress={() => {
+                void Haptics.selectionAsync();
                 setIsCoupleMode(true);
                 if (profiles.length >= 2 && tempSelectedIds.length < 2) {
                   setTempSelectedIds([profiles[0].id, profiles[1].id]);
                 }
               }}
             >
-              <Text style={[styles.modeTabText, isCoupleMode && styles.modeTabTextActiveCouple]}>
-                💖 Tình Duyên (2 Người)
-              </Text>
+              <View style={styles.modeTabLabel}><Ionicons name="heart-outline" size={15} color={isCoupleMode ? '#F472B6' : '#94A3B8'} /><Text style={[styles.modeTabText, isCoupleMode && styles.modeTabTextActiveCouple]}>Tình Duyên (2 Người)</Text></View>
             </TouchableOpacity>
           </View>
 
@@ -275,13 +280,14 @@ export default function ProfilePickerModal({
                     <View style={styles.profileRight}>
                       {profiles.length > 1 && (
                         <TouchableOpacity
+                          activeOpacity={0.7}
                           style={styles.deleteBtn}
                           onPress={(e) => {
                             e.stopPropagation();
                             handleDelete(p.id, p.fullName);
                           }}
                         >
-                          <Text style={styles.deleteIcon}>🗑️</Text>
+                          <Ionicons name="trash-outline" size={16} color="#FCA5A5" />
                         </TouchableOpacity>
                       )}
                     </View>
@@ -299,7 +305,7 @@ export default function ProfilePickerModal({
             {/* Add Profile Section */}
             {isAdding ? (
               <View style={styles.formContainer}>
-                <Text style={styles.formTitle}>➕ Thêm Hồ Sơ Mới</Text>
+                <View style={styles.formTitleRow}><Ionicons name="add-circle-outline" size={17} color="#F5BA5B" /><Text style={styles.formTitle}>Thêm Hồ Sơ Mới</Text></View>
                 
                 {formError ? <Text style={styles.formError}>{formError}</Text> : null}
 
@@ -324,16 +330,18 @@ export default function ProfilePickerModal({
                 <Text style={styles.label}>Giới tính</Text>
                 <View style={styles.genderRow}>
                   <TouchableOpacity
+                    activeOpacity={0.7}
                     style={[styles.genderBtn, newGender === 'female' && styles.genderBtnActive]}
-                    onPress={() => setNewGender('female')}
+                    onPress={() => { void Haptics.selectionAsync(); setNewGender('female'); }}
                   >
                     <Text style={[styles.genderBtnText, newGender === 'female' && styles.genderBtnTextActive]}>
                       👩 Nữ
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
+                    activeOpacity={0.7}
                     style={[styles.genderBtn, newGender === 'male' && styles.genderBtnActive]}
-                    onPress={() => setNewGender('male')}
+                    onPress={() => { void Haptics.selectionAsync(); setNewGender('male'); }}
                   >
                     <Text style={[styles.genderBtnText, newGender === 'male' && styles.genderBtnTextActive]}>
                       👨 Nam
@@ -343,6 +351,7 @@ export default function ProfilePickerModal({
 
                 <View style={styles.formActions}>
                   <TouchableOpacity
+                    activeOpacity={0.7}
                     style={styles.cancelBtn}
                     onPress={() => {
                       setIsAdding(false);
@@ -351,7 +360,7 @@ export default function ProfilePickerModal({
                   >
                     <Text style={styles.cancelBtnText}>Hủy</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.submitBtn} onPress={handleCreateProfile}>
+                  <TouchableOpacity activeOpacity={0.7} style={styles.submitBtn} onPress={handleCreateProfile}>
                     <Text style={styles.submitBtnText}>Lưu Hồ Sơ</Text>
                   </TouchableOpacity>
                 </View>
@@ -359,10 +368,10 @@ export default function ProfilePickerModal({
             ) : (
               <TouchableOpacity
                 style={styles.addTriggerBtn}
-                onPress={() => setIsAdding(true)}
-                activeOpacity={0.8}
+                onPress={() => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setIsAdding(true); }}
+                activeOpacity={0.7}
               >
-                <Text style={styles.addTriggerIcon}>➕</Text>
+                <Ionicons name="add-circle-outline" size={16} color="#F5BA5B" style={styles.addTriggerIcon} />
                 <Text style={styles.addTriggerText}>Thêm hồ sơ người thân / bạn bè</Text>
               </TouchableOpacity>
             )}
@@ -371,6 +380,7 @@ export default function ProfilePickerModal({
           {/* Confirm Button for Couple Mode */}
           {isCoupleMode && (
             <TouchableOpacity
+              activeOpacity={0.7}
               style={[
                 styles.confirmCoupleBtn,
                 tempSelectedIds.length < 2 && styles.confirmCoupleBtnDisabled
@@ -449,6 +459,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 8
   },
+  modeTabLabel: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
   modeTabActive: {
     backgroundColor: '#262040'
   },
@@ -608,11 +619,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2F294D'
   },
+  formTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
   formTitle: {
     color: '#F5BA5B',
     fontSize: 14,
     fontWeight: '700',
-    marginBottom: 10
   },
   label: {
     color: '#94A3B8',

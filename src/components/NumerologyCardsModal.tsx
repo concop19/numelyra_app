@@ -12,6 +12,8 @@ import {
   Platform,
   Dimensions,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { calculate24Indicators, CalculatedIndicator } from '../services/numerologyEngine';
 import { IndicatorCategory } from '../config/numerologyCards';
 import { IndicatorDetailModal } from './IndicatorDetailModal';
@@ -53,12 +55,19 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
     if (selectedCategory === 'all') return indicators;
     return indicators.filter((item) => item.category === selectedCategory);
   }, [indicators, selectedCategory]);
+  const selectCategory = (category: 'all' | IndicatorCategory) => {
+    if (category !== selectedCategory) void Haptics.selectionAsync();
+    setSelectedCategory(category);
+  };
 
   const renderCardItem = ({ item }: { item: CalculatedIndicator }) => {
     return (
       <TouchableOpacity
-        activeOpacity={0.88}
-        onPress={() => setSelectedIndicator(item)}
+        activeOpacity={0.7}
+        onPress={() => {
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          setSelectedIndicator(item);
+        }}
         style={styles.cardWrapper}
       >
         <View style={styles.cardContainer}>
@@ -108,7 +117,7 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
         <View style={styles.topHeader}>
           <View style={styles.headerInfo}>
             <View style={styles.headerTitleRow}>
-              <Text style={styles.celestialIcon}>✦</Text>
+              <Ionicons name="sparkles" size={16} color="#E5A93C" />
               <Text style={styles.headerTitle}>Bản Đồ 24 Chỉ Số Thần Số Học</Text>
             </View>
             <Text style={styles.profileSubtitle}>
@@ -117,14 +126,14 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
           </View>
 
           <TouchableOpacity activeOpacity={0.7} onPress={onClose} style={styles.closeButton}>
-            <Text style={styles.closeButtonText}>✕</Text>
+            <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.85)" />
           </TouchableOpacity>
         </View>
 
         {/* Notice Banner */}
         <View style={styles.bannerContainer}>
           <Text style={styles.bannerText}>
-            ✨ Chạm vào bất kỳ lá bài nào để mở bài luận giải tri thức bản mệnh tức thì.
+            Chạm vào bất kỳ lá bài nào để mở bài luận giải tri thức bản mệnh tức thì.
           </Text>
         </View>
 
@@ -141,7 +150,7 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
               return (
                 <TouchableOpacity
                   activeOpacity={0.8}
-                  onPress={() => setSelectedCategory(item.key)}
+                  onPress={() => selectCategory(item.key)}
                   style={[styles.tabBtn, isActive && styles.tabBtnActive]}
                 >
                   <Text style={[styles.tabBtnText, isActive && styles.tabBtnTextActive]}>

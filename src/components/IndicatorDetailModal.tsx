@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { CalculatedIndicator } from '../services/numerologyEngine';
 import { getIndicatorReading, KnowledgeReadingResult } from '../services/numerologyKnowledge';
 
@@ -67,7 +69,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
               <Text style={styles.headerCategory}>{indicator.categoryNameVi}</Text>
             </View>
             <TouchableOpacity activeOpacity={0.7} onPress={onClose} style={styles.closeBtn}>
-              <Text style={styles.closeBtnText}>✕</Text>
+              <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.8)" />
             </TouchableOpacity>
           </View>
 
@@ -104,7 +106,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
 
             {/* Tra Cứu Tri Thức Banner */}
             <View style={styles.knowledgeBanner}>
-              <Text style={styles.knowledgeBannerIcon}>📜</Text>
+              <Ionicons name="book-outline" size={16} color="#FCD34D" />
               <Text style={styles.knowledgeBannerText}>
                 Luận giải tri thức chuẩn Pythagoras • Tức thì & Không qua AI
               </Text>
@@ -124,7 +126,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
                 {/* 1. Bản Chất Cốt Lõi */}
                 <View style={styles.sectionBlock}>
                   <View style={styles.sectionTitleRow}>
-                    <Text style={styles.sectionIcon}>🌟</Text>
+                    <Ionicons name="sparkles" size={17} color="#FCD34D" />
                     <Text style={styles.sectionHeading}>Bản Chất Cốt Lõi & Năng Lượng</Text>
                   </View>
                   <Text style={styles.sectionBodyText}>{reading.overview}</Text>
@@ -134,12 +136,12 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
                 {reading.strengths.length > 0 && (
                   <View style={styles.sectionBlock}>
                     <View style={styles.sectionTitleRow}>
-                      <Text style={styles.sectionIcon}>💎</Text>
+                      <Ionicons name="diamond-outline" size={17} color="#7DD3FC" />
                       <Text style={styles.sectionHeading}>Điểm Mạnh Tự Nhiên</Text>
                     </View>
                     {reading.strengths.map((s, idx) => (
                       <View key={`str-${idx}`} style={styles.bulletItem}>
-                        <Text style={styles.bulletDot}>✦</Text>
+                        <Ionicons name="sparkles" size={12} color="#34D399" style={styles.bulletDot} />
                         <Text style={styles.bulletText}>{s}</Text>
                       </View>
                     ))}
@@ -150,12 +152,12 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
                 {reading.challenges.length > 0 && (
                   <View style={styles.sectionBlock}>
                     <View style={styles.sectionTitleRow}>
-                      <Text style={styles.sectionIcon}>🌒</Text>
+                      <Ionicons name="moon-outline" size={17} color="#C4B5FD" />
                       <Text style={styles.sectionHeading}>Vùng Bóng Tối Cần Lưu Ý</Text>
                     </View>
                     {reading.challenges.map((c, idx) => (
                       <View key={`cha-${idx}`} style={styles.bulletItem}>
-                        <Text style={[styles.bulletDot, { color: '#F87171' }]}>✦</Text>
+                        <Ionicons name="sparkles" size={12} color="#F87171" style={styles.bulletDot} />
                         <Text style={styles.bulletText}>{c}</Text>
                       </View>
                     ))}
@@ -166,7 +168,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
                 {reading.advice ? (
                   <View style={[styles.sectionBlock, styles.adviceBlock]}>
                     <View style={styles.sectionTitleRow}>
-                      <Text style={styles.sectionIcon}>🌿</Text>
+                      <Ionicons name="leaf-outline" size={17} color="#A7F3D0" />
                       <Text style={[styles.sectionHeading, { color: '#FCD34D' }]}>
                         Lời Khuyên & Bước Chuyển Hóa
                       </Text>
@@ -180,12 +182,14 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
                   <View style={styles.fullArticleContainer}>
                     <TouchableOpacity
                       activeOpacity={0.8}
-                      onPress={() => setShowFullArticle(!showFullArticle)}
+                      onPress={() => {
+                        void Haptics.selectionAsync();
+                        setShowFullArticle(!showFullArticle);
+                      }}
                       style={styles.expandArticleBtn}
                     >
-                      <Text style={styles.expandArticleText}>
-                        {showFullArticle ? '▴ Thu gọn bài luận giải' : '▾ Đọc toàn văn tư liệu gốc'}
-                      </Text>
+                      <Ionicons name={showFullArticle ? "chevron-up" : "chevron-down"} size={15} color="#93C5FD" />
+                      <Text style={styles.expandArticleText}>{showFullArticle ? 'Thu gọn bài luận giải' : 'Đọc toàn văn tư liệu gốc'}</Text>
                     </TouchableOpacity>
 
                     {showFullArticle && (
@@ -203,7 +207,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
 
           {/* Footer Close Button */}
           <View style={styles.footerRow}>
-            <TouchableOpacity activeOpacity={0.85} onPress={onClose} style={styles.footerConfirmBtn}>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => { void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); onClose(); }} style={styles.footerConfirmBtn}>
               <Text style={styles.footerConfirmText}>Đã Hiểu • Quay Lại 24 Lá Bài</Text>
             </TouchableOpacity>
           </View>
@@ -469,6 +473,10 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     paddingVertical: 8,
     paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
   },
   expandArticleText: {
     color: '#93C5FD',

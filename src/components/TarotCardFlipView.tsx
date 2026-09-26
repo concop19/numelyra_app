@@ -7,6 +7,8 @@ import {
   StyleSheet, View, Text, TouchableOpacity,
   Animated, Image, Platform
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { DrawnCardResult } from '../services/tarotService';
 import { getTarotCardImage, TAROT_CARD_BACK } from '../services/tarotAssets';
 
@@ -61,6 +63,7 @@ export default function TarotCardFlipView({
 
   const handleCardPress = () => {
     if (!isFlipped) {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       onFlip(index);
     } else if (onPressCard) {
       onPressCard(item);
@@ -69,7 +72,7 @@ export default function TarotCardFlipView({
 
   return (
     <TouchableOpacity
-      activeOpacity={0.88}
+      activeOpacity={0.7}
       onPress={handleCardPress}
       style={styles.container}
     >
@@ -98,7 +101,7 @@ export default function TarotCardFlipView({
           />
           <View style={styles.backOverlay}>
             <View style={styles.tapToFlipBadge}>
-              <Text style={styles.tapSparkle}>✦</Text>
+              <Ionicons name="sparkles" size={12} color="#FDB551" style={styles.tapSparkle} />
               <Text style={styles.tapText}>Chạm để lật</Text>
             </View>
           </View>

@@ -8,6 +8,8 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 interface Props {
   value: string;
@@ -33,6 +35,11 @@ export const ChatInputBar: React.FC<Props> = ({
   disabled = false,
 }) => {
   const canSend = value.trim().length > 0 && !isLoading && !disabled;
+  const handleSend = () => {
+    if (!canSend) return;
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onSend();
+  };
 
   return (
     <View style={styles.container}>
@@ -44,7 +51,7 @@ export const ChatInputBar: React.FC<Props> = ({
         accessibilityLabel="Mở menu tính năng nhanh"
         accessibilityRole="button"
       >
-        <Text style={styles.plusIcon}>+</Text>
+        <Ionicons name="add" size={27} color="rgba(240, 228, 255, 0.96)" />
       </TouchableOpacity>
 
       {/* Khung nhập văn bản dạng viên thuốc (pill shape) */}
@@ -57,16 +64,18 @@ export const ChatInputBar: React.FC<Props> = ({
           placeholderTextColor="rgba(200, 190, 230, 0.55)"
           returnKeyType="send"
           onSubmitEditing={() => {
-            if (canSend) onSend();
+            handleSend();
           }}
           multiline={false}
           editable={!disabled && !isLoading}
           autoCorrect={false}
+          cursorColor="#F7CC6A"
+          selectionColor="rgba(247, 204, 106, 0.4)"
         />
 
         <TouchableOpacity
           activeOpacity={0.8}
-          onPress={onSend}
+          onPress={handleSend}
           disabled={!canSend}
           style={[
             styles.circleSendBtn,
@@ -78,7 +87,7 @@ export const ChatInputBar: React.FC<Props> = ({
           {isLoading ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={styles.sendArrowIcon}>↑</Text>
+            <Ionicons name="arrow-up" size={22} color="#FFFFFF" />
           )}
         </TouchableOpacity>
       </View>

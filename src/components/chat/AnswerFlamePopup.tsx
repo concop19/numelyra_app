@@ -10,6 +10,7 @@ import {
   ScrollView,
   Dimensions,
 } from 'react-native';
+import HighlightedAnswerText from './HighlightedAnswerText';
 
 const ANSWER_BG = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/answerPopup/answer_popup_index2.png');
 const ANSWER_AURA = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/answerPopup/answer_popup_index3.png');
@@ -192,34 +193,47 @@ export const AnswerFlamePopup: React.FC<Props> = ({
         />
 
         {/* Nội dung bên trong ngọn lửa */}
-        <TouchableOpacity
-          activeOpacity={isDone ? 1 : 0.9}
-          onPress={handleSkipTyping}
-          style={styles.contentContainer}
-        >
+        <View style={styles.contentContainer}>
           {/* Header người gửi */}
           <View style={styles.headerRow}>
             <View style={styles.senderDot} />
             <Text style={styles.senderTitle}>{senderName}</Text>
           </View>
 
-          {/* Khung văn bản có thể cuộn nếu câu trả lời dài */}
+          {/* Khung văn bản có thể cuộn tự do, không bị TouchableOpacity cha nuốt gesture */}
           <ScrollView
             style={styles.textScroll}
             contentContainerStyle={styles.textScrollContent}
-            showsVerticalScrollIndicator={false}
+            showsVerticalScrollIndicator={true}
+            indicatorStyle="black"
             nestedScrollEnabled={true}
+            keyboardShouldPersistTaps="handled"
+            bounces={true}
+            overScrollMode="always"
           >
-            <Text style={styles.messageBody}>
-              {displayedText}
+            <HighlightedAnswerText
+              text={displayedText}
+              style={styles.messageBody}
+              emphasisStyle={styles.messageEmphasis}
+            >
               {!isDone && <Text style={styles.cursor}> ▌</Text>}
-            </Text>
+            </HighlightedAnswerText>
 
             {extraActions && (
               <View style={styles.actionsContainer}>{extraActions}</View>
             )}
           </ScrollView>
-        </TouchableOpacity>
+
+          {/* Lớp phủ chạm để bỏ qua gõ chữ - CHỈ xuất hiện khi đang gõ để không nuốt thao tác cuộn */}
+          {!isDone && (
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={handleSkipTyping}
+              style={styles.tapToSkipOverlay}
+              accessibilityLabel="Bỏ qua hiệu ứng gõ chữ"
+            />
+          )}
+        </View>
       </View>
     </Animated.View>
   );
@@ -270,22 +284,27 @@ const styles = StyleSheet.create({
     left: 0,
   },
   contentContainer: {
-    width: '72%',
-    height: '70%',
-    paddingHorizontal: 10,
-    paddingTop: 19,
-    paddingBottom: 12,
+    position: 'absolute',
+    top: '23.5%',
+    left: '22%',
+    width: '56%',
+    height: '43%',
+    paddingHorizontal: 4,
+    paddingTop: 2,
+    paddingBottom: 2,
     justifyContent: 'flex-start',
+    overflow: 'hidden',
+    borderRadius: 14,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   senderDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
     backgroundColor: '#FF6F59',
     marginRight: 6,
     shadowColor: '#FF6F59',
@@ -294,22 +313,36 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   senderTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: '#D44A68',
     letterSpacing: 0.3,
   },
   textScroll: {
     flex: 1,
+    overflow: 'hidden',
   },
   textScrollContent: {
-    paddingBottom: 10,
+    paddingBottom: 12,
+    flexGrow: 1,
+  },
+  tapToSkipOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
+    zIndex: 10,
   },
   messageBody: {
-    fontSize: 15,
-    lineHeight: 22.5,
+    fontSize: 14,
+    lineHeight: 20,
     color: '#281335', // Deep plum/charcoal: độ tương phản cực tốt trên nền kem sáng (WCAG AAA)
     fontWeight: '500',
+  },
+  messageEmphasis: {
+    fontWeight: '800',
   },
   cursor: {
     color: '#FF6F59',

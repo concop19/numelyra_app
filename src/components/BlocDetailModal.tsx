@@ -11,6 +11,8 @@ import {
   Modal, View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Image, Dimensions, Platform
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 import { HourInfo } from '../services/lunarService';
@@ -101,8 +103,8 @@ export default function BlocDetailModal({
                   : 'CHI TIẾT ÂM DƯƠNG & BẢN MỆNH'}
               </Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Text style={styles.closeBtnText}>✕</Text>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => { void Haptics.selectionAsync(); onClose(); }} style={styles.closeBtn}>
+              <Ionicons name="close" size={21} color="#F5BA5B" />
             </TouchableOpacity>
           </View>
 

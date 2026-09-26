@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 import { useAuth } from '../store/authContext';
 
@@ -37,6 +39,7 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
   const [error, setError] = useState('');
 
   const handleGoogleSignIn = async () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setGoogleLoading(true);
     setError('');
     setMessage('');
@@ -51,6 +54,7 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
   };
 
   const submit = async () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const normalizedEmail = email.trim();
     if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
       setError('Hãy nhập một địa chỉ email hợp lệ.');
@@ -159,7 +163,7 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
                 secureTextEntry={!showPassword}
                 style={styles.passwordInput}
               />
-              <TouchableOpacity accessibilityRole="button" onPress={() => setShowPassword((value) => !value)} style={styles.showButton}>
+              <TouchableOpacity activeOpacity={0.7} accessibilityRole="button" onPress={() => { void Haptics.selectionAsync(); setShowPassword((value) => !value); }} style={styles.showButton}>
                 <Text style={styles.showButtonText}>{showPassword ? 'ẨN' : 'HIỆN'}</Text>
               </TouchableOpacity>
             </View>
@@ -175,14 +179,14 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
               activeOpacity={0.85}
               style={[styles.submit, (!isConfigured || loading || googleLoading) && styles.submitDisabled]}
             >
-              {loading ? <ActivityIndicator color="#FFF9F5" /> : <Text style={styles.submitText}>{isSignUp ? 'TẠO TÀI KHOẢN  →' : 'ĐĂNG NHẬP  →'}</Text>}
+              {loading ? <ActivityIndicator color="#FFF9F5" /> : <View style={styles.submitContent}><Text style={styles.submitText}>{isSignUp ? 'TẠO TÀI KHOẢN' : 'ĐĂNG NHẬP'}</Text><Ionicons name="arrow-forward" size={18} color="#FFF9F5" /></View>}
             </TouchableOpacity>
 
-            <TouchableOpacity accessibilityRole="button" onPress={() => { setIsSignUp((value) => !value); setError(''); setMessage(''); }} style={styles.modeButton}>
+            <TouchableOpacity activeOpacity={0.7} accessibilityRole="button" onPress={() => { void Haptics.selectionAsync(); setIsSignUp((value) => !value); setError(''); setMessage(''); }} style={styles.modeButton}>
               <Text style={styles.modeText}>{isSignUp ? 'Đã có tài khoản? ' : 'Chưa có tài khoản? '}<Text style={styles.modeEmphasis}>{isSignUp ? 'Đăng nhập' : 'Tạo tài khoản'}</Text></Text>
             </TouchableOpacity>
             {allowGuest && (
-              <TouchableOpacity accessibilityRole="button" onPress={onContinueAsGuest} style={styles.guestButton}>
+              <TouchableOpacity activeOpacity={0.7} accessibilityRole="button" onPress={() => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onContinueAsGuest(); }} style={styles.guestButton}>
                 <Text style={styles.guestText}>Tiếp tục với tư cách Khách</Text>
               </TouchableOpacity>
             )}
@@ -211,6 +215,7 @@ const styles = StyleSheet.create({
   showButtonText: { color: '#D45B3B', fontSize: 11, fontWeight: '800' },
   submit: { minHeight: 52, marginTop: 16, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F04A38' },
   submitDisabled: { opacity: 0.55 },
+  submitContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   submitText: { color: '#FFF9F5', fontSize: 14, fontWeight: '900', letterSpacing: 0.4 },
   error: { color: '#A33126', fontSize: 12, lineHeight: 18, marginTop: 12, textAlign: 'center' },
   message: { color: '#3D7A50', fontSize: 12, lineHeight: 18, marginTop: 12, textAlign: 'center' },

@@ -2,6 +2,8 @@ import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, AppState, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { useAuth } from '../store/authContext';
@@ -48,6 +50,7 @@ export default function SettingsScreen({ onRequestLogin }: Props) {
   }, [refreshBilling]));
 
   const handleSignOut = async () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setBusy(true);
     try {
       await signOut();
@@ -62,6 +65,7 @@ export default function SettingsScreen({ onRequestLogin }: Props) {
     setBusy(true);
     try {
       await syncLocalProfiles();
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert('Đã đồng bộ', 'Hồ sơ trên thiết bị đã được liên kết với tài khoản của bạn.');
     } finally {
       setBusy(false);
@@ -69,6 +73,7 @@ export default function SettingsScreen({ onRequestLogin }: Props) {
   };
 
   const upgrade = async () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (!user) {
       onRequestLogin();
       return;
@@ -180,13 +185,13 @@ export default function SettingsScreen({ onRequestLogin }: Props) {
                 activeOpacity={0.85}
                 style={[styles.upgradeButton, busy && styles.disabled]}
               >
-                {busy ? <ActivityIndicator color="#110F20" /> : <Text style={styles.upgradeButtonText}>{user ? (paymentMethod === 'payos' ? 'THANH TOÁN VIETQR  →' : 'ĐĂNG KÝ QUA PAYPAL  →') : 'ĐĂNG NHẬP ĐỂ NÂNG CẤP  →'}</Text>}
+                {busy ? <ActivityIndicator color="#110F20" /> : <View style={styles.upgradeContent}><Text style={styles.upgradeButtonText}>{user ? (paymentMethod === 'payos' ? 'THANH TOÁN VIETQR' : 'ĐĂNG KÝ QUA PAYPAL') : 'ĐĂNG NHẬP ĐỂ NÂNG CẤP'}</Text><Ionicons name="arrow-forward" size={18} color="#211443" /></View>}
               </TouchableOpacity>
             </>
           )}
           {!!billing?.checkoutPending && <Text style={styles.warning}>Bạn có một yêu cầu PayPal chưa hoàn tất. Hãy xác nhận hoặc quay lại website để hủy yêu cầu đó trước khi thử lại.</Text>}
           {!!billingError && <Text accessibilityRole="alert" style={styles.error}>{billingError}</Text>}
-          {user && <TouchableOpacity disabled={busy} onPress={() => void refreshBilling()} style={styles.refreshButton}><Text style={styles.refreshText}>↻ Cập nhật trạng thái Pro</Text></TouchableOpacity>}
+          {user && <TouchableOpacity activeOpacity={0.7} disabled={busy} onPress={() => { void Haptics.selectionAsync(); void refreshBilling(); }} style={styles.refreshButton}><Ionicons name="refresh" size={14} color="#C6BDD9" /><Text style={styles.refreshText}>Cập nhật trạng thái Pro</Text></TouchableOpacity>}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -194,7 +199,7 @@ export default function SettingsScreen({ onRequestLogin }: Props) {
 }
 
 function Action({ label, onPress, disabled, danger = false }: { label: string; onPress: () => void; disabled?: boolean; danger?: boolean }) {
-  return <TouchableOpacity disabled={disabled} onPress={onPress} style={[styles.action, danger && styles.dangerAction, disabled && styles.disabled]}><Text style={[styles.actionText, danger && styles.dangerText]}>{label}</Text></TouchableOpacity>;
+  return <TouchableOpacity activeOpacity={0.7} disabled={disabled} onPress={onPress} style={[styles.action, danger && styles.dangerAction, disabled && styles.disabled]}><Text style={[styles.actionText, danger && styles.dangerText]}>{label}</Text></TouchableOpacity>;
 }
 
 function PaymentMethod({ provider, selected, title, detail, icon, onPress }: {
@@ -209,8 +214,8 @@ function PaymentMethod({ provider, selected, title, detail, icon, onPress }: {
     <TouchableOpacity
       accessibilityRole="radio"
       accessibilityState={{ checked: selected }}
-      onPress={() => onPress(provider)}
-      activeOpacity={0.8}
+      onPress={() => { void Haptics.selectionAsync(); onPress(provider); }}
+      activeOpacity={0.7}
       style={[styles.paymentMethod, selected && styles.paymentMethodSelected]}
     >
       <View style={styles.paymentTopRow}>
@@ -225,7 +230,7 @@ function PaymentMethod({ provider, selected, title, detail, icon, onPress }: {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#0E092B' },
-  sky: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+  sky: { ...StyleSheet.absoluteFill, overflow: 'hidden' },
   moon: { position: 'absolute', top: 12, right: 22, color: '#FFE7A0', fontSize: 86, lineHeight: 92, transform: [{ rotate: '-18deg' }], opacity: 0.95 },
   star: { position: 'absolute', color: '#F8B7FF', fontSize: 16 },
   starOne: { top: 112, left: 26 },
@@ -272,9 +277,10 @@ const styles = StyleSheet.create({
   paymentDetail: { color: '#ADA2C5', fontSize: 12, marginTop: 5 },
   paymentTextSelected: { color: '#F5D27B' },
   upgradeButton: { minHeight: 56, marginTop: 14, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFD979', borderWidth: 1, borderColor: '#FFF1AA' },
+  upgradeContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   upgradeButtonText: { color: '#211443', fontSize: 14, fontWeight: '900', letterSpacing: 0.2 },
   warning: { color: '#FCD34D', fontSize: 12, lineHeight: 18, marginTop: 12 },
   error: { color: '#FDA4AF', fontSize: 12, lineHeight: 18, marginTop: 12 },
-  refreshButton: { alignSelf: 'center', paddingHorizontal: 10, paddingVertical: 12, marginTop: 5 },
+  refreshButton: { alignSelf: 'center', paddingHorizontal: 10, paddingVertical: 12, marginTop: 5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
   refreshText: { color: '#C6BDD9', fontSize: 12, textDecorationLine: 'underline' },
 });
