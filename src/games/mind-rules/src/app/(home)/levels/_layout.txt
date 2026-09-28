@@ -1,0 +1,27 @@
+import { LEVELS_CONFIG } from '@/src/constants';
+import { useHeaderHeight } from '@react-navigation/elements';
+import { Slot } from 'expo-router';
+import { View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+export default function Layout() {
+  const { HORIZONTAL_PADDING } = LEVELS_CONFIG;
+
+  const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
+
+  const bottomSafePadding = Math.max(insets.bottom, 16);
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        paddingTop: headerHeight,
+        paddingBottom: bottomSafePadding + 16,
+        paddingHorizontal: HORIZONTAL_PADDING,
+      }}
+    >
+      <Slot />
+    </View>
+  );
+}

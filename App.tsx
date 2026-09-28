@@ -20,6 +20,7 @@ import CalendarScreen from './src/screens/CalendarScreen';
 import WallpaperStudioScreen from './src/screens/WallpaperStudioScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import GameHubScreen from './src/screens/GameHubScreen';
 import { loadProfile, hasProfile, UserProfile } from './src/store/userProfile';
 import { AuthProvider, useAuth } from './src/store/authContext';
 
@@ -162,6 +163,16 @@ function AppContent() {
             }}
           >
             {({ navigation }) => <ChatScreen profile={profile} onOpenSettings={() => navigation.navigate('Settings')} />}
+          </Tab.Screen>
+
+          <Tab.Screen
+            name="Games"
+            options={{
+              tabBarLabel: 'Game Hub',
+              tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 22 }}>🎮</Text>,
+            }}
+          >
+            {() => <GameHubScreen />}
           </Tab.Screen>
 
           <Tab.Screen

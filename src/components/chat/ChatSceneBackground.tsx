@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, View, Image, Animated, Dimensions } from 'react-native';
+import { StyleSheet, View, Image, Animated, Dimensions, Platform } from 'react-native';
+
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 const BG_SKY = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/backgorund/background_index1.png');
 const BG_MOUNTAINS = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/backgorund/background_index2.png');
@@ -23,12 +25,12 @@ export const ChatSceneBackground: React.FC<Props> = ({ style }) => {
         Animated.timing(moonGlowAnim, {
           toValue: 1.05,
           duration: 3500,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.timing(moonGlowAnim, {
           toValue: 0.92,
           duration: 3500,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ])
     );
@@ -40,12 +42,12 @@ export const ChatSceneBackground: React.FC<Props> = ({ style }) => {
         Animated.timing(starsTwinkleAnim, {
           toValue: 1.0,
           duration: 2200,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.timing(starsTwinkleAnim, {
           toValue: 0.65,
           duration: 2400,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ])
     );
@@ -58,7 +60,7 @@ export const ChatSceneBackground: React.FC<Props> = ({ style }) => {
   }, []);
 
   return (
-    <View style={[styles.container, style]} pointerEvents="none">
+    <View style={[styles.container, style, { pointerEvents: 'none' }]}>
       {/* Layer 1: Bầu trời đêm sâu thẳm + mây hồng tím */}
       <View style={[styles.layer, styles.skyLayer]}>
         <Image source={BG_SKY} style={styles.layerImage} resizeMode="cover" />

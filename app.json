@@ -26,9 +26,13 @@
         {
           "photosPermission": "Cho phép NUMELYRA truy cập thư viện ảnh để lưu hình nền.",
           "savePhotosPermission": "Cho phép NUMELYRA lưu hình nền vào thư viện ảnh của bạn.",
-          "granularPermissions": ["photo"]
+          "granularPermissions": [
+            "photo"
+          ]
         }
-      ]
+      ],
+      "expo-audio",
+      "expo-font"
     ],
     "web": {
       "favicon": "./assets/favicon.png"

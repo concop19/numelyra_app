@@ -45,3 +45,6 @@ yarn-error.*
 *.aab
 builds/
 
+# reference cloned mini games
+_cloned_games/
+
