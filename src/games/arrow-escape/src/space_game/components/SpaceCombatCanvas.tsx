@@ -126,6 +126,12 @@ export const SpaceCombatCanvas = React.memo(function SpaceCombatCanvas({
   const [, setTick] = useState(0);
   const animRef = useRef<number | null>(null);
   const lastTimeRef = useRef(Date.now());
+  const dragRef = useRef<{
+    pageX: number;
+    pageY: number;
+    playerX: number;
+    playerY: number;
+  } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -153,11 +159,31 @@ export const SpaceCombatCanvas = React.memo(function SpaceCombatCanvas({
     };
   }, [engine]);
 
-  const onTouch = (e: any) => {
-    const { locationX, locationY } = e.nativeEvent;
-    if (typeof locationX === 'number' && typeof locationY === 'number') {
-      engine.setPlayerPosition(locationX, locationY);
-    }
+  const onDragStart = (e: any) => {
+    const { pageX, pageY, locationX, locationY } = e.nativeEvent;
+    dragRef.current = {
+      pageX: typeof pageX === 'number' ? pageX : locationX,
+      pageY: typeof pageY === 'number' ? pageY : locationY,
+      playerX: engine.playerX,
+      playerY: engine.playerY,
+    };
+  };
+
+  const onDragMove = (e: any) => {
+    const anchor = dragRef.current;
+    if (!anchor) return;
+
+    const { pageX, pageY, locationX, locationY } = e.nativeEvent;
+    const currentX = typeof pageX === 'number' ? pageX : locationX;
+    const currentY = typeof pageY === 'number' ? pageY : locationY;
+    if (typeof currentX !== 'number' || typeof currentY !== 'number') return;
+
+    // Move by drag distance, rather than teleporting beneath the finger. This
+    // keeps the ship controllable when a touch starts near the edge of it.
+    engine.setPlayerPosition(
+      anchor.playerX + currentX - anchor.pageX,
+      anchor.playerY + currentY - anchor.pageY
+    );
   };
 
   const isOverdrive = engine.state.overdriveTimer > 0;
@@ -330,8 +356,14 @@ export const SpaceCombatCanvas = React.memo(function SpaceCombatCanvas({
       style={[styles.container, { width, height }]}
       onStartShouldSetResponder={() => true}
       onMoveShouldSetResponder={() => true}
-      onResponderGrant={onTouch}
-      onResponderMove={onTouch}
+      onResponderGrant={onDragStart}
+      onResponderMove={onDragMove}
+      onResponderRelease={() => {
+        dragRef.current = null;
+      }}
+      onResponderTerminate={() => {
+        dragRef.current = null;
+      }}
     >
       <Canvas style={StyleSheet.absoluteFill}>
         <Picture picture={picture} />

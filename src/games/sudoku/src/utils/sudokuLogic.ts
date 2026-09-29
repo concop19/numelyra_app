@@ -38,25 +38,25 @@ export const isValidPlace = (board: number[][], row: number, col: number, num: n
 };
 
 // Shuffle helper
-const shuffleArray = <T>(array: T[]): T[] => {
+const shuffleArray = <T>(array: T[], random: () => number = Math.random): T[] => {
   const result = [...array];
   for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(random() * (i + 1));
     [result[i], result[j]] = [result[j], result[i]];
   }
   return result;
 };
 
 // Backtracking solver to fill the board with random numbers
-const fillBoard = (board: number[][]): boolean => {
+const fillBoard = (board: number[][], random: () => number): boolean => {
   for (let r = 0; r < 9; r++) {
     for (let c = 0; c < 9; c++) {
       if (board[r][c] === 0) {
-        const nums = shuffleArray([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        const nums = shuffleArray([1, 2, 3, 4, 5, 6, 7, 8, 9], random);
         for (const num of nums) {
           if (isValidPlace(board, r, c, num)) {
             board[r][c] = num;
-            if (fillBoard(board)) {
+            if (fillBoard(board, random)) {
               return true;
             }
             board[r][c] = 0;
@@ -111,11 +111,20 @@ const countSolutions = (board: number[][], count = { val: 0 }): number => {
 
 // Generate Sudoku board logic
 export const generateSudoku = (
-  difficulty: Difficulty
+  difficulty: Difficulty,
+  seed?: number,
 ): { startBoard: BoardState; solution: number[][] } => {
+  let state = seed === undefined ? 0 : seed >>> 0;
+  const random = seed === undefined ? Math.random : () => {
+    state += 0x6D2B79F5;
+    let value = state;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  };
   // 1. Generate full solved board
   const solutionGrid = createEmptyGrid();
-  fillBoard(solutionGrid);
+  fillBoard(solutionGrid, random);
 
   // Copy solution grid for creating the puzzle
   const puzzleGrid = solutionGrid.map((row) => [...row]);
@@ -132,7 +141,7 @@ export const generateSudoku = (
 
   // Create list of all 81 cell indices and shuffle them
   const cellIndices = Array.from({ length: 81 }, (_, i) => i);
-  const shuffledIndices = shuffleArray(cellIndices);
+  const shuffledIndices = shuffleArray(cellIndices, random);
 
   let removedCount = 0;
   for (const index of shuffledIndices) {

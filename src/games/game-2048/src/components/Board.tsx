@@ -6,7 +6,8 @@ import {
   Pressable,
   Platform,
 } from "react-native";
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   BOARD_SIZE,
   BOARD_WIDTH_MULTIPLIER,
@@ -20,7 +21,9 @@ import { runOnJS } from "react-native-reanimated";
 import Cell from "./Cell";
 import GameOverScreen from "./GameOverScreen";
 
-const Board = () => {
+type Props = { dailyTarget?: number; onDailyComplete?: () => void };
+
+const Board = ({ dailyTarget, onDailyComplete }: Props) => {
   const { width } = useWindowDimensions();
   const backgroundCells = useMemo(() => {
     return new Array(BOARD_SIZE * BOARD_SIZE)
@@ -29,6 +32,31 @@ const Board = () => {
   }, []);
 
   const { logBoard, board, move, startGame, gameOver } = useGame();
+  const dailyCompleted = useRef(false);
+  const highestTile = Math.max(0, ...board.map((cell) => cell.value));
+  const [bestTile, setBestTile] = useState(0);
+
+  useEffect(() => { AsyncStorage.getItem('game-2048:best-tile:v1').then((value) => setBestTile(Number(value) || 0)).catch(() => undefined); }, []);
+  useEffect(() => {
+    if (highestTile > bestTile) {
+      setBestTile(highestTile);
+      void AsyncStorage.setItem('game-2048:best-tile:v1', String(highestTile));
+    }
+  }, [bestTile, highestTile]);
+
+  // Board is module-scoped in the original game. Start a clean run whenever
+  // this screen is entered so a completed practice run cannot satisfy Daily.
+  useEffect(() => {
+    dailyCompleted.current = false;
+    startGame();
+  }, [dailyTarget, startGame]);
+
+  useEffect(() => {
+    if (dailyTarget && !dailyCompleted.current && highestTile >= dailyTarget) {
+      dailyCompleted.current = true;
+      onDailyComplete?.();
+    }
+  }, [dailyTarget, highestTile, onDailyComplete]);
 
   // Desktop Web keyboard navigation (Arrow keys & WASD)
   useEffect(() => {
@@ -118,6 +146,7 @@ const Board = () => {
           {cells}
         </View>
       </GestureDetector>
+      <Text style={styles.bestTile}>Tốt nhất: {bestTile || '—'}</Text>
     </>
   );
 };
@@ -135,6 +164,7 @@ const styles = StyleSheet.create({
     padding: MARGIN,
     position: "relative",
   },
+  bestTile: { color: theme.textPrimary, fontFamily: theme.fonts.bold, textAlign: 'center', marginTop: 10 },
 });
 
 export default Board;

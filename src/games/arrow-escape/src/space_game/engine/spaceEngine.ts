@@ -33,8 +33,8 @@ export class SpaceEngine {
   state: SpaceGameState = {
     score: 0,
     wave: 1,
-    ammo: 24, // starts with some ammo
-    maxAmmo: 99,
+    ammo: 10,
+    maxAmmo: 30,
     health: 3,
     maxHealth: 3,
     overdriveTimer: 0,
@@ -72,8 +72,10 @@ export class SpaceEngine {
     this.state = {
       score: 0,
       wave: 1,
-      ammo: 24,
-      maxAmmo: 99,
+      // Ammo is intentionally scarce: the reload puzzle should be part of the
+      // combat loop, not a one-time formality at the beginning of a run.
+      ammo: 10,
+      maxAmmo: 30,
       health: 3,
       maxHealth: 3,
       overdriveTimer: 0,
@@ -114,19 +116,29 @@ export class SpaceEngine {
 
   addAmmo(type: AmmoType, customCount?: number) {
     const config = AMMO_CONFIGS[type];
-    let ammoCount = customCount || 0;
+    let ammoCount = customCount ?? 0;
 
-    if (!customCount) {
+    if (customCount === undefined) {
       if (type === 'NORMAL') {
-        ammoCount = 18;
-      } else if (type === 'SCATTER') {
-        ammoCount = 12;
-      } else if (type === 'MISSILE') {
         ammoCount = 5;
+      } else if (type === 'SCATTER') {
+        ammoCount = 4;
+      } else if (type === 'MISSILE') {
+        ammoCount = 2;
       } else if (type === 'SHIELD') {
-        ammoCount = 8;
+        ammoCount = 0;
       }
     }
+
+    // Level data used to grant up to 18 rounds for a single tap. Keep old
+    // boards compatible, but cap their rewards at the tuned values.
+    const reloadCap: Record<AmmoType, number> = {
+      NORMAL: 5,
+      SCATTER: 4,
+      MISSILE: 2,
+      SHIELD: 0,
+    };
+    ammoCount = Math.max(0, Math.min(ammoCount, reloadCap[type]));
 
     if (type === 'SHIELD') {
       this.state.shieldTimer = Math.min(12, this.state.shieldTimer + 7);
@@ -136,7 +148,8 @@ export class SpaceEngine {
 
     this.state.ammo = Math.min(this.state.maxAmmo, this.state.ammo + ammoCount);
 
-    this.addFloatingText(this.playerX, this.playerY - 25, `+${ammoCount} ${config.icon}`, config.color);
+    const rewardText = type === 'SHIELD' ? 'KHIÊN +7s' : `+${ammoCount} ${config.icon}`;
+    this.addFloatingText(this.playerX, this.playerY - 25, rewardText, config.color);
     this.onSound?.('reload');
 
     // Create sparks around player ship

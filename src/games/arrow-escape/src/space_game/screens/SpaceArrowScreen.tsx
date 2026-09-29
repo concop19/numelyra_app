@@ -7,7 +7,10 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { NavigationBar } from 'expo-navigation-bar';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { ReloadPuzzleCanvas } from '../components/ReloadPuzzleCanvas';
 import { SpaceCombatCanvas } from '../components/SpaceCombatCanvas';
 import { SpaceArrowNode } from '../engine/levelLoader';
@@ -23,20 +26,51 @@ export function SpaceArrowScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { width: winWidth, height: winHeight } = useWindowDimensions();
 
-  // Layout clamping for desktop / tablet
-  const contentWidth = Math.min(winWidth, 460);
-  const availableHeight = winHeight - insets.top - insets.bottom;
-  // Give comfortable 50% height to the authentic labyrinth
-  const topCombatHeight = Math.floor(availableHeight * 0.46);
-  const dividerHeight = 44;
-  const bottomPuzzleHeight = availableHeight - topCombatHeight - dividerHeight;
+  const isLandscape = winWidth >= winHeight;
+  // Keep portrait usable on the rest of the app, but give this two-task game
+  // the full landscape viewport when the game screen opens.
+  const contentWidth = isLandscape ? winWidth : Math.min(winWidth, 460);
+  // The Android navigation bar is hidden during a landscape run, so that
+  // released bottom area belongs to the game instead of becoming dead space.
+  const topInset = isLandscape ? 0 : insets.top;
+  const bottomInset = isLandscape ? 0 : insets.bottom;
+  const availableHeight = winHeight - topInset - bottomInset;
+  const headerHeight = isLandscape ? 42 : 48;
+  const dividerSize = isLandscape ? 12 : 44;
+  const gameAreaHeight = Math.max(1, availableHeight - headerHeight);
+  const puzzleWidth = isLandscape
+    ? Math.floor((contentWidth - dividerSize) * 0.52)
+    : contentWidth;
+  const combatWidth = isLandscape
+    ? contentWidth - dividerSize - puzzleWidth
+    : contentWidth;
+  const combatHeight = isLandscape
+    ? gameAreaHeight
+    : Math.floor((gameAreaHeight - dividerSize) * 0.46);
+  const puzzleHeight = isLandscape
+    ? gameAreaHeight
+    : gameAreaHeight - combatHeight - dividerSize;
+
+  useEffect(() => {
+    NavigationBar.setHidden(true);
+    void ScreenOrientation.lockAsync(
+      ScreenOrientation.OrientationLock.LANDSCAPE
+    ).catch(() => undefined);
+
+    return () => {
+      NavigationBar.setHidden(false);
+      void ScreenOrientation.lockAsync(
+        ScreenOrientation.OrientationLock.PORTRAIT_UP
+      ).catch(() => undefined);
+    };
+  }, []);
 
   // Initialize engine
   const engine = useMemo(() => {
-    const eng = new SpaceEngine(contentWidth, topCombatHeight);
+    const eng = new SpaceEngine(combatWidth, combatHeight);
     eng.onSound = (name) => playSpaceSfx(name);
     return eng;
-  }, [contentWidth, topCombatHeight]);
+  }, [combatWidth, combatHeight]);
 
   // Sync HUD state from engine
   const [hudState, setHudState] = useState<SpaceGameState>(engine.state);
@@ -83,16 +117,18 @@ export function SpaceArrowScreen({ navigation }: Props) {
 
   const handleBoardCleared = React.useCallback(
     (clearedLevelId: number) => {
-      engine.triggerOverdrive(8.0);
-      engine.state.score += 1000;
+      // Completing a whole maze is still a reward, but it should not erase
+      // the need to keep solving the reload puzzle during combat.
+      engine.triggerOverdrive(2.5);
+      engine.state.score += 250;
       engine.addFloatingText(
-        contentWidth / 2,
-        topCombatHeight * 0.4,
-        `MÊ CUNG ${clearedLevelId} HOÀN THÀNH! +1000`,
+        combatWidth / 2,
+        combatHeight * 0.4,
+        `MÊ CUNG ${clearedLevelId} HOÀN THÀNH! +250`,
         '#FFD700'
       );
     },
-    [engine, contentWidth, topCombatHeight]
+    [engine, combatWidth, combatHeight]
   );
 
   const handleBlocked = React.useCallback(() => {
@@ -101,7 +137,7 @@ export function SpaceArrowScreen({ navigation }: Props) {
 
   const handleRestart = () => {
     setIsGameOver(false);
-    engine.init(contentWidth, topCombatHeight);
+    engine.init(combatWidth, combatHeight);
     setHudState({ ...engine.state });
   };
 
@@ -110,18 +146,17 @@ export function SpaceArrowScreen({ navigation }: Props) {
   const isOutOfAmmo = hudState.ammo === 0 && !isOverdrive;
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <View style={[styles.cabinet, { width: contentWidth }]}>
+    <>
+      {isLandscape && <StatusBar hidden />}
+      <View
+        style={[
+          styles.root,
+          { paddingTop: topInset, paddingBottom: bottomInset },
+        ]}
+      >
+        <View style={[styles.cabinet, { width: contentWidth }]}>
         {/* Top Header Bar */}
-        <View style={styles.header}>
-          <Pressable
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            hitSlop={8}
-          >
-            <Text style={styles.backButtonText}>✕ THOÁT</Text>
-          </Pressable>
-
+        <View style={[styles.header, { height: headerHeight }, isLandscape && styles.headerLandscape]}>
           <View style={styles.statsRow}>
             <Text style={styles.scoreText}>🏆 {hudState.score}</Text>
             <Text style={styles.waveText}>WAVE {hudState.wave}</Text>
@@ -132,71 +167,107 @@ export function SpaceArrowScreen({ navigation }: Props) {
                 </Text>
               ))}
             </View>
+            {isLandscape && (
+              <Text style={[styles.landscapeAmmo, { color: currentAmmoCfg.color }]}>
+                {currentAmmoCfg.icon} {hudState.ammo}
+              </Text>
+            )}
           </View>
         </View>
 
-        {/* Top 54%: Space Combat Area */}
-        <View style={{ width: contentWidth, height: topCombatHeight }}>
-          <SpaceCombatCanvas
-            engine={engine}
-            width={contentWidth}
-            height={topCombatHeight}
-          />
-        </View>
-
-        {/* Middle Multitasking Divider / Ammo Gauge */}
-        <View
-          style={[
-            styles.divider,
-            isOverdrive && styles.dividerOverdrive,
-            isOutOfAmmo && styles.dividerEmpty,
-          ]}
-        >
-          {isOverdrive ? (
-            <Text style={styles.overdriveBanner}>
-              ⚡ OVERDRIVE! VÔ HẠN ĐẠN ({Math.ceil(hudState.overdriveTimer)}s) ⚡
-            </Text>
-          ) : isOutOfAmmo ? (
-            <Text style={styles.outOfAmmoBanner}>
-              ⚠️ HẾT ĐẠN! BẤM MŨI TÊN DƯỚI ĐỂ NẠP ĐẠN NGAY! ⚠️
-            </Text>
-          ) : (
-            <View style={styles.ammoInfoRow}>
-              <View style={styles.ammoTypeBadge}>
-                <Text style={[styles.ammoBadgeText, { color: currentAmmoCfg.color }]}>
-                  {currentAmmoCfg.icon} {currentAmmoCfg.name.toUpperCase()}
-                </Text>
+        <View style={[styles.gameArea, isLandscape && styles.gameAreaLandscape]}>
+          {isLandscape ? (
+            <>
+              <View style={{ width: puzzleWidth, height: puzzleHeight }}>
+                <ReloadPuzzleCanvas
+                  width={puzzleWidth}
+                  height={puzzleHeight}
+                  onArrowCleared={handleArrowCleared}
+                  onBoardCleared={handleBoardCleared}
+                  onBlocked={handleBlocked}
+                />
               </View>
 
-              <Text style={styles.ammoCountText}>
-                ĐẠN: <Text style={{ color: currentAmmoCfg.color, fontWeight: '900' }}>{hudState.ammo}</Text> / {hudState.maxAmmo}
-              </Text>
+              <View
+                style={[
+                  styles.divider,
+                  styles.dividerLandscape,
+                  isOverdrive && styles.dividerOverdrive,
+                  isOutOfAmmo && styles.dividerEmpty,
+                ]}
+              />
 
-              {hudState.shieldTimer > 0 && (
-                <Text style={styles.shieldBadge}>
-                  🛡️ {Math.ceil(hudState.shieldTimer)}s
-                </Text>
-              )}
-            </View>
+              <View style={{ width: combatWidth, height: combatHeight }}>
+                <SpaceCombatCanvas
+                  engine={engine}
+                  width={combatWidth}
+                  height={combatHeight}
+                />
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={{ width: combatWidth, height: combatHeight }}>
+                <SpaceCombatCanvas
+                  engine={engine}
+                  width={combatWidth}
+                  height={combatHeight}
+                />
+              </View>
+
+              <View
+                style={[
+                  styles.divider,
+                  isOverdrive && styles.dividerOverdrive,
+                  isOutOfAmmo && styles.dividerEmpty,
+                ]}
+              >
+                {isOverdrive ? (
+                  <Text style={styles.overdriveBanner}>
+                    ⚡ OVERDRIVE! VÔ HẠN ĐẠN ({Math.ceil(hudState.overdriveTimer)}s) ⚡
+                  </Text>
+                ) : isOutOfAmmo ? (
+                  <Text style={styles.outOfAmmoBanner}>
+                    ⚠️ HẾT ĐẠN! BẤM MŨI TÊN DƯỚI ĐỂ NẠP ĐẠN NGAY! ⚠️
+                  </Text>
+                ) : (
+                  <View style={styles.ammoInfoRow}>
+                    <View style={styles.ammoTypeBadge}>
+                      <Text style={[styles.ammoBadgeText, { color: currentAmmoCfg.color }]}>
+                        {currentAmmoCfg.icon} {currentAmmoCfg.name.toUpperCase()}
+                      </Text>
+                    </View>
+
+                    <Text style={styles.ammoCountText}>
+                      ĐẠN: <Text style={{ color: currentAmmoCfg.color, fontWeight: '900' }}>{hudState.ammo}</Text> / {hudState.maxAmmo}
+                    </Text>
+
+                    {hudState.shieldTimer > 0 && (
+                      <Text style={styles.shieldBadge}>
+                        🛡️ {Math.ceil(hudState.shieldTimer)}s
+                      </Text>
+                    )}
+                  </View>
+                )}
+              </View>
+
+              <View style={{ width: puzzleWidth, height: puzzleHeight, position: 'relative' }}>
+                <ReloadPuzzleCanvas
+                  width={puzzleWidth}
+                  height={puzzleHeight}
+                  onArrowCleared={handleArrowCleared}
+                  onBoardCleared={handleBoardCleared}
+                  onBlocked={handleBlocked}
+                />
+
+                <View style={styles.bottomLegend}>
+                  <Text style={styles.legendText}>
+                    ⚡+5 Thường  💥+4 Chùm  🚀+2 Rocket  🛡️+7s Khiên
+                  </Text>
+                </View>
+              </View>
+            </>
           )}
-        </View>
-
-        {/* Bottom 46%: Reload Arrow Puzzle */}
-        <View style={{ width: contentWidth, height: bottomPuzzleHeight, position: 'relative' }}>
-          <ReloadPuzzleCanvas
-            width={contentWidth}
-            height={bottomPuzzleHeight}
-            onArrowCleared={handleArrowCleared}
-            onBoardCleared={handleBoardCleared}
-            onBlocked={handleBlocked}
-          />
-
-          {/* Quick Subtitle Legend */}
-          <View style={styles.bottomLegend}>
-            <Text style={styles.legendText}>
-              ⚡+14 Thường  💥+10 Chùm  🚀+5 Rocket  🛡️+Khiên
-            </Text>
-          </View>
         </View>
 
         {/* Game Over Modal */}
@@ -241,8 +312,9 @@ export function SpaceArrowScreen({ navigation }: Props) {
             </View>
           </View>
         </Modal>
+        </View>
       </View>
-    </View>
+    </>
   );
 }
 
@@ -265,26 +337,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#090d1f',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#1e293b',
   },
-  backButton: {
-    paddingVertical: 5,
-    paddingHorizontal: 9,
-    backgroundColor: '#1e293b',
-    borderRadius: 6,
-  },
-  backButtonText: {
-    color: '#94a3b8',
-    fontSize: 11,
-    fontWeight: 'bold',
+  headerLandscape: {
+    paddingHorizontal: 10,
   },
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  landscapeAmmo: {
+    fontSize: 14,
+    fontWeight: '900',
   },
   scoreText: {
     color: '#fbbf24',
@@ -311,6 +379,21 @@ const styles = StyleSheet.create({
     borderColor: '#334155',
     justifyContent: 'center',
     paddingHorizontal: 12,
+  },
+  dividerLandscape: {
+    width: 12,
+    height: '100%',
+    paddingHorizontal: 0,
+    borderTopWidth: 0,
+    borderBottomWidth: 0,
+    borderLeftWidth: 2,
+    borderRightWidth: 2,
+  },
+  gameArea: {
+    flex: 1,
+  },
+  gameAreaLandscape: {
+    flexDirection: 'row',
   },
   dividerOverdrive: {
     backgroundColor: '#083344',

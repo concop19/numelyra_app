@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, AppState, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, AppState, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import { useFocusEffect } from '@react-navigation/native';
 
 import { useAuth } from '../store/authContext';
 import { beginCheckout, getBillingStatus, type BillingProvider, type BillingStatus } from '../services/billingService';
+import { canUseNativeNotifications, loadDailyReminderSettings, saveDailyReminderSettings, type DailyReminderSettings } from '../services/dailyNotifications';
 
 interface Props {
   onRequestLogin: () => void;
@@ -19,6 +20,7 @@ export default function SettingsScreen({ onRequestLogin }: Props) {
   const [paymentMethod, setPaymentMethod] = useState<BillingProvider>('payos');
   const [billing, setBilling] = useState<BillingStatus | null>(null);
   const [billingError, setBillingError] = useState('');
+  const [dailyReminder, setDailyReminder] = useState<DailyReminderSettings>({ enabled: false, hour: 20, minute: 0 });
 
   const refreshBilling = useCallback(async () => {
     if (!user) {
@@ -39,6 +41,7 @@ export default function SettingsScreen({ onRequestLogin }: Props) {
   useFocusEffect(useCallback(() => {
     void refreshBilling();
   }, [refreshBilling]));
+  useFocusEffect(useCallback(() => { void loadDailyReminderSettings().then(setDailyReminder); }, []));
 
   // Payment is completed in the browser. Reload entitlement whenever the app
   // returns to the foreground so the Pro badge updates without reopening it.
@@ -99,6 +102,12 @@ export default function SettingsScreen({ onRequestLogin }: Props) {
     }
   };
 
+  const updateDailyReminder = async (next: DailyReminderSettings) => {
+    const saved = await saveDailyReminderSettings(next);
+    setDailyReminder(saved);
+    if (next.enabled && !saved.enabled) Alert.alert('Chưa bật thông báo', 'Bạn có thể bật lại quyền thông báo trong Cài đặt thiết bị bất kỳ lúc nào.');
+  };
+
   const activeUntil = billing?.subscription?.current_period_end
     ? new Date(billing.subscription.current_period_end).toLocaleDateString('vi-VN')
     : null;
@@ -137,6 +146,13 @@ export default function SettingsScreen({ onRequestLogin }: Props) {
             </>
           )}
           {busy && <ActivityIndicator color="#F5BA5B" style={styles.loader} />}
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.sectionHeading}><View style={styles.accountIcon}><Text style={styles.accountIconText}>✦</Text></View><Text style={styles.cardTitle}>THỬ THÁCH HẰNG NGÀY</Text></View>
+          <Text style={styles.helper}>{canUseNativeNotifications ? `Nhắc bạn quay lại Daily Challenge lúc ${String(dailyReminder.hour).padStart(2, '0')}:${String(dailyReminder.minute).padStart(2, '0')} theo giờ thiết bị.` : 'Reminder sẽ khả dụng sau khi cài development build hoặc bản phát hành; Expo Go không hỗ trợ tính năng này.'}</Text>
+          <View style={styles.reminderRow}><Text style={styles.reminderLabel}>Nhắc chơi mỗi ngày</Text><Switch disabled={!canUseNativeNotifications} value={dailyReminder.enabled} onValueChange={(enabled) => { void updateDailyReminder({ ...dailyReminder, enabled }); }} trackColor={{ false: '#59437B', true: '#F5BA5B' }} thumbColor="#FFF7E8" /></View>
+          <View style={styles.timeRow}>{[18, 20, 21].map((hour) => <TouchableOpacity key={hour} disabled={!canUseNativeNotifications} onPress={() => { void updateDailyReminder({ ...dailyReminder, hour, enabled: dailyReminder.enabled }); }} style={[styles.timeButton, dailyReminder.hour === hour && styles.timeButtonActive, !canUseNativeNotifications && styles.disabled]}><Text style={[styles.timeText, dailyReminder.hour === hour && styles.timeTextActive]}>{String(hour).padStart(2, '0')}:00</Text></TouchableOpacity>)}</View>
         </View>
 
         <View style={styles.proCard}>
@@ -283,4 +299,11 @@ const styles = StyleSheet.create({
   error: { color: '#FDA4AF', fontSize: 12, lineHeight: 18, marginTop: 12 },
   refreshButton: { alignSelf: 'center', paddingHorizontal: 10, paddingVertical: 12, marginTop: 5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
   refreshText: { color: '#C6BDD9', fontSize: 12, textDecorationLine: 'underline' },
+  reminderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 },
+  reminderLabel: { color: '#F3EAFE', fontWeight: '700' },
+  timeRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  timeButton: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: '#5A4677' },
+  timeButtonActive: { backgroundColor: '#F5BA5B', borderColor: '#F5BA5B' },
+  timeText: { color: '#D6C9EB', fontWeight: '800' },
+  timeTextActive: { color: '#24133F' },
 });

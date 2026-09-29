@@ -37,6 +37,22 @@ const PUZZLE_CONFIGS: readonly PuzzleConfig[] = [
   { id: 'ribbon',     name: 'Ribbon',     difficulty: 'hard', size: 7, checkpointCount: 11, wallCount: 3, seed: 3057 },
   { id: 'long-way',   name: 'The Long Way', difficulty: 'hard', size: 8, checkpointCount: 12, wallCount: 2, seed: 4015 },
   { id: 'big-twist',  name: 'Big Twist',  difficulty: 'hard', size: 8, checkpointCount: 11, wallCount: 3, seed: 4119 },
+  { id: 'meadow', name: 'Meadow', difficulty: 'easy', size: 5, checkpointCount: 8, wallCount: 0, seed: 1107 },
+  { id: 'riverbend', name: 'Riverbend', difficulty: 'easy', size: 5, checkpointCount: 9, wallCount: 1, seed: 1129 },
+  { id: 'lantern', name: 'Lantern', difficulty: 'easy', size: 5, checkpointCount: 8, wallCount: 1, seed: 1173 },
+  { id: 'garden', name: 'Garden', difficulty: 'easy', size: 6, checkpointCount: 9, wallCount: 1, seed: 1201 },
+  { id: 'harbor', name: 'Harbor', difficulty: 'medium', size: 6, checkpointCount: 9, wallCount: 1, seed: 2141 },
+  { id: 'terrace', name: 'Terrace', difficulty: 'medium', size: 6, checkpointCount: 10, wallCount: 2, seed: 2197 },
+  { id: 'paper-kite', name: 'Paper Kite', difficulty: 'medium', size: 6, checkpointCount: 10, wallCount: 2, seed: 2251 },
+  { id: 'moon-gate', name: 'Moon Gate', difficulty: 'medium', size: 7, checkpointCount: 10, wallCount: 2, seed: 2311 },
+  { id: 'ember', name: 'Ember', difficulty: 'hard', size: 7, checkpointCount: 10, wallCount: 2, seed: 3121 },
+  { id: 'spiral', name: 'Spiral', difficulty: 'hard', size: 7, checkpointCount: 11, wallCount: 3, seed: 3187 },
+  { id: 'night-train', name: 'Night Train', difficulty: 'hard', size: 7, checkpointCount: 12, wallCount: 3, seed: 3241 },
+  { id: 'comet', name: 'Comet', difficulty: 'hard', size: 8, checkpointCount: 11, wallCount: 2, seed: 4087 },
+  { id: 'tapestry', name: 'Tapestry', difficulty: 'hard', size: 8, checkpointCount: 12, wallCount: 3, seed: 4177 },
+  { id: 'afterglow', name: 'Afterglow', difficulty: 'hard', size: 8, checkpointCount: 12, wallCount: 3, seed: 4231 },
+  { id: 'constellation', name: 'Constellation', difficulty: 'hard', size: 8, checkpointCount: 12, wallCount: 3, seed: 4297 },
+  { id: 'labyrinth', name: 'Labyrinth', difficulty: 'hard', size: 8, checkpointCount: 12, wallCount: 3, seed: 4357 },
 ];
 
 export const PUZZLES: readonly Puzzle[] = PUZZLE_CONFIGS.map(generatePuzzle);

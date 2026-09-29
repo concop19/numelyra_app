@@ -9,6 +9,7 @@ export type Puzzle = {
   question: number;
   answer: number;
   hint: string;
+  explanation?: string;
 };
 
 /**
@@ -138,7 +139,7 @@ export const PUZZLES: Puzzle[] = [
   },
 ];
 
-export const TOTAL_LEVELS = PUZZLES.length;
+export let TOTAL_LEVELS = PUZZLES.length;
 
 export const getPuzzle = (level: number): Puzzle =>
   PUZZLES.find((puzzle) => puzzle.id === level) ?? PUZZLES[0];
@@ -150,3 +151,29 @@ export const computeStars = (hintUsed: boolean, wrongAttempts: number): number =
   if (wrongAttempts <= 1) return 2;
   return 1;
 };
+
+const EXTRA_RULES: Array<{ title: string; hint: string; explanation: string; solve: (n: number) => number }> = [
+  { title: 'Cộng bảy', hint: 'Mỗi số nhận thêm bảy.', explanation: 'Đáp án bằng số đầu vào cộng 7.', solve: (n) => n + 7 },
+  { title: 'Nhân bốn', hint: 'Quan sát hệ số chung của các kết quả.', explanation: 'Đáp án bằng số đầu vào nhân 4.', solve: (n) => n * 4 },
+  { title: 'Bình phương trừ hai', hint: 'Hãy thử bình phương số đó trước.', explanation: 'Đáp án là n² − 2.', solve: (n) => n * n - 2 },
+  { title: 'Gấp đôi rồi cộng ba', hint: 'Có hai thao tác rất đều đặn.', explanation: 'Đáp án là 2n + 3.', solve: (n) => n * 2 + 3 },
+  { title: 'Tích hai số kề nhau', hint: 'Nhân số đó với số đứng sau nó.', explanation: 'Đáp án là n × (n + 1).', solve: (n) => n * (n + 1) },
+  { title: 'Lập phương cộng một', hint: 'Một phép nhân lặp lại ba lần.', explanation: 'Đáp án là n³ + 1.', solve: (n) => n * n * n + 1 },
+];
+
+function generatedPuzzle(id: number): Puzzle {
+  const rule = EXTRA_RULES[(id - 11) % EXTRA_RULES.length];
+  const base = 2 + ((id * 3) % 5);
+  const inputs = [base, base + 1, base + 3];
+  const question = base + 4;
+  return { id, title: rule.title, equations: inputs.map((input) => ({ input, output: rule.solve(input) })), question, answer: rule.solve(question), hint: rule.hint, explanation: rule.explanation };
+}
+
+while (PUZZLES.length < 48) PUZZLES.push(generatedPuzzle(PUZZLES.length + 1));
+TOTAL_LEVELS = PUZZLES.length;
+
+export function getDailyMindPuzzle(date: Date = new Date()): Puzzle {
+  const seed = date.getFullYear() * 372 + (date.getMonth() + 1) * 31 + date.getDate();
+  const puzzle = generatedPuzzle(11 + (seed % 38));
+  return { ...puzzle, id: 10_000 + seed, title: 'Quy luật hằng ngày' };
+}

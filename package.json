@@ -20,6 +20,9 @@
     "expo-haptics": "~57.0.3",
     "expo-linking": "~57.0.11",
     "expo-media-library": "~57.0.5",
+    "expo-navigation-bar": "~57.0.3",
+    "expo-notifications": "~57.0.21",
+    "expo-screen-orientation": "~57.0.2",
     "expo-sqlite": "^57.0.3",
     "expo-status-bar": "~57.0.1",
     "expo-web-browser": "^57.0.3",
@@ -39,14 +42,25 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@types/jest": "29.5.14",
     "@types/react": "~19.2.2",
+    "jest-expo": "~57.0.5",
     "typescript": "~6.0.3"
   },
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test": "jest --runInBand",
+    "typecheck": "tsc --noEmit"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "testRegex": "src/games/(gameHub|zip/game/(logic|generator)|arrow-escape/src/(levels/levels|space_game/engine/spaceEngine)|sudoku/src/utils/sudokuLogic)\\.test\\.ts$",
+    "modulePathIgnorePatterns": [
+      "<rootDir>/src/games/zip/router-source/"
+    ]
   },
   "private": true
 }

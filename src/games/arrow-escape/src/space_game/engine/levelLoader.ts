@@ -1,5 +1,8 @@
 import { ArrowNode, BoardState, Direction, LevelDefinition } from '../../game/types';
-import { getLevel, getTotalLevels } from '../../levels/levels';
+import {
+  getNarrowEscapePuzzle,
+  getNarrowEscapePuzzleTotal,
+} from '../../levels/levels';
 import { AMMO_CONFIGS, AmmoType } from '../types';
 
 export interface SpaceArrowNode extends ArrowNode {
@@ -19,27 +22,27 @@ export interface SpaceBoardState {
 }
 
 export function loadSpaceLevel(levelId = 1): SpaceBoardState {
-  const total = getTotalLevels();
+  const total = getNarrowEscapePuzzleTotal();
   const safeId = Math.max(1, Math.min(total, levelId));
-  const levelDef = getLevel(safeId);
+  const levelDef = getNarrowEscapePuzzle(safeId);
 
   const spaceArrows: SpaceArrowNode[] = levelDef.arrows.map((arrow, index) => {
     const len = arrow.fullPath.length;
     let ammoType: AmmoType = 'NORMAL';
-    let ammoCount = 16;
+    let ammoCount = 5;
 
     if (index % 5 === 4) {
       ammoType = 'SHIELD';
-      ammoCount = 8;
+      ammoCount = 0;
     } else if (len >= 8) {
       ammoType = 'MISSILE';
-      ammoCount = 5;
+      ammoCount = 2;
     } else if (len >= 5) {
       ammoType = 'SCATTER';
-      ammoCount = 12;
+      ammoCount = 4;
     } else {
       ammoType = 'NORMAL';
-      ammoCount = 18;
+      ammoCount = 5;
     }
 
     const cfg = AMMO_CONFIGS[ammoType];

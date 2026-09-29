@@ -4,7 +4,9 @@ import { StatusBar } from "expo-status-bar";
 import Board from "./Board";
 import { theme } from "../constants";
 
-const AppScreen = () => {
+type Props = { dailyMode?: boolean; onDailyComplete?: () => void };
+
+const AppScreen = ({ dailyMode = false, onDailyComplete }: Props) => {
   return (
     <View style={styles.container}>
       <View>
@@ -12,8 +14,9 @@ const AppScreen = () => {
         <Text style={styles.subtitle}>
           Join the tiles, get to <Text style={styles.bold}>2048!</Text>
         </Text>
+        {dailyMode && <Text style={styles.daily}>✦ DAILY: tạo ô 128 để hoàn thành</Text>}
       </View>
-      <Board />
+      <Board dailyTarget={dailyMode ? 128 : undefined} onDailyComplete={onDailyComplete} />
       <View style={styles.footer}>
         <Text style={styles.bold}>How to play!</Text>
         <Text style={styles.subtitle}>
@@ -55,6 +58,7 @@ const styles = StyleSheet.create({
   footer: {
     marginBottom: 48,
   },
+  daily: { color: '#B45F06', fontWeight: '800', marginTop: 8 },
 });
 
 export default AppScreen;

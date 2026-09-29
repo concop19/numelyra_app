@@ -23,7 +23,9 @@ import { Header } from './src/components/Header';
 import { SudokuBoard } from './src/components/SudokuBoard';
 import { ControlPanel } from './src/components/ControlPanel';
 
-export default function App() {
+type SudokuScreenProps = { dailyMode?: boolean; onDailyComplete?: () => void };
+
+export default function App({ dailyMode = false, onDailyComplete }: SudokuScreenProps) {
   // System theme detection
   const systemScheme = useColorScheme();
   const [isDarkMode, setIsDarkMode] = useState(systemScheme === 'dark');
@@ -45,6 +47,7 @@ export default function App() {
   // Victory State
   const [isGameWon, setIsGameWon] = useState(false);
   const [errorsCount, setErrorsCount] = useState(0);
+  const dailyCompletedRef = useRef(false);
 
   // Initialize Game on Mount
   useEffect(() => {
@@ -81,9 +84,18 @@ export default function App() {
     return () => stopTimer();
   }, [isPaused, isGameWon, board]);
 
+  useEffect(() => {
+    if (dailyMode && isGameWon && !dailyCompletedRef.current) {
+      dailyCompletedRef.current = true;
+      onDailyComplete?.();
+    }
+  }, [dailyMode, isGameWon, onDailyComplete]);
+
   // Start New Game
   const startNewGame = (diff: Difficulty) => {
-    const { startBoard, solution: solvedBoard } = generateSudoku(diff);
+    const now = new Date();
+    const dailySeed = now.getFullYear() * 10_000 + (now.getMonth() + 1) * 100 + now.getDate();
+    const { startBoard, solution: solvedBoard } = generateSudoku(diff, dailyMode ? dailySeed : undefined);
     setBoard(startBoard);
     setSolution(solvedBoard);
     setSelectedCell(null);
@@ -282,6 +294,7 @@ export default function App() {
               onChangeDifficulty={handleChangeDifficulty}
               onNewGame={() => startNewGame(difficulty)}
             />
+            {dailyMode && <Text style={[typography.caption, { color: theme.colors.accent, textAlign: 'center', fontWeight: '800' }]}>✦ SUDOKU DAILY</Text>}
 
             {/* Board Area */}
             <View style={styles.boardWrapper}>

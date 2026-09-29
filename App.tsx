@@ -13,6 +13,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import * as Linking from 'expo-linking';
 
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import ChatScreen from './src/screens/ChatScreen';
@@ -23,6 +24,7 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import GameHubScreen from './src/screens/GameHubScreen';
 import { loadProfile, hasProfile, UserProfile } from './src/store/userProfile';
 import { AuthProvider, useAuth } from './src/store/authContext';
+import { getNotifications } from './src/services/dailyNotifications';
 
 // Bộ icon 4 Mùa / Linh Vật Lửa cho Thanh Điều Hướng Đáy
 const TAB_CHAT_ICON = require('./assets/icons/tab_chat_flame.jpg');
@@ -31,6 +33,27 @@ const TAB_WALLPAPER_ICON = require('./assets/icons/tab_wallpaper_flame.jpg');
 const TAB_SETTINGS_ICON = require('./assets/icons/tab_settings_flame.jpg');
 
 const Tab = createBottomTabNavigator();
+const notifications = getNotifications();
+
+const linking = {
+  prefixes: [Linking.createURL('/'), 'numelyra://'],
+  config: { screens: { Games: 'games/:entry?' } },
+  async getInitialURL() {
+    const url = await Linking.getInitialURL();
+    if (url) return url;
+    const response = notifications ? await notifications.getLastNotificationResponseAsync() : null;
+    const notificationUrl = response?.notification.request.content.data?.url;
+    return typeof notificationUrl === 'string' ? notificationUrl : null;
+  },
+  subscribe(listener: (url: string) => void) {
+    const linkSubscription = Linking.addEventListener('url', ({ url }) => listener(url));
+    const notificationSubscription = notifications?.addNotificationResponseReceivedListener((response) => {
+      const url = response.notification.request.content.data?.url;
+      if (typeof url === 'string') listener(url);
+    });
+    return () => { linkSubscription.remove(); notificationSubscription?.remove(); };
+  },
+};
 
 export default function App() {
   return (
@@ -125,7 +148,7 @@ function AppContent() {
   // Main App
   else {
     content = (
-      <NavigationContainer>
+      <NavigationContainer linking={linking}>
         <StatusBar style="light" />
         <Tab.Navigator
           screenOptions={{
@@ -165,15 +188,7 @@ function AppContent() {
             {({ navigation }) => <ChatScreen profile={profile} onOpenSettings={() => navigation.navigate('Settings')} />}
           </Tab.Screen>
 
-          <Tab.Screen
-            name="Games"
-            options={{
-              tabBarLabel: 'Game Hub',
-              tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 22 }}>🎮</Text>,
-            }}
-          >
-            {() => <GameHubScreen />}
-          </Tab.Screen>
+          <Tab.Screen name="Games" component={GameHubScreen} options={{ tabBarLabel: 'Game Hub', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 22 }}>🎮</Text> }} />
 
           <Tab.Screen
             name="Calendar"

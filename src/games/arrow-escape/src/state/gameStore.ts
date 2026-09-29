@@ -176,6 +176,12 @@ export const useGameStore = create<GameStore>()(
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
+          // v1 exposed the legacy Expert boards as ids 1–4. Their ids now
+          // live in the Legacy pack so no saved player lands on a different board.
+          if (state.currentLevelId >= 1 && state.currentLevelId <= 4) {
+            state.currentLevelId += 36;
+            state.highestUnlockedLevel = 40;
+          }
           state.startLevel(state.currentLevelId);
         }
       }

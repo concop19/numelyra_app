@@ -4,11 +4,12 @@
     "slug": "mobile_app",
     "version": "1.0.0",
     "scheme": "numelyra",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "requireFullScreen": true
     },
     "android": {
       "package": "online.numelyra.app",
@@ -32,7 +33,22 @@
         }
       ],
       "expo-audio",
-      "expo-font"
+      "expo-font",
+      "expo-notifications",
+      [
+        "expo-navigation-bar",
+        {
+          "enforceContrast": false,
+          "hidden": false,
+          "style": "dark"
+        }
+      ],
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "DEFAULT"
+        }
+      ]
     ],
     "web": {
       "favicon": "./assets/favicon.png"

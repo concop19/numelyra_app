@@ -11,7 +11,13 @@ interface Props {
 
 export function SpaceCombatCanvas({ engine, width, height }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const isDraggingRef = useRef(false);
+  const dragRef = useRef<{
+    pointerId: number;
+    clientX: number;
+    clientY: number;
+    playerX: number;
+    playerY: number;
+  } | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -121,26 +127,29 @@ export function SpaceCombatCanvas({ engine, width, height }: Props) {
 
   // Touch and Mouse handlers for smooth spaceship dragging
   const handlePointerDown = (e: React.PointerEvent) => {
-    isDraggingRef.current = true;
-    updateShipTarget(e.clientX, e.clientY);
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    dragRef.current = {
+      pointerId: e.pointerId,
+      clientX: e.clientX,
+      clientY: e.clientY,
+      playerX: engine.playerX,
+      playerY: engine.playerY,
+    };
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDraggingRef.current) return;
-    updateShipTarget(e.clientX, e.clientY);
+    const anchor = dragRef.current;
+    if (!anchor || anchor.pointerId !== e.pointerId) return;
+    engine.setPlayerPosition(
+      anchor.playerX + e.clientX - anchor.clientX,
+      anchor.playerY + e.clientY - anchor.clientY
+    );
   };
 
-  const handlePointerUp = () => {
-    isDraggingRef.current = false;
-  };
-
-  const updateShipTarget = (clientX: number, clientY: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
-    engine.setPlayerPosition(x, y);
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (dragRef.current?.pointerId === e.pointerId) {
+      dragRef.current = null;
+    }
   };
 
   // Keyboard controls for desktop browser
