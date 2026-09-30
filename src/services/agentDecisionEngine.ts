@@ -14,6 +14,7 @@ export interface AgentDecision {
     | 'two_choices'
     | 'timing_trajectory'
     | 'daily_guidance'
+    | 'where_to_go'
     | 'core_personality'
     | 'trash'
     | 'general';
@@ -95,7 +96,24 @@ export function evaluateAgentDecision(
     };
   }
 
-  // B. Thuần Bản Mệnh / Tính cách cốt lõi / Sứ mệnh (KHÔNG CẦN TAROT - 0 lá)
+  // B. A real-world place search. This intentionally runs before the timeline
+  // branch so "Cuối tuần này đi đâu?" is not mistaken for a future reading.
+  const isWhereToGo =
+    /\b(đi đâu|chỗ nào|nơi nào|quán nào|cà phê nào|cafe nào|địa điểm|đi chơi|hẹn hò ở đâu|dạo ở đâu|tham quan)\b/i.test(q);
+
+  if (isWhereToGo) {
+    return {
+      mode: 'single',
+      intent: 'where_to_go',
+      needsTarot: true,
+      spreadId: 'single',
+      cardCount: 1,
+      targetIndicators: ['dateOfBirth', 'walksOfLife'],
+      thoughtProcess: 'Tiểu Linh Miêu sẽ lọc khu vực, khoảng cách, ngân sách và người đi cùng trước, rồi dùng một lá Tarot để chọn vibe phù hợp.'
+    };
+  }
+
+  // C. Thuần Bản Mệnh / Tính cách cốt lõi / Sứ mệnh (KHÔNG CẦN TAROT - 0 lá)
   const isCorePersonality =
     /\b(tính cách|bản thân tôi|điểm mạnh|điểm yếu|sứ mệnh|nợ nghiệp|số thiếu|linh hồn|ý nghĩa tên|ngày sinh nói lên|con người tôi|phong cách)\b/i.test(q) &&
     !/\b(tương lai|sau này|sắp tới|người yêu|hôm nay)\b/i.test(q);
@@ -112,7 +130,7 @@ export function evaluateAgentDecision(
     };
   }
 
-  // C. Tiến trình / Tương lai gần / Xu hướng sắp tới (3 lá: Quá khứ - Hiện tại - Tương lai)
+  // D. Tiến trình / Tương lai gần / Xu hướng sắp tới (3 lá: Quá khứ - Hiện tại - Tương lai)
   const isTimingOrTrajectory =
     /\b(tương lai|sắp tới|tiến trình|dạo này|thời gian tới|xu hướng|phát triển|sau này|năm nay|tháng này)\b/i.test(q);
 
@@ -128,7 +146,7 @@ export function evaluateAgentDecision(
     };
   }
 
-  // D. Lời khuyên tức thời / Thông điệp ngày / Có nên hay không (1 lá)
+  // E. Lời khuyên tức thời / Thông điệp ngày / Có nên hay không (1 lá)
   const isDailyOrQuick =
     /\b(hôm nay|ngày mai|lúc này|bây giờ|có nên không|lời khuyên|thông điệp|dẫn lối|nhắn nhủ)\b/i.test(q);
 
@@ -144,7 +162,7 @@ export function evaluateAgentDecision(
     };
   }
 
-  // E. Mặc định: Rút 1 lá định hướng + Đường Đời & Năm Cá Nhân
+  // F. Mặc định: Rút 1 lá định hướng + Đường Đời & Năm Cá Nhân
   return {
     mode: 'single',
     intent: 'general',

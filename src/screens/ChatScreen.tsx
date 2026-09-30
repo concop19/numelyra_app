@@ -38,6 +38,9 @@ import FlameMascot, { MascotState } from '../components/chat/FlameMascot';
 import AnswerFlamePopup from '../components/chat/AnswerFlamePopup';
 import ChatInputBar from '../components/chat/ChatInputBar';
 import HighlightedAnswerText from '../components/chat/HighlightedAnswerText';
+import { PlaceSearchContextModal } from '../components/chat/PlaceSearchContextModal';
+import { PlaceSuggestionsCard } from '../components/chat/PlaceSuggestionsCard';
+import { getOneTimePlaceLocation, type PlaceSearchContext, type PlaceSearchPreferences } from '../services/placeLocation';
 import {
   clearChatHistory,
   loadChatHistory,
@@ -367,6 +370,8 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
   const [profilePromptNotice, setProfilePromptNotice] = useState('');
   const [isCardsModalOpen, setIsCardsModalOpen] = useState(false);
   const [showMascotPrompt, setShowMascotPrompt] = useState(false);
+  const [isPlaceContextModalOpen, setIsPlaceContextModalOpen] = useState(false);
+  const placeContextResolverRef = useRef<((context: PlaceSearchContext | null) => void) | null>(null);
 
   const activeTargetProfile: ProfileItem | { fullName: string; birthDate: string } | null = useMemo(() => {
     if (selectedProfiles && selectedProfiles.length > 0) return selectedProfiles[0];
@@ -389,6 +394,28 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
     }
     setShowMascotPrompt(true);
   };
+
+  const finishPlaceContextSelection = useCallback((context: PlaceSearchContext | null) => {
+    setIsPlaceContextModalOpen(false);
+    const resolve = placeContextResolverRef.current;
+    placeContextResolverRef.current = null;
+    resolve?.(context);
+  }, []);
+
+  const requestPlaceContext = useCallback(() => new Promise<PlaceSearchContext | null>((resolve) => {
+    placeContextResolverRef.current = resolve;
+    setIsPlaceContextModalOpen(true);
+  }), []);
+
+  const useCurrentPlaceLocation = useCallback(async (preferences: PlaceSearchPreferences) => {
+    const context = await getOneTimePlaceLocation(preferences);
+    finishPlaceContextSelection(context);
+  }, [finishPlaceContextSelection]);
+
+  useEffect(() => () => {
+    placeContextResolverRef.current?.(null);
+    placeContextResolverRef.current = null;
+  }, []);
 
   // Voice state
   const [isListening, setIsListening] = useState(false);
@@ -878,6 +905,29 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
       return;
     }
 
+    // A place search requires a one-time, user-approved GPS location. Do not
+    // fall back to IP geolocation or a manually typed area.
+    let placeContext: PlaceSearchContext | undefined;
+    if (decision.intent === 'where_to_go') {
+      setLoading(false);
+      const selectedContext = await requestPlaceContext();
+      if (!selectedContext) {
+        setMascotState('explain');
+        appendMessage({
+          id: `mascot-${Date.now()}`,
+          sender: 'mascot',
+          text: '✦ TIỂU LINH MIÊU CẦN VỊ TRÍ HIỆN TẠI:\nĐể lọc địa điểm theo khoảng cách thực tế, bạn hãy cho phép dùng vị trí một lần nhé.',
+          time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+          isTypingCompleted: false,
+        });
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+        setTimeout(() => setMascotState('idle'), 6000);
+        return;
+      }
+      placeContext = selectedContext;
+      setLoading(true);
+    }
+
     // 2. Tính toán các chỉ số Thần số học mục tiêu
     const calc1 = new NumerologyCalculator(selectedProfiles[0].fullName, selectedProfiles[0].birthDate);
     const indicators1 = calc1.getRequestedIndicators(decision.targetIndicators);
@@ -914,7 +964,8 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
             profile2: indicators2
           },
           tarotCards: drawnCards,
-          tuViBazi: tuViBaziPayload
+          tuViBazi: tuViBaziPayload,
+          ...(placeContext ? { placeContext } : {}),
         })
       });
 
@@ -1561,6 +1612,7 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
                       onFinishTyping={() => markMessageTypingCompleted(latestMascotMsg.id)}
                       isCompact={isKeyboardVisible}
                     />
+                    {!isKeyboardVisible && <PlaceSuggestionsCard data={latestMascotMsg.card?.placeSuggestions} />}
                   </View>
                 )}
 
@@ -1616,6 +1668,12 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
           setProfilePromptNotice('');
         }}
         promptNotice={profilePromptNotice}
+      />
+
+      <PlaceSearchContextModal
+        visible={isPlaceContextModalOpen}
+        onCancel={() => finishPlaceContextSelection(null)}
+        onUseCurrentLocation={useCurrentPlaceLocation}
       />
 
       {/* Zoomed Tarot Card Modal */}
