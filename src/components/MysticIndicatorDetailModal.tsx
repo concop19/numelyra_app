@@ -4,6 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { CalculatedIndicator } from '../services/numerologyEngine';
 import { getIndicatorReading, KnowledgeReadingResult } from '../services/numerologyKnowledge';
+import CandleFlameSprite from './CandleFlameSprite';
+import FlameCharacterSprite from './FlameCharacterSprite';
+import BottomFlameSprite from './BottomFlameSprite';
 
 const BACKGROUND = require('../../assets/giao_dien/giaodien1/chat_detail/background/background.png');
 const MAT = require('../../assets/giao_dien/giaodien1/chat_detail/item/tham.png');
@@ -29,7 +32,14 @@ type Props = {
 const REFERENCE_WIDTH = 941;
 const REFERENCE_HEIGHT = 1672;
 
-function Decor({ scale }: { scale: number }) {
+type PaperLayout = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
+function Decor({ scale, active, paperLayout }: { scale: number; active: boolean; paperLayout: PaperLayout }) {
   const itemStyle = (left: number, top: number, width: number, height: number) => ({
     position: 'absolute' as const,
     left: left * scale,
@@ -40,9 +50,18 @@ function Decor({ scale }: { scale: number }) {
   return <View pointerEvents="none" style={styles.decorLayer}>
     <Image source={CHEST} resizeMode="contain" style={itemStyle(-8, 14, 450, 370)} />
     <Image source={CANDLE} resizeMode="contain" style={itemStyle(376, 66, 300, 232)} />
+    <CandleFlameSprite scale={scale} active={active} />
     <Image source={MAT} resizeMode="contain" style={itemStyle(64, 350, 850, 790)} />
+    <FlameCharacterSprite side="left" scale={scale} active={active} />
+    <FlameCharacterSprite side="right" scale={scale} active={active} />
+    <BottomFlameSprite side="left" scale={scale} active={active} />
+    <BottomFlameSprite side="right" scale={scale} active={active} />
     <Image source={BOOK} resizeMode="contain" style={itemStyle(-58, 904, 288, 228)} />
-    <Image source={PAPER} resizeMode="contain" style={itemStyle(48, 1152, 850, 519)} />
+    <Image
+      source={PAPER}
+      resizeMode="stretch"
+      style={[itemStyle(paperLayout.left, paperLayout.top, paperLayout.width, paperLayout.height), styles.paperSurface]}
+    />
     <Image source={QUILL} resizeMode="contain" style={itemStyle(606, 1204, 310, 250)} />
   </View>;
 }
@@ -79,17 +98,28 @@ export function MysticIndicatorDetailModal({ visible, indicator, onClose }: Prop
   const canvasHeight = REFERENCE_HEIGHT * scale;
   const canvasLeft = (viewportWidth - canvasWidth) / 2;
   const canvasTop = (viewportHeight - canvasHeight) / 2;
+  const usesExpandedPaper = !isLandscape;
+  const paperLayout: PaperLayout = usesExpandedPaper
+    ? {
+        // Let the reading surface fill the lower portion of a portrait phone.
+        // The image is stretched only vertically so its width stays aligned with the artwork.
+        left: 48,
+        top: (viewportHeight * 0.4 - canvasTop) / scale,
+        width: 850,
+        height: (viewportHeight * 0.62) / scale,
+      }
+    : { left: 48, top: 1152, width: 850, height: 519 };
   const readingFrame = {
     left: 116 * scale,
-    top: 1250 * scale,
+    top: usesExpandedPaper ? viewportHeight * 0.45 : 1250 * scale,
     width: 710 * scale,
-    height: 330 * scale,
+    height: usesExpandedPaper ? viewportHeight * 0.5 : 330 * scale,
   };
 
   return <Modal visible={visible} animationType="fade" transparent={false} onRequestClose={onClose}>
     <View style={styles.scene}>
       <ImageBackground source={BACKGROUND} resizeMode="stretch" style={[styles.canvas, { left: canvasLeft, top: canvasTop, width: canvasWidth, height: canvasHeight }]}>
-      <Decor scale={scale} />
+      <Decor scale={scale} active={visible} paperLayout={paperLayout} />
       <TouchableOpacity accessibilityRole="button" accessibilityLabel="Đóng luận giải chi tiết" activeOpacity={0.75} onPress={onClose} style={[styles.closeButton, { left: 856 * scale, top: 46 * scale, width: 48 * scale, height: 48 * scale, borderRadius: 24 * scale }]}>
         <Ionicons name="close" size={22} color="#FFF5DF" />
       </TouchableOpacity>
@@ -140,23 +170,24 @@ const styles = StyleSheet.create({
   scene: { flex: 1, backgroundColor: '#231047', overflow: 'hidden' },
   canvas: { position: 'absolute' },
   decorLayer: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
-  closeButton: { position: 'absolute', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(27, 10, 50, 0.58)', borderWidth: 1, borderColor: 'rgba(255, 219, 136, 0.72)', zIndex: 4 },
-  paperReading: { position: 'absolute', zIndex: 3 },
-  paperReadingContent: { paddingBottom: 18 },
+  closeButton: { position: 'absolute', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(27, 10, 50, 0.58)', borderWidth: 1, borderColor: 'rgba(255, 219, 136, 0.72)', zIndex: 40, elevation: 40 },
+  paperSurface: { zIndex: 20, elevation: 20 },
+  paperReading: { position: 'absolute', zIndex: 30, elevation: 30 },
+  paperReadingContent: { paddingHorizontal: 16, paddingBottom: 18 },
   kicker: { color: '#8B4A3C', fontSize: 9, letterSpacing: 1.1, fontWeight: '800', textAlign: 'center' },
   title: { color: '#4A2435', fontSize: 21, lineHeight: 25, textAlign: 'center', fontWeight: '800', marginTop: 2 },
-  subtitle: { color: '#8B6356', fontSize: 11, textAlign: 'center', fontStyle: 'italic', marginTop: 1 },
+  subtitle: { color: '#8B6356', fontSize: 11, textAlign: 'center', fontStyle: 'italic', fontWeight: '600', marginTop: 1 },
   valueRow: { alignSelf: 'center', alignItems: 'center', flexDirection: 'row', gap: 6, marginTop: 8 },
   valueLabel: { color: '#79564C', fontSize: 11 }, value: { color: '#7A303D', fontSize: 18, fontWeight: '900' },
   master: { borderRadius: 8, backgroundColor: '#7D4050', color: '#FFF4D5', fontSize: 8, letterSpacing: 0.6, fontWeight: '800', overflow: 'hidden', paddingHorizontal: 6, paddingVertical: 3 },
-  description: { color: '#5F3D39', fontSize: 12.5, lineHeight: 18, textAlign: 'center', marginTop: 8 },
-  loadingText: { color: '#73483E', fontSize: 12, fontStyle: 'italic', textAlign: 'center', marginTop: 16 },
+  description: { color: '#5F3D39', fontSize: 12.5, lineHeight: 18, textAlign: 'center', fontWeight: '600', marginTop: 8 },
+  loadingText: { color: '#73483E', fontSize: 12, fontStyle: 'italic', fontWeight: '600', textAlign: 'center', marginTop: 16 },
   reading: { marginTop: 12, gap: 10 }, section: { borderTopWidth: 1, borderTopColor: 'rgba(113, 56, 51, 0.2)', paddingTop: 8 },
   sectionTitle: { color: '#743542', fontSize: 13.5, fontWeight: '800', marginBottom: 3 }, accentTitle: { color: '#9A522E' },
-  sectionBody: { color: '#5D403B', fontSize: 12.5, lineHeight: 18.5 }, bullet: { color: '#5D403B', fontSize: 12.5, lineHeight: 18.5, marginTop: 2 },
+  sectionBody: { color: '#5D403B', fontSize: 12.5, lineHeight: 18.5, fontWeight: '600' }, bullet: { color: '#5D403B', fontSize: 12.5, lineHeight: 18.5, fontWeight: '600', marginTop: 2 },
   articleToggleWrap: { borderTopWidth: 1, borderTopColor: 'rgba(113, 56, 51, 0.2)', paddingTop: 6 },
   articleToggle: { flexDirection: 'row', alignItems: 'center', alignSelf: 'center', gap: 3, paddingVertical: 5, paddingHorizontal: 8 },
-  articleToggleText: { color: '#7A3E39', fontSize: 12, fontWeight: '700' }, fullArticle: { color: '#5D403B', fontSize: 12, lineHeight: 18, marginTop: 4 },
+  articleToggleText: { color: '#7A3E39', fontSize: 12, fontWeight: '800' }, fullArticle: { color: '#5D403B', fontSize: 12, lineHeight: 18, fontWeight: '600', marginTop: 4 },
   doneButton: { alignSelf: 'center', borderRadius: 15, backgroundColor: '#7A3E39', paddingHorizontal: 16, paddingVertical: 8, marginTop: 16 },
   doneButtonText: { color: '#FFF4D6', fontSize: 12, fontWeight: '800' },
 });

@@ -7,6 +7,7 @@ const BG_SKY = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/ba
 const BG_MOUNTAINS = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/backgorund/background_index2.png');
 const BG_FOREGROUND = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/backgorund/background_index3.png');
 const STARS_IMG = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/items/stars.png');
+const MOON_TOP_LEFT = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/items/moon_top_left.png');
 
 interface Props {
   style?: any;
@@ -43,9 +44,7 @@ export function ChatMoonButton({ onPress }: { onPress?: () => void }) {
         accessibilityHint="Chạm vào mặt trăng để chọn trò chơi"
         style={({ pressed }) => [styles.moonButton, pressed && { opacity: 0.7 }]}
       >
-        <View style={styles.moonCrescent} pointerEvents="none">
-          <View style={styles.moonCutout} />
-        </View>
+        <Image source={MOON_TOP_LEFT} resizeMode="contain" style={styles.moonImage} />
       </Pressable>
     </Animated.View>
   );
@@ -148,8 +147,8 @@ const styles = StyleSheet.create({
   },
   moonContainer: {
     position: 'absolute',
-    top: '15%',
-    left: '13%',
+    top: '8%',
+    left: '9%',
     width: 64,
     height: 64,
     zIndex: 2,
@@ -160,21 +159,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  moonCrescent: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FFD87C',
-    overflow: 'hidden',
-  },
-  moonCutout: {
-    position: 'absolute',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#251052',
-    top: -7,
-    left: 13,
+  moonImage: {
+    width: '100%',
+    height: '100%',
   },
 });
 

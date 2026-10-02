@@ -13,10 +13,11 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import {
   StyleSheet, View, Text, TextInput, TouchableOpacity,
   FlatList, KeyboardAvoidingView, Platform, Keyboard,
-  Animated, Easing, Image, Alert, ScrollView, Modal,
+  Animated, Easing, Image, Alert, ScrollView, Modal, Linking,
   ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -33,6 +34,7 @@ import { evaluateAgentDecision, AgentDecision } from '../services/agentDecisionE
 import { NumerologyCalculator, IndicatorInfo } from '../services/numerology24Service';
 import { CalculatedIndicator } from '../services/numerologyEngine';
 import { drawCardsForSpread, DrawnCardResult, TAROT_SPREADS } from '../services/tarotService';
+import { createColorGuidance, isColorQuestion, type ColorGuidanceContext } from '../services/colorGuidanceService';
 import { computePersonTuViBazi, evaluateTuViBaziLove, TuViBaziSynastryResult } from '../services/tuViBaziService';
 import { API_ENDPOINTS, authenticatedFetch } from '../services/apiConfig';
 import { getBillingStatus } from '../services/billingService';
@@ -72,6 +74,8 @@ type LiveTarotReading = {
   status: 'waiting' | 'ready' | 'revealed';
   replyText?: string;
 };
+
+type AmbientMascotState = 'idle' | 'thinking' | 'answer';
 
 interface Props {
   profile?: UserProfile;
@@ -467,6 +471,7 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
     cards: DrawnCardResult[];
   } | null>(null);
   const [liveTarotReading, setLiveTarotReading] = useState<LiveTarotReading | null>(null);
+  const [ambientMascotState, setAmbientMascotState] = useState<AmbientMascotState>('idle');
   const [mascotState, setMascotState] = useState<'idle' | 'listening' | 'explain'>('idle');
   const [mascotCategory, setMascotCategory] = useState('default');
   const [viewMode, setViewMode] = useState<'current_state' | 'history_list'>('current_state');
@@ -732,7 +737,8 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
     profiles: ProfileItem[],
     indicators1: IndicatorInfo[],
     indicators2?: IndicatorInfo[],
-    drawnCards: DrawnCardResult[] = []
+    drawnCards: DrawnCardResult[] = [],
+    colorGuidance?: ColorGuidanceContext
   ): { text: string; card: any } => {
     const p1 = profiles[0];
     const p2 = profiles[1];
@@ -765,6 +771,28 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
           drawnCards: [], // KHÔNG DÙNG BÀI TAROT
           tuViBazi,
           compatibilityScore: tuViBazi.compatibilityScore
+        }
+      };
+    }
+
+    if (decision.intent === 'color_guidance' && colorGuidance) {
+      const chosen = colorGuidance.selectedColorIds
+        .map((id) => colorGuidance.palette.find((color) => color.id === id)?.name || id)
+        .join(' và ');
+      const c1 = drawnCards[0];
+      return {
+        text: [
+          `✦ KẾT LUẬN NHANH:\nVới mệnh ${colorGuidance.element}, hôm nay bạn có thể ưu tiên ${chosen}. Lá ${c1?.card.nameVi || 'Tarot'} gợi bạn dùng hai gam màu này như một điểm nhấn có chủ đích, không phải một lời hứa về may rủi.`,
+          `\n✦ VÌ SAO:\n• Năm âm ${colorGuidance.lunarYear} được quy về mệnh ${colorGuidance.element} theo chữ số cuối của năm.\n• Lá ${c1?.card.nameVi || 'Tarot'} ${c1?.isReversed ? 'ngược' : 'xuôi'} nhấn vào việc chọn màu có tiết chế và hợp hoàn cảnh thực tế.`,
+          `\n✦ NÊN LÀM GÌ:\n• Chọn ${chosen} cho một món gần gương mặt hoặc vật dụng bạn dùng nhiều hôm nay.\n• Giữ phần còn lại của trang phục/phụ kiện trung tính để hai màu này có điểm tựa.`
+        ].join('\n'),
+        card: {
+          type: 'agent_synthesis',
+          decision,
+          profiles,
+          indicators1: [],
+          drawnCards,
+          colorGuidance
         }
       };
     }
@@ -901,6 +929,14 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
 
     appendMessage(userMsg);
     setInputVal('');
+
+    // Màu hợp mệnh là trải nghiệm cá nhân. Với hai hồ sơ, giữ lại đúng câu
+    // hỏi của người dùng nhưng không khởi tạo Agent, bài Tarot hay phản hồi.
+    if (selectedProfiles.length >= 2 && isColorQuestion(prompt)) {
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+      return;
+    }
+
     setLoading(true);
     setMascotState('listening');
 
@@ -1004,6 +1040,9 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
     const drawnCards: DrawnCardResult[] = decision.needsTarot && decision.spreadId
       ? drawCardsForSpread(decision.spreadId)
       : [];
+    const colorGuidance = decision.intent === 'color_guidance' && drawnCards[0]
+      ? createColorGuidance(selectedProfiles[0].birthDate, drawnCards[0])
+      : undefined;
 
     // Start the ritual immediately. The cards are already fixed locally and
     // travel to the API with this request, so the user can reveal them while
@@ -1045,6 +1084,7 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
             profile2: indicators2
           },
           tarotCards: drawnCards,
+          ...(colorGuidance ? { colorGuidance } : {}),
           tuViBazi: tuViBaziPayload,
           ...(placeContext ? { placeContext } : {}),
         })
@@ -1090,7 +1130,8 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
         selectedProfiles,
         indicators1,
         indicators2,
-        drawnCards
+        drawnCards,
+        colorGuidance
       );
 
       const mascotMsg: MessageItem = {
@@ -1133,6 +1174,8 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
       const optionSplit = card.optionSplit;
       const compatibilityScore = card.compatibilityScore;
       const tuViBazi: TuViBaziSynastryResult | undefined = card.tuViBazi;
+      const colorGuidance: ColorGuidanceContext | undefined = card.colorGuidance;
+      const colorPanelUnlocked = drawnCards.length === 1 && !!flippedCards[`${messageId}_0`];
 
       return (
         <View style={styles.agentCardContainer}>
@@ -1152,6 +1195,8 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
                   ? '⏳ Vận Trình 3 Thời Điểm'
                   : decision.intent === 'core_personality'
                   ? '📜 Thuần 24 Chỉ Số'
+                   : decision.intent === 'color_guidance'
+                   ? '🎨 Màu hợp mệnh · 1 Lá'
                   : '🔮 Thông Điệp 1 Lá'}
               </Text>
             </View>
@@ -1163,7 +1208,7 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
           </Text>
 
           {/* Danh sách các chỉ số được AI Agent chọn lọc */}
-          <View style={styles.indicatorChipsWrap}>
+          {decision.intent !== 'color_guidance' && <View style={styles.indicatorChipsWrap}>
             <Text style={styles.chipsLabel}>Chỉ số mục tiêu (tối đa 5):</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
               {indicators1.map((ind: any, idx) => (
@@ -1179,7 +1224,7 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
                 </View>
               ))}
             </ScrollView>
-          </View>
+          </View>}
 
           {/* BẢNG TỬ VI ĐẨU SỐ & BÁT TỰ TỨ TRỤ (Khi ghép đôi 2 người) */}
           {tuViBazi && (
@@ -1354,6 +1399,36 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
             </View>
           )}
 
+          {colorGuidance && colorPanelUnlocked && (
+            <View style={styles.colorGuidancePanel}>
+              <Text style={styles.colorGuidanceTitle}>🎨 Màu hợp mệnh</Text>
+              <Text style={styles.colorGuidanceFormula}>
+                Năm âm {colorGuidance.lunarYear} → mệnh {colorGuidance.element}
+              </Text>
+              <View style={styles.colorSwatchesRow}>
+                {colorGuidance.palette.map((color) => {
+                  const selected = colorGuidance.selectedColorIds.includes(color.id);
+                  return (
+                    <View key={color.id} style={styles.colorSwatchItem}>
+                      <View style={[styles.colorSwatch, { backgroundColor: color.hex }, selected && styles.colorSwatchSelected]}>
+                        {selected && <Text style={styles.colorSwatchCheck}>✓</Text>}
+                      </View>
+                      <Text style={styles.colorSwatchName} numberOfLines={1}>{color.name}</Text>
+                      {selected && <Text style={styles.colorSwatchPriority}>Lá bài ưu tiên</Text>}
+                    </View>
+                  );
+                })}
+              </View>
+              <Text style={styles.colorGuidanceNote}>Mệnh lấy từ chữ số cuối của năm âm; lá Tarot chỉ ưu tiên hai màu trong bảng màu hợp mệnh.</Text>
+              <TouchableOpacity
+                accessibilityRole="link"
+                onPress={() => { void Linking.openURL(colorGuidance.sourceUrl); }}
+              >
+                <Text style={styles.colorGuidanceSource}>Xem nguồn phong thủy ↗</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Nếu thuần 24 chỉ số Thần số học (0 lá Tarot): Hiển thị bản đồ chỉ số */}
           {drawnCards.length === 0 && (
             <View style={styles.numerologyDetailPanel}>
@@ -1444,6 +1519,32 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
 
   const isZeroState = messages.length === 0;
   const currentGlowColor = getFlameGlowColor(mascotCategory);
+
+  // Khi màn chat không có thao tác, luân phiên ngẫu nhiên các sprite idle,
+  // listen (thinking) và answer để mascot vẫn có sức sống. Trạng thái thật
+  // của mic, giọng đọc hoặc AI luôn được ưu tiên, không bị hiệu ứng nền này
+  // ghi đè.
+  useEffect(() => {
+    if (viewMode !== 'current_state' || loading || isListening || isKeyboardVisible || speakingMessageId) {
+      setAmbientMascotState('idle');
+      return;
+    }
+
+    let transitionTimer: ReturnType<typeof setTimeout>;
+    const scheduleNextState = () => {
+      transitionTimer = setTimeout(() => {
+        setAmbientMascotState((current) => {
+          const nextStates = (['idle', 'thinking', 'answer'] as AmbientMascotState[])
+            .filter((state) => state !== current);
+          return nextStates[Math.floor(Math.random() * nextStates.length)];
+        });
+        scheduleNextState();
+      }, 15_000);
+    };
+
+    scheduleNextState();
+    return () => clearTimeout(transitionTimer);
+  }, [isKeyboardVisible, isListening, loading, speakingMessageId, viewMode]);
 
   const latestUserMsg = [...messages].reverse().find(m => m.sender === 'user');
   const latestMascotMsg = [...messages].reverse().find(m => m.sender === 'mascot');
@@ -1628,14 +1729,11 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
 
                 {!isKeyboardVisible && (
                   <View style={styles.mascotBottomSpot}>
-                    <TouchableOpacity
-                      activeOpacity={0.7}
+                    <FlameMascot
+                      state={ambientMascotState}
+                      size={175}
                       onPress={handleMascotPress}
-                      accessibilityRole="button"
-                      accessibilityLabel="Mở 24 lá bài Thần số học"
-                    >
-                      <FlameMascot state="idle" size={175} />
-                    </TouchableOpacity>
+                    />
                   </View>
                 )}
               </View>
@@ -1711,7 +1809,7 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
                       accessibilityRole="button"
                       accessibilityLabel="Mở 24 lá bài Thần số học"
                     >
-                      <FlameMascot state={speakingMessageId === latestMascotMsg?.id ? 'speaking' : 'answer'} size={155} />
+                    <FlameMascot state={speakingMessageId === latestMascotMsg?.id ? 'speaking' : ambientMascotState} size={155} />
                     </TouchableOpacity>
                   </View>
                 )}
@@ -1892,7 +1990,9 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
         <View style={styles.mascotPromptBackdrop}>
           <View style={styles.mascotPromptBox}>
             <View style={styles.mascotPromptHeader}>
-              <Text style={styles.mascotPromptFlameIcon}>🔥</Text>
+              <View style={styles.mascotPromptEmblem}>
+                <Ionicons name="flame" size={20} color="#F2BB57" />
+              </View>
               <Text style={styles.mascotPromptTitle}>Linh Vật Ngọn Lửa</Text>
             </View>
 
@@ -1901,9 +2001,12 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
                 ✦ Chào <Text style={styles.mascotPromptName}>{activeTargetProfile?.fullName}</Text>! Bạn có muốn mở{' '}
                 <Text style={styles.mascotPromptHighlight}>Bản đồ 24 Lá Bài Thần Số Học</Text> để khám phá trọn vẹn bản mệnh không?
               </Text>
-              <Text style={styles.mascotPromptSub}>
-                Ngày sinh: {activeTargetProfile?.birthDate} • 24 chỉ số năng lượng Pythagoras
-              </Text>
+              <View style={styles.mascotPromptMeta}>
+                <Ionicons name="calendar-outline" size={13} color="#B9ACC6" />
+                <Text style={styles.mascotPromptSub}>
+                  {activeTargetProfile?.birthDate}  ·  24 chỉ số Pythagoras
+                </Text>
+              </View>
             </View>
 
             <View style={styles.mascotPromptActions}>
@@ -1911,19 +2014,33 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
                 activeOpacity={0.7}
                 onPress={() => setShowMascotPrompt(false)}
                 style={styles.mascotPromptCancelBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Để sau"
               >
                 <Text style={styles.mascotPromptCancelText}>Để sau</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => {
-                  setShowMascotPrompt(false);
-                  setIsCardsModalOpen(true);
-                }}
-                style={styles.mascotPromptConfirmBtn}
-              >
-                <Ionicons name="sparkles" size={17} color="#211438" /><Text style={styles.mascotPromptConfirmText}>Mở 24 Lá Bài</Text>
-              </TouchableOpacity>
+              <View style={styles.mascotPromptConfirmShadow}>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    setShowMascotPrompt(false);
+                    setIsCardsModalOpen(true);
+                  }}
+                  style={styles.mascotPromptConfirmBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="Mở 24 Lá Bài"
+                >
+                  <LinearGradient
+                    colors={['#FFE39A', '#F4BA56', '#E9A642']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.mascotPromptConfirmGradient}
+                  >
+                    <Ionicons name="sparkles" size={17} color="#271A32" />
+                    <Text style={styles.mascotPromptConfirmText}>Mở 24 Lá Bài</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>
@@ -2557,6 +2674,79 @@ const styles = StyleSheet.create({
   tarotSpreadPanel: {
     marginTop: 4
   },
+  colorGuidancePanel: {
+    marginTop: 14,
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: '#18132B',
+    borderWidth: 1,
+    borderColor: 'rgba(244, 190, 107, 0.45)',
+  },
+  colorGuidanceTitle: {
+    color: '#FFD67C',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  colorGuidanceFormula: {
+    color: '#D8C9E8',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  colorSwatchesRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    gap: 4,
+  },
+  colorSwatchItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  colorSwatch: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  colorSwatchSelected: {
+    borderWidth: 3,
+    borderColor: '#FFD67C',
+  },
+  colorSwatchCheck: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
+    textShadowColor: 'rgba(0,0,0,0.9)',
+    textShadowRadius: 3,
+  },
+  colorSwatchName: {
+    color: '#EDE5F5',
+    fontSize: 10,
+    marginTop: 5,
+    textAlign: 'center',
+  },
+  colorSwatchPriority: {
+    color: '#FFD67C',
+    fontSize: 8,
+    fontWeight: '700',
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  colorGuidanceNote: {
+    color: '#AFA2C5',
+    fontSize: 10,
+    lineHeight: 15,
+    marginTop: 10,
+  },
+  colorGuidanceSource: {
+    color: '#FFD67C',
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 7,
+  },
   spreadHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2892,102 +3082,139 @@ const styles = StyleSheet.create({
   },
   mascotPromptBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(5, 7, 15, 0.85)',
+    backgroundColor: 'rgba(10, 6, 24, 0.80)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: 22,
   },
   mascotPromptBox: {
-    backgroundColor: '#0F1528',
-    borderRadius: 24,
-    borderWidth: 1.5,
-    borderColor: 'rgba(229, 169, 60, 0.4)',
-    padding: 22,
+    backgroundColor: '#19132E',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(194, 169, 244, 0.30)',
+    paddingHorizontal: 22,
+    paddingTop: 24,
+    paddingBottom: 20,
     width: '100%',
-    maxWidth: 380,
+    maxWidth: 390,
     elevation: 12,
-    shadowColor: '#E5A93C',
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
+    shadowColor: '#050611',
+    shadowOpacity: 0.52,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
   },
   mascotPromptHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 14,
-    justifyContent: 'center',
+    gap: 10,
+    marginBottom: 18,
   },
-  mascotPromptFlameIcon: {
-    fontSize: 20,
+  mascotPromptEmblem: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(242, 187, 87, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(242, 187, 87, 0.34)',
   },
   mascotPromptTitle: {
-    color: '#FCD34D',
-    fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+    color: '#F8F1E6',
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: 0.1,
+    fontFamily: Platform.select({ ios: 'Avenir Next', android: 'sans-serif-medium', default: 'system-ui' }),
   },
   mascotPromptBody: {
-    marginBottom: 20,
+    paddingTop: 2,
+    paddingBottom: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.07)',
   },
   mascotPromptText: {
-    color: '#F8FAFC',
-    fontSize: 14,
-    lineHeight: 22,
-    textAlign: 'center',
+    color: '#EAE7F0',
+    fontSize: 15,
+    lineHeight: 23,
+    textAlign: 'left',
+    fontFamily: Platform.select({ ios: 'Avenir Next', android: 'sans-serif', default: 'system-ui' }),
   },
   mascotPromptName: {
-    color: '#FCD34D',
+    color: '#FFD27A',
     fontWeight: '700',
   },
   mascotPromptHighlight: {
-    color: '#FDE68A',
+    color: '#FFE0A0',
     fontWeight: '700',
-    textDecorationLine: 'underline',
+  },
+  mascotPromptMeta: {
+    flexDirection: 'row',
+    alignSelf: 'flex-start',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 9,
+    backgroundColor: 'rgba(255, 255, 255, 0.045)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.075)',
   },
   mascotPromptSub: {
-    color: 'rgba(255, 255, 255, 0.55)',
-    fontSize: 11.5,
-    textAlign: 'center',
-    marginTop: 8,
+    color: '#B9ACC6',
+    fontSize: 11,
+    letterSpacing: 0.1,
+    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
   },
   mascotPromptActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   mascotPromptCancelBtn: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    minHeight: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(235, 229, 242, 0.14)',
+    backgroundColor: 'rgba(255, 255, 255, 0.055)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   mascotPromptCancelText: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: 13.5,
+    color: '#C6BDCF',
+    fontSize: 14,
     fontWeight: '600',
+    fontFamily: Platform.select({ ios: 'Avenir Next', android: 'sans-serif-medium', default: 'system-ui' }),
+  },
+  mascotPromptConfirmShadow: {
+    flex: 1.6,
+    borderRadius: 12,
+    elevation: 6,
+    shadowColor: '#E8A339',
+    shadowOpacity: 0.42,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 },
   },
   mascotPromptConfirmBtn: {
-    flex: 1.6,
-    paddingVertical: 12,
-    borderRadius: 14,
-    backgroundColor: '#E5A93C',
+    minHeight: 48,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  mascotPromptConfirmGradient: {
+    flex: 1,
+    width: '100%',
+    minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 6,
-    elevation: 4,
-    shadowColor: '#E5A93C',
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
   },
   mascotPromptConfirmText: {
-    color: '#0A0E1A',
-    fontSize: 13.5,
-    fontWeight: '800',
+    color: '#271A32',
+    fontSize: 14,
+    fontWeight: '700',
+    fontFamily: Platform.select({ ios: 'Avenir Next', android: 'sans-serif-medium', default: 'system-ui' }),
   },
 
   // --- NUMELYRA 3-STATE NEW STYLES ---

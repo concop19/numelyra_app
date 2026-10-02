@@ -1,5 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
+  Easing,
   Image,
   ImageBackground,
   Modal,
@@ -16,6 +18,10 @@ import * as Haptics from 'expo-haptics';
 import { DrawnCardResult } from '../../services/tarotService';
 import { getTarotCardImage, TAROT_CARD_BACK } from '../../services/tarotAssets';
 import HighlightedAnswerText from './HighlightedAnswerText';
+import CandleFlameSprite from '../CandleFlameSprite';
+import FlameCharacterSprite from '../FlameCharacterSprite';
+import BottomFlameSprite from '../BottomFlameSprite';
+import { ttsService } from '../../services/ttsService';
 
 const BACKGROUND = require('../../../assets/giao_dien/giaodien1/chat_detail/background/background.png');
 const MAT = require('../../../assets/giao_dien/giaodien1/chat_detail/item/tham.png');
@@ -35,6 +41,7 @@ type ReadingCardPayload = {
 type PositionedCard = { left: number; top: number; width: number; height: number; rotate: string };
 type HoveredCard = { title: string; subtitle: string; detail: string };
 type LiveTarotReading = {
+  id: string;
   question: string;
   cards: DrawnCardResult[];
   status: 'waiting' | 'ready' | 'revealed';
@@ -54,7 +61,7 @@ type Props = {
 const REFERENCE_WIDTH = 941;
 const REFERENCE_HEIGHT = 1672;
 
-function Decor({ scale }: { scale: number }) {
+function Decor({ scale, active, showQuill = true }: { scale: number; active: boolean; showQuill?: boolean }) {
   const position = (left: number, top: number, width: number, height: number) => ({
     position: 'absolute' as const,
     left: left * scale,
@@ -66,11 +73,22 @@ function Decor({ scale }: { scale: number }) {
   return <View pointerEvents="none" style={styles.decorLayer}>
     <Image source={CHEST} resizeMode="contain" style={position(-8, 14, 450, 370)} />
     <Image source={CANDLE} resizeMode="contain" style={position(376, 66, 300, 232)} />
+    <CandleFlameSprite scale={scale} active={active} />
     <Image source={MAT} resizeMode="contain" style={position(64, 350, 850, 790)} />
+    <FlameCharacterSprite side="left" scale={scale} active={active} />
+    <FlameCharacterSprite side="right" scale={scale} active={active} />
+    <BottomFlameSprite side="left" scale={scale} active={active} />
+    <BottomFlameSprite side="right" scale={scale} active={active} />
     <Image source={BOOK} resizeMode="contain" style={position(-58, 904, 288, 228)} />
     <Image source={PAPER} resizeMode="contain" style={position(48, 1152, 850, 519)} />
-    <Image source={QUILL} resizeMode="contain" style={position(606, 1204, 310, 250)} />
+    {showQuill ? <Image source={QUILL} resizeMode="contain" style={position(606, 1204, 310, 250)} /> : null}
   </View>;
+}
+
+function getAnswerPreviewLength(text: string): number {
+  const softLimit = Math.min(text.length, 260);
+  const lastWordBreak = text.lastIndexOf(' ', softLimit);
+  return lastWordBreak > 100 ? lastWordBreak : softLimit;
 }
 
 function createTarotLayout(count: number): PositionedCard[] {
@@ -112,6 +130,10 @@ export default function MysticReadingTraceModal({
 }: Props) {
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const [hoveredCard, setHoveredCard] = useState<HoveredCard | null>(null);
+  const [answerPreviewChars, setAnswerPreviewChars] = useState(0);
+  const [hasRevealedAnswerIntro, setHasRevealedAnswerIntro] = useState(false);
+  const quillMotion = useRef(new Animated.Value(0)).current;
+  const autoSpokenReadingId = useRef<string | null>(null);
   const payload = message?.card as ReadingCardPayload | undefined;
 
   useEffect(() => {
@@ -133,6 +155,66 @@ export default function MysticReadingTraceModal({
   const allCardsRevealed = safeRevealedCount === tarotCards.length;
   const canShowReading = !isLiveDraw || (allCardsRevealed && liveReading?.status === 'revealed');
   const answerText = isLiveDraw ? liveReading?.replyText : message?.text;
+  const isWritingRitual = isLiveDraw && allCardsRevealed && !canShowReading;
+  const answerPreviewLength = answerText ? getAnswerPreviewLength(answerText) : 0;
+  const visibleAnswerText = isLiveDraw && canShowReading && !hasRevealedAnswerIntro
+    ? (answerText || '').slice(0, answerPreviewChars)
+    : answerText;
+
+  // Chỉ đọc khi phần luận giải đã thực sự hiện trong màn detail (sau khi lật
+  // đủ bài), và chỉ một lần cho mỗi lượt rút bài mới.
+  useEffect(() => {
+    const readingId = liveReading?.id;
+    if (!visible || !isLiveDraw || !readingId || !canShowReading || !answerText?.trim()) return;
+
+    const speechId = `detail-reading-${readingId}`;
+    if (autoSpokenReadingId.current === speechId) return;
+
+    autoSpokenReadingId.current = speechId;
+    void ttsService.speak(speechId, answerText);
+
+    return () => {
+      if (ttsService.getCurrentSpeakingId() === speechId) {
+        void ttsService.stop();
+      }
+    };
+  }, [answerText, canShowReading, isLiveDraw, liveReading?.id, visible]);
+
+  useEffect(() => {
+    setAnswerPreviewChars(0);
+    setHasRevealedAnswerIntro(false);
+  }, [answerText, liveReading?.question]);
+
+  useEffect(() => {
+    if (!isLiveDraw || !canShowReading || !answerText || hasRevealedAnswerIntro) return;
+
+    let revealed = 0;
+    const timer = setInterval(() => {
+      revealed = Math.min(revealed + 10, answerPreviewLength);
+      setAnswerPreviewChars(revealed);
+      if (revealed >= answerPreviewLength) {
+        clearInterval(timer);
+        setHasRevealedAnswerIntro(true);
+      }
+    }, 28);
+
+    return () => clearInterval(timer);
+  }, [answerPreviewLength, answerText, canShowReading, hasRevealedAnswerIntro, isLiveDraw]);
+
+  useEffect(() => {
+    if (!isWritingRitual) {
+      quillMotion.stopAnimation();
+      quillMotion.setValue(0);
+      return;
+    }
+
+    const writingLoop = Animated.loop(Animated.sequence([
+      Animated.timing(quillMotion, { toValue: 1, duration: 1050, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      Animated.timing(quillMotion, { toValue: 0, duration: 920, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+    ]));
+    writingLoop.start();
+    return () => writingLoop.stop();
+  }, [isWritingRitual, quillMotion]);
 
   const isLandscape = viewportWidth > viewportHeight;
   const scale = isLandscape
@@ -151,7 +233,7 @@ export default function MysticReadingTraceModal({
           resizeMode="stretch"
           style={[styles.canvas, { left: canvasLeft, top: canvasTop, width: canvasWidth, height: canvasHeight }]}
         >
-          <Decor scale={scale} />
+          <Decor scale={scale} active={visible} showQuill={!isWritingRitual} />
 
           <TouchableOpacity
             onPress={onClose}
@@ -170,8 +252,8 @@ export default function MysticReadingTraceModal({
           </TouchableOpacity>
 
           <View pointerEvents="none" style={[styles.sceneHeading, { top: 38 * scale, left: 210 * scale, width: 520 * scale }]}>
-            <Text style={[styles.sceneTitle, { fontSize: Math.max(15, 27 * scale), lineHeight: Math.max(19, 32 * scale) }]}>{isLiveDraw ? 'Nghi thức rút bài' : 'AI đã đối chiếu'}</Text>
-            <Text style={[styles.sceneSubtitle, { fontSize: Math.max(8, 13 * scale) }]}>{isLiveDraw ? 'Chạm vào bộ bài để mở từng thông điệp' : 'Lời luận giải dành riêng cho bạn'}</Text>
+            <Text style={[styles.sceneTitle, { fontSize: Math.max(15, 27 * scale), lineHeight: Math.max(19, 32 * scale) }]}>{isWritingRitual ? 'Lời giải đang hiện hình' : isLiveDraw ? 'Nghi thức rút bài' : 'AI đã đối chiếu'}</Text>
+            <Text style={[styles.sceneSubtitle, { fontSize: Math.max(8, 13 * scale) }]}>{isWritingRitual ? 'Tiểu Linh Miêu đang chép thông điệp dành riêng cho bạn' : isLiveDraw ? 'Chạm vào bộ bài để mở từng thông điệp' : 'Lời luận giải dành riêng cho bạn'}</Text>
           </View>
 
           {tarotCards.length > 0 ? <>
@@ -282,6 +364,36 @@ export default function MysticReadingTraceModal({
             <Text numberOfLines={3} style={[styles.hoverDetail, { fontSize: Math.max(9, 12 * scale), lineHeight: Math.max(13, 18 * scale) }]}>{hoveredCard.detail}</Text>
           </View> : null}
 
+          {isWritingRitual ? <>
+            <Animated.View pointerEvents="none" style={[styles.mysticInk, {
+              left: 194 * scale,
+              top: 1302 * scale,
+              width: 552 * scale,
+              opacity: quillMotion.interpolate({ inputRange: [0, 0.45, 1], outputRange: [0.42, 0.82, 0.5] }),
+              transform: [{ translateX: quillMotion.interpolate({ inputRange: [0, 1], outputRange: [-8 * scale, 7 * scale] }) }],
+            }]}>
+              <Text style={[styles.mysticInkLine, { fontSize: Math.max(10, 15 * scale) }]}>⌁ ✦ ⟡ ⋯ ᛫ ⟢ ⌁ ✧ ⋯ ⟡</Text>
+              <Text style={[styles.mysticInkLine, styles.mysticInkLineOffset, { fontSize: Math.max(9, 13 * scale) }]}>✧ ⋮ ⌁ ⟡ ᚜ ⋯ ✦ ᛫ ⟢ ⌁</Text>
+              <Text style={[styles.mysticInkLine, { fontSize: Math.max(10, 14 * scale) }]}>⟡ ⋯ ✧ ⌁ ᛫ ✦ ⋮ ⟢ ⋯ ⌁</Text>
+              <Text style={[styles.mysticInkLine, styles.mysticInkLineShort, { fontSize: Math.max(9, 12 * scale) }]}>⌁ ✦ ⟡ ⋯ ᛫ ⟢</Text>
+            </Animated.View>
+            <Animated.Image
+              source={QUILL}
+              resizeMode="contain"
+              style={[styles.writingQuill, {
+                left: 606 * scale,
+                top: 1204 * scale,
+                width: 310 * scale,
+                height: 250 * scale,
+                transform: [
+                  { translateX: quillMotion.interpolate({ inputRange: [0, 0.5, 1], outputRange: [10 * scale, -76 * scale, 10 * scale] }) },
+                  { translateY: quillMotion.interpolate({ inputRange: [0, 0.5, 1], outputRange: [4 * scale, -16 * scale, 4 * scale] }) },
+                  { rotate: quillMotion.interpolate({ inputRange: [0, 0.5, 1], outputRange: ['-4deg', '4deg', '-4deg'] }) },
+                ],
+              }]}
+            />
+          </> : null}
+
           {canShowReading ? <ScrollView
             style={[styles.paperReading, {
               // Chỉ dùng phần giấy trống bên trong, không cho chữ chạy qua lá/các cuộn giấy ở viền.
@@ -299,17 +411,18 @@ export default function MysticReadingTraceModal({
             showsVerticalScrollIndicator={false}
             bounces={false}
           >
-            <Text style={styles.kicker}>LUẬN GIẢI HIỆN TẠI</Text>
+            <Text style={styles.kicker}>{isLiveDraw && !hasRevealedAnswerIntro ? 'LỜI GIẢI ĐANG HIỆN HÌNH' : 'LUẬN GIẢI HIỆN TẠI'}</Text>
             {question ? <>
               <Text style={styles.questionLabel}>Câu hỏi của bạn</Text>
               <Text style={styles.question}>{question}</Text>
               <View style={styles.rule} />
             </> : null}
             <HighlightedAnswerText
-              text={answerText || 'Tiểu Linh Miêu đang hoàn thiện lời luận giải…'}
+              text={visibleAnswerText || ' '}
               style={styles.answer}
               emphasisStyle={styles.answerEmphasis}
             />
+            {isLiveDraw && !hasRevealedAnswerIntro ? <Text style={styles.writingCursor}>✦</Text> : null}
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => { void Haptics.selectionAsync(); onClose(); }}
@@ -321,9 +434,9 @@ export default function MysticReadingTraceModal({
             </TouchableOpacity>
           </ScrollView> : <View pointerEvents="none" style={[styles.waitingReading, { left: 185 * scale, top: 1280 * scale, width: 570 * scale }]}>
             <Text style={[styles.waitingReadingTitle, { fontSize: Math.max(10, 15 * scale) }]}>
-              {allCardsRevealed ? 'Các lá đã mở — Tiểu Linh Miêu đang kết nối lời giải…' : 'Hãy rút đủ các lá để mở lời luận giải'}
+              {isWritingRitual ? 'Những nét mực đang ghép thành lời giải…' : allCardsRevealed ? 'Các lá đã mở — Tiểu Linh Miêu đang kết nối lời giải…' : 'Hãy rút đủ các lá để mở lời luận giải'}
             </Text>
-            <Text style={[styles.waitingReadingHint, { fontSize: Math.max(8, 11 * scale) }]}>Luận giải sẽ hiện ngay khi bạn và Numelyra cùng hoàn tất.</Text>
+            <Text style={[styles.waitingReadingHint, { fontSize: Math.max(8, 11 * scale) }]}>{isWritingRitual ? 'Nét chữ chỉ là nghi thức — thông điệp thật sẽ hiện ngay khi hoàn tất.' : 'Luận giải sẽ hiện ngay khi bạn và Numelyra cùng hoàn tất.'}</Text>
           </View>}
         </ImageBackground>
       </View>
@@ -361,6 +474,11 @@ const styles = StyleSheet.create({
   deckTouchTarget: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 5 },
   deckPrompt: { color: '#FFF0C4', fontWeight: '900', textShadowColor: 'rgba(27, 7, 47, 0.95)', textShadowRadius: 5 },
   deckProgress: { color: '#F8D991', fontWeight: '700', marginTop: 3, textShadowColor: 'rgba(27, 7, 47, 0.95)', textShadowRadius: 5 },
+  mysticInk: { position: 'absolute', zIndex: 4, transform: [{ rotate: '-1deg' }] },
+  mysticInkLine: { color: 'rgba(89, 49, 50, 0.88)', fontWeight: '800', letterSpacing: 3.4, lineHeight: 24, textShadowColor: 'rgba(107, 56, 48, 0.18)', textShadowRadius: 2 },
+  mysticInkLineOffset: { marginLeft: 29 },
+  mysticInkLineShort: { marginLeft: 12 },
+  writingQuill: { position: 'absolute', zIndex: 5 },
   // Vùng cuộn nằm trong phần giấy trống; để trong suốt để chữ như được viết trực tiếp lên giấy.
   paperReading: { position: 'absolute', zIndex: 3 },
   waitingReading: { position: 'absolute', zIndex: 3, minHeight: 115, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 26 },
@@ -373,6 +491,7 @@ const styles = StyleSheet.create({
   rule: { height: 1, backgroundColor: 'rgba(113, 56, 51, 0.28)', marginVertical: 9 },
   answer: { color: '#503A3B', fontSize: 13, lineHeight: 19.5, fontWeight: '500' },
   answerEmphasis: { color: '#713543', fontWeight: '900' },
+  writingCursor: { color: '#713543', fontSize: 14, marginTop: 2, opacity: 0.78 },
   doneButton: { alignSelf: 'center', borderRadius: 15, backgroundColor: '#7A3E39', paddingHorizontal: 16, paddingVertical: 8, marginTop: 18 },
   doneText: { color: '#FFF4D6', fontSize: 12, fontWeight: '800' },
 });

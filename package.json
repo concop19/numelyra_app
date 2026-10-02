@@ -18,6 +18,7 @@
     "expo-file-system": "^57.0.7",
     "expo-font": "~57.0.4",
     "expo-haptics": "~57.0.3",
+    "expo-linear-gradient": "~57.0.2",
     "expo-linking": "~57.0.11",
     "expo-location": "~57.0.20",
     "expo-media-library": "~57.0.5",
@@ -59,7 +60,7 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "testRegex": "src/games/(gameHub|zip/game/(logic|generator)|arrow-escape/src/(levels/levels|space_game/engine/spaceEngine)|sudoku/src/utils/sudokuLogic)\\.test\\.ts$",
+    "testRegex": "(src/games/(gameHub|zip/game/(logic|generator)|arrow-escape/src/(levels/levels|space_game/engine/spaceEngine)|sudoku/src/utils/sudokuLogic)|src/services/colorGuidance)\\.test\\.ts$",
     "modulePathIgnorePatterns": [
       "<rootDir>/src/games/zip/router-source/"
     ]

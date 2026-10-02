@@ -48,6 +48,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 
 import { saveWallpaper } from '../services/wallpaperSaver';
@@ -55,6 +56,7 @@ import { UserProfile } from '../store/userProfile';
 import { NumerologyCalculator, reduceNumber } from '../services/numerology24Service';
 import { API_ENDPOINTS, authenticatedFetch, resolveApiUrl } from '../services/apiConfig';
 import { NumerologyCardsModal } from '../components/NumerologyCardsModal';
+import FloatingWallpaperCloud from '../components/FloatingWallpaperCloud';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -547,6 +549,7 @@ export default function WallpaperStudioScreen({ profile }: Props) {
             style={StyleSheet.absoluteFill}
             resizeMode="cover"
           />
+          <FloatingWallpaperCloud />
         </View>
       )}
 
@@ -683,13 +686,24 @@ export default function WallpaperStudioScreen({ profile }: Props) {
                     />
 
                     {/* Nút tròn màu vàng pastel với mũi tên ➔ */}
-                    <TouchableOpacity
-                      activeOpacity={0.8}
-                      onPress={handleGenerate}
-                      style={styles.submitCircleButton}
-                    >
-                      <Ionicons name="arrow-forward" size={21} color="#211438" />
-                    </TouchableOpacity>
+                    <View style={styles.submitCircleButtonShadow}>
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={handleGenerate}
+                        style={styles.submitCircleButton}
+                        accessibilityRole="button"
+                        accessibilityLabel="Tạo hình nền"
+                      >
+                        <LinearGradient
+                          colors={['#FFE5A1', '#F5B84E', '#DF962F']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.submitCircleGradient}
+                        >
+                          <Ionicons name="arrow-forward" size={21} color="#211438" />
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    </View>
                   </TouchableOpacity>
                 </View>
               </ScrollView>
@@ -939,31 +953,49 @@ export default function WallpaperStudioScreen({ profile }: Props) {
           {/* Bộ nút đôi dưới đáy: "Try another" & "Save wallpaper" */}
           <View style={styles.resultActionsRow}>
             {/* Nút Try another */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => {
-                setPrompt('');
-                setStep('input');
-              }}
-              style={styles.tryAnotherButton}
-            >
-              <Ionicons name="refresh" size={19} color="#F7CC6A" />
-              <Text style={styles.tryAnotherText}>Try another</Text>
-            </TouchableOpacity>
+            <View style={styles.tryAnotherButtonShadow}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => {
+                  setPrompt('');
+                  setStep('input');
+                }}
+                style={styles.tryAnotherButton}
+              >
+                <LinearGradient
+                  colors={['#4A2D82', '#30195F', '#1D103F']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.tryAnotherGradient}
+                >
+                  <Ionicons name="refresh" size={19} color="#F7CC6A" />
+                  <Text style={styles.tryAnotherText}>Try another</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
 
             {/* Nút Save wallpaper */}
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => {
-                const cur = history[activeCarouselIndex] || history[0];
-                if (cur) void handleSaveWallpaper(cur);
-              }}
-              disabled={isSavingWallpaper}
-              style={[styles.saveWallpaperButton, isSavingWallpaper && styles.saveWallpaperButtonDisabled]}
-            >
-              <Ionicons name="download-outline" size={20} color="#211438" />
-              <Text style={styles.saveWallpaperText}>{isSavingWallpaper ? 'Saving...' : 'Save wallpaper'}</Text>
-            </TouchableOpacity>
+            <View style={[styles.saveWallpaperButtonShadow, isSavingWallpaper && styles.saveWallpaperButtonDisabled]}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => {
+                  const cur = history[activeCarouselIndex] || history[0];
+                  if (cur) void handleSaveWallpaper(cur);
+                }}
+                disabled={isSavingWallpaper}
+                style={styles.saveWallpaperButton}
+              >
+                <LinearGradient
+                  colors={['#FFE5A1', '#F5B84E', '#DF962F']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.saveWallpaperGradient}
+                >
+                  <Ionicons name="download-outline" size={20} color="#211438" />
+                  <Text style={styles.saveWallpaperText}>{isSavingWallpaper ? 'Saving...' : 'Save wallpaper'}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       )}
@@ -1334,18 +1366,25 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
     paddingHorizontal: 4,
   },
-  submitCircleButton: {
+  submitCircleButtonShadow: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F7CC6A',
-    justifyContent: 'center',
+    shadowColor: '#E4A039',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.46,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  submitCircleButton: {
+    flex: 1,
+    borderRadius: 22,
+    overflow: 'hidden',
+  },
+  submitCircleGradient: {
+    flex: 1,
     alignItems: 'center',
-    shadowColor: '#F7CC6A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 4,
+    justifyContent: 'center',
   },
   submitArrowText: {
     color: '#211438',
@@ -1613,16 +1652,26 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     gap: 12,
   },
-  tryAnotherButton: {
+  tryAnotherButtonShadow: {
     flex: 1,
     height: 54,
     borderRadius: 27,
-    backgroundColor: 'rgba(58, 38, 92, 0.9)',
-    borderWidth: 1.2,
-    borderColor: 'rgba(138, 102, 192, 0.45)',
-    flexDirection: 'row',
+    shadowColor: '#160A33',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.32,
+    shadowRadius: 9,
+    elevation: 4,
+  },
+  tryAnotherButton: {
+    flex: 1,
+    borderRadius: 27,
+    overflow: 'hidden',
+  },
+  tryAnotherGradient: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
     gap: 8,
   },
   tryAnotherIcon: {
@@ -1635,20 +1684,27 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
     fontWeight: '600',
   },
-  saveWallpaperButton: {
+  saveWallpaperButtonShadow: {
     flex: 1.2,
     height: 54,
     borderRadius: 27,
-    backgroundColor: '#F7CC6A',
-    flexDirection: 'row',
+    shadowColor: '#E4A039',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.46,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  saveWallpaperButton: {
+    flex: 1,
+    borderRadius: 27,
+    overflow: 'hidden',
+  },
+  saveWallpaperGradient: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
     gap: 8,
-    shadowColor: '#F7CC6A',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 4,
   },
   saveWallpaperButtonDisabled: {
     opacity: 0.6,

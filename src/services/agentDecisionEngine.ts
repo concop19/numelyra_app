@@ -6,6 +6,7 @@
  * 3. Chỉ định các chỉ số Thần số học mà chat có thể tính và truy xuất
  */
 import { ProfileItem } from '../store/userProfile';
+import { isColorQuestion } from './colorGuidanceService';
 
 export interface AgentDecision {
   mode: 'single' | 'compatibility';
@@ -14,6 +15,7 @@ export interface AgentDecision {
     | 'two_choices'
     | 'timing_trajectory'
     | 'daily_guidance'
+    | 'color_guidance'
     | 'where_to_go'
     | 'core_personality'
     | 'trash'
@@ -79,7 +81,21 @@ export function evaluateAgentDecision(
 
   // 2. Trường hợp 1 Profile: Phân tích Ý định câu hỏi
 
-  // A. Hai Lựa Chọn / Phân vân ngã rẽ (A vs B)
+  // A. Màu hợp mệnh: một lá Tarot là lớp trực giác để chọn hai màu trong
+  // palette phong thủy đã tính ở client.
+  if (isColorQuestion(q)) {
+    return {
+      mode: 'single',
+      intent: 'color_guidance',
+      needsTarot: true,
+      spreadId: 'single',
+      cardCount: 1,
+      targetIndicators: [],
+      thoughtProcess: 'Câu hỏi về màu sắc. Tiểu Linh Miêu rút một lá để ưu tiên hai màu trong bảng màu hợp mệnh của bạn.'
+    };
+  }
+
+  // B. Hai Lựa Chọn / Phân vân ngã rẽ (A vs B)
   const isTwoChoices =
     /\b(hay|hoặc|vs|versus|hay là|hay nên|phân vân|lăn tăn|lựa chọn|chọn bên nào|ở lại hay|mua hay|đi hay ở)\b/i.test(q) &&
     /\b(nên|chọn|định|có nên|giữa|a hay b)\b/i.test(q);

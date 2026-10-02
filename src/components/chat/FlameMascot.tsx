@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Image, Animated, Easing } from 'react-native';
+import { StyleSheet, View, Image, Animated, Easing, Pressable } from 'react-native';
 
 const FIRE_IDLE = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/character/fire_char_idle_3x4.png');
 const FIRE_THINKING = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/character/fire_char_thinking_3x4.png');
@@ -23,8 +23,10 @@ export const FlameMascot: React.FC<Props> = ({
   state = 'idle',
   size = 180,
   style,
+  onPress,
 }) => {
   const [frameIndex, setFrameIndex] = useState(0);
+  const [isPressed, setIsPressed] = useState(false);
   const bounceAnim = useRef(new Animated.Value(1)).current;
   const glowPulseAnim = useRef(new Animated.Value(0.7)).current;
 
@@ -93,7 +95,14 @@ export const FlameMascot: React.FC<Props> = ({
   const scaleRatio = size / NATIVE_FRAME_SIZE;
 
   return (
-    <View style={[styles.wrapper, { width: size, height: size }, style]}>
+    <Pressable
+      onPress={onPress}
+      onPressIn={() => setIsPressed(true)}
+      onPressOut={() => setIsPressed(false)}
+      disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      style={[styles.wrapper, { width: size, height: size }, style]}
+    >
       {/* Vầng sáng ma thuật tỏa dưới chân ngọn lửa */}
       <Animated.View
         style={[
@@ -102,8 +111,11 @@ export const FlameMascot: React.FC<Props> = ({
             width: size * 1.3,
             height: size * 0.45,
             bottom: -size * 0.08,
-            opacity: glowPulseAnim,
-            backgroundColor:
+            opacity: isPressed ? 1 : glowPulseAnim,
+            transform: [{ scale: isPressed ? 1.18 : 1 }],
+            backgroundColor: isPressed
+              ? 'rgba(255, 145, 45, 0.8)'
+              :
               state === 'thinking'
                 ? 'rgba(255, 170, 70, 0.45)'
                 : state === 'answer' || state === 'speaking'
@@ -137,7 +149,7 @@ export const FlameMascot: React.FC<Props> = ({
           resizeMode="stretch"
         />
       </Animated.View>
-    </View>
+    </Pressable>
   );
 };
 

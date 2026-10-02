@@ -8,13 +8,14 @@
  */
 import React from 'react';
 import {
-  Modal, View, Text, StyleSheet, TouchableOpacity,
+  Animated, Modal, PanResponder, View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Image, Dimensions, Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const SHEET_HEIGHT = Math.min(SCREEN_HEIGHT * 0.82, 720);
 import { HourInfo } from '../services/lunarService';
 import { CalendarArtItem } from '../config/calendarArtConfig';
 import { CaDaoItem } from '../db/cadaoService';
@@ -44,6 +45,14 @@ interface Props {
   warning?: string | null;
   profile?: UserProfile;
   userNguHanh?: string;
+  /** Tiến độ 0→1 để điều khiển bottom sheet khi người dùng kéo từ cạnh dưới. */
+  sheetProgress?: Animated.Value;
+  /** Khóa cuộn nội dung trong lúc sheet đang được kéo lên. */
+  contentScrollEnabled?: boolean;
+  /** Các callback kéo xuống từ thanh tiêu đề của bottom sheet. */
+  onSheetDragStart?: () => void;
+  onSheetDragMove?: (translationY: number) => void;
+  onSheetDragEnd?: (translationY: number, velocityY: number) => void;
 }
 
 export default function BlocDetailModal({
@@ -64,12 +73,28 @@ export default function BlocDetailModal({
   solarTerm,
   warning,
   profile,
-  userNguHanh = ''
+  userNguHanh = '',
+  sheetProgress,
+  contentScrollEnabled = true,
+  onSheetDragStart,
+  onSheetDragMove,
+  onSheetDragEnd
 }: Props) {
   const [failedCalendarImageId, setFailedCalendarImageId] = React.useState<string | null>(null);
   const calendarImageSource = artItem?.imageUri
     ? (failedCalendarImageId === artItem.id ? artItem.imageUri.fallback : artItem.imageUri)
     : null;
+  const headerDragResponder = React.useMemo(() => {
+    if (!sheetProgress || !onSheetDragStart || !onSheetDragMove || !onSheetDragEnd) return null;
+    return PanResponder.create({
+      onStartShouldSetPanResponderCapture: () => true,
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderGrant: onSheetDragStart,
+      onPanResponderMove: (_event: any, gesture: any) => onSheetDragMove(Math.max(0, gesture.dy)),
+      onPanResponderRelease: (_event: any, gesture: any) => onSheetDragEnd(Math.max(0, gesture.dy), gesture.vy),
+      onPanResponderTerminate: () => onSheetDragEnd(0, 0),
+    });
+  }, [sheetProgress, onSheetDragStart, onSheetDragMove, onSheetDragEnd]);
 
   if (!visible || !type) return null;
 
@@ -77,10 +102,16 @@ export default function BlocDetailModal({
     <Modal
       transparent
       visible={visible}
-      animationType="fade"
+      animationType={sheetProgress ? 'none' : 'fade'}
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, sheetProgress && styles.interactiveOverlay]}>
+        {sheetProgress && (
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.dragBackdrop, { opacity: sheetProgress }]}
+          />
+        )}
         {/* Chạm vào nền mờ để đóng modal */}
         <TouchableOpacity
           style={StyleSheet.absoluteFill}
@@ -88,7 +119,20 @@ export default function BlocDetailModal({
           onPress={onClose}
         />
 
-        <View style={styles.modalCard}>
+        <Animated.View
+          style={[
+            styles.modalCard,
+            sheetProgress && {
+              transform: [{
+                translateY: sheetProgress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [SHEET_HEIGHT, 0],
+                  extrapolate: 'clamp',
+                }),
+              }],
+            },
+          ]}
+        >
           {/* Header Modal */}
           <View style={styles.header}>
             <View style={styles.headerTitleWrap}>
@@ -107,12 +151,18 @@ export default function BlocDetailModal({
               <Ionicons name="close" size={21} color="#F5BA5B" />
             </TouchableOpacity>
           </View>
+          {headerDragResponder && (
+            <View collapsable={false} style={styles.headerDragZone} {...headerDragResponder.panHandlers}>
+              <View style={styles.headerDragHandle} />
+            </View>
+          )}
 
           <ScrollView
             style={styles.body}
             contentContainerStyle={styles.bodyContent}
             showsVerticalScrollIndicator={true}
             bounces={true}
+            scrollEnabled={contentScrollEnabled}
             nestedScrollEnabled={true}
             keyboardShouldPersistTaps="handled"
           >
@@ -317,7 +367,7 @@ export default function BlocDetailModal({
                   </View>
                 )}
               </ScrollView>
-            </View>
+            </Animated.View>
           </View>
         </Modal>
   );
@@ -329,13 +379,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(5, 5, 12, 0.75)',
     justifyContent: 'flex-end'
   },
+  interactiveOverlay: { backgroundColor: 'transparent' },
+  dragBackdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(5, 5, 12, 0.75)' },
   modalCard: {
     backgroundColor: '#151329',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderWidth: 1,
     borderColor: '#3B3363',
-    height: Math.min(SCREEN_HEIGHT * 0.82, 720),
+    height: SHEET_HEIGHT,
     maxHeight: '90%',
     paddingTop: 16,
     paddingBottom: Platform.OS === 'ios' ? 24 : 12,
@@ -350,6 +402,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#252044'
   },
+  headerDragZone: { position: 'absolute', top: 0, left: 0, right: 58, height: 60, zIndex: 4, elevation: 4, alignItems: 'center', paddingTop: 7 },
+  headerDragHandle: { width: 36, height: 3, borderRadius: 2, backgroundColor: 'rgba(245, 186, 91, 0.78)' },
   headerTitleWrap: {
     flexDirection: 'row',
     alignItems: 'center',

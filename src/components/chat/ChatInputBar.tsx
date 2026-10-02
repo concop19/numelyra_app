@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 
 interface Props {
@@ -44,15 +45,24 @@ export const ChatInputBar: React.FC<Props> = ({
   return (
     <View style={styles.container}>
       {/* Nút hành động nhanh: dấu cộng (+) */}
-      <TouchableOpacity
-        activeOpacity={0.75}
-        onPress={onPressPlus}
-        style={styles.circlePlusBtn}
-        accessibilityLabel="Mở menu tính năng nhanh"
-        accessibilityRole="button"
-      >
-        <Ionicons name="add" size={27} color="rgba(240, 228, 255, 0.96)" />
-      </TouchableOpacity>
+      <View style={styles.circlePlusBtnShadow}>
+        <TouchableOpacity
+          activeOpacity={0.75}
+          onPress={onPressPlus}
+          style={styles.circlePlusBtn}
+          accessibilityLabel="Mở menu tính năng nhanh"
+          accessibilityRole="button"
+        >
+          <LinearGradient
+            colors={['#4A2D82', '#30195F', '#1D103F']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.circlePlusGradient}
+          >
+            <Ionicons name="add" size={27} color="#EFE7FF" />
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
 
       {/* Khung nhập văn bản dạng viên thuốc (pill shape) */}
       <View style={styles.inputWrapper}>
@@ -73,23 +83,29 @@ export const ChatInputBar: React.FC<Props> = ({
           selectionColor="rgba(247, 204, 106, 0.4)"
         />
 
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={handleSend}
-          disabled={!canSend}
-          style={[
-            styles.circleSendBtn,
-            !canSend && styles.circleSendBtnDisabled,
-          ]}
-          accessibilityLabel="Gửi tin nhắn"
-          accessibilityRole="button"
-        >
-          {isLoading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Ionicons name="arrow-up" size={22} color="#FFFFFF" />
-          )}
-        </TouchableOpacity>
+        <View style={[styles.circleSendBtnShadow, !canSend && styles.circleSendBtnShadowDisabled]}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={handleSend}
+            disabled={!canSend}
+            style={styles.circleSendBtn}
+            accessibilityLabel="Gửi tin nhắn"
+            accessibilityRole="button"
+          >
+            <LinearGradient
+              colors={['#FFE5A1', '#F5B84E', '#DF962F']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.circleSendGradient}
+            >
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#2A1938" />
+              ) : (
+                <Ionicons name="arrow-up" size={22} color="#2A1938" />
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -104,21 +120,26 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
     backgroundColor: 'transparent',
   },
-  circlePlusBtn: {
+  circlePlusBtnShadow: {
     width: 54,
     height: 54,
     borderRadius: 27,
-    backgroundColor: 'rgba(46, 27, 93, 0.74)',
-    borderWidth: 1,
-    borderColor: 'rgba(180, 139, 244, 0.46)',
+    marginRight: 8,
+    shadowColor: '#160A33',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.42,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  circlePlusBtn: {
+    flex: 1,
+    borderRadius: 27,
+    overflow: 'hidden',
+  },
+  circlePlusGradient: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
   },
   plusIcon: {
     fontSize: 29,
@@ -150,23 +171,30 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     paddingVertical: Platform.OS === 'ios' ? 10 : 6,
   },
-  circleSendBtn: {
+  circleSendBtnShadow: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#FF7C98',
+    shadowColor: '#E4A039',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.46,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  circleSendBtnShadowDisabled: {
+    opacity: 0.72,
+    shadowOpacity: 0.20,
+    elevation: 3,
+  },
+  circleSendBtn: {
+    flex: 1,
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  circleSendGradient: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#FF5E7E',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.6,
-    shadowRadius: 7,
-    elevation: 5,
-  },
-  circleSendBtnDisabled: {
-    backgroundColor: 'rgba(80, 60, 110, 0.65)',
-    shadowOpacity: 0,
-    elevation: 0,
   },
   sendArrowIcon: {
     fontSize: 22,
