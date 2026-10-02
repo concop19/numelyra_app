@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { calculate24Indicators, CalculatedIndicator } from '../services/numerologyEngine';
 import { IndicatorCategory } from '../config/numerologyCards';
-import { MysticIndicatorDetailModal } from './MysticIndicatorDetailModal';
+import { IndicatorDetailModal } from './IndicatorDetailModal';
 import { type ProfileItem } from '../store/userProfile';
 
 interface NumerologyCardsModalProps {
@@ -174,7 +174,7 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
         />
 
         {/* Indicator Detail Reading Modal */}
-        <MysticIndicatorDetailModal
+        <IndicatorDetailModal
           visible={!!selectedIndicator}
           indicator={selectedIndicator}
           onClose={() => setSelectedIndicator(null)}

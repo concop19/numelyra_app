@@ -68,21 +68,9 @@ const resetBoard = () => {
 };
 
 const startGame = () => {
-  console.log("START");
   resetBoard();
   spawnCell();
   spawnCell();
-};
-
-const logBoard = () => {
-  console.log("=== LOG ===");
-  for (let x = 0; x < BOARD_SIZE; ++x) {
-    const line = getCellsWithX(x);
-    const arr = new Array(BOARD_SIZE).fill(0);
-    line.forEach(({ y, value }) => (arr[y] = value));
-
-    console.log(`${x + 1} |${arr.join("|")}|`);
-  }
 };
 
 const move = (direction: Direction) => {
@@ -226,7 +214,6 @@ export const useGame = () => {
       if (err instanceof BoardFilled) {
         setGameOver(true);
       } else {
-        console.error(err);
         throw err;
       }
     }
@@ -242,7 +229,6 @@ export const useGame = () => {
     board: Board,
     move: memoizedMove,
     startGame: memoizedStartGame,
-    logBoard,
     gameOver,
   };
 };

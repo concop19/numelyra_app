@@ -249,7 +249,11 @@ function AppContent() {
         </Tab.Navigator>
             )}
           </Stack.Screen>
-          <Stack.Screen name="Games" component={GameHubScreen} />
+          <Stack.Screen
+            name="Games"
+            component={GameHubScreen}
+            options={{ orientation: 'all' }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     );

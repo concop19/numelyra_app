@@ -1,15 +1,11 @@
 /**
- * A single grid tile — pure background. The path, checkpoints, and walls
- * are rendered as overlays in `Grid` so they layer correctly above the path.
- *
- * The only stateful background is `isHinted`: a soft pink wash on the cell
- * suggested by the manual "Hint" button. Otherwise the tile is plain white.
+ * A single grid tile — dark surface with crisp golden grid border lines.
  */
 
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { palette } from '@/game/colors';
+import { palette } from '../../game/colors';
 
 interface CellProps {
   readonly size: number;
@@ -32,7 +28,7 @@ function CellInner({ size }: CellProps) {
 
 const styles = StyleSheet.create({
   cell: {
-    borderWidth: 1,
+    borderWidth: 0.75,
     borderColor: palette.cellGrid,
   },
 });

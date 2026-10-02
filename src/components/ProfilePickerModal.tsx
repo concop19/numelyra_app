@@ -20,6 +20,7 @@ interface Props {
   selectedProfiles: ProfileItem[];
   onProfilesSelected: (profiles: ProfileItem[]) => void;
   promptNotice?: string;
+  allowCoupleMode?: boolean;
 }
 
 export default function ProfilePickerModal({
@@ -27,7 +28,8 @@ export default function ProfilePickerModal({
   onClose,
   selectedProfiles,
   onProfilesSelected,
-  promptNotice
+  promptNotice,
+  allowCoupleMode = true
 }: Props) {
   const [profiles, setProfiles] = useState<ProfileItem[]>([]);
   const [isCoupleMode, setIsCoupleMode] = useState<boolean>(selectedProfiles.length >= 2);
@@ -57,14 +59,15 @@ export default function ProfilePickerModal({
       fetchProfiles();
       setIsAdding(false);
       setFormError('');
-      setIsCoupleMode(selectedProfiles.length >= 2);
-      setTempSelectedIds(selectedProfiles.map(p => p.id));
+      const forcedSingleMode = !allowCoupleMode;
+      setIsCoupleMode(forcedSingleMode ? false : selectedProfiles.length >= 2);
+      setTempSelectedIds((forcedSingleMode ? selectedProfiles.slice(0, 1) : selectedProfiles).map(p => p.id));
     }
-  }, [visible]);
+  }, [visible, allowCoupleMode, selectedProfiles]);
 
   const handleSelectProfile = async (item: ProfileItem) => {
     void Haptics.selectionAsync();
-    if (!isCoupleMode) {
+    if (!allowCoupleMode || !isCoupleMode) {
       // Chế độ 1 người: Chọn ngay và đóng modal
       await setActiveProfileId(item.id);
       onProfilesSelected([item]);
@@ -89,6 +92,15 @@ export default function ProfilePickerModal({
   };
 
   const handleConfirmCouple = () => {
+    if (!allowCoupleMode) {
+      const chosen = profiles.filter(p => tempSelectedIds.includes(p.id));
+      if (chosen.length > 0) {
+        onProfilesSelected([chosen[0]]);
+        onClose();
+      }
+      return;
+    }
+
     const chosen = profiles.filter(p => tempSelectedIds.includes(p.id));
     if (chosen.length < 2) {
       Alert.alert('Thông báo', 'Vui lòng chọn đủ 2 hồ sơ để xem mức độ tương hợp tình duyên!');
@@ -158,7 +170,7 @@ export default function ProfilePickerModal({
       await fetchProfiles();
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      if (isCoupleMode) {
+      if (allowCoupleMode && isCoupleMode) {
         setTempSelectedIds(prev => [...prev.slice(0, 1), created.id]);
       } else {
         onProfilesSelected([created]);
@@ -190,35 +202,37 @@ export default function ProfilePickerModal({
           </View>
 
           {/* Mode Switch: 1 người vs 2 người */}
-          <View style={styles.modeTabs}>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={[styles.modeTab, !isCoupleMode && styles.modeTabActive]}
-              onPress={() => {
-                void Haptics.selectionAsync();
-                setIsCoupleMode(false);
-                if (tempSelectedIds.length > 1) {
-                  setTempSelectedIds([tempSelectedIds[0]]);
-                }
-              }}
-            >
-              <View style={styles.modeTabLabel}><Ionicons name="person-outline" size={15} color={!isCoupleMode ? '#F5BA5B' : '#94A3B8'} /><Text style={[styles.modeTabText, !isCoupleMode && styles.modeTabTextActive]}>Cá Nhân (1 Người)</Text></View>
-            </TouchableOpacity>
+          {allowCoupleMode && (
+            <View style={styles.modeTabs}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                style={[styles.modeTab, !isCoupleMode && styles.modeTabActive]}
+                onPress={() => {
+                  void Haptics.selectionAsync();
+                  setIsCoupleMode(false);
+                  if (tempSelectedIds.length > 1) {
+                    setTempSelectedIds([tempSelectedIds[0]]);
+                  }
+                }}
+              >
+                <View style={styles.modeTabLabel}><Ionicons name="person-outline" size={15} color={!isCoupleMode ? '#F5BA5B' : '#94A3B8'} /><Text style={[styles.modeTabText, !isCoupleMode && styles.modeTabTextActive]}>Cá Nhân (1 Người)</Text></View>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={[styles.modeTab, isCoupleMode && styles.modeTabActiveCouple]}
-              onPress={() => {
-                void Haptics.selectionAsync();
-                setIsCoupleMode(true);
-                if (profiles.length >= 2 && tempSelectedIds.length < 2) {
-                  setTempSelectedIds([profiles[0].id, profiles[1].id]);
-                }
-              }}
-            >
-              <View style={styles.modeTabLabel}><Ionicons name="heart-outline" size={15} color={isCoupleMode ? '#F472B6' : '#94A3B8'} /><Text style={[styles.modeTabText, isCoupleMode && styles.modeTabTextActiveCouple]}>Tình Duyên (2 Người)</Text></View>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                style={[styles.modeTab, isCoupleMode && styles.modeTabActiveCouple]}
+                onPress={() => {
+                  void Haptics.selectionAsync();
+                  setIsCoupleMode(true);
+                  if (profiles.length >= 2 && tempSelectedIds.length < 2) {
+                    setTempSelectedIds([profiles[0].id, profiles[1].id]);
+                  }
+                }}
+              >
+                <View style={styles.modeTabLabel}><Ionicons name="heart-outline" size={15} color={isCoupleMode ? '#F472B6' : '#94A3B8'} /><Text style={[styles.modeTabText, isCoupleMode && styles.modeTabTextActiveCouple]}>Tình Duyên (2 Người)</Text></View>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Subtitle / Notice */}
           {promptNotice ? (

@@ -12,6 +12,7 @@ import {
   ScrollView, Image, Dimensions, Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -22,6 +23,37 @@ import { CaDaoItem } from '../db/cadaoService';
 import { UserProfile, getZodiacEmoji, getNguHanhEmoji } from '../store/userProfile';
 
 export type ModalType = 'hoang_dao' | 'art_culture' | 'lunar_destiny' | null;
+
+const MODAL_META = {
+  hoang_dao: { icon: 'compass-outline', title: 'HOÀNG LỊCH & VIỆC CÁT HUNG' },
+  art_culture: { icon: 'book-outline', title: 'ĐIỂN TÍCH & NGUYÊN TÁC VĂN HỌC' },
+  lunar_destiny: { icon: 'sparkles-outline', title: 'CHI TIẾT ÂM DƯƠNG & BẢN MỆNH' },
+} as const;
+
+function SectionTitle({
+  icon,
+  title,
+  tone = 'gold',
+}: {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  title: string;
+  tone?: 'gold' | 'green' | 'pink';
+}) {
+  const colors = tone === 'green'
+    ? (['#5EEAD4', '#34D399'] as const)
+    : tone === 'pink'
+      ? (['#F9A8D4', '#C084FC'] as const)
+      : (['#FFE29A', '#EAB45D'] as const);
+
+  return (
+    <View style={styles.sectionTitleRow}>
+      <LinearGradient colors={colors} style={styles.sectionIcon}>
+        <Ionicons name={icon} size={15} color="#241335" />
+      </LinearGradient>
+      <Text style={styles.subTitle}>{title}</Text>
+    </View>
+  );
+}
 
 interface Props {
   visible: boolean;
@@ -97,6 +129,7 @@ export default function BlocDetailModal({
   }, [sheetProgress, onSheetDragStart, onSheetDragMove, onSheetDragEnd]);
 
   if (!visible || !type) return null;
+  const meta = MODAL_META[type];
 
   return (
     <Modal
@@ -134,23 +167,27 @@ export default function BlocDetailModal({
           ]}
         >
           {/* Header Modal */}
-          <View style={styles.header}>
-            <View style={styles.headerTitleWrap}>
-              <Text style={styles.headerIcon}>
-                {type === 'hoang_dao' ? '🧭' : type === 'art_culture' ? '📜' : '✨'}
-              </Text>
-              <Text style={styles.headerTitle}>
-                {type === 'hoang_dao'
-                  ? 'HOÀNG LỊCH & VIỆC CÁT HUNG'
-                  : type === 'art_culture'
-                  ? 'ĐIỂN TÍCH & NGUYÊN TÁC VĂN HỌC'
-                  : 'CHI TIẾT ÂM DƯƠNG & BẢN MỆNH'}
-              </Text>
+          <LinearGradient
+            colors={['#3B1D69', '#24124A', '#120B2B']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.headerGradient}
+          >
+            <View style={styles.header}>
+              <View style={styles.headerTitleWrap}>
+                <LinearGradient colors={['#FFE6A9', '#E9A65A']} style={styles.headerIconCircle}>
+                  <Ionicons name={meta.icon} size={19} color="#2B1642" />
+                </LinearGradient>
+                <View style={styles.headerTextStack}>
+                  <Text style={styles.headerEyebrow}>NUMELYRA CALENDAR</Text>
+                  <Text style={styles.headerTitle}>{meta.title}</Text>
+                </View>
+              </View>
+              <TouchableOpacity activeOpacity={0.7} onPress={() => { void Haptics.selectionAsync(); onClose(); }} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel="Đóng chi tiết">
+                <Ionicons name="close" size={20} color="#FFE4A2" />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity activeOpacity={0.7} onPress={() => { void Haptics.selectionAsync(); onClose(); }} style={styles.closeBtn}>
-              <Ionicons name="close" size={21} color="#F5BA5B" />
-            </TouchableOpacity>
-          </View>
+          </LinearGradient>
           {headerDragResponder && (
             <View collapsable={false} style={styles.headerDragZone} {...headerDragResponder.panHandlers}>
               <View style={styles.headerDragHandle} />
@@ -171,21 +208,19 @@ export default function BlocDetailModal({
                   <View>
                     {/* Giờ xuất hành đại cát */}
                     {bestHour && (
-                      <View style={styles.highlightBox}>
-                        <Text style={styles.highlightTitle}>🌟 GIỜ XUẤT HÀNH ĐẠI CÁT</Text>
+                      <LinearGradient colors={['#183D39', '#17302E', '#1B1A39']} style={styles.highlightBox}>
+                        <SectionTitle icon="sunny-outline" title="GIỜ XUẤT HÀNH ĐẠI CÁT" tone="green" />
                         <Text style={styles.highlightValue}>
                           Giờ {bestHour.name} ({bestHour.range}) • Sao {bestHour.label}
                         </Text>
                         {direction && (
-                          <Text style={styles.highlightSub}>
-                            🧭 {direction.than}: Hướng {direction.huong}
-                          </Text>
+                          <View style={styles.highlightDirection}><Ionicons name="navigate-outline" size={14} color="#99F6E4" /><Text style={styles.highlightSub}>{direction.than}: Hướng {direction.huong}</Text></View>
                         )}
-                      </View>
+                      </LinearGradient>
                     )}
 
                     {/* Bảng 12 giờ */}
-                    <Text style={styles.subTitle}>⏰ BẢNG 12 GIỜ HOÀNG ĐẠO & HẮC ĐẠO</Text>
+                    <SectionTitle icon="time-outline" title="BẢNG 12 GIỜ HOÀNG ĐẠO & HẮC ĐẠO" />
                     {userZodiac ? (
                       <Text style={styles.noteText}>
                         * Biểu tượng ⚠️ đánh dấu khung giờ xung khắc (Tứ Hành Xung) với tuổi {userZodiac} của bạn.
@@ -193,12 +228,12 @@ export default function BlocDetailModal({
                     ) : null}
 
                     <View style={styles.table}>
-                      <View style={styles.tableHead}>
+                      <LinearGradient colors={['#42226F', '#2A164E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.tableHead}>
                         <Text style={[styles.th, { flex: 1.2 }]}>Giờ</Text>
                         <Text style={[styles.th, { flex: 1.5 }]}>Khung giờ</Text>
                         <Text style={[styles.th, { flex: 1.8 }]}>Sao</Text>
                         <Text style={[styles.th, { flex: 1, textAlign: 'center' }]}>Cát/Hung</Text>
-                      </View>
+                      </LinearGradient>
                       {hours.map((h, i) => (
                         <View
                           key={i}
@@ -226,23 +261,23 @@ export default function BlocDetailModal({
 
                     {/* Việc nên & Việc kiêng */}
                     {activities && (
-                      <View style={styles.activitiesCard}>
-                        <Text style={styles.subTitle}>📋 VIỆC NÊN LÀM & KIÊNG CỮ HÔM NAY</Text>
+                      <LinearGradient colors={['#251640', '#17112E']} style={styles.activitiesCard}>
+                        <SectionTitle icon="calendar-outline" title="VIỆC NÊN LÀM & KIÊNG CỮ HÔM NAY" tone="pink" />
                         <View style={styles.actRow}>
                           <View style={styles.actCol}>
-                            <Text style={styles.actYiHeader}>✅ NÊN LÀM (YI)</Text>
+                            <View style={styles.activityHeader}><Ionicons name="checkmark-circle" size={16} color="#6EE7B7" /><Text style={styles.actYiHeader}>NÊN LÀM</Text></View>
                             {activities.yi.map((item, idx) => (
                               <Text key={idx} style={styles.actYiItem}>• {item}</Text>
                             ))}
                           </View>
                           <View style={[styles.actCol, styles.actColBorder]}>
-                            <Text style={styles.actJiHeader}>🚫 KIÊNG CỮ (JI)</Text>
+                            <View style={styles.activityHeader}><Ionicons name="close-circle" size={16} color="#FDA4AF" /><Text style={styles.actJiHeader}>KIÊNG CỮ</Text></View>
                             {activities.ji.map((item, idx) => (
                               <Text key={idx} style={styles.actJiItem}>• {item}</Text>
                             ))}
                           </View>
                         </View>
-                      </View>
+                      </LinearGradient>
                     )}
                   </View>
                 )}
@@ -261,6 +296,7 @@ export default function BlocDetailModal({
                               resizeMode="contain"
                               onError={() => setFailedCalendarImageId(artItem.id)}
                             />
+                            <LinearGradient colors={['rgba(35, 15, 71, 0.00)', 'rgba(15, 8, 38, 0.64)']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.modalArtOverlay} pointerEvents="none" />
                             <View style={styles.modalSeasonTag}>
                               <Text style={styles.modalSeasonTagText}>
                                 {artItem.seasonEmoji} {artItem.seasonName} • {artItem.seasonHan}
@@ -278,32 +314,33 @@ export default function BlocDetailModal({
                         </Text>
 
                         {/* Đoạn trích / Toàn văn */}
-                        <View style={styles.poemBox}>
+                        <LinearGradient colors={['#302052', '#1D1539']} style={styles.poemBox}>
+                          <View style={styles.poemQuoteIcon}><Ionicons name="chatbox-ellipses-outline" size={16} color="#FFD990" /></View>
                           <Text style={styles.poemText}>
                             {artItem.fullContent || artItem.excerpt}
                           </Text>
-                        </View>
+                        </LinearGradient>
 
                         {/* Lời bình & Diễn giải */}
-                        <View style={styles.descBox}>
-                          <Text style={styles.descTitle}>📖 TÍCH XƯA & Ý NGHĨA VĂN HÓA</Text>
+                        <LinearGradient colors={['#241B45', '#151129']} style={styles.descBox}>
+                          <SectionTitle icon="library-outline" title="TÍCH XƯA & Ý NGHĨA VĂN HÓA" />
                           <Text style={styles.descContent}>{artItem.description}</Text>
                           {artItem.location && (
-                            <Text style={styles.locationText}>🏛️ Lưu giữ: {artItem.location}</Text>
+                            <View style={styles.locationRow}><Ionicons name="location-outline" size={14} color="#CBB5FF" /><Text style={styles.locationText}>Lưu giữ: {artItem.location}</Text></View>
                           )}
-                        </View>
+                        </LinearGradient>
                       </View>
                     )}
 
                     {/* Ca dao tục ngữ bổ sung */}
                     {caDao && (
-                      <View style={styles.cadaoSection}>
-                        <Text style={styles.cadaoSecTitle}>📜 CA DAO TỤC NGỮ TRONG NGÀY</Text>
+                      <LinearGradient colors={['#352050', '#1A1535']} style={styles.cadaoSection}>
+                        <SectionTitle icon="reader-outline" title="CA DAO TỤC NGỮ TRONG NGÀY" tone="pink" />
                         <Text style={styles.cadaoText}>"{caDao.content}"</Text>
                         {caDao.category ? (
                           <Text style={styles.cadaoCat}>Chủ đề: {caDao.category}</Text>
                         ) : null}
-                      </View>
+                      </LinearGradient>
                     )}
                   </View>
                 )}
@@ -382,25 +419,29 @@ const styles = StyleSheet.create({
   interactiveOverlay: { backgroundColor: 'transparent' },
   dragBackdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(5, 5, 12, 0.75)' },
   modalCard: {
-    backgroundColor: '#151329',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: '#120C29',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     borderWidth: 1,
-    borderColor: '#3B3363',
+    borderColor: 'rgba(217, 164, 255, 0.55)',
     height: SHEET_HEIGHT,
     maxHeight: '90%',
-    paddingTop: 16,
     paddingBottom: Platform.OS === 'ios' ? 24 : 12,
-    overflow: 'hidden'
+    overflow: 'hidden',
+    shadowColor: '#050212',
+    shadowOffset: { width: 0, height: -12 },
+    shadowOpacity: 0.62,
+    shadowRadius: 24,
+    elevation: 24,
   },
+  headerGradient: { borderBottomWidth: 1, borderBottomColor: 'rgba(250, 219, 155, 0.24)' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 18,
+    paddingTop: 15,
     paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#252044'
   },
   headerDragZone: { position: 'absolute', top: 0, left: 0, right: 58, height: 60, zIndex: 4, elevation: 4, alignItems: 'center', paddingTop: 7 },
   headerDragHandle: { width: 36, height: 3, borderRadius: 2, backgroundColor: 'rgba(245, 186, 91, 0.78)' },
@@ -409,10 +450,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1
   },
-  headerIcon: { fontSize: 20, marginRight: 8 },
+  headerIconCircle: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginRight: 10, shadowColor: '#F7C66B', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.38, shadowRadius: 6, elevation: 5 },
+  headerTextStack: { flex: 1 },
+  headerEyebrow: { color: '#D8B9FF', fontSize: 9, fontWeight: '800', letterSpacing: 1.2, marginBottom: 2 },
   headerTitle: {
-    color: '#F5BA5B',
-    fontSize: 14,
+    color: '#FFF3D6',
+    fontSize: 13,
     fontWeight: '800',
     letterSpacing: 0.5
   },
@@ -420,7 +463,9 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#252044',
+    backgroundColor: 'rgba(255, 240, 203, 0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 222, 153, 0.25)',
     alignItems: 'center',
     justifyContent: 'center'
   },
@@ -436,32 +481,38 @@ const styles = StyleSheet.create({
   },
 
   // HIGHLIGHT BOX
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  sectionIcon: { width: 25, height: 25, borderRadius: 12.5, alignItems: 'center', justifyContent: 'center', marginRight: 7 },
   highlightBox: {
-    backgroundColor: '#162C1D',
-    borderRadius: 12,
+    borderRadius: 17,
     padding: 14,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#22C55E'
+    borderColor: 'rgba(94, 234, 212, 0.58)',
+    shadowColor: '#091E28',
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.42,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  highlightTitle: { color: '#4ADE80', fontSize: 13, fontWeight: '700', marginBottom: 4 },
   highlightValue: { color: '#F8FAFC', fontSize: 15, fontWeight: '600' },
-  highlightSub: { color: '#86EFAC', fontSize: 12, marginTop: 4 },
+  highlightDirection: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 7 },
+  highlightSub: { color: '#99F6E4', fontSize: 12, fontWeight: '700' },
 
-  subTitle: { color: '#F5BA5B', fontSize: 13, fontWeight: '700', marginVertical: 8 },
+  subTitle: { color: '#FFE2A5', fontSize: 12, fontWeight: '800', letterSpacing: 0.25, flex: 1 },
   noteText: { color: '#94A3B8', fontSize: 11, fontStyle: 'italic', marginBottom: 10 },
 
   // TABLE
   table: {
-    borderRadius: 10,
+    borderRadius: 15,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#252044',
-    marginBottom: 16
+    borderColor: 'rgba(165, 114, 220, 0.42)',
+    marginBottom: 16,
+    backgroundColor: '#181230',
   },
   tableHead: {
     flexDirection: 'row',
-    backgroundColor: '#201C3A',
     paddingVertical: 8,
     paddingHorizontal: 10
   },
@@ -474,9 +525,9 @@ const styles = StyleSheet.create({
     borderTopWidth: 0.5,
     borderTopColor: '#252044'
   },
-  rowHD: { backgroundColor: '#132219' },
-  rowHac: { backgroundColor: '#18152B' },
-  rowClash: { backgroundColor: '#31161D' },
+  rowHD: { backgroundColor: 'rgba(25, 75, 62, 0.72)' },
+  rowHac: { backgroundColor: 'rgba(34, 25, 61, 0.92)' },
+  rowClash: { backgroundColor: 'rgba(87, 31, 55, 0.76)' },
   td: { color: '#E2E8F0', fontSize: 12 },
   clashMark: { fontSize: 11 },
   badge: {
@@ -491,17 +542,22 @@ const styles = StyleSheet.create({
 
   // ACTIVITIES
   activitiesCard: {
-    backgroundColor: '#1B1736',
-    borderRadius: 12,
+    borderRadius: 17,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#2D2852'
+    borderColor: 'rgba(186, 129, 243, 0.38)',
+    shadowColor: '#080315',
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 7,
   },
   actRow: { flexDirection: 'row', marginTop: 8 },
   actCol: { flex: 1 },
   actColBorder: { borderLeftWidth: 1, borderLeftColor: '#2D2852', paddingLeft: 12 },
-  actYiHeader: { color: '#4ADE80', fontSize: 12, fontWeight: '700', marginBottom: 6 },
-  actJiHeader: { color: '#F87171', fontSize: 12, fontWeight: '700', marginBottom: 6 },
+  activityHeader: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 6 },
+  actYiHeader: { color: '#6EE7B7', fontSize: 12, fontWeight: '800' },
+  actJiHeader: { color: '#FDA4AF', fontSize: 12, fontWeight: '800' },
   actYiItem: { color: '#BBF7D0', fontSize: 12, marginVertical: 3 },
   actJiItem: { color: '#FCA5A5', fontSize: 12, marginVertical: 3 },
 
@@ -511,19 +567,25 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 240,
     backgroundColor: '#1B1736',
-    borderRadius: 12,
+    borderRadius: 18,
     borderWidth: 1.5,
     borderColor: '#C2A676',
     overflow: 'hidden',
     marginBottom: 16,
     position: 'relative',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    shadowColor: '#050212',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 14,
+    elevation: 10,
   },
   modalArtImage: {
     width: '100%',
     height: '100%'
   },
+  modalArtOverlay: { ...StyleSheet.absoluteFill },
   modalSeasonTag: {
     position: 'absolute',
     top: 10,
@@ -545,13 +607,18 @@ const styles = StyleSheet.create({
   artHan: { color: '#CBD5E1', fontSize: 15, textAlign: 'center', marginTop: 2, letterSpacing: 2 },
   artAuthor: { color: '#94A3B8', fontSize: 12, textAlign: 'center', marginTop: 4, fontWeight: '600' },
   poemBox: {
-    backgroundColor: '#1E193C',
-    borderRadius: 12,
+    borderRadius: 17,
     padding: 16,
     marginVertical: 14,
     borderWidth: 1,
-    borderColor: '#3D346D'
+    borderColor: 'rgba(236, 201, 255, 0.32)',
+    shadowColor: '#080315',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 9,
+    elevation: 6,
   },
+  poemQuoteIcon: { alignSelf: 'center', width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255, 217, 144, 0.12)', marginBottom: 7 },
   poemText: {
     color: '#FFF8EA',
     fontSize: 14,
@@ -560,26 +627,28 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   descBox: {
-    backgroundColor: '#16132C',
-    borderRadius: 10,
+    borderRadius: 17,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#2A2450'
+    borderColor: 'rgba(160, 126, 224, 0.30)'
   },
-  descTitle: { color: '#F5BA5B', fontSize: 12, fontWeight: '700', marginBottom: 6 },
   descContent: { color: '#CBD5E1', fontSize: 13, lineHeight: 20 },
-  locationText: { color: '#94A3B8', fontSize: 11, fontStyle: 'italic', marginTop: 8 },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 9 },
+  locationText: { color: '#CBB5FF', fontSize: 11, fontStyle: 'italic', flex: 1 },
 
   // CADAO
   cadaoSection: {
-    backgroundColor: '#1A1633',
-    borderRadius: 12,
+    borderRadius: 17,
     padding: 14,
     marginTop: 10,
     borderWidth: 1,
-    borderColor: '#2D2852'
+    borderColor: 'rgba(209, 160, 255, 0.34)',
+    shadowColor: '#080315',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.26,
+    shadowRadius: 9,
+    elevation: 6,
   },
-  cadaoSecTitle: { color: '#F5BA5B', fontSize: 12, fontWeight: '700', marginBottom: 6 },
   cadaoText: { color: '#E2E8F0', fontSize: 13, fontStyle: 'italic', lineHeight: 20 },
   cadaoCat: { color: '#94A3B8', fontSize: 11, marginTop: 6 },
 

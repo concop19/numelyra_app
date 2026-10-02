@@ -57,7 +57,7 @@ export class SpaceEngine {
   waveTransitionTimer: number = 0;
 
   // Sound callback
-  onSound?: (name: 'shoot' | 'laser' | 'missile' | 'hit' | 'explode' | 'egg' | 'reload' | 'overdrive' | 'hurt') => void;
+  onSound?: (name: 'shoot' | 'laser' | 'missile' | 'hit' | 'explode' | 'egg' | 'reload' | 'overdrive' | 'hurt' | 'shotOne' | 'shotTwo' | 'shotMany') => void;
 
   constructor(width = 360, height = 360) {
     this.init(width, height);
@@ -150,8 +150,6 @@ export class SpaceEngine {
 
     const rewardText = type === 'SHIELD' ? 'KHIÊN +7s' : `+${ammoCount} ${config.icon}`;
     this.addFloatingText(this.playerX, this.playerY - 25, rewardText, config.color);
-    this.onSound?.('reload');
-
     // Create sparks around player ship
     for (let i = 0; i < 8; i++) {
       const angle = Math.random() * Math.PI * 2;
@@ -548,7 +546,7 @@ export class SpaceEngine {
 
     if (isOverdrive) {
       // 5-way plasma spread in Overdrive!
-      this.onSound?.('laser');
+      this.onSound?.('shotMany');
       const angles = [-0.25, -0.12, 0, 0.12, 0.25];
       for (const a of angles) {
         this.bullets.push({
@@ -565,7 +563,7 @@ export class SpaceEngine {
     }
 
     if (ammoType === 'NORMAL') {
-      this.onSound?.('laser');
+      this.onSound?.('shotTwo');
       // Twin lasers
       this.bullets.push({
         id: `b_l_${Date.now()}_1`,
@@ -586,7 +584,7 @@ export class SpaceEngine {
         damage: 1,
       });
     } else if (ammoType === 'SCATTER') {
-      this.onSound?.('laser');
+      this.onSound?.('shotMany');
       // 3-way spread
       const angles = [-0.18, 0, 0.18];
       for (const a of angles) {
@@ -601,7 +599,7 @@ export class SpaceEngine {
         });
       }
     } else if (ammoType === 'MISSILE') {
-      this.onSound?.('missile');
+      this.onSound?.('shotOne');
       // Homing rocket
       this.bullets.push({
         id: `b_ms_${Date.now()}_${Math.random()}`,

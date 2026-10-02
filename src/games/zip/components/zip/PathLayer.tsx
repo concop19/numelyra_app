@@ -10,33 +10,29 @@
  * Cell-centre stamps are rendered as circles (rounded squares of diameter
  * `thickness`) so the path's start and end caps are naturally rounded.
  *
- * Colour: each piece is tinted by interpolating between two anchor colours
- * across the column axis (red on the left, magenta on the right) — matching
- * the gradient on the LinkedIn Zip path.
+ * Colour: vibrant glowing flame/gold gradient matching the dark board aesthetic.
  */
 
 import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
-import { PATH_THICKNESS_FRACTION } from '@/game/layout';
-import type { CellPos, Puzzle } from '@/game/types';
+import { PATH_THICKNESS_FRACTION } from '../../game/layout';
+import type { CellPos, Puzzle } from '../../game/types';
 
 interface PathLayerProps {
   readonly path: readonly CellPos[];
   readonly cellSize: number;
   readonly puzzleSize: Puzzle['size'];
-  /** Thickness of the path as a fraction of cellSize. Defaults to the
-   *  shared layout constant that keeps it equal to the checkpoint dot. */
   readonly thicknessFraction?: number;
 }
 
 function lerpColor(t: number): string {
   const x = Math.max(0, Math.min(1, t));
-  // #E94B26 → #C0388F (red-orange to magenta), matching the LinkedIn look.
-  const r = Math.round(0xe9 + (0xc0 - 0xe9) * x);
-  const g = Math.round(0x4b + (0x38 - 0x4b) * x);
-  const b = Math.round(0x26 + (0x8f - 0x26) * x);
+  // #FF3D00 (fiery orange-red) → #FFB800 (radiant gold)
+  const r = 255;
+  const g = Math.round(61 + (184 - 61) * x);
+  const b = Math.round(0 + (10 - 0) * x);
   return `rgb(${r},${g},${b})`;
 }
 
@@ -59,10 +55,9 @@ function PathLayerInner({
   return (
     <View
       pointerEvents="none"
-      style={[StyleSheet.absoluteFillObject, styles.root]}
+      style={[StyleSheet.absoluteFill, styles.root]}
     >
-      {/* Connectors between consecutive cells. Length = cellSize, drawn from
-          the centre of one cell to the centre of the next. */}
+      {/* Connectors between consecutive cells */}
       {segments.map(([r, c], i) => {
         const [pr, pc] = path[i];
         const horizontal = pr === r;
@@ -88,8 +83,18 @@ function PathLayerInner({
         return (
           <Animated.View
             key={`seg-${pr}-${pc}-${r}-${c}`}
-            entering={FadeIn.duration(110)}
-            style={[styles.piece, { backgroundColor: color }, style]}
+            entering={FadeIn.duration(90)}
+            style={[
+              styles.piece,
+              {
+                backgroundColor: color,
+                shadowColor: color,
+                shadowOpacity: 0.5,
+                shadowRadius: 4,
+                elevation: 3,
+              },
+              style,
+            ]}
           />
         );
       })}
@@ -104,8 +109,8 @@ function PathLayerInner({
         return (
           <Animated.View
             key={`stamp-${r}-${c}-${i}`}
-            entering={FadeIn.duration(110)}
-            exiting={FadeOut.duration(70)}
+            entering={FadeIn.duration(90)}
+            exiting={FadeOut.duration(60)}
             style={[
               styles.piece,
               {
@@ -115,6 +120,10 @@ function PathLayerInner({
                 height: thickness,
                 borderRadius: half,
                 backgroundColor: color,
+                shadowColor: color,
+                shadowOpacity: 0.5,
+                shadowRadius: 4,
+                elevation: 3,
               },
             ]}
           />

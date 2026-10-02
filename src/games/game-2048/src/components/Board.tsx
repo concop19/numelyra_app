@@ -6,7 +6,7 @@ import {
   Pressable,
   Platform,
 } from "react-native";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   BOARD_SIZE,
@@ -20,6 +20,11 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS } from "react-native-reanimated";
 import Cell from "./Cell";
 import GameOverScreen from "./GameOverScreen";
+import { useGameAudioMode, useGameSound } from '../../../shared/useGameSound';
+
+const moveUpSound = require('../../../../../assets/games/sound/2024/len.wav');
+const moveDownSound = require('../../../../../assets/games/sound/2024/xun.wav');
+const maxValueSound = require('../../../../../assets/games/sound/2024/max_value.mp3');
 
 type Props = { dailyTarget?: number; onDailyComplete?: () => void };
 
@@ -31,9 +36,21 @@ const Board = ({ dailyTarget, onDailyComplete }: Props) => {
       .map((_, index) => <BackgroundCell key={index.toString()} />);
   }, []);
 
-  const { logBoard, board, move, startGame, gameOver } = useGame();
+  const { board, move: moveTiles, startGame, gameOver } = useGame();
+  useGameAudioMode();
+  const playMoveUp = useGameSound(moveUpSound);
+  const playMoveDown = useGameSound(moveDownSound);
+  const playMaxValue = useGameSound(maxValueSound);
+  const move = useCallback((direction: Direction) => {
+    if (direction === 'up' || direction === 'down') playMoveUp();
+    if (direction === 'left' || direction === 'right') playMoveDown();
+    moveTiles(direction);
+  }, [moveTiles, playMoveDown, playMoveUp]);
   const dailyCompleted = useRef(false);
   const highestTile = Math.max(0, ...board.map((cell) => cell.value));
+  // Starts at the initial tile value so a new board's two opening 2s do not
+  // sound like a newly earned maximum. A reset lowers this reference again.
+  const highestTileThisRunRef = useRef(2);
   const [bestTile, setBestTile] = useState(0);
 
   useEffect(() => { AsyncStorage.getItem('game-2048:best-tile:v1').then((value) => setBestTile(Number(value) || 0)).catch(() => undefined); }, []);
@@ -43,6 +60,12 @@ const Board = ({ dailyTarget, onDailyComplete }: Props) => {
       void AsyncStorage.setItem('game-2048:best-tile:v1', String(highestTile));
     }
   }, [bestTile, highestTile]);
+  useEffect(() => {
+    if (highestTile > highestTileThisRunRef.current) {
+      playMaxValue();
+    }
+    highestTileThisRunRef.current = highestTile || 2;
+  }, [highestTile, playMaxValue]);
 
   // Board is module-scoped in the original game. Start a clean run whenever
   // this screen is entered so a completed practice run cannot satisfy Daily.
@@ -99,26 +122,20 @@ const Board = ({ dailyTarget, onDailyComplete }: Props) => {
     let direction: Direction;
     if (absX < absY) {
       if (e.translationY < 0) {
-        console.log("UP");
         direction = "up";
       } else {
         direction = "down";
-        console.log("DOWN");
       }
     } else {
       if (e.translationX < 0) {
         direction = "left";
-        console.log("LEFT");
       } else {
         direction = "right";
-        console.log("RIGHT");
       }
     }
 
     runOnJS(move)(direction);
   });
-
-  logBoard();
 
   const cells = board.map(({ x, y, value, id }) => (
     <Cell x={x} y={y} value={value} key={id} />

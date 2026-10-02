@@ -2,11 +2,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { getDailyMindPuzzle, PUZZLES } from './src/data/puzzles';
+import { useGameAudioMode, useGameSound } from '../shared/useGameSound';
 
 const PROGRESS_KEY = 'mind-rules:active-progress:v1';
+const puzzleFinishedSound = require('../../../assets/games/sound/mind_rule/finish_cau_do.wav');
 type Props = { dailyMode?: boolean; onDailyComplete?: () => void };
 
 export default function MindRulesGame({ dailyMode = false, onDailyComplete }: Props) {
+  useGameAudioMode();
+  const playPuzzleFinished = useGameSound(puzzleFinishedSound);
   const [level, setLevel] = useState(0);
   const [answer, setAnswer] = useState('');
   const [feedback, setFeedback] = useState('');
@@ -23,8 +27,12 @@ export default function MindRulesGame({ dailyMode = false, onDailyComplete }: Pr
     }).catch(() => undefined);
   }, [dailyMode]);
 
+  const hasWon = feedback.includes('Đáp án') || feedback.includes('Chính xác');
+
   const checkAnswer = () => {
+    if (hasWon) return;
     if (Number(answer) === puzzle.answer) {
+      playPuzzleFinished();
       setFeedback(`${puzzle.explanation ?? 'Chính xác!'} ✨`);
       if (dailyMode && !completedDaily.current) { completedDaily.current = true; onDailyComplete?.(); }
     } else { setWrongAttempts((count) => count + 1); setFeedback('Chưa đúng, thử lại nhé.'); }
@@ -34,8 +42,6 @@ export default function MindRulesGame({ dailyMode = false, onDailyComplete }: Pr
     const next = (level + 1) % PUZZLES.length;
     setLevel(next); setAnswer(''); setFeedback(''); setWrongAttempts(0); void AsyncStorage.setItem(PROGRESS_KEY, String(next));
   };
-  const hasWon = feedback.includes('Đáp án') || feedback.includes('Chính xác');
-
   return <SafeAreaView style={styles.safe}><View style={styles.header}><Text style={styles.eyebrow}>MIND RULES · {progress}</Text><Text style={styles.title}>{puzzle.title}</Text><Text style={styles.subtitle}>{dailyMode ? 'Một thử thách mới, duy nhất cho ngày hôm nay.' : 'Tìm quy luật biến đổi của các con số.'}</Text></View>
     <View style={styles.card}>{puzzle.equations.map((equation) => <View key={equation.input} style={styles.equation}><Text style={styles.number}>{equation.input}</Text><Text style={styles.arrow}>→</Text><Text style={styles.number}>{equation.output}</Text></View>)}<View style={[styles.equation, styles.question]}><Text style={styles.number}>{puzzle.question}</Text><Text style={styles.arrow}>→</Text><TextInput value={answer} editable={!hasWon} onChangeText={setAnswer} keyboardType="number-pad" placeholder="?" placeholderTextColor="#A98FD0" style={styles.input} accessibilityLabel="Đáp án" /></View></View>
     <Text style={styles.hint}>Gợi ý: {puzzle.hint}</Text>{feedback ? <Text style={[styles.feedback, !hasWon && styles.feedbackWrong]}>{feedback}</Text> : null}{wrongAttempts > 0 && <Text style={styles.attempts}>Đã thử {wrongAttempts} lần</Text>}

@@ -7,12 +7,12 @@
 import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { palette } from '@/game/colors';
+import { palette } from '../../game/colors';
 import {
   CHECKPOINT_DOT_FRACTION,
   CHECKPOINT_FONT_FRACTION,
-} from '@/game/layout';
-import type { Checkpoint, Wall } from '@/game/types';
+} from '../../game/layout';
+import type { Checkpoint, Wall } from '../../game/types';
 
 interface CheckpointLayerProps {
   readonly checkpoints: readonly Checkpoint[];
@@ -25,9 +25,6 @@ function CheckpointLayerInner({
   cellSize,
   hitValues,
 }: CheckpointLayerProps) {
-  // Compact dots — slightly under half the cell width so they read as
-  // markers rather than dominating the tile. Path thickness (PathLayer)
-  // is locked to this same fraction via the shared layout module.
   const dotSize = cellSize * CHECKPOINT_DOT_FRACTION;
   const fontSize = dotSize * CHECKPOINT_FONT_FRACTION;
 
@@ -35,8 +32,10 @@ function CheckpointLayerInner({
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       {checkpoints.map(({ pos: [r, c], value }) => {
         const hit = hitValues.has(value);
+        const isStart = value === 1;
         const dotLeft = c * cellSize + (cellSize - dotSize) / 2;
         const dotTop = r * cellSize + (cellSize - dotSize) / 2;
+
         return (
           <View
             key={`cp-${value}`}
@@ -50,7 +49,19 @@ function CheckpointLayerInner({
                 borderRadius: dotSize / 2,
                 backgroundColor: hit
                   ? palette.checkpointFillHit
+                  : isStart
+                  ? '#D4AF37'
                   : palette.checkpointFill,
+                borderColor: hit
+                  ? '#FFE082'
+                  : isStart
+                  ? '#FFF275'
+                  : palette.checkpointBorder,
+                borderWidth: 2,
+                shadowColor: hit || isStart ? '#F5BA5B' : '#000',
+                shadowOpacity: hit || isStart ? 0.7 : 0.25,
+                shadowRadius: hit || isStart ? 6 : 2,
+                elevation: 4,
               },
             ]}
           >
@@ -59,9 +70,10 @@ function CheckpointLayerInner({
                 styles.dotText,
                 {
                   fontSize,
-                  color: hit
+                  color: hit || isStart
                     ? palette.checkpointTextHit
                     : palette.checkpointText,
+                  fontWeight: '900',
                 },
               ]}
             >
@@ -97,9 +109,9 @@ function WallLayerInner({ walls, cellSize }: WallLayerProps) {
                 styles.wall,
                 {
                   left: c * cellSize,
-                  top: r * cellSize - 2,
+                  top: r * cellSize - 2.5,
                   width: cellSize,
-                  height: 4,
+                  height: 5,
                 },
               ]}
             />
@@ -113,9 +125,9 @@ function WallLayerInner({ walls, cellSize }: WallLayerProps) {
             style={[
               styles.wall,
               {
-                left: c * cellSize - 2,
+                left: c * cellSize - 2.5,
                 top: r * cellSize,
-                width: 4,
+                width: 5,
                 height: cellSize,
               },
             ]}
@@ -131,14 +143,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.16,
-    shadowRadius: 3,
     shadowOffset: { width: 0, height: 1 },
-    elevation: 3,
   },
   dotText: {
-    fontWeight: '800',
     fontVariant: ['tabular-nums'],
     includeFontPadding: false,
     textAlign: 'center',
@@ -146,7 +153,11 @@ const styles = StyleSheet.create({
   wall: {
     position: 'absolute',
     backgroundColor: palette.wall,
-    borderRadius: 2,
+    borderRadius: 3,
+    shadowColor: palette.wall,
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 4,
   },
 });
 

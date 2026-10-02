@@ -17,6 +17,12 @@ import { SpaceArrowNode } from '../engine/levelLoader';
 import { SpaceEngine } from '../engine/spaceEngine';
 import { AMMO_CONFIGS, SpaceGameState } from '../types';
 import { playSpaceSfx } from '../utils/spaceAudio';
+import { useGameAudioMode, useGameSound } from '../../../../shared/useGameSound';
+
+const singleShotSound = require('../../../../../../assets/games/sound/narrow-escape/sung_1_vine.wav');
+const twoShotSound = require('../../../../../../assets/games/sound/narrow-escape/sung_2_vien.wav');
+const manyShotSound = require('../../../../../../assets/games/sound/narrow-escape/sung_nhieu_vien.wav');
+const arrowClearedSound = require('../../../../../../assets/games/sound/narrow-escape/narrow_escape.wav');
 
 interface Props {
   navigation: any;
@@ -25,6 +31,11 @@ interface Props {
 export function SpaceArrowScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { width: winWidth, height: winHeight } = useWindowDimensions();
+  useGameAudioMode();
+  const playSingleShot = useGameSound(singleShotSound, { minimumIntervalMs: 100 });
+  const playTwoShots = useGameSound(twoShotSound, { minimumIntervalMs: 100 });
+  const playManyShots = useGameSound(manyShotSound, { minimumIntervalMs: 100 });
+  const playArrowCleared = useGameSound(arrowClearedSound);
 
   const isLandscape = winWidth >= winHeight;
   // Keep portrait usable on the rest of the app, but give this two-task game
@@ -59,18 +70,21 @@ export function SpaceArrowScreen({ navigation }: Props) {
 
     return () => {
       NavigationBar.setHidden(false);
-      void ScreenOrientation.lockAsync(
-        ScreenOrientation.OrientationLock.PORTRAIT_UP
-      ).catch(() => undefined);
+      void ScreenOrientation.unlockAsync().catch(() => undefined);
     };
   }, []);
 
   // Initialize engine
   const engine = useMemo(() => {
     const eng = new SpaceEngine(combatWidth, combatHeight);
-    eng.onSound = (name) => playSpaceSfx(name);
+    eng.onSound = (name) => {
+      if (name === 'shotOne') return playSingleShot();
+      if (name === 'shotTwo') return playTwoShots();
+      if (name === 'shotMany') return playManyShots();
+      playSpaceSfx(name);
+    };
     return eng;
-  }, [combatWidth, combatHeight]);
+  }, [combatWidth, combatHeight, playManyShots, playSingleShot, playTwoShots]);
 
   // Sync HUD state from engine
   const [hudState, setHudState] = useState<SpaceGameState>(engine.state);
@@ -111,8 +125,9 @@ export function SpaceArrowScreen({ navigation }: Props) {
   const handleArrowCleared = React.useCallback(
     (arrow: SpaceArrowNode) => {
       engine.addAmmo(arrow.ammoType, arrow.ammoCount);
+      playArrowCleared();
     },
-    [engine]
+    [engine, playArrowCleared]
   );
 
   const handleBoardCleared = React.useCallback(

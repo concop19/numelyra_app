@@ -23,8 +23,8 @@ import {
   posKey,
   samePos,
   suggestHint,
-} from '@/game/logic';
-import type { CellPos, GameStats, Puzzle } from '@/game/types';
+} from '../game/logic';
+import type { CellPos, GameStats, Puzzle } from '../game/types';
 
 interface UseZipGameOptions {
   readonly puzzle: Puzzle;

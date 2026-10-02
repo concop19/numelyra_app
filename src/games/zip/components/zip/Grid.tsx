@@ -5,10 +5,10 @@
  * Checkpoint / Wall overlays, all under one Pan gesture detector.
  *
  * Layering, bottom up:
- *   1. Cell tiles            (white tiles with light grid border)
- *   2. PathLayer             (the snake the player draws)
- *   3. CheckpointLayer       (black dots with white numbers, on top of path)
- *   4. WallLayer             (red bars between cells, on top of everything)
+ *   1. Cell tiles            (dark tiles with golden grid borders)
+ *   2. PathLayer             (the glowing snake the player draws)
+ *   3. CheckpointLayer       (circular golden numbered badges, on top of path)
+ *   4. WallLayer             (neon barrier bars between cells, on top of everything)
  *
  * The Pan gesture runs on the JS thread (`runOnJS(true)`) and a ref filters
  * out same-cell repeats so the state machine only sees one event per cell
@@ -19,9 +19,9 @@ import { useCallback, useMemo, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
-import { palette } from '@/game/colors';
-import { posKey } from '@/game/logic';
-import type { CellPos, Puzzle } from '@/game/types';
+import { palette } from '../../game/colors';
+import { posKey } from '../../game/logic';
+import type { CellPos, Puzzle } from '../../game/types';
 
 import { Cell } from './Cell';
 import { CheckpointLayer, WallLayer } from './Overlays';
@@ -142,7 +142,7 @@ export function Grid({
           { width: boardSize, height: boardSize },
         ]}
       >
-        {/* Cell tiles */}
+        {/* Cell tiles with crisp golden borders */}
         {cellRows}
 
         {hintKey && (
@@ -160,21 +160,21 @@ export function Grid({
           />
         )}
 
-        {/* The path itself */}
+        {/* The continuous rounded snake path */}
         <PathLayer
           path={path}
           cellSize={cellSize}
           puzzleSize={puzzle.size}
         />
 
-        {/* Numbered checkpoints, drawn on top of the path */}
+        {/* Numbered circular checkpoints */}
         <CheckpointLayer
           checkpoints={puzzle.checkpoints}
           cellSize={cellSize}
           hitValues={reachedCheckpoints}
         />
 
-        {/* Walls — top of stack so they're never hidden */}
+        {/* Walls — barriers between cells */}
         {puzzle.walls && puzzle.walls.length > 0 && (
           <WallLayer walls={puzzle.walls} cellSize={cellSize} />
         )}
@@ -185,11 +185,15 @@ export function Grid({
 
 const styles = StyleSheet.create({
   board: {
-    backgroundColor: palette.surface,
+    backgroundColor: palette.cellEmpty,
     borderRadius: 14,
     overflow: 'hidden',
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: palette.borderStrong,
+    shadowColor: palette.borderStrong,
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 6,
   },
   row: {
     flexDirection: 'row',
@@ -197,5 +201,8 @@ const styles = StyleSheet.create({
   hintWash: {
     position: 'absolute',
     backgroundColor: palette.cellHintWash,
+    borderWidth: 2,
+    borderColor: '#FFD54F',
+    borderRadius: 4,
   },
 });

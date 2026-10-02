@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { palette } from '@/game/colors';
+import { palette } from '../../game/colors';
 
 type Step = {
   title: string;
@@ -15,8 +15,8 @@ type Step = {
 
 const STEPS: readonly Step[] = [
   {
-    title: 'Start on 1',
-    body: 'Every zip starts on checkpoint 1. Press there first to begin the path.',
+    title: 'Bắt đầu từ số 1',
+    body: 'Mọi ván Zip đều bắt đầu tại ô số 1. Chạm hoặc bắt đầu kéo từ ô này.',
     path: [[0, 0]],
     checkpoints: [
       { pos: [0, 0], value: 1 },
@@ -24,11 +24,11 @@ const STEPS: readonly Step[] = [
       { pos: [2, 2], value: 3 },
     ],
     hint: [0, 0],
-    footer: 'Only 1 can start the run.',
+    footer: 'Chỉ có ô số 1 mới có thể mở đầu đường đi.',
   },
   {
-    title: 'Drag cell to cell',
-    body: 'Keep dragging through neighboring cells. Diagonals do not count.',
+    title: 'Kéo nối các ô kề nhau',
+    body: 'Giữ và kéo ngón tay qua các ô liền kề (ngang hoặc dọc). Không đi chéo.',
     path: [
       [0, 0],
       [0, 1],
@@ -40,11 +40,11 @@ const STEPS: readonly Step[] = [
       { pos: [0, 2], value: 2 },
       { pos: [2, 2], value: 3 },
     ],
-    footer: 'The path must stay continuous.',
+    footer: 'Đường đi phải liền mạch và phủ kín bàn chơi.',
   },
   {
-    title: 'Hit numbers in order',
-    body: 'Cross 2 before 3, then keep filling the board until every cell is covered.',
+    title: 'Chạm các số theo thứ tự',
+    body: 'Đi qua số 1 rồi đến 2, rồi đến 3... và tiếp tục cho đến khi phủ kín toàn bộ ô.',
     path: [
       [0, 0],
       [0, 1],
@@ -58,11 +58,11 @@ const STEPS: readonly Step[] = [
       { pos: [0, 2], value: 2 },
       { pos: [2, 2], value: 3 },
     ],
-    footer: 'Wrong checkpoint order breaks the run.',
+    footer: 'Chạm sai thứ tự số sẽ không thể đi tiếp.',
   },
   {
-    title: 'Backtracks are allowed',
-    body: 'Dragging back onto your own path trims it. That helps recover, but it counts as a backtrack.',
+    title: 'Cho phép lùi bước',
+    body: 'Kéo lùi lại ô trước đó trên đường đi để xóa đoạn sai. Cố gắng đạt 0 lần lùi!',
     path: [
       [0, 0],
       [0, 1],
@@ -78,7 +78,7 @@ const STEPS: readonly Step[] = [
       { pos: [0, 2], value: 2 },
       { pos: [2, 2], value: 3 },
     ],
-    footer: 'Flawless runs finish with 0 backtracks.',
+    footer: 'Đường đi hoàn hảo là hoàn thành với 0 lần lùi bước.',
   },
 ];
 
@@ -101,7 +101,7 @@ export function TutorialModal({ visible, onClose }: TutorialModalProps) {
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.backdrop}>
         <View style={styles.card}>
-          <Text style={styles.kicker}>Guided Walkthrough</Text>
+          <Text style={styles.kicker}>HƯỚNG DẪN CƠ BẢN</Text>
           <Text style={styles.title}>{step.title}</Text>
           <Text style={styles.body}>{step.body}</Text>
 
@@ -130,7 +130,7 @@ export function TutorialModal({ visible, onClose }: TutorialModalProps) {
                   pressed && styles.secondaryButtonPressed,
                 ]}
               >
-                <Text style={styles.secondaryButtonText}>Back</Text>
+                <Text style={styles.secondaryButtonText}>Quay lại</Text>
               </Pressable>
             ) : (
               <View style={styles.actionSpacer} />
@@ -150,7 +150,7 @@ export function TutorialModal({ visible, onClose }: TutorialModalProps) {
               ]}
             >
               <Text style={styles.primaryButtonText}>
-                {isLast ? 'Start playing' : 'Next'}
+                {isLast ? 'Bắt đầu chơi' : 'Tiếp theo ›'}
               </Text>
             </Pressable>
           </View>

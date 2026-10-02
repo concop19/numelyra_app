@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,83 +15,10 @@ import {
   createInitialGameState,
 } from '../engine/dotBoxEngine';
 import { AIDifficulty, DotBoxGameState, GameMode } from '../types';
+import { useGameAudioMode, useGameSound } from '../../../../shared/useGameSound';
 
-// Web Audio API Synthesizer for instant, zero-latency feedback
-class SoundSynthesizer {
-  private ctx: AudioContext | null = null;
-
-  private getContext(): AudioContext | null {
-    if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
-    if (!this.ctx) {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (AudioCtx) this.ctx = new AudioCtx();
-    }
-    if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
-    }
-    return this.ctx;
-  }
-
-  playLineConnect() {
-    const ctx = this.getContext();
-    if (!ctx) return;
-    try {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(440, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.08);
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.08);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.08);
-    } catch {}
-  }
-
-  playBoxCapture() {
-    const ctx = this.getContext();
-    if (!ctx) return;
-    try {
-      const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
-      notes.forEach((freq, idx) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.06);
-        gain.gain.setValueAtTime(0.2, ctx.currentTime + idx * 0.06);
-        gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + idx * 0.06 + 0.18);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(ctx.currentTime + idx * 0.06);
-        osc.stop(ctx.currentTime + idx * 0.06 + 0.2);
-      });
-    } catch {}
-  }
-
-  playWin() {
-    const ctx = this.getContext();
-    if (!ctx) return;
-    try {
-      const notes = [440, 554.37, 659.25, 880];
-      notes.forEach((freq, idx) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.1);
-        gain.gain.setValueAtTime(0.25, ctx.currentTime + idx * 0.1);
-        gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + idx * 0.1 + 0.35);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(ctx.currentTime + idx * 0.1);
-        osc.stop(ctx.currentTime + idx * 0.1 + 0.4);
-      });
-    } catch {}
-  }
-}
-
-const sounds = new SoundSynthesizer();
+const lineConnectedSound = require('../../../../../../assets/games/sound/dots_box/dien_dot.wav');
+const boxCompletedSound = require('../../../../../../assets/games/sound/dots_box/finish_1_o_dot.mp3');
 
 const DIFFICULTY_LABELS: Record<AIDifficulty, { label: string; desc: string }> = {
   easy: { label: 'Dễ', desc: 'Máy đi ngẫu nhiên, dễ thắng' },
@@ -103,6 +29,9 @@ const DIFFICULTY_LABELS: Record<AIDifficulty, { label: string; desc: string }> =
 export function DotBoxScreen() {
   const { width } = useWindowDimensions();
   const compact = width < 980;
+  useGameAudioMode();
+  const playLineConnected = useGameSound(lineConnectedSound, { minimumIntervalMs: 45 });
+  const playBoxCompleted = useGameSound(boxCompletedSound);
 
   const [boardSize, setBoardSize] = useState<number>(3);
   const [gameMode, setGameMode] = useState<GameMode>('pve');
@@ -164,9 +93,10 @@ export function DotBoxScreen() {
       // Push current state to undo history
       setHistory((prev) => [...prev, gameState]);
       setGameState(res.nextState);
+      playLineConnected();
 
       if (res.extraTurn) {
-        sounds.playBoxCapture();
+        playBoxCompleted();
         setExtraTurnBanner(
           gameMode === 'pve'
             ? '🎉 BẠN ĐÃ ĂN HỘP! ĐƯỢC THÊM LƯỢT ĐI!'
@@ -175,15 +105,10 @@ export function DotBoxScreen() {
         if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
         bannerTimerRef.current = setTimeout(() => setExtraTurnBanner(null), 2500);
       } else {
-        sounds.playLineConnect();
         setExtraTurnBanner(null);
       }
-
-      if (res.nextState.isGameOver) {
-        sounds.playWin();
-      }
     },
-    [gameMode, gameState, isAIThinking]
+    [gameMode, gameState, isAIThinking, playBoxCompleted, playLineConnected]
   );
 
   // AI Turn Loop
@@ -214,24 +139,20 @@ export function DotBoxScreen() {
 
       setGameState(res.nextState);
       setIsAIThinking(false);
+      playLineConnected();
 
       if (res.extraTurn) {
-        sounds.playBoxCapture();
+        playBoxCompleted();
         setExtraTurnBanner('🤖 MÁY ĂN HỘP & ĐƯỢC ĐÁNH TIẾP!');
         if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
         bannerTimerRef.current = setTimeout(() => setExtraTurnBanner(null), 2500);
       } else {
-        sounds.playLineConnect();
         setExtraTurnBanner(null);
-      }
-
-      if (res.nextState.isGameOver) {
-        sounds.playWin();
       }
     }, 650); // Slight delay for realistic AI feel
 
     return () => clearTimeout(timer);
-  }, [difficulty, gameMode, gameState]);
+  }, [difficulty, gameMode, gameState, playBoxCompleted, playLineConnected]);
 
   // Turn status description
   const turnLabel = useMemo(() => {

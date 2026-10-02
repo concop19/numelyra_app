@@ -5,7 +5,7 @@
 
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { palette } from '@/game/colors';
+import { palette } from '../../game/colors';
 
 interface WinModalProps {
   readonly visible: boolean;
@@ -17,7 +17,7 @@ interface WinModalProps {
   readonly onNext: () => void;
   readonly onHome: () => void;
   readonly onReplay: () => void;
-  readonly onShare: () => void;
+  readonly onShare?: () => void;
 }
 
 function formatTime(sec: number): string {
@@ -36,7 +36,6 @@ export function WinModal({
   onNext,
   onHome,
   onReplay,
-  onShare,
 }: WinModalProps) {
   const flawless = backtracks === 0;
 
@@ -44,46 +43,37 @@ export function WinModal({
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.backdrop}>
         <View style={styles.card}>
-          <Text style={styles.kicker}>Puzzle complete</Text>
+          <Text style={styles.kicker}>🎉 HOÀN THÀNH XUẤT SẮC!</Text>
           <Text style={styles.title}>
-            {flawless ? 'Flawless zip.' : 'Nicely zipped.'}
+            {flawless ? 'Đường nối hoàn hảo!' : 'Đã vượt qua thử thách!'}
           </Text>
           <Text style={styles.subtitle}>
-            {flawless ? 'No backtracks.' : `${backtracks} backtrack${backtracks === 1 ? '' : 's'}.`}
+            {flawless ? 'Không lùi bước nào 🏆' : `${backtracks} lần lùi bước`}
           </Text>
           <Text style={styles.scoreLabel}>{scoreLabel}</Text>
 
           <View style={styles.statsRow}>
             <View style={styles.stat}>
-              <Text style={styles.statLabel}>Time</Text>
+              <Text style={styles.statLabel}>Thời gian</Text>
               <Text style={styles.statValue}>{formatTime(timeSec)}</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.stat}>
-              <Text style={styles.statLabel}>Moves</Text>
+              <Text style={styles.statLabel}>Số bước</Text>
               <Text style={styles.statValue}>{moves}</Text>
             </View>
           </View>
 
           <View style={styles.actions}>
-            <Pressable
-              onPress={onShare}
-              style={({ pressed }) => [
-                styles.btnPrimary,
-                pressed && styles.btnPrimaryPressed,
-              ]}
-            >
-              <Text style={styles.btnPrimaryText}>Share score</Text>
-            </Pressable>
             {hasNext && (
               <Pressable
                 onPress={onNext}
                 style={({ pressed }) => [
-                  styles.btnSecondary,
-                  pressed && styles.btnSecondaryPressed,
+                  styles.btnPrimary,
+                  pressed && styles.btnPrimaryPressed,
                 ]}
               >
-                <Text style={styles.btnSecondaryText}>Next puzzle</Text>
+                <Text style={styles.btnPrimaryText}>Màn tiếp theo  ›</Text>
               </Pressable>
             )}
             <Pressable
@@ -93,7 +83,7 @@ export function WinModal({
                 pressed && styles.btnSecondaryPressed,
               ]}
             >
-              <Text style={styles.btnSecondaryText}>Play again</Text>
+              <Text style={styles.btnSecondaryText}>↻ Chơi lại ván này</Text>
             </Pressable>
             <Pressable
               onPress={onHome}
@@ -102,7 +92,7 @@ export function WinModal({
                 pressed && { opacity: 0.6 },
               ]}
             >
-              <Text style={styles.btnGhostText}>Back to home</Text>
+              <Text style={styles.btnGhostText}>‹ Về danh sách màn</Text>
             </Pressable>
           </View>
         </View>

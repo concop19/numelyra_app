@@ -5,7 +5,7 @@
  */
 
 /** Diameter of the numbered checkpoint dots, as a fraction of cellSize. */
-export const CHECKPOINT_DOT_FRACTION = 0.48;
+export const CHECKPOINT_DOT_FRACTION = 0.54;
 
 /** Path thickness, as a fraction of cellSize. Locked to the dot diameter. */
 export const PATH_THICKNESS_FRACTION = CHECKPOINT_DOT_FRACTION;

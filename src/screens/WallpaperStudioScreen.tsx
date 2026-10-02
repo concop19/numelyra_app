@@ -52,10 +52,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 
 import { saveWallpaper } from '../services/wallpaperSaver';
-import { UserProfile } from '../store/userProfile';
+import { ProfileItem, setActiveProfileId, UserProfile } from '../store/userProfile';
 import { NumerologyCalculator, reduceNumber } from '../services/numerology24Service';
 import { API_ENDPOINTS, authenticatedFetch, resolveApiUrl } from '../services/apiConfig';
 import { NumerologyCardsModal } from '../components/NumerologyCardsModal';
+import ProfilePickerModal from '../components/ProfilePickerModal';
 import FloatingWallpaperCloud from '../components/FloatingWallpaperCloud';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -235,8 +236,25 @@ export default function WallpaperStudioScreen({ profile }: Props) {
   const [fullscreenItem, setFullscreenItem] = useState<WallpaperItem | null>(null);
   const [showMenuModal, setShowMenuModal] = useState(false);
   const [showCardsModal, setShowCardsModal] = useState(false);
+  const [isProfilePickerOpen, setIsProfilePickerOpen] = useState(false);
+  const [selectedProfiles, setSelectedProfiles] = useState<ProfileItem[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isSavingWallpaper, setIsSavingWallpaper] = useState(false);
+
+  useEffect(() => {
+    if (profile && selectedProfiles.length === 0) {
+      setSelectedProfiles([{ id: 'default-profile', ...profile, gender: profile.gender }]);
+    }
+  }, [profile, selectedProfiles.length]);
+
+  const activeWallpaperProfile = selectedProfiles[0] ?? profile ?? null;
+  const activeWallpaperProfileForModal: UserProfile | null = activeWallpaperProfile
+    ? {
+        fullName: activeWallpaperProfile.fullName,
+        birthDate: activeWallpaperProfile.birthDate,
+        gender: activeWallpaperProfile.gender || 'female',
+      }
+    : null;
 
   // Theo dõi hiển thị bàn phím để tối ưu không gian ô nhập capsule
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
@@ -268,8 +286,8 @@ export default function WallpaperStudioScreen({ profile }: Props) {
 
   // Tính toán Thần số học
   const numbers = useMemo(() => {
-    const fullName = profile?.fullName || 'Numelyra Seeker';
-    const birthDate = profile?.birthDate || '2000-01-01';
+    const fullName = activeWallpaperProfile?.fullName || 'Numelyra Seeker';
+    const birthDate = activeWallpaperProfile?.birthDate || '2000-01-01';
     const calculator = new NumerologyCalculator(fullName, birthDate);
     return {
       lifePathNumber: Number(calculator.getWalksOfLife().value) || 8,
@@ -277,7 +295,7 @@ export default function WallpaperStudioScreen({ profile }: Props) {
       personalYear: Number(calculator.getPersonalYear().value) || 1,
       personalDay: personalDayFor(calculator),
     };
-  }, [profile?.birthDate, profile?.fullName]);
+  }, [activeWallpaperProfile?.birthDate, activeWallpaperProfile?.fullName]);
 
   // Vòng lặp animation lơ lửng cho màn hình 2 (Generating)
   useEffect(() => {
@@ -431,8 +449,8 @@ export default function WallpaperStudioScreen({ profile }: Props) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fullName: profile?.fullName || 'Numelyra Seeker',
-          birthDate: profile?.birthDate || '2000-01-01',
+          fullName: activeWallpaperProfile?.fullName || 'Numelyra Seeker',
+          birthDate: activeWallpaperProfile?.birthDate || '2000-01-01',
           ...numbers,
           intentionId: randomIntention.id,
           styleId: randomStyle.id,
@@ -566,17 +584,28 @@ export default function WallpaperStudioScreen({ profile }: Props) {
             <Ionicons name="arrow-back" size={24} color="#F7CC6A" />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => setShowMenuModal(true)}
-            style={styles.headerIconButton}
-          >
-            <View style={styles.hamburger}>
-              <View style={styles.hamburgerLine} />
-              <View style={styles.hamburgerLine} />
-              <View style={styles.hamburgerLine} />
-            </View>
-          </TouchableOpacity>
+          <View style={styles.headerRightGroup}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setIsProfilePickerOpen(true)}
+              style={styles.headerIconButton}
+              accessibilityLabel="Chọn hồ sơ"
+            >
+              <Ionicons name="search-outline" size={23} color="#F7CC6A" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setShowMenuModal(true)}
+              style={styles.headerIconButton}
+            >
+              <View style={styles.hamburger}>
+                <View style={styles.hamburgerLine} />
+                <View style={styles.hamburgerLine} />
+                <View style={styles.hamburgerLine} />
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* ========================================================= */}
@@ -664,9 +693,14 @@ export default function WallpaperStudioScreen({ profile }: Props) {
                     style={styles.searchPill}
                   >
                     {/* Search Icon */}
-                    <View style={styles.searchIcon} pointerEvents="none">
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={() => setIsProfilePickerOpen(true)}
+                      style={styles.searchIcon}
+                      accessibilityLabel="Chọn hồ sơ"
+                    >
                       <Ionicons name="search-outline" size={21} color="#C8B9E4" />
-                    </View>
+                    </TouchableOpacity>
 
                     {/* Input Text */}
                     <TextInput
@@ -1157,11 +1191,25 @@ export default function WallpaperStudioScreen({ profile }: Props) {
         </View>
       </Modal>
 
+      <ProfilePickerModal
+        visible={isProfilePickerOpen}
+        onClose={() => setIsProfilePickerOpen(false)}
+        selectedProfiles={selectedProfiles}
+        allowCoupleMode={false}
+        onProfilesSelected={async (list) => {
+          setSelectedProfiles(list.slice(0, 1));
+          if (list.length > 0) {
+            await setActiveProfileId(list[0].id);
+          }
+          setIsProfilePickerOpen(false);
+        }}
+      />
+
       {/* Modal 24 Lá Bài Thần Số Học */}
-      {profile && (
+      {activeWallpaperProfileForModal && (
         <NumerologyCardsModal
           visible={showCardsModal}
-          profile={profile}
+          profile={activeWallpaperProfileForModal}
           onClose={() => setShowCardsModal(false)}
         />
       )}
@@ -1208,6 +1256,11 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 4,
     zIndex: 20,
+  },
+  headerRightGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   headerIconButton: {
     width: 44,

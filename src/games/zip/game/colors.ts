@@ -1,43 +1,45 @@
 /**
- * LinkedIn-Zip-inspired light palette.
+ * Dark theme with Golden/Yellow grid matching modern puzzle games.
  *
- * Black filled checkpoint circles, pink/magenta path, soft pink hint for the
- * "1" cell at start. Centralised so screens stay visually consistent.
+ * Deep obsidian background, crisp golden-yellow grid lines, glowing
+ * vibrant rounded snake path, and circular checkpoint dots.
  */
 export const palette = {
   // Page / surface
-  background: '#F7F4EF',
-  surface: '#FFFFFF',
-  surfaceElevated: '#FFFFFF',
-  border: '#E5E1DA',
-  borderStrong: '#C8C2B8',
+  background: '#090A10',
+  surface: '#11131F',
+  surfaceElevated: '#181B2B',
+  border: '#272B40',
+  borderStrong: '#F5BA5B', // Golden border
 
   // Text
-  text: '#101418',
-  textMuted: '#6E7479',
-  textSubtle: '#A2A6AB',
+  text: '#FFFFFF',
+  textMuted: '#9CA3AF',
+  textSubtle: '#6B7280',
 
-  // Path / accent (LinkedIn Zip pink)
-  accent: '#E14E97',
-  accentSoft: '#FCE2EE',
-  accentEdge: '#F18FBF',
+  // Path / accent (Vibrant flame/gold snake)
+  accent: '#FF9100',
+  accentSoft: 'rgba(255, 145, 0, 0.2)',
+  accentEdge: '#FFB800',
 
-  // Cells
-  cellEmpty: '#FFFFFF',
-  cellGrid: '#E5E1DA',
-  cellHintWash: '#FCE2EE',
-  cellHead: '#F8C8DD',
+  // Cells - Dark with crisp golden grid lines like reference image
+  cellEmpty: '#0B0D14',
+  cellGrid: '#D4AF37', // Gold grid lines!
+  cellGridMuted: 'rgba(245, 186, 91, 0.35)',
+  cellHintWash: 'rgba(255, 184, 0, 0.25)',
+  cellHead: '#FFD54F',
 
-  // Checkpoints (solid black filled)
-  checkpointFill: '#0F1216',
-  checkpointFillHit: '#0F1216',
-  checkpointText: '#FFFFFF',
-  checkpointTextHit: '#FFFFFF',
+  // Checkpoints (Circular golden badges with crisp numbers)
+  checkpointFill: '#161928',
+  checkpointBorder: '#F5BA5B',
+  checkpointFillHit: '#F5BA5B',
+  checkpointText: '#FFE082',
+  checkpointTextHit: '#090A10',
 
-  // Walls
-  wall: '#0F1216',
+  // Walls / Barriers
+  wall: '#FF4D6D',
 
   // States
-  success: '#15803D',
-  danger: '#D11B5F',
+  success: '#10B981',
+  danger: '#EF4444',
 } as const;

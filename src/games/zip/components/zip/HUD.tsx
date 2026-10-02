@@ -5,8 +5,8 @@
 
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { palette } from '@/game/colors';
-import type { GameStats } from '@/game/types';
+import { palette } from '../../game/colors';
+import type { GameStats } from '../../game/types';
 
 interface HUDProps {
   readonly stats: GameStats;
@@ -28,10 +28,10 @@ export function HUD({ stats, disabled, onUndo, onReset, onHint }: HUDProps) {
   return (
     <View style={styles.container}>
       <View style={styles.row}>
-        <Stat label="Next" value={stats.nextCheckpoint?.toString() ?? '—'} />
-        <Stat label="Cells" value={`${stats.visited}/${stats.total}`} />
-        <Stat label="Time" value={formatTime(stats.elapsedSec)} />
-        <Stat label="Backtracks" value={stats.backtracks.toString()} />
+        <Stat label="Mục tiêu" value={stats.nextCheckpoint?.toString() ?? 'Hoàn thành'} highlight />
+        <Stat label="Số ô" value={`${stats.visited}/${stats.total}`} />
+        <Stat label="Thời gian" value={formatTime(stats.elapsedSec)} />
+        <Stat label="Lùi bước" value={stats.backtracks.toString()} />
       </View>
 
       <View style={styles.progressTrack}>
@@ -41,10 +41,10 @@ export function HUD({ stats, disabled, onUndo, onReset, onHint }: HUDProps) {
       </View>
 
       <View style={styles.actionRow}>
-        <ActionButton label="Undo" onPress={onUndo} disabled={disabled} />
-        <ActionButton label="Hint" onPress={onHint} disabled={disabled} />
+        <ActionButton label="↶ Đi lại" onPress={onUndo} disabled={disabled} />
+        <ActionButton label="💡 Gợi ý" onPress={onHint} disabled={disabled} />
         <ActionButton
-          label="Reset"
+          label="↻ Làm mới"
           onPress={onReset}
           disabled={disabled}
           tone="danger"
@@ -54,11 +54,11 @@ export function HUD({ stats, disabled, onUndo, onReset, onHint }: HUDProps) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
   return (
     <View style={styles.stat}>
       <Text style={styles.statLabel}>{label}</Text>
-      <Text style={styles.statValue}>{value}</Text>
+      <Text style={[styles.statValue, highlight && styles.statHighlight]}>{value}</Text>
     </View>
   );
 }
@@ -101,7 +101,8 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     paddingHorizontal: 4,
-    gap: 12,
+    gap: 10,
+    marginBottom: 8,
   },
   row: {
     flexDirection: 'row',
@@ -109,15 +110,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: palette.surface,
     borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: palette.border,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
   },
   stat: {
     alignItems: 'center',
@@ -125,20 +121,24 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     color: palette.textMuted,
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.6,
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   statValue: {
     color: palette.text,
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
+  statHighlight: {
+    color: '#FFB800',
+    fontWeight: '900',
+  },
   progressTrack: {
-    height: 6,
+    height: 5,
     borderRadius: 3,
     backgroundColor: palette.border,
     overflow: 'hidden',
@@ -149,27 +149,27 @@ const styles = StyleSheet.create({
   },
   actionRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
   },
   actionBtn: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 999,
+    paddingVertical: 10,
+    borderRadius: 12,
     alignItems: 'center',
     backgroundColor: palette.surface,
-    borderWidth: 1,
-    borderColor: palette.borderStrong,
+    borderWidth: 1.5,
+    borderColor: palette.border,
   },
   actionBtnPressed: {
     backgroundColor: palette.accentSoft,
     borderColor: palette.accent,
   },
   actionBtnDisabled: {
-    opacity: 0.4,
+    opacity: 0.35,
   },
   actionText: {
     color: palette.text,
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

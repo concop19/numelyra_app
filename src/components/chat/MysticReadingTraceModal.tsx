@@ -128,7 +128,10 @@ export default function MysticReadingTraceModal({
   revealedCount = 0,
   onRevealNext,
 }: Props) {
-  const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const [sceneSize, setSceneSize] = useState({ width: 0, height: 0 });
+  const viewportWidth = sceneSize.width || windowWidth;
+  const viewportHeight = sceneSize.height || windowHeight;
   const [hoveredCard, setHoveredCard] = useState<HoveredCard | null>(null);
   const [answerPreviewChars, setAnswerPreviewChars] = useState(0);
   const [hasRevealedAnswerIntro, setHasRevealedAnswerIntro] = useState(false);
@@ -226,8 +229,15 @@ export default function MysticReadingTraceModal({
   const canvasTop = (viewportHeight - canvasHeight) / 2;
 
   return (
-    <Modal visible={visible} animationType="fade" transparent={false} statusBarTranslucent onRequestClose={onClose}>
-      <View style={styles.scene}>
+    <Modal visible={visible} animationType="fade" transparent={false} statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
+      <View
+        style={styles.scene}
+        onLayout={({ nativeEvent: { layout } }) => {
+          setSceneSize((current) => current.width === layout.width && current.height === layout.height
+            ? current
+            : { width: layout.width, height: layout.height });
+        }}
+      >
         <ImageBackground
           source={BACKGROUND}
           resizeMode="stretch"
