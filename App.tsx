@@ -13,6 +13,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Linking from 'expo-linking';
 
 import OnboardingScreen from './src/screens/OnboardingScreen';
@@ -33,6 +34,7 @@ const TAB_WALLPAPER_ICON = require('./assets/icons/tab_wallpaper_flame.jpg');
 const TAB_SETTINGS_ICON = require('./assets/icons/tab_settings_flame.jpg');
 
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
 const notifications = getNotifications();
 
 const linking = {
@@ -150,6 +152,9 @@ function AppContent() {
     content = (
       <NavigationContainer linking={linking}>
         <StatusBar style="light" />
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Main">
+            {({ navigation: rootNavigation }) => (
         <Tab.Navigator
           screenOptions={{
             headerShown: false,
@@ -185,10 +190,8 @@ function AppContent() {
               )
             }}
           >
-            {({ navigation }) => <ChatScreen profile={profile} onOpenSettings={() => navigation.navigate('Settings')} />}
+            {({ navigation }) => <ChatScreen profile={profile} onOpenSettings={() => navigation.navigate('Settings')} onOpenGameHub={() => rootNavigation.navigate('Games')} />}
           </Tab.Screen>
-
-          <Tab.Screen name="Games" component={GameHubScreen} options={{ tabBarLabel: 'Game Hub', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 22 }}>🎮</Text> }} />
 
           <Tab.Screen
             name="Calendar"
@@ -244,6 +247,10 @@ function AppContent() {
             {() => <SettingsScreen onRequestLogin={() => setLoginRequested(true)} />}
           </Tab.Screen>
         </Tab.Navigator>
+            )}
+          </Stack.Screen>
+          <Stack.Screen name="Games" component={GameHubScreen} />
+        </Stack.Navigator>
       </NavigationContainer>
     );
   }

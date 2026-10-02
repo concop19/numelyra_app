@@ -5,7 +5,7 @@ const FIRE_IDLE = require('../../../assets/giao_dien/giaodien1/chat_screen_asset
 const FIRE_THINKING = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/character/fire_char_thinking_3x4.png');
 const FIRE_ANSWER = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/character/fire_char_answer_3x4.png');
 
-export type MascotState = 'idle' | 'thinking' | 'answer';
+export type MascotState = 'idle' | 'thinking' | 'answer' | 'speaking';
 
 interface Props {
   state: MascotState;
@@ -32,12 +32,12 @@ export const FlameMascot: React.FC<Props> = ({
   const spriteSource =
     state === 'thinking'
       ? FIRE_THINKING
-      : state === 'answer'
+      : state === 'answer' || state === 'speaking'
       ? FIRE_ANSWER
       : FIRE_IDLE;
 
   // Tốc độ frame: thinking cháy dồn dập hơn (14 fps), idle nhịp nhàng thư thái (10 fps), answer rạng rỡ (12 fps)
-  const fps = state === 'thinking' ? 14 : state === 'idle' ? 10 : 12;
+  const fps = state === 'thinking' ? 14 : state === 'speaking' ? 16 : state === 'idle' ? 10 : 12;
 
   // Chuyển frame animation
   useEffect(() => {
@@ -106,7 +106,7 @@ export const FlameMascot: React.FC<Props> = ({
             backgroundColor:
               state === 'thinking'
                 ? 'rgba(255, 170, 70, 0.45)'
-                : state === 'answer'
+                : state === 'answer' || state === 'speaking'
                 ? 'rgba(255, 120, 150, 0.5)'
                 : 'rgba(255, 195, 100, 0.35)',
           },

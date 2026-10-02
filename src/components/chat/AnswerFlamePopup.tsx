@@ -10,6 +10,7 @@ import {
   ScrollView,
   Dimensions,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import HighlightedAnswerText from './HighlightedAnswerText';
 
 const ANSWER_BG = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/answerPopup/answer_popup_index2.png');
@@ -20,6 +21,10 @@ interface Props {
   text: string;
   senderName?: string;
   isTypingCompleted?: boolean;
+  isSpeaking?: boolean;
+  onDoublePress?: () => void;
+  onToggleSpeech?: (messageId: string, text: string) => void;
+  messageId?: string;
   onFinishTyping?: () => void;
   style?: any;
   extraActions?: React.ReactNode;
@@ -30,6 +35,10 @@ export const AnswerFlamePopup: React.FC<Props> = ({
   text,
   senderName = 'Numelyra',
   isTypingCompleted = false,
+  isSpeaking = false,
+  onDoublePress,
+  onToggleSpeech,
+  messageId,
   onFinishTyping,
   style,
   extraActions,
@@ -48,6 +57,7 @@ export const AnswerFlamePopup: React.FC<Props> = ({
 
   const isDoneRef = useRef(isDone);
   const typingTimerRef = useRef<any>(null);
+  const lastAnswerTapRef = useRef(0);
 
   // Hiệu ứng mở bung (enter reveal)
   useEffect(() => {
@@ -154,6 +164,17 @@ export const AnswerFlamePopup: React.FC<Props> = ({
     }
   };
 
+  const handleAnswerTap = () => {
+    if (!isDone || !onDoublePress) return;
+    const now = Date.now();
+    if (now - lastAnswerTapRef.current <= 320) {
+      lastAnswerTapRef.current = 0;
+      onDoublePress();
+    } else {
+      lastAnswerTapRef.current = now;
+    }
+  };
+
   const displayedText = isDone ? text : text.slice(0, displayedLength);
 
   // Kích thước chuẩn linh hoạt (co gọn khi bàn phím mở)
@@ -238,17 +259,36 @@ export const AnswerFlamePopup: React.FC<Props> = ({
         ]}
       >
         {/* Header người gửi - chạm vào để bỏ qua gõ chữ */}
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={handleSkipTyping}
-          style={styles.headerRow}
-          accessibilityLabel="Bỏ qua hiệu ứng gõ chữ"
-        >
-          <View style={styles.senderDot} />
-          <Text style={[styles.senderTitle, isCompact && styles.senderTitleCompact]}>
-            {senderName}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleSkipTyping}
+            style={styles.senderButton}
+            accessibilityRole="button"
+            accessibilityLabel="Bỏ qua hiệu ứng gõ chữ"
+          >
+            <View style={styles.senderDot} />
+            <Text style={[styles.senderTitle, isCompact && styles.senderTitleCompact]}>
+              {senderName}
+            </Text>
+          </TouchableOpacity>
+          {isDone && onToggleSpeech && messageId && (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => onToggleSpeech(messageId, text)}
+              style={styles.speechButton}
+              accessibilityRole="button"
+              accessibilityLabel={isSpeaking ? 'Dừng đọc câu trả lời' : 'Đọc câu trả lời thành tiếng'}
+              hitSlop={8}
+            >
+              <Ionicons
+                name={isSpeaking ? 'volume-high' : 'volume-medium-outline'}
+                size={18}
+                color={isSpeaking ? '#D44A68' : '#B88940'}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* Khung văn bản cuộn êm mượt, không có thanh cuộn xám thô */}
         <ScrollView
@@ -262,13 +302,19 @@ export const AnswerFlamePopup: React.FC<Props> = ({
           scrollEventThrottle={16}
           onScrollBeginDrag={handleSkipTyping}
         >
-          <HighlightedAnswerText
-            text={displayedText}
-            style={[styles.messageBody, isCompact && styles.messageBodyCompact]}
-            emphasisStyle={styles.messageEmphasis}
-          >
-            {!isDone && <Text style={styles.cursor}> ▌</Text>}
-          </HighlightedAnswerText>
+          <TouchableOpacity activeOpacity={1} onPress={handleAnswerTap} disabled={!isDone}>
+            <HighlightedAnswerText
+              text={displayedText}
+              style={[styles.messageBody, isCompact && styles.messageBodyCompact]}
+              emphasisStyle={styles.messageEmphasis}
+            >
+              {!isDone && <Text style={styles.cursor}> ▌</Text>}
+            </HighlightedAnswerText>
+          </TouchableOpacity>
+
+          {isDone && onDoublePress && (
+            <Text style={styles.analysisHint}>Nhấn đúp vào lời giải để xem căn cứ luận giải</Text>
+          )}
 
           {extraActions && (
             <View style={styles.actionsContainer}>{extraActions}</View>
@@ -334,8 +380,22 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 4,
     height: 20,
+  },
+  senderButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  speechButton: {
+    width: 30,
+    height: 28,
+    marginTop: -4,
+    marginRight: -3,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   senderDot: {
     width: 7,
@@ -373,6 +433,13 @@ const styles = StyleSheet.create({
   messageBodyCompact: {
     fontSize: 12.5,
     lineHeight: 18,
+  },
+  analysisHint: {
+    color: 'rgba(91, 66, 82, 0.68)',
+    fontSize: 9,
+    lineHeight: 12,
+    textAlign: 'center',
+    marginTop: 6,
   },
   messageEmphasis: {
     fontWeight: '800',

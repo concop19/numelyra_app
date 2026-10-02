@@ -25,22 +25,26 @@ import { useAuth } from '../store/authContext';
 import { startVoiceListening, stopVoiceListening, isVoiceSupported } from '../services/voiceService';
 import ProfilePickerModal from '../components/ProfilePickerModal';
 import { NumerologyCardsModal } from '../components/NumerologyCardsModal';
+import { MysticIndicatorDetailModal } from '../components/MysticIndicatorDetailModal';
 import TarotCardFlipView from '../components/TarotCardFlipView';
+import MysticReadingTraceModal from '../components/chat/MysticReadingTraceModal';
 import { getTarotCardImage } from '../services/tarotAssets';
 import { evaluateAgentDecision, AgentDecision } from '../services/agentDecisionEngine';
 import { NumerologyCalculator, IndicatorInfo } from '../services/numerology24Service';
+import { CalculatedIndicator } from '../services/numerologyEngine';
 import { drawCardsForSpread, DrawnCardResult, TAROT_SPREADS } from '../services/tarotService';
 import { computePersonTuViBazi, evaluateTuViBaziLove, TuViBaziSynastryResult } from '../services/tuViBaziService';
 import { API_ENDPOINTS, authenticatedFetch } from '../services/apiConfig';
 import { getBillingStatus } from '../services/billingService';
-import ChatSceneBackground from '../components/chat/ChatSceneBackground';
-import FlameMascot, { MascotState } from '../components/chat/FlameMascot';
+import ChatSceneBackground, { ChatMoonButton } from '../components/chat/ChatSceneBackground';
+import FlameMascot from '../components/chat/FlameMascot';
 import AnswerFlamePopup from '../components/chat/AnswerFlamePopup';
 import ChatInputBar from '../components/chat/ChatInputBar';
 import HighlightedAnswerText from '../components/chat/HighlightedAnswerText';
 import { PlaceSearchContextModal } from '../components/chat/PlaceSearchContextModal';
 import { PlaceSuggestionsCard } from '../components/chat/PlaceSuggestionsCard';
 import { getOneTimePlaceLocation, type PlaceSearchContext, type PlaceSearchPreferences } from '../services/placeLocation';
+import { ttsService } from '../services/ttsService';
 import {
   clearChatHistory,
   loadChatHistory,
@@ -64,6 +68,7 @@ export interface MessageItem {
 interface Props {
   profile?: UserProfile;
   onOpenSettings?: () => void;
+  onOpenGameHub?: () => void;
 }
 
 const getRestoredFlippedCards = (history: MessageItem[]): Record<string, boolean> => {
@@ -194,6 +199,7 @@ interface TypewriterMessageProps {
   onFlipCards?: () => void;
   onFinish?: () => void;
   onScrollRequest?: () => void;
+  onDoublePress?: () => void;
 }
 
 const TypewriterMessage: React.FC<TypewriterMessageProps> = ({
@@ -203,7 +209,8 @@ const TypewriterMessage: React.FC<TypewriterMessageProps> = ({
   isAlreadyFinished = false,
   onFlipCards,
   onFinish,
-  onScrollRequest
+  onScrollRequest,
+  onDoublePress,
 }) => {
   const [displayedLength, setDisplayedLength] = useState(isAlreadyFinished ? text.length : 0);
   const [isWaiting, setIsWaiting] = useState(!isAlreadyFinished && hasTarot && !isCardsFlipped);
@@ -212,6 +219,7 @@ const TypewriterMessage: React.FC<TypewriterMessageProps> = ({
   const isDoneRef = useRef(isAlreadyFinished);
   const typingTimerRef = useRef<any>(null);
   const flipTimerRef = useRef<any>(null);
+  const lastTapAtRef = useRef(0);
 
   const startTyping = () => {
     if (isDoneRef.current) return;
@@ -307,12 +315,23 @@ const TypewriterMessage: React.FC<TypewriterMessageProps> = ({
     }
   };
 
+  const handleAnswerPress = () => {
+    const now = Date.now();
+    if (isDone && onDoublePress && now - lastTapAtRef.current <= 320) {
+      lastTapAtRef.current = 0;
+      onDoublePress();
+      return;
+    }
+    lastTapAtRef.current = now;
+    handleSkip();
+  };
+
   const displayedText = isDone ? text : text.slice(0, displayedLength);
 
   return (
     <TouchableOpacity
       activeOpacity={isDone ? 1 : 0.85}
-      onPress={handleSkip}
+      onPress={handleAnswerPress}
       style={styles.answerTextContainer}
     >
       {isWaiting && (
@@ -336,13 +355,16 @@ const TypewriterMessage: React.FC<TypewriterMessageProps> = ({
           {!isDone && (
             <Text style={styles.skipHintText}>✦ Chạm để hiện nhanh toàn bộ</Text>
           )}
+          {isDone && onDoublePress && (
+            <Text style={styles.analysisTapHint}>Nhấn đúp để xem căn cứ luận giải</Text>
+          )}
         </View>
       )}
     </TouchableOpacity>
   );
 };
 
-export default function ChatScreen({ profile, onOpenSettings }: Props) {
+export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: Props) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const chatHistoryOwner = user?.id || 'guest';
@@ -362,6 +384,9 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
   // completes checkout and returns from Cài đặt.
   useFocusEffect(useCallback(() => {
     void refreshPlan();
+    return () => {
+      void ttsService.stop();
+    };
   }, [refreshPlan]));
   
   // Profile state (Multi-profile requirement: 1 profile or 2 profiles for couple match)
@@ -423,6 +448,7 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
 
   // Messages & States
   const [messages, setMessages] = useState<MessageItem[]>([]);
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const [inputVal, setInputVal] = useState('');
   const [loading, setLoading] = useState(false);
   // Backend may finish before the user has revealed every Tarot card. Keep the
@@ -460,10 +486,19 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
   // Tarot Flip State & Zoom Modal State
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
   const [zoomedCard, setZoomedCard] = useState<DrawnCardResult | null>(null);
+  const [readingTraceMessageId, setReadingTraceMessageId] = useState<string | null>(null);
+  const [detailIndicator, setDetailIndicator] = useState<CalculatedIndicator | null>(null);
 
   const appendMessage = useCallback((message: MessageItem) => {
     setMessages(prev => [...prev, message].slice(-MAX_STORED_CHAT_MESSAGES));
   }, []);
+
+  const handleOpenReadingTrace = useCallback((messageId: string) => {
+    const message = messages.find((item) => item.id === messageId);
+    if (!message || message.sender !== 'mascot' || !message.isTypingCompleted) return;
+    setReadingTraceMessageId(messageId);
+    void Haptics.selectionAsync();
+  }, [messages]);
 
   const markMessageTypingCompleted = useCallback((messageId: string) => {
     setMessages(prev => prev.map(message => (
@@ -471,6 +506,18 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
         ? { ...message, isTypingCompleted: true }
         : message
     )));
+  }, []);
+
+  const handleToggleSpeech = useCallback((messageId: string, text: string) => {
+    void ttsService.speak(messageId, text, {
+      onStart: () => setSpeakingMessageId(messageId),
+      onDone: () => setSpeakingMessageId((current) => current === messageId ? null : current),
+      onStopped: () => setSpeakingMessageId((current) => current === messageId ? null : current),
+      onError: () => {
+        setSpeakingMessageId((current) => current === messageId ? null : current);
+        Alert.alert('Không thể phát giọng đọc', 'Hãy kiểm tra cài đặt giọng nói tiếng Việt trên thiết bị rồi thử lại.');
+      },
+    });
   }, []);
 
   const handleFlipCard = (messageId: string, cardIndex: number) => {
@@ -532,6 +579,7 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
 
     return () => {
       isCurrentOwner = false;
+      void ttsService.stop();
     };
   }, [chatHistoryOwner]);
 
@@ -958,6 +1006,10 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
         body: JSON.stringify({
           message: prompt,
           decision,
+          timeZone: (() => {
+            try { return Intl.DateTimeFormat().resolvedOptions().timeZone; }
+            catch { return undefined; }
+          })(),
           profiles: selectedProfiles,
           indicators: {
             profile1: indicators1,
@@ -976,6 +1028,7 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
         // Preserve it even when the backend omits it from cardPayload.
         const cardPayload = {
           ...(data.data.cardPayload || {}),
+          questionText: prompt,
           drawnCards: data.data.cardPayload?.drawnCards?.length
             ? data.data.cardPayload.drawnCards
             : drawnCards,
@@ -1017,7 +1070,7 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
         id: `mascot-${Date.now()}`,
         sender: 'mascot',
         text: synthesis.text,
-        card: synthesis.card,
+        card: synthesis.card ? { ...synthesis.card, questionText: prompt } : { questionText: prompt },
         time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
         isTypingCompleted: false
       };
@@ -1337,6 +1390,8 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
     setLoading(false);
     setMascotState('idle');
     setZoomedCard(null);
+    setReadingTraceMessageId(null);
+    setDetailIndicator(null);
   }, [chatHistoryOwner, loading]);
 
   const requestClearHistory = useCallback(() => {
@@ -1367,6 +1422,13 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
 
   const latestUserMsg = [...messages].reverse().find(m => m.sender === 'user');
   const latestMascotMsg = [...messages].reverse().find(m => m.sender === 'mascot');
+  const readingTraceIndex = readingTraceMessageId
+    ? messages.findIndex((message) => message.id === readingTraceMessageId)
+    : -1;
+  const readingTraceMessage = readingTraceIndex >= 0 ? messages[readingTraceIndex] : null;
+  const previousReadingQuestion = readingTraceIndex >= 0
+    ? messages.slice(0, readingTraceIndex).reverse().find((message) => message.sender === 'user')?.text
+    : undefined;
   const pendingFlippedCount = pendingTarotReveal
     ? pendingTarotReveal.cards.filter(
         (_, index) => !!flippedCards[`${pendingTarotReveal.messageId}_${index}`]
@@ -1482,10 +1544,29 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
                         onFlipCards={() => handleFlipAllCards(item.id, totalCards)}
                         isAlreadyFinished={!!item.isTypingCompleted}
                         onFinish={() => markMessageTypingCompleted(item.id)}
+                        onDoublePress={() => handleOpenReadingTrace(item.id)}
                         onScrollRequest={() => {
                           flatListRef.current?.scrollToEnd({ animated: true });
                         }}
                       />
+                      {!!item.isTypingCompleted && (
+                        <TouchableOpacity
+                          activeOpacity={0.7}
+                          onPress={() => handleToggleSpeech(item.id, item.text)}
+                          style={styles.historySpeechButton}
+                          accessibilityRole="button"
+                          accessibilityLabel={speakingMessageId === item.id ? 'Dừng đọc câu trả lời' : 'Đọc câu trả lời thành tiếng'}
+                        >
+                          <Ionicons
+                            name={speakingMessageId === item.id ? 'volume-high' : 'volume-medium-outline'}
+                            size={17}
+                            color={speakingMessageId === item.id ? '#FFD67C' : '#D8C9E8'}
+                      />
+                          <Text style={styles.historySpeechLabel}>
+                            {speakingMessageId === item.id ? 'Đang đọc · Dừng' : 'Đọc thành tiếng'}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </View>
                 );
@@ -1606,9 +1687,13 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
                 {latestMascotMsg && (
                   <View style={styles.answerPopupContainer}>
                     <AnswerFlamePopup
+                      messageId={latestMascotMsg.id}
                       text={latestMascotMsg.text}
                       senderName="Numelyra"
                       isTypingCompleted={!!latestMascotMsg.isTypingCompleted}
+                      isSpeaking={speakingMessageId === latestMascotMsg.id}
+                      onToggleSpeech={handleToggleSpeech}
+                      onDoublePress={() => handleOpenReadingTrace(latestMascotMsg.id)}
                       onFinishTyping={() => markMessageTypingCompleted(latestMascotMsg.id)}
                       isCompact={isKeyboardVisible}
                     />
@@ -1624,7 +1709,7 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
                       accessibilityRole="button"
                       accessibilityLabel="Mở 24 lá bài Thần số học"
                     >
-                      <FlameMascot state="answer" size={155} />
+                      <FlameMascot state={speakingMessageId === latestMascotMsg?.id ? 'speaking' : 'answer'} size={155} />
                     </TouchableOpacity>
                   </View>
                 )}
@@ -1657,6 +1742,19 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
           />
         </View>
       </KeyboardAvoidingView>
+
+      <MysticReadingTraceModal
+        visible={!!readingTraceMessage}
+        message={readingTraceMessage}
+        previousQuestion={previousReadingQuestion}
+        onClose={() => setReadingTraceMessageId(null)}
+      />
+
+      <MysticIndicatorDetailModal
+        visible={!!detailIndicator}
+        indicator={detailIndicator}
+        onClose={() => setDetailIndicator(null)}
+      />
 
       {/* Profile Picker Modal (🔍) */}
       <ProfilePickerModal
@@ -1817,6 +1915,8 @@ export default function ChatScreen({ profile, onOpenSettings }: Props) {
         </View>
       </Modal>
 
+      <ChatMoonButton onPress={onOpenGameHub} />
+
       {/* 24 Numerology Cards Modal */}
       <NumerologyCardsModal
         visible={isCardsModalOpen}
@@ -1938,6 +2038,16 @@ const styles = StyleSheet.create({
   messageBubble: { borderRadius: 20, paddingHorizontal: 16, paddingVertical: 14, width: '100%' },
   bubbleUser: { backgroundColor: '#1E1B29', borderBottomRightRadius: 4 },
   bubbleMascot: { backgroundColor: '#161424', borderWidth: 1, borderColor: '#2A2640', borderBottomLeftRadius: 4 },
+  historySpeechButton: {
+    alignSelf: 'flex-start',
+    minHeight: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingHorizontal: 4,
+    marginTop: 8,
+  },
+  historySpeechLabel: { color: '#D8C9E8', fontSize: 12, fontWeight: '600' },
   messageText: { color: '#F8FAFC', fontSize: 14, lineHeight: 22 },
   messageTextEmphasis: { fontWeight: '800' },
   loadingRow: { marginVertical: 10, marginLeft: 16 },
@@ -2122,6 +2232,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontStyle: 'italic',
     marginTop: 6,
+    textAlign: 'right',
+  },
+  analysisTapHint: {
+    color: '#A98CC2',
+    fontSize: 10,
+    fontStyle: 'italic',
+    marginTop: 5,
     textAlign: 'right',
   },
   thoughtHeaderRow: {

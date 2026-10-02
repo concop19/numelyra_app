@@ -236,11 +236,8 @@ export class NumerologyCalculator {
         results.push(map[k]());
       }
     }
-    // Nếu rỗng, mặc định lấy Đường đời và Năm cá nhân
-    if (results.length === 0) {
-      results.push(this.getWalksOfLife());
-      results.push(this.getPersonalYear());
-    }
+    // Preserve the classifier's selection; an unknown key must not be replaced
+    // by a different indicator that the server did not request.
     return results;
   }
 }

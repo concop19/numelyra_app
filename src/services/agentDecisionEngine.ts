@@ -3,7 +3,7 @@
  * Tự động phân tích câu hỏi + số lượng hồ sơ được chọn để đưa ra quyết định:
  * 1. Chế độ (Cá nhân vs Tương hợp 2 người)
  * 2. Có cần rút Tarot hay không, và mấy lá (0 lá, 1 lá, 3 lá, 5 lá)
- * 3. Chỉ định các chỉ số Thần số học cần truy xuất trong kho 24 chỉ số
+ * 3. Chỉ định các chỉ số Thần số học mà chat có thể tính và truy xuất
  */
 import { ProfileItem } from '../store/userProfile';
 
@@ -91,15 +91,15 @@ export function evaluateAgentDecision(
       needsTarot: true,
       spreadId: 'two-options',
       cardCount: 5,
-      targetIndicators: ['rationalThinking', 'yearIndividual', 'walksOfLife'],
-      thoughtProcess: 'Câu hỏi phân vân giữa 2 ngã rẽ. Kích hoạt Trải bài Hai Lựa Chọn (5 lá) kết hợp Tư Duy Lý Trí & Năm Cá Nhân để định lượng tỷ lệ phương án tối ưu.'
+      targetIndicators: ['rationalThinking', 'attitude'],
+      thoughtProcess: 'Câu hỏi phân vân giữa 2 ngã rẽ. Kích hoạt Trải bài Hai Lựa Chọn (5 lá) và đối chiếu cách suy nghĩ, phản ứng của người hỏi.'
     };
   }
 
   // B. A real-world place search. This intentionally runs before the timeline
   // branch so "Cuối tuần này đi đâu?" is not mistaken for a future reading.
   const isWhereToGo =
-    /\b(đi đâu|chỗ nào|nơi nào|quán nào|cà phê nào|cafe nào|địa điểm|đi chơi|hẹn hò ở đâu|dạo ở đâu|tham quan)\b/i.test(q);
+    /(đi đâu|chỗ nào|nơi nào|quán nào|cà phê nào|cafe nào|địa điểm|đi chơi|hẹn hò ở đâu|dạo ở đâu|tham quan)/i.test(q);
 
   if (isWhereToGo) {
     return {
@@ -108,7 +108,7 @@ export function evaluateAgentDecision(
       needsTarot: true,
       spreadId: 'single',
       cardCount: 1,
-      targetIndicators: ['dateOfBirth', 'walksOfLife'],
+      targetIndicators: ['attitude', 'soul'],
       thoughtProcess: 'Tiểu Linh Miêu sẽ lọc khu vực, khoảng cách, ngân sách và người đi cùng trước, rồi dùng một lá Tarot để chọn vibe phù hợp.'
     };
   }
@@ -125,8 +125,10 @@ export function evaluateAgentDecision(
       needsTarot: false,
       spreadId: null,
       cardCount: 0,
-      targetIndicators: ['walksOfLife', 'mission', 'soul', 'personality', 'dateOfBirth'],
-      thoughtProcess: 'Câu hỏi về căn tính bản mệnh và tiềm năng bẩm sinh. Sử dụng 5 chỉ số cốt lõi trong Bản đồ 24 Chỉ số Thần số học chuyên sâu (Không cần Tarot).'
+      targetIndicators: q.includes('sứ mệnh')
+        ? ['mission', 'walksOfLife', 'soul']
+        : ['walksOfLife', 'soul', 'personality', 'attitude', 'rationalThinking'],
+      thoughtProcess: 'Câu hỏi về bản thân. Chọn các chỉ số liên quan trực tiếp tới nội dung được hỏi (không cần Tarot).'
     };
   }
 
@@ -141,8 +143,8 @@ export function evaluateAgentDecision(
       needsTarot: true,
       spreadId: 'three-card',
       cardCount: 3,
-      targetIndicators: ['yearIndividual', 'walksOfLife'],
-      thoughtProcess: 'Câu hỏi về dòng thời gian và vận trình phát triển. Kích hoạt Trải bài 3 Lá (Quá khứ · Hiện tại · Tương lai) kết hợp Chu kỳ Năm Cá Nhân.'
+      targetIndicators: ['attitude', 'rationalThinking'],
+      thoughtProcess: 'Câu hỏi về diễn tiến. Kích hoạt Trải bài 3 Lá và dùng chỉ số về phản ứng, tư duy để cá nhân hóa lời khuyên.'
     };
   }
 
@@ -157,19 +159,19 @@ export function evaluateAgentDecision(
       needsTarot: true,
       spreadId: 'single',
       cardCount: 1,
-      targetIndicators: ['dateOfBirth', 'walksOfLife'],
-      thoughtProcess: 'Câu hỏi tìm thông điệp trực giác dẫn lối nhanh. Kích hoạt Trải bài 1 Lá (Thông điệp Trọng Tâm) kết hợp Năng lượng Ngày Sinh.'
+      targetIndicators: ['attitude', 'soul'],
+      thoughtProcess: 'Câu hỏi cần lời khuyên trước mắt. Kích hoạt Trải bài 1 Lá và chọn chỉ số Thái độ, Linh hồn để tham khảo.'
     };
   }
 
-  // F. Mặc định: Rút 1 lá định hướng + Đường Đời & Năm Cá Nhân
+  // F. Mặc định: Rút 1 lá định hướng + chỉ số về phản ứng và nhu cầu nội tâm
   return {
     mode: 'single',
     intent: 'general',
     needsTarot: true,
     spreadId: 'single',
     cardCount: 1,
-    targetIndicators: ['walksOfLife', 'yearIndividual'],
-    thoughtProcess: 'Tiểu Linh Miêu kết nối năng lượng Số Đường Đời và rút 1 lá Tarot dẫn lối cho câu hỏi của bạn.'
+    targetIndicators: ['attitude', 'soul'],
+    thoughtProcess: 'Tiểu Linh Miêu rút 1 lá Tarot và tham khảo cách phản ứng, nhu cầu nội tâm của bạn.'
   };
 }

@@ -3,6 +3,7 @@
  * Hỗ trợ các kiểu trải bài chuẩn: 1 lá (Single), 3 lá (Quá khứ - Hiện tại - Tương lai),
  * 5 lá (Hai Lựa Chọn A vs B), 5 lá (Mối Quan Hệ Tình Cảm).
  */
+import { MINOR_ARCANA_DATA } from './minorArcana.generated.ts';
 
 export interface TarotCardData {
   id: string;
@@ -215,12 +216,20 @@ export const MAJOR_ARCANA: TarotCardData[] = [
   }
 ];
 
+export const MINOR_ARCANA: TarotCardData[] = MINOR_ARCANA_DATA;
+
+export const TAROT_DECK: TarotCardData[] = [...MAJOR_ARCANA, ...MINOR_ARCANA];
+
 export function drawCardsForSpread(spreadId: string): DrawnCardResult[] {
   const spread = TAROT_SPREADS[spreadId] || TAROT_SPREADS['single'];
-  const shuffled = [...MAJOR_ARCANA].sort(() => Math.random() - 0.5);
+  const shuffled = [...TAROT_DECK];
+  for (let index = shuffled.length - 1; index > 0; index--) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
 
   return spread.positions.map((pos, idx) => ({
-    card: shuffled[idx % shuffled.length],
+    card: shuffled[idx],
     isReversed: Math.random() > 0.65, // ~35% khả năng lá ngược
     position: pos
   }));

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, View, Image, Animated, Dimensions, Platform } from 'react-native';
+import { StyleSheet, View, Image, Animated, Platform, Pressable } from 'react-native';
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
@@ -12,14 +12,9 @@ interface Props {
   style?: any;
 }
 
-export const ChatSceneBackground: React.FC<Props> = ({ style }) => {
-  // Breathing animation cho vầng trăng
+export function ChatMoonButton({ onPress }: { onPress?: () => void }) {
   const moonGlowAnim = useRef(new Animated.Value(0.92)).current;
-  // Nhấp nháy nhẹ nhàng cho bầu trời sao
-  const starsTwinkleAnim = useRef(new Animated.Value(0.75)).current;
-
   useEffect(() => {
-    // Moon pulse
     const moonLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(moonGlowAnim, {
@@ -35,6 +30,31 @@ export const ChatSceneBackground: React.FC<Props> = ({ style }) => {
       ])
     );
     moonLoop.start();
+    return () => moonLoop.stop();
+  }, [moonGlowAnim]);
+
+  return (
+    <Animated.View style={[styles.moonContainer, { transform: [{ scale: moonGlowAnim }] }]}>
+      <Pressable
+        onPress={onPress}
+        disabled={!onPress}
+        accessibilityRole="button"
+        accessibilityLabel="Mở Game Hub"
+        accessibilityHint="Chạm vào mặt trăng để chọn trò chơi"
+        style={({ pressed }) => [styles.moonButton, pressed && { opacity: 0.7 }]}
+      >
+        <View style={styles.moonCrescent} pointerEvents="none">
+          <View style={styles.moonCutout} />
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+export const ChatSceneBackground: React.FC<Props> = ({ style }) => {
+  const starsTwinkleAnim = useRef(new Animated.Value(0.75)).current;
+
+  useEffect(() => {
 
     // Stars twinkle
     const starsLoop = Animated.loop(
@@ -54,7 +74,6 @@ export const ChatSceneBackground: React.FC<Props> = ({ style }) => {
     starsLoop.start();
 
     return () => {
-      moonLoop.stop();
       starsLoop.stop();
     };
   }, []);
@@ -71,21 +90,6 @@ export const ChatSceneBackground: React.FC<Props> = ({ style }) => {
         <Image source={STARS_IMG} style={styles.layerImage} resizeMode="contain" />
       </Animated.View>
 
-      {/* Layer 1.8: Trăng khuyết góc trên bên phải. Ảnh nguồn có nền vuông
-          không trong suốt trên web, nên vẽ crescent native để không lộ ô đen. */}
-      <Animated.View
-        style={[
-          styles.moonContainer,
-          {
-            transform: [{ scale: moonGlowAnim }],
-          },
-        ]}
-      >
-        <View style={styles.moonCrescent}>
-          <View style={styles.moonCutout} />
-        </View>
-      </Animated.View>
-
       {/* Layer 2: Dãy núi tím & mặt hồ phản chiếu hoàng hôn */}
       <View style={[styles.layer, styles.mountainsLayer]}>
         <Image source={BG_MOUNTAINS} style={styles.layerImage} resizeMode="cover" />
@@ -98,8 +102,6 @@ export const ChatSceneBackground: React.FC<Props> = ({ style }) => {
     </View>
   );
 };
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
@@ -147,10 +149,14 @@ const styles = StyleSheet.create({
   moonContainer: {
     position: 'absolute',
     top: '15%',
-    right: '13%',
+    left: '13%',
     width: 64,
     height: 64,
-    zIndex: 3,
+    zIndex: 2,
+  },
+  moonButton: {
+    width: '100%',
+    height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
   },

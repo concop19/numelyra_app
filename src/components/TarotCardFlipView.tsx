@@ -118,7 +118,7 @@ export default function TarotCardFlipView({
             }
           ]}
         >
-          {/* Hình ảnh nghệ thuật Ẩn Chính */}
+          {/* Hình ảnh lá bài đã rút */}
           <View style={styles.artContainer}>
             <Image
               source={cardImage}
