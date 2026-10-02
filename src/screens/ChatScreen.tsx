@@ -65,6 +65,14 @@ export interface MessageItem {
   isTypingCompleted?: boolean;
 }
 
+type LiveTarotReading = {
+  id: string;
+  question: string;
+  cards: DrawnCardResult[];
+  status: 'waiting' | 'ready' | 'revealed';
+  replyText?: string;
+};
+
 interface Props {
   profile?: UserProfile;
   onOpenSettings?: () => void;
@@ -458,6 +466,7 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
     messageId: string;
     cards: DrawnCardResult[];
   } | null>(null);
+  const [liveTarotReading, setLiveTarotReading] = useState<LiveTarotReading | null>(null);
   const [mascotState, setMascotState] = useState<'idle' | 'listening' | 'explain'>('idle');
   const [mascotCategory, setMascotCategory] = useState('default');
   const [viewMode, setViewMode] = useState<'current_state' | 'history_list'>('current_state');
@@ -543,16 +552,20 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
     );
     if (!everyCardIsFlipped) return;
 
-    // Leave a tiny beat for the final flip animation before the flame answer
-    // is revealed. The Tarot deck is deliberately not carried into that view.
+    // The detail scene can finish before the backend does. Keep it open until
+    // both the final card and the personalized response are ready.
+    if (liveTarotReading?.id === pendingTarotReveal.messageId && liveTarotReading.status !== 'ready') return;
+
     const revealTimer = setTimeout(() => {
-      setPendingTarotReveal(null);
       setLoading(false);
       setMascotState('explain');
+      setLiveTarotReading((current) => current?.id === pendingTarotReveal.messageId
+        ? { ...current, status: 'revealed' }
+        : current);
     }, 360);
 
     return () => clearTimeout(revealTimer);
-  }, [flippedCards, pendingTarotReveal]);
+  }, [flippedCards, liveTarotReading, pendingTarotReveal]);
 
   const flatListRef = useRef<FlatList>(null);
 
@@ -563,6 +576,7 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
     setMessages([]);
     setFlippedCards({});
     setPendingTarotReveal(null);
+    setLiveTarotReading(null);
     setLoading(false);
     setMascotState('idle');
     setMascotCategory('default');
@@ -991,6 +1005,21 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
       ? drawCardsForSpread(decision.spreadId)
       : [];
 
+    // Start the ritual immediately. The cards are already fixed locally and
+    // travel to the API with this request, so the user can reveal them while
+    // the personalized interpretation is still being generated.
+    const tarotMessageId = `mascot-${Date.now()}`;
+    if (drawnCards.length > 0) {
+      waitsForTarotReveal = true;
+      setPendingTarotReveal({ messageId: tarotMessageId, cards: drawnCards });
+      setLiveTarotReading({
+        id: tarotMessageId,
+        question: prompt,
+        cards: drawnCards,
+        status: 'waiting',
+      });
+    }
+
     // 4. Tính toán Tử Vi Đẩu Số nếu ghép đôi 2 người
     let tuViBaziPayload: TuViBaziSynastryResult | undefined;
     if (selectedProfiles.length >= 2) {
@@ -1034,21 +1063,19 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
             : drawnCards,
         };
         const mascotMsg: MessageItem = {
-          id: `mascot-${Date.now()}`,
+          id: tarotMessageId,
           sender: 'mascot',
           text: data.data.replyText,
           card: cardPayload,
           time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-          isTypingCompleted: false
+          isTypingCompleted: drawnCards.length > 0
         };
         appendMessage(mascotMsg);
 
-        if (cardPayload.drawnCards.length > 0) {
-          waitsForTarotReveal = true;
-          setPendingTarotReveal({
-            messageId: mascotMsg.id,
-            cards: cardPayload.drawnCards,
-          });
+        if (drawnCards.length > 0) {
+          setLiveTarotReading((current) => current?.id === tarotMessageId
+            ? { ...current, status: 'ready', replyText: data.data.replyText }
+            : current);
         } else {
           setMascotState('explain');
         }
@@ -1067,22 +1094,19 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
       );
 
       const mascotMsg: MessageItem = {
-        id: `mascot-${Date.now()}`,
+        id: tarotMessageId,
         sender: 'mascot',
         text: synthesis.text,
         card: synthesis.card ? { ...synthesis.card, questionText: prompt } : { questionText: prompt },
         time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-        isTypingCompleted: false
+        isTypingCompleted: drawnCards.length > 0
       };
       appendMessage(mascotMsg);
 
-      const fallbackCards: DrawnCardResult[] = synthesis.card?.drawnCards || [];
-      if (fallbackCards.length > 0) {
-        waitsForTarotReveal = true;
-        setPendingTarotReveal({
-          messageId: mascotMsg.id,
-          cards: fallbackCards,
-        });
+      if (drawnCards.length > 0) {
+        setLiveTarotReading((current) => current?.id === tarotMessageId
+          ? { ...current, status: 'ready', replyText: synthesis.text }
+          : current);
       } else {
         setMascotState('explain');
       }
@@ -1387,6 +1411,7 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
     setMessages([]);
     setFlippedCards({});
     setPendingTarotReveal(null);
+    setLiveTarotReading(null);
     setLoading(false);
     setMascotState('idle');
     setZoomedCard(null);
@@ -1434,6 +1459,14 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
         (_, index) => !!flippedCards[`${pendingTarotReveal.messageId}_${index}`]
       ).length
     : 0;
+  const revealNextLiveTarotCard = useCallback(() => {
+    if (!pendingTarotReveal) return;
+    const nextIndex = pendingTarotReveal.cards.findIndex(
+      (_, index) => !flippedCards[`${pendingTarotReveal.messageId}_${index}`]
+    );
+    if (nextIndex < 0) return;
+    handleFlipCard(pendingTarotReveal.messageId, nextIndex);
+  }, [flippedCards, pendingTarotReveal]);
 
   return (
     <View style={styles.outerScreenWrap}>
@@ -1629,37 +1662,6 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
                   <Text style={styles.thinkingMessageBody}>Thinking...</Text>
                 </View>
 
-                {pendingTarotReveal && (
-                  <View style={styles.tarotRevealGate}>
-                    <Text style={styles.tarotRevealTitle}>Các lá bài đã sẵn sàng</Text>
-                    <Text style={styles.tarotRevealHint}>
-                      Hãy chạm để lật mở từng lá trước khi Numelyra tiết lộ lời giải.
-                    </Text>
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={styles.tarotRevealCards}
-                    >
-                      {pendingTarotReveal.cards.map((item, index) => {
-                        const cardKey = `${pendingTarotReveal.messageId}_${index}`;
-                        return (
-                          <TarotCardFlipView
-                            key={cardKey}
-                            item={item}
-                            index={index}
-                            isFlipped={!!flippedCards[cardKey]}
-                            onFlip={() => handleFlipCard(pendingTarotReveal.messageId, index)}
-                            onPressCard={(card) => setZoomedCard(card)}
-                          />
-                        );
-                      })}
-                    </ScrollView>
-                    <Text style={styles.tarotRevealProgress}>
-                      Đã mở {pendingFlippedCount}/{pendingTarotReveal.cards.length} lá bài
-                    </Text>
-                  </View>
-                )}
-
                 {!isKeyboardVisible && (
                   <View style={styles.mascotBottomSpot}>
                     <FlameMascot state="thinking" size={185} />
@@ -1744,10 +1746,22 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
       </KeyboardAvoidingView>
 
       <MysticReadingTraceModal
-        visible={!!readingTraceMessage}
+        visible={!!readingTraceMessage || !!liveTarotReading}
         message={readingTraceMessage}
         previousQuestion={previousReadingQuestion}
-        onClose={() => setReadingTraceMessageId(null)}
+        liveReading={liveTarotReading}
+        revealedCount={pendingFlippedCount}
+        onRevealNext={revealNextLiveTarotCard}
+        onClose={() => {
+          if (liveTarotReading) {
+            if (liveTarotReading.status === 'revealed') {
+              setLiveTarotReading(null);
+              setPendingTarotReveal(null);
+            }
+            return;
+          }
+          setReadingTraceMessageId(null);
+        }}
       />
 
       <MysticIndicatorDetailModal
@@ -3088,11 +3102,6 @@ const styles = StyleSheet.create({
     paddingTop: 34,
     paddingBottom: 0,
   },
-  tarotRevealGate: { marginHorizontal: 16, marginVertical: 12, padding: 14, borderRadius: 20, backgroundColor: 'rgba(32, 20, 70, 0.82)', borderWidth: 1, borderColor: 'rgba(247, 204, 106, 0.35)' },
-  tarotRevealTitle: { color: '#F7CC6A', fontSize: 17, fontWeight: '800', textAlign: 'center' },
-  tarotRevealHint: { color: '#DCCEF2', fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 5 },
-  tarotRevealCards: { paddingTop: 14, paddingHorizontal: 4 },
-  tarotRevealProgress: { color: '#F7CC6A', fontSize: 13, fontWeight: '700', textAlign: 'center', marginTop: 8 },
   userBubbleWrapper: {
     alignItems: 'flex-end',
     width: '100%',

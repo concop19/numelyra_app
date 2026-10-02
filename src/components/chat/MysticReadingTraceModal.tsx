@@ -14,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { DrawnCardResult } from '../../services/tarotService';
-import { getTarotCardImage } from '../../services/tarotAssets';
+import { getTarotCardImage, TAROT_CARD_BACK } from '../../services/tarotAssets';
 import HighlightedAnswerText from './HighlightedAnswerText';
 
 const BACKGROUND = require('../../../assets/giao_dien/giaodien1/chat_detail/background/background.png');
@@ -34,12 +34,21 @@ type ReadingCardPayload = {
 
 type PositionedCard = { left: number; top: number; width: number; height: number; rotate: string };
 type HoveredCard = { title: string; subtitle: string; detail: string };
+type LiveTarotReading = {
+  question: string;
+  cards: DrawnCardResult[];
+  status: 'waiting' | 'ready' | 'revealed';
+  replyText?: string;
+};
 
 type Props = {
   visible: boolean;
   message: Message | null;
   previousQuestion?: string;
   onClose: () => void;
+  liveReading?: LiveTarotReading | null;
+  revealedCount?: number;
+  onRevealNext?: () => void;
 };
 
 const REFERENCE_WIDTH = 941;
@@ -92,7 +101,15 @@ function createTarotLayout(count: number): PositionedCard[] {
   return cards;
 }
 
-export default function MysticReadingTraceModal({ visible, message, previousQuestion, onClose }: Props) {
+export default function MysticReadingTraceModal({
+  visible,
+  message,
+  previousQuestion,
+  onClose,
+  liveReading = null,
+  revealedCount = 0,
+  onRevealNext,
+}: Props) {
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const [hoveredCard, setHoveredCard] = useState<HoveredCard | null>(null);
   const payload = message?.card as ReadingCardPayload | undefined;
@@ -101,15 +118,21 @@ export default function MysticReadingTraceModal({ visible, message, previousQues
     if (!visible) setHoveredCard(null);
   }, [visible]);
   const question = useMemo(() => {
+    if (liveReading) return liveReading.question;
     return typeof payload?.questionText === 'string' && payload.questionText.trim()
       ? payload.questionText
       : previousQuestion;
-  }, [payload?.questionText, previousQuestion]);
+  }, [liveReading, payload?.questionText, previousQuestion]);
   const tarotCards = useMemo(
-    () => (Array.isArray(payload?.drawnCards) ? payload.drawnCards as DrawnCardResult[] : []).slice(0, 5),
-    [payload?.drawnCards],
+    () => (liveReading?.cards || (Array.isArray(payload?.drawnCards) ? payload.drawnCards as DrawnCardResult[] : [])).slice(0, 5),
+    [liveReading?.cards, payload?.drawnCards],
   );
   const tarotLayout = useMemo(() => createTarotLayout(tarotCards.length), [tarotCards.length]);
+  const isLiveDraw = Boolean(liveReading);
+  const safeRevealedCount = Math.min(revealedCount, tarotCards.length);
+  const allCardsRevealed = safeRevealedCount === tarotCards.length;
+  const canShowReading = !isLiveDraw || (allCardsRevealed && liveReading?.status === 'revealed');
+  const answerText = isLiveDraw ? liveReading?.replyText : message?.text;
 
   const isLandscape = viewportWidth > viewportHeight;
   const scale = isLandscape
@@ -147,15 +170,33 @@ export default function MysticReadingTraceModal({ visible, message, previousQues
           </TouchableOpacity>
 
           <View pointerEvents="none" style={[styles.sceneHeading, { top: 38 * scale, left: 210 * scale, width: 520 * scale }]}>
-            <Text style={[styles.sceneTitle, { fontSize: Math.max(15, 27 * scale), lineHeight: Math.max(19, 32 * scale) }]}>AI đã đối chiếu</Text>
-            <Text style={[styles.sceneSubtitle, { fontSize: Math.max(8, 13 * scale) }]}>Lời luận giải dành riêng cho bạn</Text>
+            <Text style={[styles.sceneTitle, { fontSize: Math.max(15, 27 * scale), lineHeight: Math.max(19, 32 * scale) }]}>{isLiveDraw ? 'Nghi thức rút bài' : 'AI đã đối chiếu'}</Text>
+            <Text style={[styles.sceneSubtitle, { fontSize: Math.max(8, 13 * scale) }]}>{isLiveDraw ? 'Chạm vào bộ bài để mở từng thông điệp' : 'Lời luận giải dành riêng cho bạn'}</Text>
           </View>
 
           {tarotCards.length > 0 ? <>
             <View pointerEvents="none" style={[styles.matSectionHeading, { top: 466 * scale, left: 180 * scale, width: 581 * scale }]}>
               <Text style={[styles.matSectionHeadingText, { fontSize: Math.max(8, 13 * scale) }]}>TAROT ĐÃ RÚT</Text>
             </View>
-            {tarotCards.map((tarot, index) => {
+            {isLiveDraw && tarotCards.map((tarot, index) => {
+              const card = tarotLayout[index];
+              return <View
+                key={`slot-${tarot.position.id}`}
+                pointerEvents="none"
+                style={[styles.tarotSlot, {
+                  left: card.left * scale,
+                  top: card.top * scale,
+                  width: card.width * scale,
+                  height: card.height * scale,
+                  borderRadius: 11 * scale,
+                  transform: [{ rotate: card.rotate }],
+                }]}
+              >
+                <Text style={[styles.tarotSlotNumber, { fontSize: Math.max(12, 23 * scale) }]}>{index + 1}</Text>
+                <Text numberOfLines={2} style={[styles.tarotSlotLabel, { fontSize: Math.max(7, 10 * scale) }]}>{tarot.position.nameVi}</Text>
+              </View>;
+            })}
+            {(isLiveDraw ? tarotCards.slice(0, safeRevealedCount) : tarotCards).map((tarot, index) => {
               const card = tarotLayout[index];
               const cardInfo = {
                 title: tarot.card.nameVi,
@@ -192,6 +233,41 @@ export default function MysticReadingTraceModal({ visible, message, previousQues
             })}
           </> : null}
 
+          {isLiveDraw && !allCardsRevealed && (
+            <View style={[styles.deckArea, { left: 56 * scale, top: 982 * scale, width: 829 * scale, height: 246 * scale }]}>
+              {Array.from({ length: 19 }, (_, index) => {
+                const middle = 9;
+                const distance = Math.abs(index - middle);
+                return <Image
+                  key={index}
+                  source={TAROT_CARD_BACK}
+                  resizeMode="cover"
+                  style={[styles.deckCard, {
+                    left: (58 + index * 34) * scale,
+                    top: (36 + distance * distance * 1.18) * scale,
+                    width: 118 * scale,
+                    height: 182 * scale,
+                    borderRadius: 10 * scale,
+                    transform: [{ rotate: `${(index - middle) * 4.2}deg` }],
+                  }]}
+                />;
+              })}
+              <TouchableOpacity
+                activeOpacity={0.88}
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  onRevealNext?.();
+                }}
+                style={styles.deckTouchTarget}
+                accessibilityRole="button"
+                accessibilityLabel={`Rút lá bài ${safeRevealedCount + 1} trong tổng số ${tarotCards.length}`}
+              >
+                <Text style={[styles.deckPrompt, { fontSize: Math.max(11, 15 * scale) }]}>Chạm để rút lá {safeRevealedCount + 1}</Text>
+                <Text style={[styles.deckProgress, { fontSize: Math.max(8, 11 * scale) }]}>Đã rút {safeRevealedCount}/{tarotCards.length} lá</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {hoveredCard ? <View pointerEvents="none" style={[styles.hoverCard, {
             left: 110 * scale,
             top: 260 * scale,
@@ -206,7 +282,7 @@ export default function MysticReadingTraceModal({ visible, message, previousQues
             <Text numberOfLines={3} style={[styles.hoverDetail, { fontSize: Math.max(9, 12 * scale), lineHeight: Math.max(13, 18 * scale) }]}>{hoveredCard.detail}</Text>
           </View> : null}
 
-          <ScrollView
+          {canShowReading ? <ScrollView
             style={[styles.paperReading, {
               // Chỉ dùng phần giấy trống bên trong, không cho chữ chạy qua lá/các cuộn giấy ở viền.
               left: 185 * scale,
@@ -230,7 +306,7 @@ export default function MysticReadingTraceModal({ visible, message, previousQues
               <View style={styles.rule} />
             </> : null}
             <HighlightedAnswerText
-              text={message?.text || 'Chưa có nội dung luận giải để hiển thị.'}
+              text={answerText || 'Tiểu Linh Miêu đang hoàn thiện lời luận giải…'}
               style={styles.answer}
               emphasisStyle={styles.answerEmphasis}
             />
@@ -243,7 +319,12 @@ export default function MysticReadingTraceModal({ visible, message, previousQues
             >
               <Text style={styles.doneText}>Đã hiểu · quay lại</Text>
             </TouchableOpacity>
-          </ScrollView>
+          </ScrollView> : <View pointerEvents="none" style={[styles.waitingReading, { left: 185 * scale, top: 1280 * scale, width: 570 * scale }]}>
+            <Text style={[styles.waitingReadingTitle, { fontSize: Math.max(10, 15 * scale) }]}>
+              {allCardsRevealed ? 'Các lá đã mở — Tiểu Linh Miêu đang kết nối lời giải…' : 'Hãy rút đủ các lá để mở lời luận giải'}
+            </Text>
+            <Text style={[styles.waitingReadingHint, { fontSize: Math.max(8, 11 * scale) }]}>Luận giải sẽ hiện ngay khi bạn và Numelyra cùng hoàn tất.</Text>
+          </View>}
         </ImageBackground>
       </View>
     </Modal>
@@ -264,6 +345,9 @@ const styles = StyleSheet.create({
   matSectionHeading: { position: 'absolute', alignItems: 'center', zIndex: 3 },
   matSectionHeadingText: { color: '#FFE7AA', fontWeight: '900', letterSpacing: 1.6, textShadowColor: 'rgba(32, 11, 65, 0.95)', textShadowRadius: 5 },
   cardArtwork: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
+  tarotSlot: { position: 'absolute', zIndex: 2, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(26, 13, 51, 0.26)', borderWidth: 1.5, borderColor: 'rgba(255, 227, 160, 0.48)', borderStyle: 'dashed' },
+  tarotSlotNumber: { color: 'rgba(255, 239, 199, 0.72)', fontWeight: '800' },
+  tarotSlotLabel: { color: 'rgba(255, 240, 210, 0.82)', fontWeight: '700', marginTop: 6, paddingHorizontal: 8, textAlign: 'center' },
   tarotCard: { position: 'absolute', overflow: 'hidden', zIndex: 3, borderWidth: 2, borderColor: '#F9DC91', backgroundColor: '#211337', shadowColor: '#0A0417', shadowOpacity: 0.68, shadowRadius: 10, elevation: 9 },
   tarotReversed: { transform: [{ rotate: '180deg' }] },
   tarotCaption: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(29, 12, 55, 0.88)' },
@@ -272,8 +356,16 @@ const styles = StyleSheet.create({
   hoverTitle: { color: '#FFF0C4', fontWeight: '900', textAlign: 'center' },
   hoverSubtitle: { color: '#FFD77D', fontWeight: '700', marginTop: 2, textAlign: 'center' },
   hoverDetail: { color: '#F4E9D7', marginTop: 6, textAlign: 'center' },
+  deckArea: { position: 'absolute', zIndex: 4 },
+  deckCard: { position: 'absolute', borderWidth: 1, borderColor: 'rgba(249, 220, 145, 0.72)', backgroundColor: '#211337', shadowColor: '#10071F', shadowOpacity: 0.4, shadowRadius: 4, elevation: 3 },
+  deckTouchTarget: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 5 },
+  deckPrompt: { color: '#FFF0C4', fontWeight: '900', textShadowColor: 'rgba(27, 7, 47, 0.95)', textShadowRadius: 5 },
+  deckProgress: { color: '#F8D991', fontWeight: '700', marginTop: 3, textShadowColor: 'rgba(27, 7, 47, 0.95)', textShadowRadius: 5 },
   // Vùng cuộn nằm trong phần giấy trống; để trong suốt để chữ như được viết trực tiếp lên giấy.
   paperReading: { position: 'absolute', zIndex: 3 },
+  waitingReading: { position: 'absolute', zIndex: 3, minHeight: 115, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 26 },
+  waitingReadingTitle: { color: '#72423F', fontWeight: '900', textAlign: 'center' },
+  waitingReadingHint: { color: '#8B6157', fontWeight: '600', textAlign: 'center', marginTop: 6 },
   paperContent: { minHeight: '100%' },
   kicker: { color: '#8B4A3C', fontSize: 9, letterSpacing: 1.1, fontWeight: '900', textAlign: 'center' },
   questionLabel: { color: '#7A3E39', fontSize: 12, fontWeight: '800', marginTop: 8 },
