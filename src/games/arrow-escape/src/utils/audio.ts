@@ -15,6 +15,7 @@ class AudioManager {
   private isInitializing = false;
   private subscriptionUnsubscribe: (() => void) | null = null;
   private lastMusicState: boolean | null = null;
+  private lifecycleToken = 0;
 
   async init() {
     if (this.isInitialized || this.isInitializing) {
@@ -22,6 +23,7 @@ class AudioManager {
     }
 
     this.isInitializing = true;
+    const initializationToken = ++this.lifecycleToken;
 
     try {
       await setAudioModeAsync({
@@ -29,6 +31,12 @@ class AudioManager {
       });
     } catch (e) {
       console.warn('Failed to set audio mode', e);
+    }
+
+    // If the game was closed while the audio mode request was pending, do not
+    // create a new background player after cleanup has already run.
+    if (initializationToken !== this.lifecycleToken) {
+      return;
     }
 
     try {
@@ -106,6 +114,8 @@ class AudioManager {
   }
 
   async cleanup() {
+    // Invalidate a pending init before releasing the players it may have made.
+    this.lifecycleToken++;
     try {
       for (const sound of Object.values(this.soundEffects)) {
         try {
@@ -116,6 +126,7 @@ class AudioManager {
 
       if (this.bgMusic) {
         try {
+          this.bgMusic.pause();
           this.bgMusic.remove?.();
         } catch {}
         this.bgMusic = null;
@@ -127,6 +138,7 @@ class AudioManager {
       }
 
       this.isInitialized = false;
+      this.isInitializing = false;
       this.lastMusicState = null;
     } catch (e) {
       console.warn('Failed to cleanup audio manager', e);

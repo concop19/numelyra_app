@@ -40,6 +40,11 @@ export default function App({ dailyMode = false, onDailyComplete }: Props) {
   const todayLevel = 1 + (Math.floor(Date.now() / 86_400_000) % 36);
   useEffect(() => {
     void audioManager.init();
+    return () => {
+      // The game hub unmounts this navigator when the player leaves Arrow
+      // Escape. Its persistent background player must be released here.
+      void audioManager.cleanup();
+    };
   }, []);
   useEffect(() => { if (dailyMode) startLevel(todayLevel); }, [dailyMode, startLevel, todayLevel]);
   useEffect(() => { if (dailyMode && status === 'won' && !completed.current) { completed.current = true; onDailyComplete?.(); } }, [dailyMode, onDailyComplete, status]);
