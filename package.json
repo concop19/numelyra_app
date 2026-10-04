@@ -12,6 +12,7 @@
     "@react-navigation/native-stack": "^7.19.2",
     "@shopify/react-native-skia": "2.6.2",
     "@supabase/supabase-js": "^2.116.0",
+    "astronomy-engine": "^2.1.19",
     "expo": "~57.0.25",
     "expo-asset": "^57.0.17",
     "expo-audio": "~57.0.5",
@@ -60,7 +61,7 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "testRegex": "(src/games/(gameHub|zip/game/(logic|generator)|arrow-escape/src/(levels/levels|space_game/engine/spaceEngine)|sudoku/src/utils/sudokuLogic)|src/services/colorGuidance)\\.test\\.ts$",
+    "testRegex": "(src/games/(gameHub|zip/game/(logic|generator)|arrow-escape/src/(levels/levels|space_game/engine/spaceEngine)|sudoku/src/utils/sudokuLogic)|src/services/(colorGuidance|chatHistoryStorage|astro/.*))\\.test\\.ts$",
     "modulePathIgnorePatterns": [
       "<rootDir>/src/games/zip/router-source/"
     ]

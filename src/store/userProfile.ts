@@ -10,6 +10,8 @@ export interface UserProfile {
   fullName: string;
   birthDate: string; // ISO string (dương lịch), vd: '1998-10-20'
   gender: 'male' | 'female';
+  birthTime?: string; // vd: '14:30' (tùy chọn)
+  birthPlace?: string; // vd: 'Hà Nội' (tùy chọn)
 }
 
 export interface ProfileItem {
@@ -18,6 +20,8 @@ export interface ProfileItem {
   birthDate: string; // ISO string (dương lịch), vd: '1998-10-20'
   gender?: 'male' | 'female';
   isDefault?: boolean;
+  birthTime?: string; // vd: '14:30' (tùy chọn)
+  birthPlace?: string; // vd: 'Hà Nội' (tùy chọn)
 }
 
 const PROFILES_LIST_KEY = '@numelyra_profiles_list';

@@ -15,6 +15,7 @@ interface Props {
 
 export function ChatMoonButton({ onPress }: { onPress?: () => void }) {
   const moonGlowAnim = useRef(new Animated.Value(0.92)).current;
+  const moonFloatAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const moonLoop = Animated.loop(
       Animated.sequence([
@@ -30,12 +31,31 @@ export function ChatMoonButton({ onPress }: { onPress?: () => void }) {
         }),
       ])
     );
+    const floatLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(moonFloatAnim, {
+          toValue: -7,
+          duration: 2400,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+        Animated.timing(moonFloatAnim, {
+          toValue: 0,
+          duration: 2400,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+      ])
+    );
+
     moonLoop.start();
-    return () => moonLoop.stop();
-  }, [moonGlowAnim]);
+    floatLoop.start();
+    return () => {
+      moonLoop.stop();
+      floatLoop.stop();
+    };
+  }, [moonGlowAnim, moonFloatAnim]);
 
   return (
-    <Animated.View style={[styles.moonContainer, { transform: [{ scale: moonGlowAnim }] }]}>
+    <Animated.View style={[styles.moonContainer, { transform: [{ translateY: moonFloatAnim }, { scale: moonGlowAnim }] }]}>
       <Pressable
         onPress={onPress}
         disabled={!onPress}
@@ -147,8 +167,8 @@ const styles = StyleSheet.create({
   },
   moonContainer: {
     position: 'absolute',
-    top: '8%',
-    left: '9%',
+    top: 14,
+    left: 14,
     width: 64,
     height: 64,
     zIndex: 2,

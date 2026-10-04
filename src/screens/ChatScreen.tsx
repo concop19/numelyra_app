@@ -40,7 +40,6 @@ import { API_ENDPOINTS, authenticatedFetch } from '../services/apiConfig';
 import { getBillingStatus } from '../services/billingService';
 import ChatSceneBackground, { ChatMoonButton } from '../components/chat/ChatSceneBackground';
 import FlameMascot from '../components/chat/FlameMascot';
-import AnswerFlamePopup from '../components/chat/AnswerFlamePopup';
 import ChatInputBar from '../components/chat/ChatInputBar';
 import HighlightedAnswerText from '../components/chat/HighlightedAnswerText';
 import { PlaceSearchContextModal } from '../components/chat/PlaceSearchContextModal';
@@ -54,7 +53,6 @@ import {
   saveChatHistory,
 } from '../services/chatHistoryStorage';
 
-const NORMAL_ACCOUNT_ICON = require('../../assets/giao_dien/normal.png');
 const VIP_ACCOUNT_ICON = require('../../assets/giao_dien/vip.png');
 const AMBIENT_GLOW_IMG = require('../../assets/giao_dien/ambient_glow.png');
 
@@ -81,7 +79,76 @@ interface Props {
   profile?: UserProfile;
   onOpenSettings?: () => void;
   onOpenGameHub?: () => void;
+  onOpenRawReading?: (message: MessageItem, previousQuestion?: string) => void;
 }
+
+const getLatestConversationCount = (history: MessageItem[]) => {
+  if (history.length === 0) return 1;
+  return history[history.length - 1]?.sender === 'mascot'
+    ? Math.min(2, history.length)
+    : 1;
+};
+
+const withoutQuickConclusionHeading = (text: string) => text
+  .replace(/^\s*[✦★✨•-]*\s*KẾT\s+LUẬN\s+NHANH\s*:\s*/i, '')
+  .trim();
+
+interface AssistantPreviewBubbleProps {
+  message: MessageItem;
+  onFinishTyping: (messageId: string) => void;
+  onOpen: () => void;
+}
+
+/** A compact history-safe preview. The complete reading belongs to raw detail. */
+const AssistantPreviewBubble: React.FC<AssistantPreviewBubbleProps> = ({
+  message,
+  onFinishTyping,
+  onOpen,
+}) => {
+  const text = withoutQuickConclusionHeading(message.text);
+  const [shownLength, setShownLength] = useState(message.isTypingCompleted ? text.length : 0);
+  const finishedRef = useRef(!!message.isTypingCompleted);
+
+  useEffect(() => {
+    if (message.isTypingCompleted) {
+      finishedRef.current = true;
+      setShownLength(text.length);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setShownLength((current) => {
+        const next = Math.min(text.length, current + 4);
+        if (next === text.length && !finishedRef.current) {
+          finishedRef.current = true;
+          onFinishTyping(message.id);
+        }
+        return next;
+      });
+    }, 20);
+
+    return () => clearInterval(timer);
+  }, [message.id, message.isTypingCompleted, onFinishTyping, text]);
+
+  const displayText = message.isTypingCompleted ? text : text.slice(0, shownLength);
+
+  return (
+    <View style={styles.assistantBubbleRow}>
+      <TouchableOpacity
+        activeOpacity={0.82}
+        onPress={message.isTypingCompleted ? onOpen : undefined}
+        accessibilityRole="button"
+        accessibilityLabel="Mở lời giải chi tiết"
+        style={styles.assistantBubble}
+      >
+        <Text numberOfLines={3} style={styles.assistantBubbleText}>
+          {displayText}
+          {!message.isTypingCompleted ? <Text style={styles.assistantTypingCursor}> ▌</Text> : null}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 const getRestoredFlippedCards = (history: MessageItem[]): Record<string, boolean> => {
   const restored: Record<string, boolean> = {};
@@ -376,7 +443,7 @@ const TypewriterMessage: React.FC<TypewriterMessageProps> = ({
   );
 };
 
-export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: Props) {
+export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub, onOpenRawReading }: Props) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const chatHistoryOwner = user?.id || 'guest';
@@ -460,6 +527,7 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
 
   // Messages & States
   const [messages, setMessages] = useState<MessageItem[]>([]);
+  const [visibleMessageCount, setVisibleMessageCount] = useState(1);
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const [inputVal, setInputVal] = useState('');
   const [loading, setLoading] = useState(false);
@@ -505,14 +573,18 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
 
   const appendMessage = useCallback((message: MessageItem) => {
     setMessages(prev => [...prev, message].slice(-MAX_STORED_CHAT_MESSAGES));
+    setVisibleMessageCount(message.sender === 'mascot' ? 2 : 1);
   }, []);
 
-  const handleOpenReadingTrace = useCallback((messageId: string) => {
-    const message = messages.find((item) => item.id === messageId);
-    if (!message || message.sender !== 'mascot' || !message.isTypingCompleted) return;
-    setReadingTraceMessageId(messageId);
+  const openRawReading = useCallback((message: MessageItem) => {
+    if (message.sender !== 'mascot' || !message.isTypingCompleted) return;
+    const messageIndex = messages.findIndex((item) => item.id === message.id);
+    const previousQuestion = messageIndex >= 0
+      ? messages.slice(0, messageIndex).reverse().find((item) => item.sender === 'user')?.text
+      : undefined;
+    onOpenRawReading?.(message, previousQuestion);
     void Haptics.selectionAsync();
-  }, [messages]);
+  }, [messages, onOpenRawReading]);
 
   const markMessageTypingCompleted = useCallback((messageId: string) => {
     setMessages(prev => prev.map(message => (
@@ -572,13 +644,14 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
     return () => clearTimeout(revealTimer);
   }, [flippedCards, liveTarotReading, pendingTarotReveal]);
 
-  const flatListRef = useRef<FlatList>(null);
+  const flatListRef = useRef<FlatList<MessageItem>>(null);
 
   useEffect(() => {
     let isCurrentOwner = true;
 
     setHydratedHistoryOwner(null);
     setMessages([]);
+    setVisibleMessageCount(1);
     setFlippedCards({});
     setPendingTarotReveal(null);
     setLiveTarotReading(null);
@@ -592,8 +665,10 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
 
       const restoredHistory = storedHistory as MessageItem[];
       setMessages(restoredHistory);
+      setVisibleMessageCount(getLatestConversationCount(restoredHistory));
       setFlippedCards(getRestoredFlippedCards(restoredHistory));
       setHydratedHistoryOwner(chatHistoryOwner);
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 0);
     });
 
     return () => {
@@ -1546,8 +1621,10 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
     return () => clearTimeout(transitionTimer);
   }, [isKeyboardVisible, isListening, loading, speakingMessageId, viewMode]);
 
-  const latestUserMsg = [...messages].reverse().find(m => m.sender === 'user');
-  const latestMascotMsg = [...messages].reverse().find(m => m.sender === 'mascot');
+  const visibleMessages = useMemo(
+    () => messages.slice(-visibleMessageCount),
+    [messages, visibleMessageCount]
+  );
   const readingTraceIndex = readingTraceMessageId
     ? messages.findIndex((message) => message.id === readingTraceMessageId)
     : -1;
@@ -1579,33 +1656,20 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
       >
-        {/* 🌟 2. HEADER BAR (HAMBURGER - NUMELYRA TITLE - CLOCK/HISTORY) */}
         <View style={styles.numelyraHeader}>
-          {/* Nút Hamburger menu */}
-          <TouchableOpacity
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Mở menu cài đặt"
-            onPress={onOpenSettings}
-            style={styles.headerCircleBtn}
-          >
-            <View style={styles.hamburgerStack}>
-              <View style={styles.hamburgerLine} />
-              <View style={[styles.hamburgerLine, { width: 14 }]} />
-              <View style={styles.hamburgerLine} />
-            </View>
-          </TouchableOpacity>
-
-          {/* Tiêu đề trung tâm giữ cố định trong cả ba trạng thái. */}
+          <View style={styles.headerSideSpacer} />
           <View style={styles.headerTitleWrap}>
             <Text style={styles.numelyraBrandTitle}>Numelyra</Text>
           </View>
-
-          {/* Nút Clock / Xem lịch sử */}
           <TouchableOpacity
             accessibilityRole="button"
-            accessibilityLabel="Lịch sử trò chuyện"
-            onPress={() => { void Haptics.selectionAsync(); setViewMode(prev => prev === 'current_state' ? 'history_list' : 'current_state'); }}
+            accessibilityLabel={visibleMessageCount === messages.length ? 'Thu gọn lịch sử trò chuyện' : 'Mở toàn bộ lịch sử trò chuyện'}
+            onPress={() => {
+              const showAll = visibleMessageCount !== messages.length;
+              setVisibleMessageCount(showAll ? messages.length : getLatestConversationCount(messages));
+              setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 0);
+              void Haptics.selectionAsync();
+            }}
             style={styles.headerCircleBtn}
           >
             <View style={styles.historyClock}>
@@ -1615,208 +1679,68 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
           </TouchableOpacity>
         </View>
 
-        {/* 🌟 3. MAIN CONTENT STAGE */}
-        {viewMode === 'history_list' ? (
-          // CHẾ ĐỘ XEM TOÀN BỘ LỊCH SỬ CHAT
-          <View style={styles.historyListContainer}>
-            <View style={styles.historyBannerRow}>
-              <Text style={styles.historyBannerText}>Lịch sử hội thoại</Text>
-              <View style={styles.historyBannerActions}>
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={requestClearHistory}
-                  disabled={loading}
-                  style={[styles.clearHistoryBtn, loading && styles.clearHistoryBtnDisabled]}
-                  accessibilityRole="button"
-                  accessibilityLabel="Xóa lịch sử hội thoại"
+        {/* Một luồng chat duy nhất: tin mới nhất ở đầu, kéo xuống để nạp tin cũ. */}
+        <View style={styles.chatTimeline}>
+          <FlatList
+            ref={flatListRef}
+            data={visibleMessages}
+            keyExtractor={(item) => item.id}
+            style={[styles.chatTimelineList, !isKeyboardVisible && styles.chatTimelineListWithMascot]}
+            contentContainerStyle={styles.chatTimelineContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            renderItem={({ item }) => item.sender === 'user' ? (
+              <View style={styles.userTimelineRow}>
+                <LinearGradient
+                  colors={['#4B2475', '#7C42A6']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.userTimelineBubble}
                 >
-                  <Ionicons name="trash-outline" size={16} color="#FF9AAC" />
-                  <Text style={styles.clearHistoryBtnText}>Xóa</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() => { void Haptics.selectionAsync(); setViewMode('current_state'); }}
-                  style={styles.returnStageBtn}
-                >
-                  <Text style={styles.returnStageBtnText}>Trở về giao diện ngọn lửa</Text><Ionicons name="arrow-forward" size={16} color="#FFD67C" />
-                </TouchableOpacity>
+                  <Text style={styles.userTimelineText}>{item.text}</Text>
+                </LinearGradient>
               </View>
+            ) : (
+              <AssistantPreviewBubble
+                message={item}
+                onFinishTyping={markMessageTypingCompleted}
+                onOpen={() => openRawReading(item)}
+              />
+            )}
+          />
+
+          {isZeroState && !loading && !isKeyboardVisible ? (
+            <View style={styles.emptyMascotStage} pointerEvents="box-none">
+              <Text style={styles.welcomeHeading}>Hi, I’m Numelyra</Text>
+              <Text style={styles.welcomeParagraph}>Ask me anything{`\n`}or share how you feel.</Text>
+              <TouchableOpacity onPress={handleMascotPress} accessibilityLabel="Mở 24 lá bài Thần số học">
+                <FlameMascot state={ambientMascotState} size={175} />
+              </TouchableOpacity>
             </View>
-            <FlatList
-              ref={flatListRef}
-              data={messages}
-              keyExtractor={item => item.id}
-              contentContainerStyle={styles.chatListContent}
-              renderItem={({ item }) => {
-                const isUser = item.sender === 'user';
-                if (isUser) {
-                  return (
-                    <View style={[styles.messageRow, styles.messageRowUser]}>
-                      <View style={[styles.messageBubble, styles.bubbleUser]}>
-                        <Text style={styles.messageText}>{item.text}</Text>
-                      </View>
-                    </View>
-                  );
-                }
+          ) : null}
 
-                const drawnCards: DrawnCardResult[] = item.card?.drawnCards || [];
-                const totalCards = drawnCards.length;
-                const hasTarot = totalCards > 0;
-                const isCardsFlipped = totalCards > 0
-                  ? drawnCards.some((_, idx) => !!flippedCards[`${item.id}_${idx}`])
-                  : false;
+          {loading && !isKeyboardVisible ? (
+            <View style={styles.thinkingMascotStage} pointerEvents="none">
+              <FlameMascot state="thinking" size={185} />
+            </View>
+          ) : null}
 
-                return (
-                  <View style={[styles.messageRow, styles.messageRowMascot]}>
-                    <View style={[styles.messageBubble, styles.bubbleMascot]}>
-                      {item.card ? renderCardWidget(item.card, item.id) : null}
-                      <TypewriterMessage
-                        key={`typewriter-${item.id}`}
-                        text={item.text}
-                        hasTarot={hasTarot}
-                        isCardsFlipped={isCardsFlipped}
-                        onFlipCards={() => handleFlipAllCards(item.id, totalCards)}
-                        isAlreadyFinished={!!item.isTypingCompleted}
-                        onFinish={() => markMessageTypingCompleted(item.id)}
-                        onDoublePress={() => handleOpenReadingTrace(item.id)}
-                        onScrollRequest={() => {
-                          flatListRef.current?.scrollToEnd({ animated: true });
-                        }}
-                      />
-                      {!!item.isTypingCompleted && (
-                        <TouchableOpacity
-                          activeOpacity={0.7}
-                          onPress={() => handleToggleSpeech(item.id, item.text)}
-                          style={styles.historySpeechButton}
-                          accessibilityRole="button"
-                          accessibilityLabel={speakingMessageId === item.id ? 'Dừng đọc câu trả lời' : 'Đọc câu trả lời thành tiếng'}
-                        >
-                          <Ionicons
-                            name={speakingMessageId === item.id ? 'volume-high' : 'volume-medium-outline'}
-                            size={17}
-                            color={speakingMessageId === item.id ? '#FFD67C' : '#D8C9E8'}
-                      />
-                          <Text style={styles.historySpeechLabel}>
-                            {speakingMessageId === item.id ? 'Đang đọc · Dừng' : 'Đọc thành tiếng'}
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  </View>
-                );
-              }}
-              ListFooterComponent={
-                loading ? (
-                  <View style={styles.loadingRow}>
-                    <Text style={styles.loadingText}>Ngọn lửa đang cảm nhận và tính toán...</Text>
-                  </View>
-                ) : null
-              }
-            />
-          </View>
-        ) : (
-          // CHẾ ĐỘ 3 TRẠNG THÁI CHUẨN NUMELYRA
-          <View style={styles.threeStateStage}>
-            {/* TRẠNG THÁI 1: IDLE / WELCOME */}
-            {isZeroState && !loading && (
-              <View style={[styles.idleStageWrap, isKeyboardVisible && { paddingTop: 20 }]}>
-                <View style={styles.welcomeTypography}>
-                  <Text style={styles.welcomeHeading}>Hi, I’m Numelyra</Text>
-                  <Text style={styles.welcomeParagraph}>
-                    Ask me anything{'\n'}or share how you feel.
-                  </Text>
-                </View>
-
-                {!isKeyboardVisible && (
-                  <View style={styles.mascotBottomSpot}>
-                    <FlameMascot
-                      state={ambientMascotState}
-                      size={175}
-                      onPress={handleMascotPress}
-                    />
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* TRẠNG THÁI 2: THINKING */}
-            {loading && (
-              <View style={[styles.thinkingStageWrap, isKeyboardVisible && { paddingTop: 10 }]}>
-                {latestUserMsg && (
-                  <View style={styles.userBubbleWrapper}>
-                    <View style={styles.userBubbleCard}>
-                      <Text style={styles.userBubbleContent}>
-                        {latestUserMsg.text}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-
-                <View style={styles.thinkingBubbleCard}>
-                  <View style={styles.thinkingHeaderRow}>
-                    <View style={styles.thinkingOrangeDot} />
-                    <Text style={styles.thinkingSenderTitle}>Numelyra</Text>
-                  </View>
-                  <Text style={styles.thinkingMessageBody}>Thinking...</Text>
-                </View>
-
-                {!isKeyboardVisible && (
-                  <View style={styles.mascotBottomSpot}>
-                    <FlameMascot state="thinking" size={185} />
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* TRẠNG THÁI 3: ANSWER / REVEAL */}
-            {!isZeroState && !loading && (
-              <View style={[styles.answerStageWrap, isKeyboardVisible && { paddingTop: 4 }]}>
-                {latestUserMsg && (
-                  <View style={[styles.userBubbleWrapper, isKeyboardVisible && { marginBottom: 2 }]}>
-                    <View style={[styles.userBubbleCard, isKeyboardVisible && styles.userBubbleCardCompact]}>
-                      <Text
-                        style={[styles.userBubbleContent, isKeyboardVisible && styles.userBubbleContentCompact]}
-                        numberOfLines={isKeyboardVisible ? 1 : undefined}
-                      >
-                        {latestUserMsg.text}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-
-                {latestMascotMsg && (
-                  <View style={styles.answerPopupContainer}>
-                    <AnswerFlamePopup
-                      messageId={latestMascotMsg.id}
-                      text={latestMascotMsg.text}
-                      senderName="Numelyra"
-                      isTypingCompleted={!!latestMascotMsg.isTypingCompleted}
-                      isSpeaking={speakingMessageId === latestMascotMsg.id}
-                      onToggleSpeech={handleToggleSpeech}
-                      onDoublePress={() => handleOpenReadingTrace(latestMascotMsg.id)}
-                      onFinishTyping={() => markMessageTypingCompleted(latestMascotMsg.id)}
-                      isCompact={isKeyboardVisible}
-                    />
-                    {!isKeyboardVisible && <PlaceSuggestionsCard data={latestMascotMsg.card?.placeSuggestions} />}
-                  </View>
-                )}
-
-                {!isKeyboardVisible && (
-                  <View style={styles.mascotBottomSpot}>
-                    <TouchableOpacity
-                      activeOpacity={0.7}
-                      onPress={handleMascotPress}
-                      accessibilityRole="button"
-                      accessibilityLabel="Mở 24 lá bài Thần số học"
-                    >
-                    <FlameMascot state={speakingMessageId === latestMascotMsg?.id ? 'speaking' : ambientMascotState} size={155} />
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-            )}
-          </View>
-        )}
+          {!isZeroState && !loading && !isKeyboardVisible ? (
+            <View style={styles.restingMascotStage} pointerEvents="box-none">
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={handleMascotPress}
+                accessibilityRole="button"
+                accessibilityLabel="Mở 24 lá bài Thần số học"
+              >
+                <FlameMascot
+                  state={speakingMessageId ? 'speaking' : ambientMascotState}
+                  size={175}
+                />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+        </View>
 
         {/* 🌟 4. INPUT BAR NUMELYRA */}
         <View style={[styles.bottomBarWrap, { paddingBottom: isKeyboardVisible ? (Platform.OS === 'ios' ? 8 : 4) : Math.max(insets.bottom, 12) }]}>
@@ -2161,6 +2085,95 @@ const styles = StyleSheet.create({
   },
   chatScrollContainer: {
     flex: 1,
+  },
+  chatTimeline: {
+    flex: 1,
+    position: 'relative',
+  },
+  chatTimelineList: {
+    flex: 1,
+  },
+  // The mascot owns this lower area. The list viewport stops above it, so
+  // neither newly received bubbles nor history pages can cover the sprite.
+  chatTimelineListWithMascot: {
+    marginBottom: 218,
+  },
+  chatTimelineContent: {
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 12,
+  },
+  historyPullSpace: {
+    height: 540,
+  },
+  userTimelineRow: {
+    alignItems: 'flex-end',
+    marginBottom: 18,
+  },
+  userTimelineBubble: {
+    maxWidth: '82%',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderRadius: 28,
+  },
+  userTimelineText: {
+    color: '#FFF8FF',
+    fontSize: 16,
+    lineHeight: 23,
+    fontWeight: '500',
+  },
+  assistantBubbleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 18,
+    marginLeft: -16,
+    paddingLeft: 0,
+  },
+  assistantBubble: {
+    flex: 1,
+    maxWidth: '94%',
+    minHeight: 96,
+    justifyContent: 'center',
+    backgroundColor: '#F6DEC4',
+    borderRadius: 28,
+    paddingTop: 19,
+    paddingBottom: 18,
+    paddingLeft: 28,
+    paddingRight: 21,
+  },
+  assistantBubbleText: {
+    color: '#3B2856',
+    fontSize: 17,
+    lineHeight: 25,
+    fontWeight: '600',
+  },
+  assistantTypingCursor: {
+    color: '#7C42A6',
+    fontWeight: '900',
+  },
+  emptyMascotStage: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: 24,
+  },
+  thinkingMascotStage: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 22,
+    alignItems: 'center',
+  },
+  restingMascotStage: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 22,
+    alignItems: 'center',
   },
   chatListContent: { paddingHorizontal: 16, paddingVertical: 20 },
   messageRow: { flexDirection: 'row', marginVertical: 8, maxWidth: '90%' },
@@ -3231,6 +3244,13 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     minHeight: 54,
     zIndex: 10,
+  },
+  numelyraHeaderMinimal: {
+    justifyContent: 'center',
+  },
+  headerSideSpacer: {
+    width: 32,
+    height: 40,
   },
   headerCircleBtn: {
     width: 32,

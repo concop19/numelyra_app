@@ -16,9 +16,13 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Linking from 'expo-linking';
 
+import { Ionicons } from '@expo/vector-icons';
+
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import ChatScreen from './src/screens/ChatScreen';
+import ChatReadingDetailScreen, { type ChatReadingDetailParams } from './src/screens/ChatReadingDetailScreen';
 import CalendarScreen from './src/screens/CalendarScreen';
+import AstrologyScreen from './src/screens/AstrologyScreen';
 import WallpaperStudioScreen from './src/screens/WallpaperStudioScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
@@ -34,7 +38,13 @@ const TAB_WALLPAPER_ICON = require('./assets/icons/tab_wallpaper_flame.jpg');
 const TAB_SETTINGS_ICON = require('./assets/icons/tab_settings_flame.jpg');
 
 const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator();
+type RootStackParamList = {
+  Main: undefined;
+  Games: undefined;
+  ChatReadingDetail: ChatReadingDetailParams;
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
 const notifications = getNotifications();
 
 const linking = {
@@ -190,7 +200,14 @@ function AppContent() {
               )
             }}
           >
-            {({ navigation }) => <ChatScreen profile={profile} onOpenSettings={() => navigation.navigate('Settings')} onOpenGameHub={() => rootNavigation.navigate('Games')} />}
+            {({ navigation }) => (
+              <ChatScreen
+                profile={profile}
+                onOpenSettings={() => navigation.navigate('Settings')}
+                onOpenGameHub={() => rootNavigation.navigate('Games')}
+                onOpenRawReading={(message, previousQuestion) => rootNavigation.navigate('ChatReadingDetail', { message, previousQuestion })}
+              />
+            )}
           </Tab.Screen>
 
           <Tab.Screen
@@ -209,6 +226,20 @@ function AppContent() {
             }}
           >
             {() => <CalendarScreen profile={profile} />}
+          </Tab.Screen>
+
+          <Tab.Screen
+            name="Astrology"
+            options={{
+              tabBarLabel: 'Chiêm tinh',
+              tabBarIcon: ({ focused }) => (
+                <View style={[styles.tabIconWrap, focused && styles.tabIconWrapFocused]}>
+                  <Ionicons name="planet" size={18} color={focused ? '#FFD07A' : '#B98BDC'} />
+                </View>
+              )
+            }}
+          >
+            {() => <AstrologyScreen profile={profile} />}
           </Tab.Screen>
 
           <Tab.Screen
@@ -253,6 +284,10 @@ function AppContent() {
             name="Games"
             component={GameHubScreen}
             options={{ orientation: 'all' }}
+          />
+          <Stack.Screen
+            name="ChatReadingDetail"
+            component={ChatReadingDetailScreen}
           />
         </Stack.Navigator>
       </NavigationContainer>

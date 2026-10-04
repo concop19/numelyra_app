@@ -52,6 +52,22 @@ const normalizeMessages = (messages: StoredChatMessage[]): StoredChatMessage[] =
   }))
 );
 
+/**
+ * The persisted array stays chronological; the chat viewport is newest-first.
+ * `offset` is counted from the newest item so subsequent pages never overlap.
+ */
+export function getChatHistoryPage<T extends StoredChatMessage>(
+  messages: T[],
+  offset: number,
+  limit: number
+): T[] {
+  const safeOffset = Math.max(0, offset);
+  const safeLimit = Math.max(0, limit);
+  const end = Math.max(0, messages.length - safeOffset);
+  const start = Math.max(0, end - safeLimit);
+  return messages.slice(start, end).reverse();
+}
+
 export async function loadChatHistory(ownerId: string): Promise<StoredChatMessage[]> {
   const key = getHistoryKey(ownerId);
 
@@ -85,6 +101,31 @@ export async function saveChatHistory(
     await enqueueWrite(key, () => AsyncStorage.setItem(key, JSON.stringify(normalized)));
   } catch (error) {
     console.warn('[chatHistoryStorage] Could not save local history:', error);
+  }
+}
+
+/** Remove only the selected item and serialize with saves for the same owner. */
+export async function deleteChatMessage(ownerId: string, messageId: string): Promise<boolean> {
+  const key = getHistoryKey(ownerId);
+
+  try {
+    return await enqueueWrite(key, async () => {
+      const raw = await AsyncStorage.getItem(key);
+      if (!raw) return false;
+
+      const parsed: unknown = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return false;
+
+      const history = normalizeMessages(parsed.filter(isStoredChatMessage));
+      const next = history.filter((message) => message.id !== messageId);
+      if (next.length === history.length) return false;
+
+      await AsyncStorage.setItem(key, JSON.stringify(next));
+      return true;
+    });
+  } catch (error) {
+    console.warn('[chatHistoryStorage] Could not delete local chat message:', error);
+    return false;
   }
 }
 
