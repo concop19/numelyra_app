@@ -23,6 +23,8 @@ export interface UserBirthInput {
   fullName?: string;        // Họ tên (tùy chọn)
 }
 
+export type AstroDominantSignal = 'tension' | 'harmony' | 'conjunction' | 'balanced';
+
 export interface PureAstroFeatureMetadata {
   birthDate: string;
   birthTime: string | null;
@@ -51,6 +53,7 @@ export interface PureAstroFeatureMetadata {
     conjunction: number;       // 0.0 - 1.0 (Hội tụ năng lượng từ Trùng tụ)
     fastPlanetActivity: number; // 0.0 - 1.0 (Mức độ kích hoạt từ các hành tinh nhanh)
   };
+  dominantSignal: AstroDominantSignal;
   vibeSummary: string;
 }
 
@@ -73,6 +76,17 @@ const PLANET_ORDER = [
   'Sun', 'Moon', 'Mercury', 'Venus', 'Mars',
   'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto',
 ];
+
+export function resolveDominantAstroSignal(scores: {
+  tension: number;
+  harmony: number;
+  conjunction: number;
+}): AstroDominantSignal {
+  if (scores.conjunction >= 0.28) return 'conjunction';
+  if (scores.tension - scores.harmony >= 0.2) return 'tension';
+  if (scores.harmony - scores.tension >= 0.2) return 'harmony';
+  return 'balanced';
+}
 
 /**
  * Trích xuất bộ vector 32 chiều thuần túy Chiêm Tinh Học (Pure Astrology)
@@ -150,13 +164,18 @@ export function generatePureAstroVector(
   modalityMap.sort((a, b) => b[1] - a[1]);
   const dominantModality = modalityMap[0][0];
 
-  // Tóm tắt ngữ nghĩa (Semantic Metadata)
-  let vibeSummary = 'Bầu trời êm ả, các dòng năng lượng chuyển động ổn định.';
-  if (aspectResult.tensionScore > 0.6) {
-    vibeSummary = 'Áp lực góc chiếu cao (Vuông góc / Đối đỉnh), thử thách sự kiên định và bình tĩnh.';
-  } else if (aspectResult.harmonyScore > 0.6) {
-    vibeSummary = 'Dòng năng lượng thuận lợi (Tam hợp / Lục hợp), hỗ trợ hanh thông và phát triển.';
-  }
+  const dominantSignal = resolveDominantAstroSignal({
+    tension: aspectResult.tensionScore,
+    harmony: aspectResult.harmonyScore,
+    conjunction: aspectResult.conjunctionIntensity,
+  });
+  const vibeSummaryBySignal: Record<AstroDominantSignal, string> = {
+    tension: 'Các góc ma sát đang trội hơn, phù hợp với việc rà soát rủi ro và giữ lời nói rõ ràng.',
+    harmony: 'Các góc hỗ trợ đang trội hơn, thuận lợi để chủ động kết nối và triển khai việc quan trọng.',
+    conjunction: 'Năng lượng đang hội tụ mạnh, phù hợp để chọn một trọng tâm và làm đến nơi đến chốn.',
+    balanced: 'Các dòng tác động đan xen khá cân bằng, phù hợp để duy trì nhịp sống và quan sát tín hiệu mới.',
+  };
+  const vibeSummary = vibeSummaryBySignal[dominantSignal];
 
   const metadata: PureAstroFeatureMetadata = {
     birthDate: userInput.birthDate,
@@ -180,6 +199,7 @@ export function generatePureAstroVector(
       conjunction: aspectResult.conjunctionIntensity,
       fastPlanetActivity: aspectResult.fastPlanetActivity,
     },
+    dominantSignal,
     vibeSummary,
   };
 

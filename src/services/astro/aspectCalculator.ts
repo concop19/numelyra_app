@@ -49,6 +49,60 @@ export interface AspectAnalysisResult {
 
 const FAST_PLANETS = new Set(['Sun', 'Moon', 'Mercury', 'Venus', 'Mars']);
 
+export const TRANSIT_ACTIVITY_WEIGHTS: Record<string, number> = {
+  Moon: 1,
+  Sun: 0.85,
+  Mercury: 0.85,
+  Venus: 0.85,
+  Mars: 0.85,
+  Jupiter: 0.45,
+  Saturn: 0.45,
+  Uranus: 0.25,
+  Neptune: 0.25,
+  Pluto: 0.25,
+};
+
+function roundScore(value: number): number {
+  return Number(Math.max(0, Math.min(1, value)).toFixed(4));
+}
+
+export function calculateAspectScores(aspects: DetectedAspect[]): Omit<
+  AspectAnalysisResult,
+  'aspects' | 'topAspect'
+> {
+  let weightedTension = 0;
+  let weightedHarmony = 0;
+  let weightedConjunction = 0;
+  let weightedFastActivity = 0;
+  let totalWeightedActivity = 0;
+
+  for (const aspect of aspects) {
+    const transitWeight = TRANSIT_ACTIVITY_WEIGHTS[aspect.transitPlanet] ?? 0.25;
+    const dailyWeight = aspect.weight * transitWeight;
+    totalWeightedActivity += dailyWeight;
+
+    if (aspect.nature === 'tension') weightedTension += dailyWeight;
+    else if (aspect.nature === 'harmony') weightedHarmony += dailyWeight;
+    else if (aspect.type === 'conjunction') weightedConjunction += dailyWeight;
+
+    if (FAST_PLANETS.has(aspect.transitPlanet)) {
+      weightedFastActivity += dailyWeight;
+    }
+  }
+
+  const directionalTotal = weightedTension + weightedHarmony;
+  return {
+    tensionScore: directionalTotal > 0 ? roundScore(weightedTension / directionalTotal) : 0,
+    harmonyScore: directionalTotal > 0 ? roundScore(weightedHarmony / directionalTotal) : 0,
+    conjunctionIntensity: totalWeightedActivity > 0
+      ? roundScore(weightedConjunction / totalWeightedActivity)
+      : 0,
+    fastPlanetActivity: totalWeightedActivity > 0
+      ? roundScore(weightedFastActivity / totalWeightedActivity)
+      : 0,
+  };
+}
+
 /**
  * Tính khoảng cách góc nhỏ nhất giữa 2 tọa độ hoàng đạo (0° - 180°)
  */
@@ -68,11 +122,6 @@ export function analyzeTransitToNatalAspects(
   natalChart: PlanetaryChart
 ): AspectAnalysisResult {
   const detected: DetectedAspect[] = [];
-
-  let rawTension = 0;
-  let rawHarmony = 0;
-  let rawConjunction = 0;
-  let rawFastActivity = 0;
 
   for (const tPlanet of transitChart.planetList) {
     for (const nPlanet of natalChart.planetList) {
@@ -101,40 +150,23 @@ export function analyzeTransitToNatalAspects(
 
           detected.push(aspectItem);
 
-          // Cộng dồn vào các chỉ số năng lượng
-          if (def.nature === 'tension') {
-            rawTension += effectiveWeight;
-          } else if (def.nature === 'harmony') {
-            rawHarmony += effectiveWeight;
-          } else if (def.type === 'conjunction') {
-            rawConjunction += effectiveWeight;
-          }
-
-          if (FAST_PLANETS.has(tPlanet.name) || FAST_PLANETS.has(nPlanet.name)) {
-            rawFastActivity += effectiveWeight;
-          }
         }
       }
     }
   }
 
-  // Sắp xếp các góc chiếu theo độ chặt của orb (orb nhỏ nhất xếp trước)
-  detected.sort((a, b) => a.orb - b.orb);
+  // Ưu tiên góc vừa chặt vừa đến từ hành tinh transit chuyển động nhanh.
+  detected.sort((a, b) => {
+    const aDailyWeight = a.weight * (TRANSIT_ACTIVITY_WEIGHTS[a.transitPlanet] ?? 0.25);
+    const bDailyWeight = b.weight * (TRANSIT_ACTIVITY_WEIGHTS[b.transitPlanet] ?? 0.25);
+    return bDailyWeight - aDailyWeight || a.orb - b.orb;
+  });
   const topAspect = detected.length > 0 ? detected[0] : null;
-
-  // Chuẩn hóa điểm về khoảng [0.0, 1.0] bằng hàm sigmoid làm mềm (soft-clamping)
-  // Điểm raw trung bình của 1 lá số dao động từ 0 đến 5
-  const normalizeScore = (val: number, divisor: number = 4): number => {
-    const clamped = Math.min(1.0, val / divisor);
-    return Number(clamped.toFixed(4));
-  };
+  const scores = calculateAspectScores(detected);
 
   return {
     aspects: detected,
     topAspect,
-    tensionScore: normalizeScore(rawTension, 4.0),
-    harmonyScore: normalizeScore(rawHarmony, 4.0),
-    conjunctionIntensity: normalizeScore(rawConjunction, 3.0),
-    fastPlanetActivity: normalizeScore(rawFastActivity, 5.0),
+    ...scores,
   };
 }

@@ -21,6 +21,7 @@ export interface AstroFortuneSlip {
 export interface RequestFortuneSlipOptions {
   astroMetadata?: PureAstroFeatureMetadata;
   userContext?: string;
+  recentAdvice?: string[];
   caDaoMode?: 'daily' | 'random';
   customCaDao?: CaDaoItem;
 }
@@ -33,6 +34,7 @@ function buildAstroSummary(meta?: PureAstroFeatureMetadata): {
   tensionScore: number;
   harmonyScore: number;
   conjunctionScore: number;
+  dominantSignal: PureAstroFeatureMetadata['dominantSignal'];
   dominantElements: string[];
   highlights: string[];
 } {
@@ -42,13 +44,11 @@ function buildAstroSummary(meta?: PureAstroFeatureMetadata): {
       tensionScore: 0.5,
       harmonyScore: 0.5,
       conjunctionScore: 0.2,
+      dominantSignal: 'balanced',
       dominantElements: ['Đất', 'Nước'],
       highlights: ['Các hành tinh duy trì quỹ đạo thông thường.'],
     };
   }
-
-  const tensionPercent = (meta.scores.tension * 100).toFixed(0);
-  const harmonyPercent = (meta.scores.harmony * 100).toFixed(0);
 
   const highlights: string[] = [];
   if (meta.topAspect) {
@@ -60,18 +60,12 @@ function buildAstroSummary(meta?: PureAstroFeatureMetadata): {
 
   const dominantElements = [meta.temperament.dominantElement, meta.temperament.dominantModality];
 
-  let tone = meta.vibeSummary || 'Cân bằng và hài hòa vừa phải.';
-  if (meta.scores.tension > 0.6) {
-    tone = `Nội tâm căng thẳng cao (${tensionPercent}%), áp lực góc chiếu thôi thúc chuyển hóa hoặc gây bức bối.`;
-  } else if (meta.scores.harmony > 0.6) {
-    tone = `Thuận buồm xuôi gió (${harmonyPercent}%), góc chiếu hỗ trợ tâm trí thông suốt, nhẹ nhõm.`;
-  }
-
   return {
-    summary: `${tone} Vibe: ${meta.vibeSummary}.`,
+    summary: meta.vibeSummary,
     tensionScore: meta.scores.tension,
     harmonyScore: meta.scores.harmony,
     conjunctionScore: meta.scores.conjunction,
+    dominantSignal: meta.dominantSignal,
     dominantElements,
     highlights,
   };
@@ -115,9 +109,11 @@ export async function requestAstroFortuneSlip(
         tensionScore: astroData.tensionScore,
         harmonyScore: astroData.harmonyScore,
         conjunctionScore: astroData.conjunctionScore,
+        dominantSignal: astroData.dominantSignal,
         dominantElements: astroData.dominantElements,
         highlights: astroData.highlights,
       },
+      recentAdvice: options.recentAdvice?.slice(0, 7),
       userContext: options.userContext,
     }),
   });

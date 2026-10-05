@@ -1,13 +1,39 @@
 import {
   generatePureAstroVector,
   calculateVectorCosineSimilarity,
+  resolveDominantAstroSignal,
 } from '../astroVectorEngine';
 import {
   computeNatalChart,
   resolveBirthDate,
   calculateTemperamentBalance,
 } from '../astroEngine';
-import { getShortestAngleDiff } from '../aspectCalculator';
+import {
+  calculateAspectScores,
+  getShortestAngleDiff,
+  type DetectedAspect,
+} from '../aspectCalculator';
+
+function aspect(
+  transitPlanet: string,
+  natalPlanet: string,
+  nature: DetectedAspect['nature'],
+  type: DetectedAspect['type'],
+  weight = 1
+): DetectedAspect {
+  return {
+    transitPlanet,
+    natalPlanet,
+    nature,
+    type,
+    weight,
+    symbol: '',
+    nameVi: '',
+    targetAngle: 0,
+    actualAngle: 0,
+    orb: 0,
+  };
+}
 
 describe('Pure Astrology Feature Vector Engine', () => {
   const fixedTestCurrentDate = new Date('2026-10-04T12:00:00Z');
@@ -94,6 +120,67 @@ describe('Pure Astrology Feature Vector Engine', () => {
       expect(getShortestAngleDiff(0, 180)).toBe(180);
       expect(getShortestAngleDiff(90, 180)).toBe(90);
       expect(getShortestAngleDiff(355, 5)).toBe(10);
+    });
+
+    it('normalizes tension and harmony as proportions without saturation', () => {
+      const scores = calculateAspectScores([
+        aspect('Moon', 'Sun', 'tension', 'square', 0.8),
+        aspect('Venus', 'Moon', 'harmony', 'trine', 0.6),
+      ]);
+
+      expect(scores.tensionScore).toBeGreaterThan(0);
+      expect(scores.harmonyScore).toBeGreaterThan(0);
+      expect(scores.tensionScore + scores.harmonyScore).toBeCloseTo(1, 4);
+      expect(scores.tensionScore).toBeLessThan(1);
+      expect(scores.harmonyScore).toBeLessThan(1);
+    });
+
+    it('counts fast activity from the transit planet, not the natal planet', () => {
+      const slowTransit = calculateAspectScores([
+        aspect('Uranus', 'Moon', 'tension', 'square'),
+      ]);
+      const fastTransit = calculateAspectScores([
+        aspect('Moon', 'Uranus', 'tension', 'square'),
+      ]);
+
+      expect(slowTransit.fastPlanetActivity).toBe(0);
+      expect(fastTransit.fastPlanetActivity).toBe(1);
+      expect(calculateAspectScores([])).toEqual({
+        tensionScore: 0,
+        harmonyScore: 0,
+        conjunctionIntensity: 0,
+        fastPlanetActivity: 0,
+      });
+    });
+
+    it('classifies every dominant daily signal branch', () => {
+      expect(resolveDominantAstroSignal({ tension: 0.7, harmony: 0.3, conjunction: 0.1 }))
+        .toBe('tension');
+      expect(resolveDominantAstroSignal({ tension: 0.3, harmony: 0.7, conjunction: 0.1 }))
+        .toBe('harmony');
+      expect(resolveDominantAstroSignal({ tension: 0.6, harmony: 0.4, conjunction: 0.3 }))
+        .toBe('conjunction');
+      expect(resolveDominantAstroSignal({ tension: 0.55, harmony: 0.45, conjunction: 0.1 }))
+        .toBe('balanced');
+    });
+
+    it('does not saturate both directional scores across profiles and days', () => {
+      const birthDates = ['1990-01-01', '1995-03-21', '1998-10-20', '2001-07-15', '2005-12-31'];
+      const summaries = new Set<string>();
+
+      for (const birthDate of birthDates) {
+        for (let day = 1; day <= 14; day += 1) {
+          const metadata = generatePureAstroVector(
+            { birthDate },
+            new Date(2026, 9, day, 12)
+          ).metadata;
+          summaries.add(metadata.vibeSummary);
+          expect(metadata.scores.tension === 1 && metadata.scores.harmony === 1).toBe(false);
+          expect(metadata.dominantSignal).toBeDefined();
+        }
+      }
+
+      expect(summaries.size).toBeGreaterThan(1);
     });
   });
 
