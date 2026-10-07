@@ -1,11 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   AccessibilityInfo,
   ActivityIndicator,
-  Animated,
   AppState,
   AppStateStatus,
-  Easing,
   Image,
   LayoutChangeEvent,
   StyleSheet,
@@ -20,9 +18,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useIsFocused } from '@react-navigation/native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AstrologyInsightSheet } from '../features/astrology/AstrologyInsightSheet';
+import { BirthDataModal } from '../features/astrology/BirthDataModal';
 import { getAstrologyProfileKey } from '../features/astrology/dailyAstroFortune';
 import { useDailyAstroFortune } from '../features/astrology/useDailyAstroFortune';
 import { ConstellationCanvas } from '../features/constellation/ConstellationCanvas';
@@ -35,30 +35,34 @@ import {
   getDailyAstrologySymbolId,
 } from '../features/constellation/constellationPresets';
 import { buildConstellationGeometry } from '../features/constellation/constellationSkia';
-import type { UserProfile } from '../store/userProfile';
+import { saveAstrologyBirthData, type UserProfile } from '../store/userProfile';
 
 const ASTROLOGY_STAR_SEED = 0x4e554d45;
 const ASTROLOGY_VIDEO_SOURCE = require('../../assets/giao_dien/giaodien1/constellation/Aurora_flowing_over_calm_lake_20261005153804-clean.mp4');
 
 interface Props {
   profile?: UserProfile | null;
+  onProfileChange?(profile: UserProfile): void | Promise<void>;
 }
 
 function formatShortDate(date: Date): string {
   return `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
-export default function AstrologyScreen({ profile }: Props) {
+export default function AstrologyScreen({ profile, onProfileChange }: Props) {
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
   const { currentDate, fortune, metadata, loading, error, retry, share } =
     useDailyAstroFortune(profile);
   const [sheetVisible, setSheetVisible] = useState(false);
+  const [birthDataVisible, setBirthDataVisible] = useState(false);
+  const [hasPromptedBirthData, setHasPromptedBirthData] = useState(false);
   const [reduceMotion, setReduceMotion] = useState<boolean | null>(null);
   const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
   const [videoReady, setVideoReady] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
-  const symbolPulse = useRef(new Animated.Value(0.92)).current;
+  const [headerBottom, setHeaderBottom] = useState(0);
+  const [bottomContentTop, setBottomContentTop] = useState(0);
   const compact = canvasSize.height > 0 && canvasSize.height < 720;
 
   const videoPlayer = useVideoPlayer(ASTROLOGY_VIDEO_SOURCE, (player) => {
@@ -107,8 +111,37 @@ export default function AstrologyScreen({ profile }: Props) {
   }, [canvasSize, compact, geometryResult.geometry]);
 
   const ambientStars = useMemo(
-    () => createAmbientStars(ASTROLOGY_STAR_SEED, 105),
+    () => createAmbientStars(ASTROLOGY_STAR_SEED, 64),
     []
+  );
+
+  const interactionBounds = useMemo(() => {
+    const { width, height } = canvasSize;
+    const fallbackTop = height * 0.18;
+    const fallbackBottom = height * (compact ? 0.66 : 0.64);
+    const requestedTop = headerBottom > 0 ? headerBottom + 4 : fallbackTop;
+    const top = Math.min(requestedTop, Math.max(0, height - 48));
+    const measuredBottom = bottomContentTop > top ? bottomContentTop - 8 : fallbackBottom;
+    const bottom = Math.max(top + 48, Math.min(height, measuredBottom));
+
+    return {
+      x: 0,
+      y: top,
+      width,
+      height: bottom - top,
+    };
+  }, [bottomContentTop, canvasSize, compact, headerBottom]);
+
+  const constellationResetKey = useMemo(
+    () => [
+      symbolId,
+      profileKey,
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      currentDate.getDate(),
+      isFocused ? 'focused' : 'blurred',
+    ].join(':'),
+    [currentDate, isFocused, profileKey, symbolId]
   );
 
   useEffect(() => {
@@ -150,37 +183,17 @@ export default function AstrologyScreen({ profile }: Props) {
   }, [reduceMotion, videoStatus]);
 
   useEffect(() => {
-    if (reduceMotion !== false) {
-      symbolPulse.setValue(1);
-      return undefined;
-    }
-
-    const symbolLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(symbolPulse, {
-          toValue: 1,
-          duration: 1700,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.timing(symbolPulse, {
-          toValue: 0.88,
-          duration: 1900,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    symbolLoop.start();
-    return () => {
-      symbolLoop.stop();
-    };
-  }, [reduceMotion, symbolPulse]);
-
-  useEffect(() => {
     if (!fortune) setSheetVisible(false);
   }, [fortune]);
+
+  useEffect(() => {
+    if (!isFocused || !profile || profile.birthLocation || hasPromptedBirthData) return;
+    const timer = setTimeout(() => {
+      setHasPromptedBirthData(true);
+      setBirthDataVisible(true);
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [hasPromptedBirthData, isFocused, profile]);
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const width = Math.round(event.nativeEvent.layout.width);
@@ -190,17 +203,35 @@ export default function AstrologyScreen({ profile }: Props) {
     );
   };
 
+  const handleHeaderLayout = (event: LayoutChangeEvent) => {
+    const bottom = Math.round(
+      event.nativeEvent.layout.y + event.nativeEvent.layout.height
+    );
+    setHeaderBottom((current) => current === bottom ? current : bottom);
+  };
+
+  const handleBottomContentLayout = (event: LayoutChangeEvent) => {
+    const top = Math.round(event.nativeEvent.layout.y);
+    setBottomContentTop((current) => current === top ? current : top);
+  };
+
   const openInsight = () => {
     if (!fortune) return;
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     setSheetVisible(true);
   };
 
+  const handleBirthDataSave = async (updatedProfile: UserProfile) => {
+    await saveAstrologyBirthData(updatedProfile);
+    await onProfileChange?.(updatedProfile);
+  };
+
   const showVideo = reduceMotion === false && videoStatus !== 'error';
   const showFallback = !showVideo || !videoReady;
+  const motionEnabled = isFocused && appState === 'active' && reduceMotion === false;
 
   return (
-    <View style={styles.root} onLayout={handleLayout}>
+    <GestureHandlerRootView style={styles.root} onLayout={handleLayout}>
       <StatusBar style="light" />
       {showVideo && (
         <VideoView
@@ -224,30 +255,15 @@ export default function AstrologyScreen({ profile }: Props) {
       <View style={styles.nightVeil} pointerEvents="none" />
 
       {fittedGeometry && (
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              opacity: symbolPulse,
-              transform: [
-                {
-                  scale: symbolPulse.interpolate({
-                    inputRange: [0.88, 1],
-                    outputRange: [0.996, 1.004],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <ConstellationCanvas
-            width={canvasSize.width}
-            height={canvasSize.height}
-            geometry={fittedGeometry}
-            ambientStars={ambientStars}
-          />
-        </Animated.View>
+        <ConstellationCanvas
+          width={canvasSize.width}
+          height={canvasSize.height}
+          geometry={fittedGeometry}
+          ambientStars={ambientStars}
+          interactionBounds={interactionBounds}
+          resetKey={constellationResetKey}
+          motionEnabled={motionEnabled}
+        />
       )}
 
       <LinearGradient
@@ -257,7 +273,10 @@ export default function AstrologyScreen({ profile }: Props) {
         pointerEvents="none"
       />
 
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <View
+        style={[styles.header, { paddingTop: insets.top + 8 }]}
+        onLayout={handleHeaderLayout}
+      >
         <View style={styles.brandBlock} pointerEvents="none">
           <Text style={styles.brand}>Numelyra</Text>
           <View style={styles.brandDivider}>
@@ -266,6 +285,33 @@ export default function AstrologyScreen({ profile }: Props) {
             <View style={styles.brandLine} />
           </View>
           <Text style={styles.dateLabel}>Hôm nay • {formatShortDate(currentDate)}</Text>
+          {!!profile && (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={profile.birthLocation ? 'Chỉnh sửa dữ liệu nơi sinh' : 'Bổ sung nơi sinh'}
+              activeOpacity={0.78}
+              style={[
+                styles.birthDataChip,
+                profile.birthLocation && styles.birthDataChipComplete,
+              ]}
+              onPress={() => setBirthDataVisible(true)}
+            >
+              <Ionicons
+                name={profile.birthLocation ? 'location' : 'location-outline'}
+                size={13}
+                color={profile.birthLocation ? '#8FF3D1' : '#BDEEFF'}
+              />
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.birthDataChipText,
+                  profile.birthLocation && styles.birthDataChipTextComplete,
+                ]}
+              >
+                {profile.birthLocation?.userLabel || 'Bổ sung nơi sinh để mở khóa lá số đầy đủ'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -282,6 +328,7 @@ export default function AstrologyScreen({ profile }: Props) {
           compact && styles.bottomContentCompact,
           { paddingBottom: Math.max(14, insets.bottom + 8) },
         ]}
+        onLayout={handleBottomContentLayout}
       >
         <Text style={styles.symbolLabel}>BIỂU TƯỢNG HÔM NAY · {symbol.title}</Text>
 
@@ -351,7 +398,15 @@ export default function AstrologyScreen({ profile }: Props) {
         metadata={metadata}
         onClose={() => setSheetVisible(false)}
       />
-    </View>
+      {!!profile && (
+        <BirthDataModal
+          visible={birthDataVisible}
+          profile={profile}
+          onSave={handleBirthDataSave}
+          onClose={() => setBirthDataVisible(false)}
+        />
+      )}
+    </GestureHandlerRootView>
   );
 }
 
@@ -409,6 +464,32 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
     textShadowColor: 'rgba(0,0,0,0.65)',
     textShadowRadius: 6,
+  },
+  birthDataChip: {
+    maxWidth: 300,
+    height: 30,
+    marginTop: 8,
+    paddingHorizontal: 11,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(113,231,255,0.52)',
+    backgroundColor: 'rgba(4,28,70,0.68)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  birthDataChipComplete: {
+    borderColor: 'rgba(111,232,191,0.42)',
+    backgroundColor: 'rgba(8,51,65,0.62)',
+  },
+  birthDataChipText: {
+    flexShrink: 1,
+    color: '#D9F7FF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  birthDataChipTextComplete: {
+    color: '#CFF9EB',
   },
   geometryError: {
     position: 'absolute',

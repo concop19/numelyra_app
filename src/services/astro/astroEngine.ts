@@ -4,6 +4,56 @@
  * Thuần TypeScript, chạy offline 100% trên React Native / Expo Hermes.
  */
 import { Body, GeoVector, Ecliptic, AstroTime } from 'astronomy-engine';
+import type {
+  BirthTimeAccuracy,
+  ResolvedBirthLocation,
+} from '../../store/userProfile';
+
+export const ASTRO_ENGINE_VERSION = 'astrology-v2-porphyry-1';
+
+export type AstroBirthDataPrecision = 'dateOnly' | 'timeWithoutLocation' | 'complete';
+
+export interface ResolvedBirthDate {
+  date: Date;
+  isTimeEstimated: boolean;
+  precision: AstroBirthDataPrecision;
+  isLocalTimeAmbiguous: boolean;
+}
+
+export interface AstroAngles {
+  ascendant: number;
+  descendant: number;
+  midheaven: number;
+  imumCoeli: number;
+}
+
+export interface AstroHouseCusp {
+  house: number;
+  longitude: number;
+}
+
+export interface AstroNatalContext {
+  birthUTC: string;
+  houseSystem: 'porphyry';
+  angles: AstroAngles;
+  houseCusps: AstroHouseCusp[];
+  planetHouses: Record<string, number>;
+  precision: AstroBirthDataPrecision;
+  isLocalTimeAmbiguous: boolean;
+}
+
+export interface AstroNatalSnapshot {
+  engineVersion: string;
+  chart: PlanetaryChart;
+  context: AstroNatalContext | null;
+}
+
+export interface AstroBirthInput {
+  birthDate: string;
+  birthTime?: string;
+  birthTimeAccuracy?: BirthTimeAccuracy;
+  resolvedBirthLocation?: ResolvedBirthLocation;
+}
 
 export interface PlanetPosition {
   name: string;
@@ -145,44 +195,152 @@ export function longitudeToZodiac(longitude: number): {
  * Parse chuỗi ngày sinh và giờ sinh thành đối tượng Date (UTC)
  * Nếu không có giờ sinh -> Fallback về Noon Chart (12:00:00)
  */
-export function resolveBirthDate(
-  birthDateStr: string,
-  birthTimeStr?: string
-): { date: Date; isTimeEstimated: boolean } {
-  let y = 2000, m = 1, d = 1;
+function parseDateParts(value: string): { year: number; month: number; day: number } {
+  const datePart = value.split('T', 1)[0];
+  const separator = datePart.includes('-') ? '-' : datePart.includes('/') ? '/' : null;
+  if (!separator) throw new Error(`Ngày sinh không hợp lệ: ${value}`);
+  const parts = datePart.split(separator).map(Number);
+  if (parts.length < 3 || parts.some((part) => !Number.isInteger(part))) {
+    throw new Error(`Ngày sinh không hợp lệ: ${value}`);
+  }
+  const [first, second, third] = parts;
+  const year = separator === '-' ? first : third;
+  const month = second;
+  const day = separator === '-' ? third : first;
+  const validation = new Date(Date.UTC(year, month - 1, day));
+  if (
+    validation.getUTCFullYear() !== year
+    || validation.getUTCMonth() !== month - 1
+    || validation.getUTCDate() !== day
+  ) {
+    throw new Error(`Ngày sinh không hợp lệ: ${value}`);
+  }
+  return { year, month, day };
+}
 
-  if (birthDateStr.includes('-')) {
-    const parts = birthDateStr.split('T')[0].split('-').map(Number);
-    if (parts.length >= 3) {
-      y = parts[0];
-      m = parts[1];
-      d = parts[2];
-    }
-  } else if (birthDateStr.includes('/')) {
-    const parts = birthDateStr.split('/').map(Number);
-    if (parts.length >= 3) {
-      d = parts[0];
-      m = parts[1];
-      y = parts[2];
-    }
+function timeZoneParts(date: Date, timeZone: string) {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  });
+  const values: Record<string, number> = {};
+  for (const part of formatter.formatToParts(date)) {
+    if (part.type !== 'literal') values[part.type] = Number(part.value);
+  }
+  return {
+    year: values.year,
+    month: values.month,
+    day: values.day,
+    hour: values.hour,
+    minute: values.minute,
+    second: values.second,
+  };
+}
+
+function timeZoneOffsetMs(date: Date, timeZone: string): number {
+  const parts = timeZoneParts(date, timeZone);
+  return Date.UTC(
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    parts.hour,
+    parts.minute,
+    parts.second
+  ) - date.getTime();
+}
+
+function localDateTimeToUtc(
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+  timeZone: string
+): { date: Date; isAmbiguous: boolean } {
+  try {
+    // Validate the IANA identifier before doing offset calculations.
+    timeZoneParts(new Date(), timeZone);
+  } catch {
+    throw new Error(`Múi giờ nơi sinh không hợp lệ: ${timeZone}`);
   }
 
+  const desiredAsUtc = Date.UTC(year, month - 1, day, hour, minute, 0);
+  const probe = new Date(desiredAsUtc);
+  const possibleOffsets = new Set([
+    timeZoneOffsetMs(new Date(probe.getTime() - 86_400_000), timeZone),
+    timeZoneOffsetMs(probe, timeZone),
+    timeZoneOffsetMs(new Date(probe.getTime() + 86_400_000), timeZone),
+  ]);
+  const matches = [...possibleOffsets]
+    .map((offset) => new Date(desiredAsUtc - offset))
+    .filter((candidate) => {
+      const parts = timeZoneParts(candidate, timeZone);
+      return parts.year === year
+        && parts.month === month
+        && parts.day === day
+        && parts.hour === hour
+        && parts.minute === minute;
+    })
+    .sort((left, right) => left.getTime() - right.getTime());
+
+  if (matches.length === 0) {
+    throw new Error(
+      `Giờ sinh ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} không tồn tại tại nơi sinh do chuyển giờ mùa hè.`
+    );
+  }
+  return { date: matches[0], isAmbiguous: matches.length > 1 };
+}
+
+export function resolveBirthDate(
+  birthDateStr: string,
+  birthTimeStr?: string,
+  accuracy?: BirthTimeAccuracy,
+  location?: ResolvedBirthLocation
+): ResolvedBirthDate {
+  const { year, month, day } = parseDateParts(birthDateStr);
   let hour = 12;
   let minute = 0;
   let isTimeEstimated = true;
+  const effectiveAccuracy = accuracy ?? (birthTimeStr?.trim() ? 'exact' : 'unknown');
 
-  if (birthTimeStr && birthTimeStr.trim()) {
+  if (effectiveAccuracy === 'exact' && birthTimeStr?.trim()) {
     const timeParts = birthTimeStr.trim().split(':').map(Number);
-    if (timeParts.length >= 2 && !isNaN(timeParts[0]) && !isNaN(timeParts[1])) {
-      hour = Math.min(23, Math.max(0, timeParts[0]));
-      minute = Math.min(59, Math.max(0, timeParts[1]));
-      isTimeEstimated = false;
+    if (
+      timeParts.length < 2
+      || !Number.isInteger(timeParts[0])
+      || !Number.isInteger(timeParts[1])
+      || timeParts[0] < 0
+      || timeParts[0] > 23
+      || timeParts[1] < 0
+      || timeParts[1] > 59
+    ) {
+      throw new Error(`Giờ sinh không hợp lệ: ${birthTimeStr}`);
     }
+    [hour, minute] = timeParts;
+    isTimeEstimated = false;
   }
 
-  // Khởi tạo Date theo UTC để đảm bảo tính nhất quán (deterministic)
-  const resolved = new Date(Date.UTC(y, m - 1, d, hour, minute, 0));
-  return { date: resolved, isTimeEstimated };
+  const resolved = location
+    ? localDateTimeToUtc(year, month, day, hour, minute, location.timeZoneIdentifier)
+    : { date: new Date(Date.UTC(year, month - 1, day, hour, minute, 0)), isAmbiguous: false };
+  const precision: AstroBirthDataPrecision = isTimeEstimated
+    ? 'dateOnly'
+    : location
+      ? 'complete'
+      : 'timeWithoutLocation';
+
+  return {
+    date: resolved.date,
+    isTimeEstimated,
+    precision,
+    isLocalTimeAmbiguous: resolved.isAmbiguous,
+  };
 }
 
 /**
@@ -224,9 +382,136 @@ export function calculatePlanetaryChart(date: Date, isTimeEstimated: boolean = f
 /**
  * Tính Natal Chart của người dùng
  */
-export function computeNatalChart(birthDateStr: string, birthTimeStr?: string): PlanetaryChart {
-  const { date, isTimeEstimated } = resolveBirthDate(birthDateStr, birthTimeStr);
+export function computeNatalChart(
+  birthDateStr: string,
+  birthTimeStr?: string,
+  accuracy?: BirthTimeAccuracy,
+  location?: ResolvedBirthLocation
+): PlanetaryChart {
+  const { date, isTimeEstimated } = resolveBirthDate(
+    birthDateStr,
+    birthTimeStr,
+    accuracy,
+    location
+  );
   return calculatePlanetaryChart(date, isTimeEstimated);
+}
+
+function positiveModulo(value: number, divisor: number): number {
+  const result = value % divisor;
+  return result < 0 ? result + divisor : result;
+}
+
+function rounded(value: number, places = 6): number {
+  return Number(value.toFixed(places));
+}
+
+export function calculateAngles(date: Date, latitude: number, longitude: number): AstroAngles {
+  const julianDate = date.getTime() / 86_400_000 + 2_440_587.5;
+  const centuries = (julianDate - 2_451_545) / 36_525;
+  const gmst = 280.460_618_37
+    + 360.985_647_366_29 * (julianDate - 2_451_545)
+    + 0.000_387_933 * centuries * centuries
+    - centuries * centuries * centuries / 38_710_000;
+  const sidereal = positiveModulo(gmst + longitude, 360) * Math.PI / 180;
+  const obliquity = (
+    23.439_291_111
+      - 0.013_004_167 * centuries
+      - 0.000_000_164 * centuries * centuries
+      + 0.000_000_504 * centuries * centuries * centuries
+  ) * Math.PI / 180;
+  const latitudeRadians = Math.max(-89.999, Math.min(89.999, latitude)) * Math.PI / 180;
+  const midheaven = Math.atan2(
+    Math.sin(sidereal),
+    Math.cos(sidereal) * Math.cos(obliquity)
+  ) * 180 / Math.PI;
+  const ascendant = Math.atan2(
+    -Math.cos(sidereal),
+    Math.sin(sidereal) * Math.cos(obliquity)
+      + Math.tan(latitudeRadians) * Math.sin(obliquity)
+  ) * 180 / Math.PI;
+  // atan2 expression above resolves the western intersection; the Ascendant
+  // is the eastern intersection, exactly 180° opposite on the ecliptic.
+  const asc = positiveModulo(ascendant + 180, 360);
+  const mc = positiveModulo(midheaven, 360);
+  return {
+    ascendant: rounded(asc),
+    descendant: rounded(positiveModulo(asc + 180, 360)),
+    midheaven: rounded(mc),
+    imumCoeli: rounded(positiveModulo(mc + 180, 360)),
+  };
+}
+
+export function calculatePorphyryCusps(angles: AstroAngles): AstroHouseCusp[] {
+  const values = new Array<number>(12).fill(0);
+  values[0] = angles.ascendant;
+  values[3] = angles.imumCoeli;
+  values[6] = angles.descendant;
+  values[9] = angles.midheaven;
+  for (const startHouse of [0, 3, 6, 9]) {
+    const endHouse = (startHouse + 3) % 12;
+    const arc = positiveModulo(values[endHouse] - values[startHouse], 360);
+    values[(startHouse + 1) % 12] = positiveModulo(values[startHouse] + arc / 3, 360);
+    values[(startHouse + 2) % 12] = positiveModulo(values[startHouse] + arc * 2 / 3, 360);
+  }
+  return values.map((longitude, index) => ({ house: index + 1, longitude: rounded(longitude) }));
+}
+
+export function houseForLongitude(longitude: number, cusps: AstroHouseCusp[]): number | null {
+  if (cusps.length !== 12) return null;
+  const ordered = [...cusps].sort((left, right) => left.house - right.house);
+  const target = positiveModulo(longitude, 360);
+  for (let index = 0; index < ordered.length; index += 1) {
+    const start = ordered[index].longitude;
+    const end = ordered[(index + 1) % ordered.length].longitude;
+    const span = positiveModulo(end - start, 360);
+    const offset = positiveModulo(target - start, 360);
+    if (offset < span || (span === 0 && offset === 0)) return ordered[index].house;
+  }
+  return null;
+}
+
+export function assignPlanetsToHouses(
+  planets: PlanetPosition[],
+  cusps: AstroHouseCusp[]
+): Record<string, number> {
+  return planets.reduce<Record<string, number>>((result, planet) => {
+    const house = houseForLongitude(planet.longitude, cusps);
+    if (house !== null) result[planet.name] = house;
+    return result;
+  }, {});
+}
+
+export function makeNatalSnapshot(input: AstroBirthInput): AstroNatalSnapshot {
+  const resolved = resolveBirthDate(
+    input.birthDate,
+    input.birthTime,
+    input.birthTimeAccuracy,
+    input.resolvedBirthLocation
+  );
+  const chart = calculatePlanetaryChart(resolved.date, resolved.isTimeEstimated);
+  if (resolved.precision !== 'complete' || !input.resolvedBirthLocation) {
+    return { engineVersion: ASTRO_ENGINE_VERSION, chart, context: null };
+  }
+  const angles = calculateAngles(
+    resolved.date,
+    input.resolvedBirthLocation.latitude,
+    input.resolvedBirthLocation.longitude
+  );
+  const houseCusps = calculatePorphyryCusps(angles);
+  return {
+    engineVersion: ASTRO_ENGINE_VERSION,
+    chart,
+    context: {
+      birthUTC: resolved.date.toISOString(),
+      houseSystem: 'porphyry',
+      angles,
+      houseCusps,
+      planetHouses: assignPlanetsToHouses(chart.planetList, houseCusps),
+      precision: resolved.precision,
+      isLocalTimeAmbiguous: resolved.isLocalTimeAmbiguous,
+    },
+  };
 }
 
 /**

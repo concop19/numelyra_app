@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { AstroFortuneSlip } from '../../services/astro/astroFortuneService';
 import type { PureAstroFeatureMetadata } from '../../services/astro/astroVectorEngine';
+import { longitudeToZodiac } from '../../services/astro/astroEngine';
 
 const ZODIAC_VI: Record<string, string> = {
   Aries: 'Bạch Dương ♈',
@@ -132,7 +133,10 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
                 <Text style={styles.groupTitle}>Lá số bản mệnh</Text>
                 <Text style={styles.groupDescription}>
                   Dựa trên ngày sinh {metadata.birthDate}
-                  {metadata.birthTime ? ` lúc ${metadata.birthTime}` : ' với giờ sinh ước lượng'}.
+                  {metadata.birthTime ? ` lúc ${metadata.birthTime}` : ' với giờ sinh ước lượng'}
+                  {metadata.birthDataPrecision === 'complete'
+                    ? ' và múi giờ nơi sinh.'
+                    : '. Bổ sung nơi sinh cùng giờ sinh chính xác để mở khóa ASC/MC và 12 nhà.'}
                 </Text>
 
                 <View style={styles.dataGrid}>
@@ -155,6 +159,39 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
                     </Text>
                   </View>
                 </View>
+
+                {metadata.natalContext && (
+                  <View style={styles.houseCard}>
+                    <View style={styles.houseHeader}>
+                      <Ionicons name="compass-outline" size={18} color="#7CEBFF" />
+                      <Text style={styles.houseTitle}>Trục lá số · Porphyry</Text>
+                    </View>
+                    <View style={styles.axisRow}>
+                      <View style={styles.axisItem}>
+                        <Text style={styles.dataLabel}>Cung Mọc (ASC)</Text>
+                        <Text style={styles.dataValue}>
+                          {ZODIAC_VI[longitudeToZodiac(metadata.natalContext.angles.ascendant).sign]}
+                        </Text>
+                      </View>
+                      <View style={styles.axisItem}>
+                        <Text style={styles.dataLabel}>Thiên Đỉnh (MC)</Text>
+                        <Text style={styles.dataValue}>
+                          {ZODIAC_VI[longitudeToZodiac(metadata.natalContext.angles.midheaven).sign]}
+                        </Text>
+                      </View>
+                    </View>
+                    {!!metadata.dailyContext?.activatedHouses.length && (
+                      <View style={styles.activatedRow}>
+                        {metadata.dailyContext.activatedHouses.map((house) => (
+                          <View key={house.house} style={styles.housePill}>
+                            <Text style={styles.housePillNumber}>Nhà {house.house}</Text>
+                            <Text style={styles.housePillTopic}>{house.topicVi}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                )}
 
                 <View style={styles.divider} />
                 <Text style={styles.groupTitle}>Bầu trời hôm nay</Text>
@@ -341,6 +378,55 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 15,
     backgroundColor: 'rgba(25, 74, 111, 0.48)',
+  },
+  houseCard: {
+    width: '100%',
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: 'rgba(18, 58, 91, 0.58)',
+    borderWidth: 1,
+    borderColor: 'rgba(113, 231, 255, 0.22)',
+  },
+  houseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginBottom: 10,
+  },
+  houseTitle: {
+    color: '#DDF9FF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  axisRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  axisItem: {
+    flex: 1,
+  },
+  activatedRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+    marginTop: 13,
+  },
+  housePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 12,
+    backgroundColor: 'rgba(80, 162, 196, 0.18)',
+  },
+  housePillNumber: {
+    color: '#7CEBFF',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  housePillTopic: {
+    color: '#E8F6FC',
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 2,
   },
   aspectCard: {
     padding: 15,

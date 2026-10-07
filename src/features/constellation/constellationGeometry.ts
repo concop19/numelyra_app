@@ -3,6 +3,7 @@ import type {
   ConstellationBounds,
   ConstellationGeometry,
   ConstellationPoint,
+  ConstellationRenderGraph,
   ParsedConstellationSvg,
 } from './types';
 
@@ -144,6 +145,65 @@ export function countConstellationStars(geometry: ConstellationGeometry): number
   return geometry.contours.reduce((total, contour) => total + contour.points.length, 0);
 }
 
+export function createConstellationRenderGraph(
+  geometry: ConstellationGeometry
+): ConstellationRenderGraph {
+  const nodes: ConstellationRenderGraph['nodes'] = [];
+  const edges: ConstellationRenderGraph['edges'] = [];
+
+  geometry.contours.forEach((contour, contourIndex) => {
+    const contourStart = nodes.length;
+
+    contour.points.forEach((point, pointIndex) => {
+      nodes.push({
+        ...point,
+        key: `${contourIndex}-${pointIndex}`,
+      });
+
+      if (pointIndex > 0) {
+        edges.push({
+          key: `${contourIndex}-${pointIndex - 1}-${pointIndex}`,
+          fromIndex: contourStart + pointIndex - 1,
+          toIndex: contourStart + pointIndex,
+        });
+      }
+    });
+
+    if (contour.closed && contour.points.length > 2) {
+      edges.push({
+        key: `${contourIndex}-closed`,
+        fromIndex: contourStart + contour.points.length - 1,
+        toIndex: contourStart,
+      });
+    }
+  });
+
+  return { nodes, edges };
+}
+
+export function clampConstellationPoint(
+  point: ConstellationPoint,
+  bounds: ConstellationBounds,
+  margin = 0
+): ConstellationPoint {
+  const inset = Math.max(0, margin);
+  const left = bounds.x + inset;
+  const right = bounds.x + bounds.width - inset;
+  const top = bounds.y + inset;
+  const bottom = bounds.y + bounds.height - inset;
+  const centerX = bounds.x + bounds.width / 2;
+  const centerY = bounds.y + bounds.height / 2;
+  const minX = left <= right ? left : centerX;
+  const maxX = left <= right ? right : centerX;
+  const minY = top <= bottom ? top : centerY;
+  const maxY = top <= bottom ? bottom : centerY;
+
+  return {
+    x: Math.min(maxX, Math.max(minX, point.x)),
+    y: Math.min(maxY, Math.max(minY, point.y)),
+  };
+}
+
 export function createAmbientStars(seed: number, count: number): AmbientStar[] {
   let state = seed >>> 0;
   const random = () => {
@@ -154,7 +214,7 @@ export function createAmbientStars(seed: number, count: number): AmbientStar[] {
   return Array.from({ length: count }, () => ({
     x: random(),
     y: random(),
-    radius: 0.45 + random() * 1.45,
-    opacity: 0.25 + random() * 0.7,
+    radius: 0.35 + random() * 0.75,
+    opacity: 0.2 + random() * 0.46,
   }));
 }

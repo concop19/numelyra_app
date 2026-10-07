@@ -4,7 +4,11 @@
  */
 import { API_ENDPOINTS, authenticatedFetch } from '../apiConfig';
 import { getDailyCaDao, getRandomCaDao, CaDaoItem } from '../../db/cadaoService';
-import type { PureAstroFeatureMetadata } from './astroVectorEngine';
+import type {
+  ActivatedHouseScore,
+  PureAstroFeatureMetadata,
+} from './astroVectorEngine';
+import { longitudeToZodiac } from './astroEngine';
 
 export interface AstroFortuneSlip {
   title?: string;
@@ -37,6 +41,13 @@ function buildAstroSummary(meta?: PureAstroFeatureMetadata): {
   dominantSignal: PureAstroFeatureMetadata['dominantSignal'];
   dominantElements: string[];
   highlights: string[];
+  birthDataPrecision?: PureAstroFeatureMetadata['birthDataPrecision'];
+  houseSystem?: 'porphyry';
+  ascendantSign?: string;
+  midheavenSign?: string;
+  planetHouses?: Record<string, number>;
+  activatedHouses?: ActivatedHouseScore[];
+  angleHighlights?: string[];
 } {
   if (!meta) {
     return {
@@ -57,6 +68,10 @@ function buildAstroSummary(meta?: PureAstroFeatureMetadata): {
     );
   }
   highlights.push(`Mặt Trời bản mệnh: ${meta.natalSunSign}, Mặt Trăng quá cảnh: ${meta.transitMoonSign}`);
+  const activatedHouse = meta.dailyContext?.activatedHouses[0];
+  if (activatedHouse) {
+    highlights.push(`Nhà ${activatedHouse.house} – ${activatedHouse.topicVi} đang được kích hoạt`);
+  }
 
   const dominantElements = [meta.temperament.dominantElement, meta.temperament.dominantModality];
 
@@ -68,6 +83,19 @@ function buildAstroSummary(meta?: PureAstroFeatureMetadata): {
     dominantSignal: meta.dominantSignal,
     dominantElements,
     highlights,
+    birthDataPrecision: meta.birthDataPrecision,
+    houseSystem: meta.natalContext?.houseSystem,
+    ascendantSign: meta.natalContext
+      ? longitudeToZodiac(meta.natalContext.angles.ascendant).sign
+      : undefined,
+    midheavenSign: meta.natalContext
+      ? longitudeToZodiac(meta.natalContext.angles.midheaven).sign
+      : undefined,
+    planetHouses: meta.natalContext?.planetHouses,
+    activatedHouses: meta.dailyContext?.activatedHouses,
+    angleHighlights: meta.dailyContext?.angleAspects.slice(0, 3).map(
+      (aspect) => `${aspect.transitPlanet} ${aspect.nameVi} ${aspect.angle}, orb ${aspect.orb}°`
+    ),
   };
 }
 
@@ -112,6 +140,13 @@ export async function requestAstroFortuneSlip(
         dominantSignal: astroData.dominantSignal,
         dominantElements: astroData.dominantElements,
         highlights: astroData.highlights,
+        birthDataPrecision: astroData.birthDataPrecision,
+        houseSystem: astroData.houseSystem,
+        ascendantSign: astroData.ascendantSign,
+        midheavenSign: astroData.midheavenSign,
+        planetHouses: astroData.planetHouses,
+        activatedHouses: astroData.activatedHouses,
+        angleHighlights: astroData.angleHighlights,
       },
       recentAdvice: options.recentAdvice?.slice(0, 7),
       userContext: options.userContext,

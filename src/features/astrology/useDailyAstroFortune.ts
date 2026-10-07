@@ -34,6 +34,8 @@ function createAstroMetadata(profile: UserProfile | null | undefined, date: Date
     birthDate: profile?.birthDate || '1998-10-20',
     birthTime: profile?.birthTime || undefined,
     fullName: profile?.fullName || 'Đương số',
+    birthTimeAccuracy: profile?.birthTimeAccuracy,
+    resolvedBirthLocation: profile?.birthLocation,
   }, date).metadata;
 }
 
@@ -110,7 +112,14 @@ export function useDailyAstroFortune(profile?: UserProfile | null): DailyAstroFo
     } finally {
       if (requestVersion.current === version) setLoading(false);
     }
-  }, [currentDate, profile?.birthDate, profile?.birthTime, profile?.fullName]);
+  }, [
+    currentDate,
+    profile?.birthDate,
+    profile?.birthLocation?.placeId,
+    profile?.birthTime,
+    profile?.birthTimeAccuracy,
+    profile?.fullName,
+  ]);
 
   useEffect(() => {
     setFortune(null);

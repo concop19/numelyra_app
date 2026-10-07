@@ -49,6 +49,21 @@ export interface ConstellationBounds {
   height: number;
 }
 
+export interface ConstellationRenderNode extends ConstellationPoint {
+  key: string;
+}
+
+export interface ConstellationRenderEdge {
+  key: string;
+  fromIndex: number;
+  toIndex: number;
+}
+
+export interface ConstellationRenderGraph {
+  nodes: ConstellationRenderNode[];
+  edges: ConstellationRenderEdge[];
+}
+
 export interface AmbientStar {
   x: number;
   y: number;

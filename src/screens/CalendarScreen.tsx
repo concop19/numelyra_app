@@ -5,11 +5,8 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import {
-  getBestDepartureHour, getCanChiDay, getCanChiMonth, getCanChiYear, getDayActivities,
-  getDayDirection, getDayOfWeekVi, getHoangDaoHours, getSolarTerm, getWeekInfo, solarToLunar,
-} from '../services/lunarService';
-import { getNguHanh, getZodiac, type UserProfile } from '../store/userProfile';
+import { makeDaySnapshot } from '../services/lunarService';
+import { type UserProfile } from '../store/userProfile';
 import { getDailyCaDao, type CaDaoItem } from '../db/cadaoService';
 import { getDailyCalendarArt, type CalendarArtItem } from '../config/calendarArtConfig';
 import BlocDetailModal, { type ModalType } from '../components/BlocDetailModal';
@@ -50,18 +47,23 @@ export default function CalendarScreen({ profile }: Props) {
   const day = date.getDate();
   const month = date.getMonth() + 1;
   const year = date.getFullYear();
-  const birthYear = profile?.birthDate ? new Date(profile.birthDate).getFullYear() : 1998;
-  const zodiac = getZodiac(birthYear);
-  const lunar = useMemo(() => solarToLunar(day, month, year), [day, month, year]);
-  const canChiDay = useMemo(() => getCanChiDay(day, month, year), [day, month, year]);
-  const canChiMonth = useMemo(() => getCanChiMonth(lunar.month, lunar.year), [lunar.month, lunar.year]);
-  const canChiYear = useMemo(() => getCanChiYear(lunar.year), [lunar.year]);
-  const hours = useMemo(() => getHoangDaoHours(day, month, year, zodiac), [day, month, year, zodiac]);
-  const bestHour = useMemo(() => getBestDepartureHour(day, month, year, zodiac), [day, month, year, zodiac]);
-  const direction = useMemo(() => getDayDirection(day, month, year), [day, month, year]);
-  const activities = useMemo(() => getDayActivities(day, month, year), [day, month, year]);
+  const snapshot = useMemo(
+    () => makeDaySnapshot(date, { birthDate: profile?.birthDate }),
+    [date, profile?.birthDate],
+  );
+  const {
+    lunarDate: lunar,
+    canChiDay,
+    canChiMonth,
+    canChiYear,
+    hours,
+    bestDepartureHour: bestHour,
+    direction,
+    activities,
+    userZodiac: zodiac,
+  } = snapshot;
   const art = useMemo(() => getDailyCalendarArt(date), [date]);
-  const week = useMemo(() => getWeekInfo(date), [date]);
+  const week = snapshot.weekInfo;
   const pickerDays = useMemo(() => {
     const firstDayOffset = (new Date(pickerDate.getFullYear(), pickerDate.getMonth(), 1).getDay() + 6) % 7;
     return Array.from({ length: 42 }, (_, index) => new Date(pickerDate.getFullYear(), pickerDate.getMonth(), index - firstDayOffset + 1));
@@ -195,7 +197,7 @@ export default function CalendarScreen({ profile }: Props) {
               <LinearGradient colors={['rgba(15, 7, 53, 0.72)', 'rgba(42, 13, 91, 0.20)', 'rgba(12, 6, 44, 0.18)']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={s.heroShade} />
               <LinearGradient colors={['rgba(31, 9, 79, 0.04)', 'rgba(10, 5, 39, 0.44)']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={s.heroDepthOverlay} />
               <View style={s.heroTextWrap}>
-                <Text style={s.weekday}>{getDayOfWeekVi(date)}</Text>
+                <Text style={s.weekday}>{snapshot.weekdayVi}</Text>
                 <Text style={s.lunar}>{lunar.day} tháng {LUNAR_MONTHS[lunar.month - 1]} · Âm lịch</Text>
                 <Text style={s.day}>{day}</Text>
                 <Text style={s.canChi}>Năm {canChiYear} · Ngày {canChiDay}</Text>
@@ -308,8 +310,10 @@ export default function CalendarScreen({ profile }: Props) {
       <BlocDetailModal visible={modalType !== null} type={modalType} onClose={() => setModalType(null)}
         hours={hours} bestHour={bestHour} direction={direction} activities={activities} userZodiac={zodiac}
         artItem={art as CalendarArtItem} caDao={caDao} lunar={lunar} canChiDay={canChiDay}
-        canChiMonth={canChiMonth} canChiYear={canChiYear} solarTerm={getSolarTerm(day, month, year)}
-        warning={null} profile={profile} userNguHanh={getNguHanh(birthYear)} />
+        canChiMonth={canChiMonth} canChiYear={canChiYear} solarTerm={snapshot.solarTerm}
+        warning={snapshot.warning} profile={profile} userNguHanh={snapshot.userNguHanh}
+        userNapAm={snapshot.userNapAm} dayHoangDaoStatus={snapshot.dayHoangDaoStatus}
+        isLunarMonthFull={snapshot.isLunarMonthFull} />
       <BlocDetailModal visible={cultureSheetVisible} type={cultureSheetVisible ? 'art_culture' : null} onClose={closeCultureSheet}
         sheetProgress={cultureSheetProgress} contentScrollEnabled={!isCultureSheetDragging}
         onSheetDragStart={beginCultureSheetDrag} onSheetDragMove={moveCultureSheetDown} onSheetDragEnd={finishCultureSheetDrag}

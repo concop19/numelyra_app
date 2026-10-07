@@ -3,8 +3,24 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../services/supabaseClient';
+import { getNguHanh as getNapAmElement } from '../services/lunarService';
 
 const PROFILE_KEY = '@tieu_linh_mieu_profile';
+
+export type BirthTimeAccuracy = 'exact' | 'unknown';
+
+/**
+ * Dữ liệu đã phân giải từ tên nơi sinh. Chỉ được lưu cục bộ để dựng lá số;
+ * request AI chỉ nhận các kết quả đã suy ra (ASC/MC/nhà), không nhận tọa độ thô.
+ */
+export interface ResolvedBirthLocation {
+  placeId: string;
+  userLabel: string;
+  latitude: number;
+  longitude: number;
+  timeZoneIdentifier: string;
+  resolvedAt: string;
+}
 
 export interface UserProfile {
   fullName: string;
@@ -12,6 +28,8 @@ export interface UserProfile {
   gender: 'male' | 'female';
   birthTime?: string; // vd: '14:30' (tùy chọn)
   birthPlace?: string; // vd: 'Hà Nội' (tùy chọn)
+  birthLocation?: ResolvedBirthLocation;
+  birthTimeAccuracy?: BirthTimeAccuracy;
 }
 
 export interface ProfileItem {
@@ -22,6 +40,8 @@ export interface ProfileItem {
   isDefault?: boolean;
   birthTime?: string; // vd: '14:30' (tùy chọn)
   birthPlace?: string; // vd: 'Hà Nội' (tùy chọn)
+  birthLocation?: ResolvedBirthLocation;
+  birthTimeAccuracy?: BirthTimeAccuracy;
 }
 
 const PROFILES_LIST_KEY = '@numelyra_profiles_list';
@@ -29,6 +49,34 @@ const ACTIVE_PROFILE_ID_KEY = '@numelyra_active_profile_id';
 
 export async function saveProfile(profile: UserProfile): Promise<void> {
   await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+}
+
+/** Lưu dữ liệu lá số và đồng bộ vào hồ sơ đang hoạt động nếu danh sách đã tồn tại. */
+export async function saveAstrologyBirthData(profile: UserProfile): Promise<void> {
+  await saveProfile(profile);
+  const rawList = await AsyncStorage.getItem(PROFILES_LIST_KEY);
+  if (!rawList) return;
+  try {
+    const profiles = JSON.parse(rawList) as ProfileItem[];
+    if (!Array.isArray(profiles) || profiles.length === 0) return;
+    const activeId = await getActiveProfileId();
+    const matchIndex = profiles.findIndex((item) => item.id === activeId);
+    const fallbackIndex = profiles.findIndex(
+      (item) => item.fullName === profile.fullName && item.birthDate === profile.birthDate
+    );
+    const index = matchIndex >= 0 ? matchIndex : fallbackIndex;
+    if (index < 0) return;
+    profiles[index] = {
+      ...profiles[index],
+      birthTime: profile.birthTime,
+      birthPlace: profile.birthPlace,
+      birthLocation: profile.birthLocation,
+      birthTimeAccuracy: profile.birthTimeAccuracy,
+    };
+    await saveAllProfiles(profiles);
+  } catch {
+    // Legacy profile remains valid even if a stale profile-list payload is corrupt.
+  }
 }
 
 export async function loadProfile(): Promise<UserProfile | null> {
@@ -66,7 +114,11 @@ export async function loadAllProfiles(): Promise<ProfileItem[]> {
         fullName: legacy.fullName,
         birthDate: legacy.birthDate,
         gender: legacy.gender,
-        isDefault: true
+        isDefault: true,
+        birthTime: legacy.birthTime,
+        birthPlace: legacy.birthPlace,
+        birthLocation: legacy.birthLocation,
+        birthTimeAccuracy: legacy.birthTimeAccuracy,
       };
       await saveAllProfiles([initial]);
       await setActiveProfileId(initial.id);
@@ -122,7 +174,11 @@ export async function addProfile(profileData: Omit<ProfileItem, 'id'>): Promise<
   await saveProfile({
     fullName: newProfile.fullName,
     birthDate: newProfile.birthDate,
-    gender: newProfile.gender || 'female'
+    gender: newProfile.gender || 'female',
+    birthTime: newProfile.birthTime,
+    birthPlace: newProfile.birthPlace,
+    birthLocation: newProfile.birthLocation,
+    birthTimeAccuracy: newProfile.birthTimeAccuracy,
   });
 
   return newProfile;
@@ -160,7 +216,11 @@ export async function deleteProfile(id: string): Promise<ProfileItem[]> {
     await saveProfile({
       fullName: updated[0].fullName,
       birthDate: updated[0].birthDate,
-      gender: updated[0].gender || 'female'
+      gender: updated[0].gender || 'female',
+      birthTime: updated[0].birthTime,
+      birthPlace: updated[0].birthPlace,
+      birthLocation: updated[0].birthLocation,
+      birthTimeAccuracy: updated[0].birthTimeAccuracy,
     });
   }
   return updated;
@@ -179,7 +239,11 @@ export async function setActiveProfileId(id: string): Promise<void> {
     await saveProfile({
       fullName: found.fullName,
       birthDate: found.birthDate,
-      gender: found.gender || 'female'
+      gender: found.gender || 'female',
+      birthTime: found.birthTime,
+      birthPlace: found.birthPlace,
+      birthLocation: found.birthLocation,
+      birthTimeAccuracy: found.birthTimeAccuracy,
     });
   }
 }
@@ -219,19 +283,8 @@ export function getZodiacEmoji(zodiac: string): string {
   return CON_GIAP_EMOJI[zodiac] || '🔮';
 }
 
-/**
- * Ngũ Hành theo Thiên Can năm sinh
- * Giáp/Ất → Mộc, Bính/Đinh → Hỏa, Mậu/Kỷ → Thổ,
- * Canh/Tân → Kim, Nhâm/Quý → Thủy
- */
+/** Thiên Can năm sinh. */
 const THIEN_CAN = ['Giáp', 'Ất', 'Bính', 'Đinh', 'Mậu', 'Kỷ', 'Canh', 'Tân', 'Nhâm', 'Quý'];
-const NGU_HANH_CAN: Record<string, string> = {
-  'Giáp': 'Mộc', 'Ất': 'Mộc',
-  'Bính': 'Hỏa', 'Đinh': 'Hỏa',
-  'Mậu': 'Thổ', 'Kỷ': 'Thổ',
-  'Canh': 'Kim', 'Tân': 'Kim',
-  'Nhâm': 'Thủy', 'Quý': 'Thủy'
-};
 
 export function getThienCanYear(year: number): string {
   const idx = ((year - 4) % 10 + 10) % 10;
@@ -239,8 +292,7 @@ export function getThienCanYear(year: number): string {
 }
 
 export function getNguHanh(year: number): string {
-  const can = getThienCanYear(year);
-  return NGU_HANH_CAN[can] || '';
+  return getNapAmElement(year);
 }
 
 export function getNguHanhEmoji(nguHanh: string): string {

@@ -5,9 +5,12 @@
  * Xuất ra Vector 32 chiều chuẩn hóa [0.0, 1.0] và Semantic Context Object.
  */
 import {
-  computeNatalChart,
   computeTransitChart,
   calculateTemperamentBalance,
+  assignPlanetsToHouses,
+  makeNatalSnapshot,
+  type AstroBirthDataPrecision,
+  type AstroNatalContext,
   PlanetaryChart,
   TemperamentBalance,
 } from './astroEngine';
@@ -15,15 +18,46 @@ import {
   analyzeTransitToNatalAspects,
   AspectAnalysisResult,
   DetectedAspect,
+  getShortestAngleDiff,
+  MAJOR_ASPECTS,
+  TRANSIT_ACTIVITY_WEIGHTS,
 } from './aspectCalculator';
+import type {
+  BirthTimeAccuracy,
+  ResolvedBirthLocation,
+} from '../../store/userProfile';
 
 export interface UserBirthInput {
   birthDate: string;        // 'YYYY-MM-DD' hoặc 'DD/MM/YYYY'
   birthTime?: string;       // 'HH:mm' (tùy chọn)
   fullName?: string;        // Họ tên (tùy chọn)
+  birthTimeAccuracy?: BirthTimeAccuracy;
+  resolvedBirthLocation?: ResolvedBirthLocation;
 }
 
 export type AstroDominantSignal = 'tension' | 'harmony' | 'conjunction' | 'balanced';
+
+export interface AstroAngleAspect {
+  transitPlanet: string;
+  angle: 'ASC' | 'MC';
+  type: DetectedAspect['type'];
+  nameVi: string;
+  orb: number;
+  weight: number;
+  nature: DetectedAspect['nature'];
+}
+
+export interface ActivatedHouseScore {
+  house: number;
+  score: number;
+  topicVi: string;
+}
+
+export interface AstroDailyContext {
+  transitHouses: Record<string, number>;
+  angleAspects: AstroAngleAspect[];
+  activatedHouses: ActivatedHouseScore[];
+}
 
 export interface PureAstroFeatureMetadata {
   birthDate: string;
@@ -55,6 +89,9 @@ export interface PureAstroFeatureMetadata {
   };
   dominantSignal: AstroDominantSignal;
   vibeSummary: string;
+  birthDataPrecision: AstroBirthDataPrecision;
+  natalContext: AstroNatalContext | null;
+  dailyContext: AstroDailyContext | null;
 }
 
 export interface PureAstroVectorResult {
@@ -77,6 +114,86 @@ const PLANET_ORDER = [
   'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto',
 ];
 
+const HOUSE_TOPICS_VI: Record<number, string> = {
+  1: 'Bản thân', 2: 'Tài chính', 3: 'Giao tiếp', 4: 'Gia đình',
+  5: 'Tình cảm', 6: 'Thói quen', 7: 'Quan hệ', 8: 'Chuyển hóa',
+  9: 'Học hỏi', 10: 'Sự nghiệp', 11: 'Cộng đồng', 12: 'Nội tâm',
+};
+
+function analyzeAngleAspects(
+  transitChart: PlanetaryChart,
+  natalContext: AstroNatalContext
+): AstroAngleAspect[] {
+  const targets: Array<{ angle: 'ASC' | 'MC'; longitude: number }> = [
+    { angle: 'ASC', longitude: natalContext.angles.ascendant },
+    { angle: 'MC', longitude: natalContext.angles.midheaven },
+  ];
+  const result: AstroAngleAspect[] = [];
+
+  for (const transit of transitChart.planetList) {
+    for (const target of targets) {
+      const angle = getShortestAngleDiff(transit.longitude, target.longitude);
+      for (const definition of MAJOR_ASPECTS) {
+        const orb = Math.abs(angle - definition.targetAngle);
+        const maximumOrb = Math.min(3, definition.maxOrb);
+        if (orb > maximumOrb) continue;
+        result.push({
+          transitPlanet: transit.name,
+          angle: target.angle,
+          type: definition.type,
+          nameVi: definition.nameVi,
+          orb: Number(orb.toFixed(2)),
+          weight: Number((definition.baseWeight * Math.max(0, 1 - orb / maximumOrb)).toFixed(4)),
+          nature: definition.nature,
+        });
+      }
+    }
+  }
+
+  return result.sort((left, right) => {
+    const leftWeight = left.weight * (TRANSIT_ACTIVITY_WEIGHTS[left.transitPlanet] ?? 0.25);
+    const rightWeight = right.weight * (TRANSIT_ACTIVITY_WEIGHTS[right.transitPlanet] ?? 0.25);
+    return rightWeight - leftWeight || left.orb - right.orb;
+  });
+}
+
+function makeDailyContext(
+  transitChart: PlanetaryChart,
+  natalContext: AstroNatalContext,
+  aspects: DetectedAspect[]
+): AstroDailyContext {
+  const transitHouses = assignPlanetsToHouses(transitChart.planetList, natalContext.houseCusps);
+  const angleAspects = analyzeAngleAspects(transitChart, natalContext);
+  const scores: Record<number, number> = {};
+
+  for (const [planet, house] of Object.entries(transitHouses)) {
+    scores[house] = (scores[house] ?? 0) + (TRANSIT_ACTIVITY_WEIGHTS[planet] ?? 0.25);
+  }
+  for (const aspect of aspects) {
+    const house = natalContext.planetHouses[aspect.natalPlanet];
+    if (!house) continue;
+    scores[house] = (scores[house] ?? 0)
+      + aspect.weight * (TRANSIT_ACTIVITY_WEIGHTS[aspect.transitPlanet] ?? 0.25);
+  }
+  for (const aspect of angleAspects) {
+    const house = aspect.angle === 'ASC' ? 1 : 10;
+    scores[house] = (scores[house] ?? 0)
+      + aspect.weight * (TRANSIT_ACTIVITY_WEIGHTS[aspect.transitPlanet] ?? 0.25);
+  }
+
+  const maximum = Math.max(0, ...Object.values(scores));
+  const activatedHouses = Object.entries(scores)
+    .map(([house, score]) => ({
+      house: Number(house),
+      score: maximum > 0 ? Number((score / maximum).toFixed(4)) : 0,
+      topicVi: HOUSE_TOPICS_VI[Number(house)] ?? '',
+    }))
+    .sort((left, right) => right.score - left.score || left.house - right.house)
+    .slice(0, 3);
+
+  return { transitHouses, angleAspects, activatedHouses };
+}
+
 export function resolveDominantAstroSignal(scores: {
   tension: number;
   harmony: number;
@@ -96,11 +213,20 @@ export function generatePureAstroVector(
   currentDate: Date = new Date()
 ): PureAstroVectorResult {
   // 1. Tính toán Natal Chart & Transit Chart
-  const natalChart: PlanetaryChart = computeNatalChart(userInput.birthDate, userInput.birthTime);
+  const natalSnapshot = makeNatalSnapshot({
+    birthDate: userInput.birthDate,
+    birthTime: userInput.birthTime,
+    birthTimeAccuracy: userInput.birthTimeAccuracy,
+    resolvedBirthLocation: userInput.resolvedBirthLocation,
+  });
+  const natalChart = natalSnapshot.chart;
   const transitChart: PlanetaryChart = computeTransitChart(currentDate);
 
   // 2. Phân tích góc hợp Transit-to-Natal
   const aspectResult: AspectAnalysisResult = analyzeTransitToNatalAspects(transitChart, natalChart);
+  const dailyContext = natalSnapshot.context
+    ? makeDailyContext(transitChart, natalSnapshot.context, aspectResult.aspects)
+    : null;
 
   // 3. Phân bổ Khí chất Bản mệnh (Elements & Modalities)
   const temperament: TemperamentBalance = calculateTemperamentBalance(natalChart.planetList);
@@ -201,6 +327,10 @@ export function generatePureAstroVector(
     },
     dominantSignal,
     vibeSummary,
+    birthDataPrecision: natalSnapshot.context?.precision
+      ?? (natalChart.isTimeEstimated ? 'dateOnly' : 'timeWithoutLocation'),
+    natalContext: natalSnapshot.context,
+    dailyContext,
   };
 
   return {

@@ -13,6 +13,7 @@ import {
   ProfileItem, loadAllProfiles, addProfile, deleteProfile,
   setActiveProfileId, getZodiac, getZodiacEmoji, getNguHanh, getNguHanhEmoji
 } from '../store/userProfile';
+import { extractBirthYear } from '../services/lunarService';
 
 interface Props {
   visible: boolean;
@@ -253,7 +254,7 @@ export default function ProfilePickerModal({
               {profiles.map((p) => {
                 const isSelected = tempSelectedIds.includes(p.id);
                 const order = tempSelectedIds.indexOf(p.id) + 1;
-                const birthYear = parseInt(p.birthDate.substring(0, 4), 10) || 2000;
+                const birthYear = extractBirthYear(p.birthDate, 2000);
                 const zodiac = getZodiac(birthYear);
                 const zodiacEmoji = getZodiacEmoji(zodiac);
                 const nguHanh = getNguHanh(birthYear);

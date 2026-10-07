@@ -239,7 +239,12 @@ function AppContent() {
               )
             }}
           >
-            {() => <AstrologyScreen profile={profile} />}
+            {() => (
+              <AstrologyScreen
+                profile={profile}
+                onProfileChange={(updatedProfile) => setProfile(updatedProfile)}
+              />
+            )}
           </Tab.Screen>
 
           <Tab.Screen

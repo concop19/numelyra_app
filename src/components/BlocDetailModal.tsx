@@ -17,7 +17,7 @@ import * as Haptics from 'expo-haptics';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SHEET_HEIGHT = Math.min(SCREEN_HEIGHT * 0.82, 720);
-import { HourInfo } from '../services/lunarService';
+import type { DayActivities, DayDirection, HourInfo } from '../services/lunarService';
 import { CalendarArtItem } from '../config/calendarArtConfig';
 import { CaDaoItem } from '../db/cadaoService';
 import { UserProfile, getZodiacEmoji, getNguHanhEmoji } from '../store/userProfile';
@@ -62,8 +62,8 @@ interface Props {
   // Dữ liệu cho modal Hoàng Đạo & Việc Cát Hung
   hours?: HourInfo[];
   bestHour?: HourInfo | null;
-  direction?: { huong: string; than: string };
-  activities?: { yi: string[]; ji: string[] };
+  direction?: DayDirection;
+  activities?: DayActivities;
   userZodiac?: string;
   // Dữ liệu cho modal Văn Hóa & Điển Tích
   artItem?: CalendarArtItem | null;
@@ -77,6 +77,9 @@ interface Props {
   warning?: string | null;
   profile?: UserProfile;
   userNguHanh?: string;
+  userNapAm?: string;
+  dayHoangDaoStatus?: { isHoangDao: boolean; label: string };
+  isLunarMonthFull?: boolean;
   /** Tiến độ 0→1 để điều khiển bottom sheet khi người dùng kéo từ cạnh dưới. */
   sheetProgress?: Animated.Value;
   /** Khóa cuộn nội dung trong lúc sheet đang được kéo lên. */
@@ -106,6 +109,9 @@ export default function BlocDetailModal({
   warning,
   profile,
   userNguHanh = '',
+  userNapAm = '',
+  dayHoangDaoStatus,
+  isLunarMonthFull,
   sheetProgress,
   contentScrollEnabled = true,
   onSheetDragStart,
@@ -211,10 +217,11 @@ export default function BlocDetailModal({
                       <LinearGradient colors={['#183D39', '#17302E', '#1B1A39']} style={styles.highlightBox}>
                         <SectionTitle icon="sunny-outline" title="GIỜ XUẤT HÀNH ĐẠI CÁT" tone="green" />
                         <Text style={styles.highlightValue}>
-                          Giờ {bestHour.name} ({bestHour.range}) • Sao {bestHour.label}
+                          {bestHour.canChi} ({bestHour.range}) • Sao {bestHour.label}
                         </Text>
+                        <Text style={styles.highlightSub}>Lý Thuần Phong: {bestHour.lyThuanPhong}</Text>
                         {direction && (
-                          <View style={styles.highlightDirection}><Ionicons name="navigate-outline" size={14} color="#99F6E4" /><Text style={styles.highlightSub}>{direction.than}: Hướng {direction.huong}</Text></View>
+                          <View style={styles.highlightDirection}><Ionicons name="navigate-outline" size={14} color="#99F6E4" /><Text style={styles.highlightSub}>Hỷ Thần: {direction.hyThan} · Tài Thần: {direction.taiThan}{direction.hacThan ? ` · Tránh Hạc Thần: ${direction.hacThan}` : ''}</Text></View>
                         )}
                       </LinearGradient>
                     )}
@@ -223,7 +230,7 @@ export default function BlocDetailModal({
                     <SectionTitle icon="time-outline" title="BẢNG 12 GIỜ HOÀNG ĐẠO & HẮC ĐẠO" />
                     {userZodiac ? (
                       <Text style={styles.noteText}>
-                        * Biểu tượng ⚠️ đánh dấu khung giờ xung khắc (Tứ Hành Xung) với tuổi {userZodiac} của bạn.
+                        * ⚠️ là giờ xung tuổi {userZodiac}; “Nhật Phá” là giờ xung với Địa Chi của ngày.
                       </Text>
                     ) : null}
 
@@ -239,17 +246,17 @@ export default function BlocDetailModal({
                           key={i}
                           style={[
                             styles.tableRow,
-                            h.isClash ? styles.rowClash : h.isHoangDao ? styles.rowHD : styles.rowHac
+                            (h.isClash || h.isDayClash) ? styles.rowClash : h.isHoangDao ? styles.rowHD : styles.rowHac
                           ]}
                         >
                           <View style={{ flex: 1.2, flexDirection: 'row', alignItems: 'center' }}>
-                            {h.isClash && <Text style={styles.clashMark}>⚠️ </Text>}
-                            <Text style={[styles.td, h.isClash && { color: '#F87171', fontWeight: '700' }]}>
-                              {h.name}
+                            {(h.isClash || h.isDayClash) && <Text style={styles.clashMark}>⚠️ </Text>}
+                            <Text style={[styles.td, (h.isClash || h.isDayClash) && { color: '#F87171', fontWeight: '700' }]}>
+                              {h.canChi}
                             </Text>
                           </View>
                           <Text style={[styles.td, { flex: 1.5 }]}>{h.range}</Text>
-                          <Text style={[styles.td, { flex: 1.8, fontSize: 11 }]}>{h.label}</Text>
+                          <Text style={[styles.td, { flex: 1.8, fontSize: 11 }]}>{h.label}{'\n'}{h.lyThuanPhong}{h.isDayClash ? ' · Nhật Phá' : ''}</Text>
                           <View style={{ flex: 1, alignItems: 'center' }}>
                             <Text style={[styles.badge, h.isHoangDao ? styles.badgeHD : styles.badgeHac]}>
                               {h.isHoangDao ? 'Hoàng Đạo' : 'Hắc Đạo'}
@@ -262,7 +269,7 @@ export default function BlocDetailModal({
                     {/* Việc nên & Việc kiêng */}
                     {activities && (
                       <LinearGradient colors={['#251640', '#17112E']} style={styles.activitiesCard}>
-                        <SectionTitle icon="calendar-outline" title="VIỆC NÊN LÀM & KIÊNG CỮ HÔM NAY" tone="pink" />
+                        <SectionTitle icon="calendar-outline" title={`TRỰC ${activities.trucName.toUpperCase()} (${activities.trucQuality.toUpperCase()})`} tone="pink" />
                         <View style={styles.actRow}>
                           <View style={styles.actCol}>
                             <View style={styles.activityHeader}><Ionicons name="checkmark-circle" size={16} color="#6EE7B7" /><Text style={styles.actYiHeader}>NÊN LÀM</Text></View>
@@ -374,6 +381,18 @@ export default function BlocDetailModal({
                         <Text style={styles.destinyLabel}>24 Tiết Khí:</Text>
                         <Text style={[styles.destinyValue, { color: '#4ADE80' }]}>{solarTerm}</Text>
                       </View>
+                      {dayHoangDaoStatus && (
+                        <View style={styles.destinyRow}>
+                          <Text style={styles.destinyLabel}>Cát/Hắc nhật:</Text>
+                          <Text style={styles.destinyValue}>{dayHoangDaoStatus.label}</Text>
+                        </View>
+                      )}
+                      {typeof isLunarMonthFull === 'boolean' && (
+                        <View style={styles.destinyRow}>
+                          <Text style={styles.destinyLabel}>Tháng âm:</Text>
+                          <Text style={styles.destinyValue}>{isLunarMonthFull ? 'Tháng đủ (30 ngày)' : 'Tháng thiếu (29 ngày)'}</Text>
+                        </View>
+                      )}
                     </View>
 
                     {/* Khối Bản mệnh người dùng */}
@@ -396,6 +415,12 @@ export default function BlocDetailModal({
                             {getNguHanhEmoji(userNguHanh)} Mệnh {userNguHanh}
                           </Text>
                         </View>
+                        {userNapAm ? (
+                          <View style={styles.destinyRow}>
+                            <Text style={styles.destinyLabel}>Nạp Âm:</Text>
+                            <Text style={styles.destinyValue}>{userNapAm}</Text>
+                          </View>
+                        ) : null}
                         <Text style={styles.destinyAdvice}>
                           💡 Khởi sự công việc vào các khung giờ Hoàng Đạo và hướng xuất hành phù hợp để thu hút cát khí và tài lộc.
                         </Text>

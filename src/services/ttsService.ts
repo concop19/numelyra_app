@@ -7,6 +7,43 @@ export interface TTSOptions {
   onError?: (error: Error) => void;
   rate?: number;
   pitch?: number;
+  voice?: string;
+}
+
+const DEFAULT_VIETNAMESE_PITCH = 1.08;
+
+function normalizeVoiceLabel(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function voiceGenderScore(voice: Speech.Voice): number {
+  const label = normalizeVoiceLabel(`${voice.name} ${voice.identifier}`);
+  const maleHint = /(^|[\s._-])(male|masculine|nam|vim|minh|duc|phong|son|huy|tuan|quang|long|khang)(?=$|[\s._-])/;
+  const femaleHint = /(^|[\s._-])(female|feminine|nu|vif|linh|mai|lan|hoa|huong|thao)(?=$|[\s._-])/;
+
+  if (maleHint.test(label)) return 100;
+  if (femaleHint.test(label)) return -100;
+  return 0;
+}
+
+/** Pick a Vietnamese male voice when the device exposes enough voice metadata. */
+export function selectPreferredVietnameseMaleVoice(voices: Speech.Voice[]): string | undefined {
+  const vietnameseVoices = voices.filter((voice) =>
+    voice.language.toLowerCase().replace('_', '-').startsWith('vi')
+  );
+
+  return vietnameseVoices
+    .map((voice, index) => ({
+      voice,
+      index,
+      score:
+        voiceGenderScore(voice) +
+        (voice.quality === Speech.VoiceQuality.Enhanced ? 10 : 0),
+    }))
+    .sort((left, right) => right.score - left.score || left.index - right.index)[0]?.voice.identifier;
 }
 
 /** Convert the formatted chat answer into readable Vietnamese prose. */
@@ -95,6 +132,17 @@ class TTSService {
   private generation = 0;
   private resolveCurrentChunk: (() => void) | null = null;
   private currentOptions: TTSOptions | null = null;
+  private preferredVietnameseVoice: Promise<string | undefined> | null = null;
+
+  private getPreferredVietnameseVoice(): Promise<string | undefined> {
+    if (!this.preferredVietnameseVoice) {
+      this.preferredVietnameseVoice = Speech.getAvailableVoicesAsync()
+        .then(selectPreferredVietnameseMaleVoice)
+        .catch(() => undefined);
+    }
+
+    return this.preferredVietnameseVoice;
+  }
 
   async speak(messageId: string, text: string, options: TTSOptions = {}): Promise<boolean> {
     if (this.currentMessageId === messageId) {
@@ -115,7 +163,15 @@ class TTSService {
     const token = ++this.generation;
     this.currentMessageId = messageId;
     this.currentOptions = options;
-    void this.playChunks(token, chunks, options);
+
+    const resolvedOptions: TTSOptions = {
+      ...options,
+      voice: options.voice ?? (await this.getPreferredVietnameseVoice()),
+    };
+    if (token !== this.generation) return false;
+
+    this.currentOptions = resolvedOptions;
+    void this.playChunks(token, chunks, resolvedOptions);
     return true;
   }
 
@@ -136,7 +192,8 @@ class TTSService {
           try {
             Speech.speak(chunk, {
               language: 'vi-VN',
-              pitch: options.pitch ?? 1,
+              voice: options.voice,
+              pitch: options.pitch ?? DEFAULT_VIETNAMESE_PITCH,
               rate: options.rate ?? 1.2,
               onStart: () => {
                 if (token === this.generation) options.onStart?.();

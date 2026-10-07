@@ -1,5 +1,7 @@
 import {
+  clampConstellationPoint,
   createAmbientStars,
+  createConstellationRenderGraph,
   filterPointsOnAngle,
   fitConstellationGeometry,
   parseConstellationSvg,
@@ -103,6 +105,51 @@ describe('constellation geometry', () => {
   it('creates deterministic ambient stars from a seed', () => {
     expect(createAmbientStars(42, 5)).toEqual(createAmbientStars(42, 5));
     expect(createAmbientStars(42, 5)).not.toEqual(createAmbientStars(43, 5));
+  });
+
+  it('builds indexed nodes and edges for open, closed, and multiple contours', () => {
+    const graph = createConstellationRenderGraph({
+      viewBox: { minX: 0, minY: 0, width: 100, height: 100 },
+      contours: [
+        {
+          closed: false,
+          points: [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 20, y: 0 }],
+        },
+        {
+          closed: true,
+          points: [{ x: 40, y: 40 }, { x: 50, y: 40 }, { x: 45, y: 50 }],
+        },
+      ],
+    });
+
+    expect(graph.nodes).toHaveLength(6);
+    expect(graph.edges.map(({ fromIndex, toIndex }) => [fromIndex, toIndex])).toEqual([
+      [0, 1],
+      [1, 2],
+      [3, 4],
+      [4, 5],
+      [5, 3],
+    ]);
+  });
+
+  it('clamps a point inside an inset interaction area without mutating it', () => {
+    const source = { x: -20, y: 180 };
+    const clamped = clampConstellationPoint(
+      source,
+      { x: 10, y: 20, width: 100, height: 120 },
+      24
+    );
+
+    expect(clamped).toEqual({ x: 34, y: 116 });
+    expect(source).toEqual({ x: -20, y: 180 });
+  });
+
+  it('centers a point when the interaction area is narrower than its inset', () => {
+    expect(clampConstellationPoint(
+      { x: 200, y: -100 },
+      { x: 10, y: 20, width: 20, height: 30 },
+      24
+    )).toEqual({ x: 20, y: 35 });
   });
 
   it('samples real SVG line, curve, closed, and multiple paths without Skia JSI', () => {
