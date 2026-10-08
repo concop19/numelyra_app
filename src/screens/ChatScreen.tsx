@@ -78,9 +78,116 @@ type AmbientMascotState = 'idle' | 'thinking' | 'answer';
 interface Props {
   profile?: UserProfile;
   onOpenSettings?: () => void;
+  onOpenCalendar?: () => void;
+  onOpenAstrology?: () => void;
+  onOpenWallpaper?: () => void;
   onOpenGameHub?: () => void;
   onOpenRawReading?: (message: MessageItem, previousQuestion?: string) => void;
 }
+
+interface SceneActionButtonProps {
+  label: string;
+  accessibilityLabel: string;
+  iconName: React.ComponentProps<typeof Ionicons>['name'];
+  accentColor: string;
+  onPress?: () => void;
+}
+
+const SceneActionButton: React.FC<SceneActionButtonProps> = ({
+  label,
+  accessibilityLabel,
+  iconName,
+  accentColor,
+  onPress,
+}) => (
+  <View style={styles.sceneActionItem}>
+    <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint="Mở màn hình này từ không gian trò chuyện"
+      activeOpacity={0.76}
+      disabled={!onPress}
+      hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+      onPress={() => {
+        void Haptics.selectionAsync();
+        onPress?.();
+      }}
+      style={[styles.sceneActionTouch, { shadowColor: accentColor }]}
+    >
+      <LinearGradient
+        colors={['rgba(91, 56, 153, 0.98)', 'rgba(44, 26, 91, 0.98)', 'rgba(25, 15, 57, 0.99)']}
+        start={{ x: 0.1, y: 0 }}
+        end={{ x: 0.9, y: 1 }}
+        style={[styles.sceneActionOrb, { borderColor: accentColor }]}
+      >
+        <View style={[styles.sceneActionIconHalo, { backgroundColor: `${accentColor}1F` }]}>
+          <Ionicons name={iconName} size={17} color={accentColor} />
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
+    <View style={styles.sceneActionLabelPill} pointerEvents="none">
+      <Text numberOfLines={1} style={styles.sceneActionLabel}>{label}</Text>
+    </View>
+  </View>
+);
+
+interface ChatSceneActionsProps {
+  alignWithCenter: boolean;
+  onOpenCalendar?: () => void;
+  onOpenAstrology?: () => void;
+  onOpenWallpaper?: () => void;
+  onOpenSettings?: () => void;
+}
+
+const ChatSceneActions: React.FC<ChatSceneActionsProps> = ({
+  alignWithCenter,
+  onOpenCalendar,
+  onOpenAstrology,
+  onOpenWallpaper,
+  onOpenSettings,
+}) => (
+  <View
+    pointerEvents="box-none"
+    style={[
+      styles.sceneActionsOverlay,
+      alignWithCenter ? styles.sceneActionsCentered : styles.sceneActionsBottom,
+    ]}
+  >
+    <View style={styles.sceneActionRail} pointerEvents="box-none">
+      <SceneActionButton
+        label="Chiêm tinh"
+        accessibilityLabel="Mở Chiêm tinh"
+        iconName="planet-outline"
+        accentColor="#D6C2FF"
+        onPress={onOpenAstrology}
+      />
+    </View>
+
+    <View style={[styles.sceneActionRail, styles.sceneActionRailRight]} pointerEvents="box-none">
+      <SceneActionButton
+        label="Lịch"
+        accessibilityLabel="Mở Lịch của tôi"
+        iconName="calendar-clear-outline"
+        accentColor="#FFD67C"
+        onPress={onOpenCalendar}
+      />
+      <SceneActionButton
+        label="Cài đặt"
+        accessibilityLabel="Mở Cài đặt"
+        iconName="options-outline"
+        accentColor="#AEE8F5"
+        onPress={onOpenSettings}
+      />
+      <SceneActionButton
+        label="Hình nền"
+        accessibilityLabel="Mở Xưởng hình nền"
+        iconName="color-palette-outline"
+        accentColor="#F6B5DF"
+        onPress={onOpenWallpaper}
+      />
+    </View>
+  </View>
+);
 
 const getLatestConversationCount = (history: MessageItem[]) => {
   if (history.length === 0) return 1;
@@ -443,7 +550,15 @@ const TypewriterMessage: React.FC<TypewriterMessageProps> = ({
   );
 };
 
-export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub, onOpenRawReading }: Props) {
+export default function ChatScreen({
+  profile,
+  onOpenSettings,
+  onOpenCalendar,
+  onOpenAstrology,
+  onOpenWallpaper,
+  onOpenGameHub,
+  onOpenRawReading,
+}: Props) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const chatHistoryOwner = user?.id || 'guest';
@@ -1709,6 +1824,16 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub, onO
             )}
           />
 
+          {!isKeyboardVisible ? (
+            <ChatSceneActions
+              alignWithCenter={isZeroState}
+              onOpenCalendar={onOpenCalendar}
+              onOpenAstrology={onOpenAstrology}
+              onOpenWallpaper={onOpenWallpaper}
+              onOpenSettings={onOpenSettings}
+            />
+          ) : null}
+
           {isZeroState && !loading && !isKeyboardVisible ? (
             <View style={styles.emptyMascotStage} pointerEvents="box-none">
               <Text style={styles.welcomeHeading}>Hi, I’m Numelyra</Text>
@@ -2089,6 +2214,86 @@ const styles = StyleSheet.create({
   chatTimeline: {
     flex: 1,
     position: 'relative',
+  },
+  sceneActionsOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 8,
+    bottom: 0,
+    left: 8,
+    zIndex: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  sceneActionsCentered: {
+    alignItems: 'center',
+    paddingBottom: 6,
+  },
+  sceneActionsBottom: {
+    alignItems: 'flex-end',
+    paddingBottom: 14,
+  },
+  sceneActionRail: {
+    width: 46,
+    alignItems: 'center',
+    gap: 7,
+  },
+  sceneActionRailRight: {
+    gap: 16,
+  },
+  sceneActionItem: {
+    width: 46,
+    alignItems: 'center',
+  },
+  sceneActionTouch: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.48,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  sceneActionOrb: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    borderWidth: 1,
+  },
+  sceneActionIconHalo: {
+    width: 27,
+    height: 27,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  sceneActionLabelPill: {
+    maxWidth: 54,
+    minHeight: 16,
+    marginTop: -3,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(25, 13, 56, 0.88)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 219, 143, 0.52)',
+  },
+  sceneActionLabel: {
+    color: '#FFF3D2',
+    fontSize: 8,
+    lineHeight: 10,
+    fontWeight: '800',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.65)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   chatTimelineList: {
     flex: 1,

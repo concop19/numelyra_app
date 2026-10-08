@@ -65,7 +65,7 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "testRegex": "(src/games/(gameHub|zip/game/(logic|generator)|arrow-escape/src/(levels/levels|space_game/engine/spaceEngine)|sudoku/src/utils/sudokuLogic)|src/services/(colorGuidance|chatHistoryStorage|lunarService|astro/.*)|src/features/constellation/constellationGeometry|src/features/astrology/dailyAstroFortune)\\.test\\.ts$",
+    "testRegex": "(src/games/(gameHub|zip/game/(logic|generator)|arrow-escape/src/(levels/levels|space_game/engine/spaceEngine)|sudoku/src/utils/sudokuLogic)|src/services/(colorGuidance|chatHistoryStorage|lunarService|numerologySummaryService|astro/.*)|src/features/constellation/constellationGeometry|src/features/astrology/dailyAstroFortune)\\.test\\.ts$",
     "modulePathIgnorePatterns": [
       "<rootDir>/src/games/zip/router-source/"
     ]

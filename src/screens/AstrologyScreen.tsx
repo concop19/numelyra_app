@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
   ActivityIndicator,
@@ -22,7 +22,6 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AstrologyInsightSheet } from '../features/astrology/AstrologyInsightSheet';
-import { BirthDataModal } from '../features/astrology/BirthDataModal';
 import { getAstrologyProfileKey } from '../features/astrology/dailyAstroFortune';
 import { useDailyAstroFortune } from '../features/astrology/useDailyAstroFortune';
 import { ConstellationCanvas } from '../features/constellation/ConstellationCanvas';
@@ -35,34 +34,28 @@ import {
   getDailyAstrologySymbolId,
 } from '../features/constellation/constellationPresets';
 import { buildConstellationGeometry } from '../features/constellation/constellationSkia';
-import { saveAstrologyBirthData, type UserProfile } from '../store/userProfile';
+import { type UserProfile } from '../store/userProfile';
 
 const ASTROLOGY_STAR_SEED = 0x4e554d45;
 const ASTROLOGY_VIDEO_SOURCE = require('../../assets/giao_dien/giaodien1/constellation/Aurora_flowing_over_calm_lake_20261005153804-clean.mp4');
 
 interface Props {
   profile?: UserProfile | null;
-  onProfileChange?(profile: UserProfile): void | Promise<void>;
+  onBack?: () => void;
 }
 
-function formatShortDate(date: Date): string {
-  return `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}`;
-}
-
-export default function AstrologyScreen({ profile, onProfileChange }: Props) {
+export default function AstrologyScreen({ profile, onBack }: Props) {
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
   const { currentDate, fortune, metadata, loading, error, retry, share } =
     useDailyAstroFortune(profile);
   const [sheetVisible, setSheetVisible] = useState(false);
-  const [birthDataVisible, setBirthDataVisible] = useState(false);
-  const [hasPromptedBirthData, setHasPromptedBirthData] = useState(false);
   const [reduceMotion, setReduceMotion] = useState<boolean | null>(null);
   const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
   const [videoReady, setVideoReady] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
-  const [headerBottom, setHeaderBottom] = useState(0);
   const [bottomContentTop, setBottomContentTop] = useState(0);
+  const lastVerseTapRef = useRef(0);
   const compact = canvasSize.height > 0 && canvasSize.height < 720;
 
   const videoPlayer = useVideoPlayer(ASTROLOGY_VIDEO_SOURCE, (player) => {
@@ -119,8 +112,7 @@ export default function AstrologyScreen({ profile, onProfileChange }: Props) {
     const { width, height } = canvasSize;
     const fallbackTop = height * 0.18;
     const fallbackBottom = height * (compact ? 0.66 : 0.64);
-    const requestedTop = headerBottom > 0 ? headerBottom + 4 : fallbackTop;
-    const top = Math.min(requestedTop, Math.max(0, height - 48));
+    const top = Math.min(fallbackTop, Math.max(0, height - 48));
     const measuredBottom = bottomContentTop > top ? bottomContentTop - 8 : fallbackBottom;
     const bottom = Math.max(top + 48, Math.min(height, measuredBottom));
 
@@ -130,7 +122,7 @@ export default function AstrologyScreen({ profile, onProfileChange }: Props) {
       width,
       height: bottom - top,
     };
-  }, [bottomContentTop, canvasSize, compact, headerBottom]);
+  }, [bottomContentTop, canvasSize, compact]);
 
   const constellationResetKey = useMemo(
     () => [
@@ -186,28 +178,12 @@ export default function AstrologyScreen({ profile, onProfileChange }: Props) {
     if (!fortune) setSheetVisible(false);
   }, [fortune]);
 
-  useEffect(() => {
-    if (!isFocused || !profile || profile.birthLocation || hasPromptedBirthData) return;
-    const timer = setTimeout(() => {
-      setHasPromptedBirthData(true);
-      setBirthDataVisible(true);
-    }, 450);
-    return () => clearTimeout(timer);
-  }, [hasPromptedBirthData, isFocused, profile]);
-
   const handleLayout = (event: LayoutChangeEvent) => {
     const width = Math.round(event.nativeEvent.layout.width);
     const height = Math.round(event.nativeEvent.layout.height);
     setCanvasSize((current) =>
       current.width === width && current.height === height ? current : { width, height }
     );
-  };
-
-  const handleHeaderLayout = (event: LayoutChangeEvent) => {
-    const bottom = Math.round(
-      event.nativeEvent.layout.y + event.nativeEvent.layout.height
-    );
-    setHeaderBottom((current) => current === bottom ? current : bottom);
   };
 
   const handleBottomContentLayout = (event: LayoutChangeEvent) => {
@@ -221,9 +197,14 @@ export default function AstrologyScreen({ profile, onProfileChange }: Props) {
     setSheetVisible(true);
   };
 
-  const handleBirthDataSave = async (updatedProfile: UserProfile) => {
-    await saveAstrologyBirthData(updatedProfile);
-    await onProfileChange?.(updatedProfile);
+  const handleVersePress = () => {
+    const now = Date.now();
+    if (now - lastVerseTapRef.current <= 360) {
+      lastVerseTapRef.current = 0;
+      openInsight();
+      return;
+    }
+    lastVerseTapRef.current = now;
   };
 
   const showVideo = reduceMotion === false && videoStatus !== 'error';
@@ -273,50 +254,33 @@ export default function AstrologyScreen({ profile, onProfileChange }: Props) {
         pointerEvents="none"
       />
 
-      <View
-        style={[styles.header, { paddingTop: insets.top + 8 }]}
-        onLayout={handleHeaderLayout}
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel="Quay lại"
+        activeOpacity={0.76}
+        onPress={onBack}
+        style={[styles.topBackButton, { top: insets.top + 8 }]}
       >
-        <View style={styles.brandBlock} pointerEvents="none">
-          <Text style={styles.brand}>Numelyra</Text>
-          <View style={styles.brandDivider}>
-            <View style={styles.brandLine} />
-            <Ionicons name="sparkles" size={15} color="#7CEBFF" />
-            <View style={styles.brandLine} />
-          </View>
-          <Text style={styles.dateLabel}>Hôm nay • {formatShortDate(currentDate)}</Text>
-          {!!profile && (
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel={profile.birthLocation ? 'Chỉnh sửa dữ liệu nơi sinh' : 'Bổ sung nơi sinh'}
-              activeOpacity={0.78}
-              style={[
-                styles.birthDataChip,
-                profile.birthLocation && styles.birthDataChipComplete,
-              ]}
-              onPress={() => setBirthDataVisible(true)}
-            >
-              <Ionicons
-                name={profile.birthLocation ? 'location' : 'location-outline'}
-                size={13}
-                color={profile.birthLocation ? '#8FF3D1' : '#BDEEFF'}
-              />
-              <Text
-                numberOfLines={1}
-                style={[
-                  styles.birthDataChipText,
-                  profile.birthLocation && styles.birthDataChipTextComplete,
-                ]}
-              >
-                {profile.birthLocation?.userLabel || 'Bổ sung nơi sinh để mở khóa lá số đầy đủ'}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
+        <Ionicons name="arrow-back" size={24} color="#FFD67C" />
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel="Chia sẻ quẻ"
+        activeOpacity={0.76}
+        disabled={!fortune || loading}
+        onPress={() => void share()}
+        style={[
+          styles.topShareButton,
+          { top: insets.top + 8 },
+          (!fortune || loading) && styles.topShareButtonDisabled,
+        ]}
+      >
+        <Ionicons name="share-social-outline" size={22} color="#E7FBFF" />
+      </TouchableOpacity>
 
       {!!geometryResult.error && (
-        <View style={[styles.geometryError, { top: insets.top + 150 }]}>
+        <View style={[styles.geometryError, { top: insets.top + 68 }]}>
           <Ionicons name="warning-outline" size={18} color="#7CEBFF" />
           <Text style={styles.geometryErrorText}>Biểu tượng hôm nay đang tạm ẩn.</Text>
         </View>
@@ -330,8 +294,6 @@ export default function AstrologyScreen({ profile, onProfileChange }: Props) {
         ]}
         onLayout={handleBottomContentLayout}
       >
-        <Text style={styles.symbolLabel}>BIỂU TƯỢNG HÔM NAY · {symbol.title}</Text>
-
         {loading && (
           <View style={styles.statusBlock}>
             <ActivityIndicator color="#71E7FF" size="small" />
@@ -359,35 +321,24 @@ export default function AstrologyScreen({ profile, onProfileChange }: Props) {
             <Text style={[styles.fortuneTitle, compact && styles.fortuneTitleCompact]}>
               {fortune.title || 'Quẻ hôm nay'}
             </Text>
-            <Text
-              style={[styles.verse, compact && styles.verseCompact]}
-              numberOfLines={compact ? 3 : 4}
-              adjustsFontSizeToFit
-              minimumFontScale={0.84}
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Câu đối chiêm tinh"
+              accessibilityHint="Nhấn đúp để mở giải mã"
+              activeOpacity={0.9}
+              onPress={handleVersePress}
+              onAccessibilityTap={openInsight}
+              style={styles.verseTapTarget}
             >
-              {fortune.verse}
-            </Text>
-            <View style={styles.actionsRow}>
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel="Chia sẻ quẻ"
-                activeOpacity={0.78}
-                onPress={() => void share()}
-                style={styles.shareButton}
+              <Text
+                style={[styles.verse, compact && styles.verseCompact]}
+                numberOfLines={compact ? 3 : 4}
+                adjustsFontSizeToFit
+                minimumFontScale={0.84}
               >
-                <Ionicons name="share-social-outline" size={20} color="#E7FBFF" />
-                <Text style={styles.shareButtonText}>Chia sẻ quẻ</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                accessibilityRole="button"
-                activeOpacity={0.82}
-                onPress={openInsight}
-                style={styles.insightButton}
-              >
-                <Ionicons name="sparkles-outline" size={18} color="#E7FBFF" />
-                <Text style={styles.insightButtonText}>Xem giải mã</Text>
-              </TouchableOpacity>
-            </View>
+                {fortune.verse}
+              </Text>
+            </TouchableOpacity>
           </>
         )}
       </View>
@@ -398,14 +349,6 @@ export default function AstrologyScreen({ profile, onProfileChange }: Props) {
         metadata={metadata}
         onClose={() => setSheetVisible(false)}
       />
-      {!!profile && (
-        <BirthDataModal
-          visible={birthDataVisible}
-          profile={profile}
-          onSave={handleBirthDataSave}
-          onClose={() => setBirthDataVisible(false)}
-        />
-      )}
     </GestureHandlerRootView>
   );
 }
@@ -424,72 +367,35 @@ const styles = StyleSheet.create({
     left: 0,
     backgroundColor: 'rgba(0, 13, 50, 0.1)',
   },
-  header: {
+  topBackButton: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 18,
+    left: 18,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 20,
+    zIndex: 30,
   },
-  brandBlock: {
+  topShareButton: {
+    position: 'absolute',
+    right: 18,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: 'center',
-    marginTop: -2,
-  },
-  brand: {
-    color: '#FFFFFF',
-    fontSize: 31,
-    fontFamily: 'serif',
-    letterSpacing: 0.6,
-    textShadowColor: 'rgba(65,199,255,0.4)',
-    textShadowRadius: 12,
-  },
-  brandDivider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    marginTop: 3,
-  },
-  brandLine: {
-    width: 35,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: '#7CEBFF',
-  },
-  dateLabel: {
-    color: '#F2F8FF',
-    marginTop: 10,
-    fontSize: 15,
-    letterSpacing: 0.3,
-    textShadowColor: 'rgba(0,0,0,0.65)',
-    textShadowRadius: 6,
-  },
-  birthDataChip: {
-    maxWidth: 300,
-    height: 30,
-    marginTop: 8,
-    paddingHorizontal: 11,
-    borderRadius: 15,
+    justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(113,231,255,0.52)',
-    backgroundColor: 'rgba(4,28,70,0.68)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    borderColor: 'rgba(124,235,255,0.48)',
+    backgroundColor: 'rgba(3,24,70,0.62)',
+    shadowColor: '#21BFFF',
+    shadowOpacity: 0.34,
+    shadowRadius: 9,
+    elevation: 5,
+    zIndex: 30,
   },
-  birthDataChipComplete: {
-    borderColor: 'rgba(111,232,191,0.42)',
-    backgroundColor: 'rgba(8,51,65,0.62)',
-  },
-  birthDataChipText: {
-    flexShrink: 1,
-    color: '#D9F7FF',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  birthDataChipTextComplete: {
-    color: '#CFF9EB',
+  topShareButtonDisabled: {
+    opacity: 0.38,
   },
   geometryError: {
     position: 'absolute',
@@ -517,16 +423,6 @@ const styles = StyleSheet.create({
   bottomContentCompact: {
     left: 18,
     right: 18,
-  },
-  symbolLabel: {
-    color: '#6DEBFF',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1.75,
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    textShadowColor: 'rgba(0,0,0,0.9)',
-    textShadowRadius: 6,
   },
   statusBlock: {
     minHeight: 108,
@@ -600,56 +496,13 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.9)',
     textShadowRadius: 8,
   },
+  verseTapTarget: {
+    width: '100%',
+    alignItems: 'center',
+  },
   verseCompact: {
     fontSize: 17,
     lineHeight: 23,
     marginTop: 4,
-  },
-  actionsRow: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    marginTop: 15,
-  },
-  shareButton: {
-    flex: 0.9,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(91,190,255,0.85)',
-    backgroundColor: 'rgba(3,24,70,0.72)',
-    flexDirection: 'row',
-    gap: 7,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  shareButtonText: {
-    color: '#E7FBFF',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  insightButton: {
-    flex: 1.1,
-    height: 48,
-    paddingHorizontal: 24,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#5BBEFF',
-    backgroundColor: 'rgba(3,24,70,0.78)',
-    flexDirection: 'row',
-    gap: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#21BFFF',
-    shadowOpacity: 0.38,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  insightButtonText: {
-    color: '#F5FCFF',
-    fontSize: 15,
-    fontWeight: '800',
   },
 });

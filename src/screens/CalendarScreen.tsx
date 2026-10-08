@@ -20,7 +20,10 @@ const LUNAR_MONTHS = ['Giêng', 'Hai', 'Ba', 'Tư', 'Năm', 'Sáu', 'Bảy', 'T�
 const CULTURE_SHEET_PULL_DISTANCE = Dimensions.get('window').height * 0.92;
 const CULTURE_SHEET_SPRING = { useNativeDriver: true, damping: 26, stiffness: 170, mass: 1.05 } as const;
 
-interface Props { profile: UserProfile; }
+interface Props {
+  profile: UserProfile;
+  onBack?: () => void;
+}
 
 function moveDate(value: Date, amount: number, unit: 'day' | 'month') {
   const result = new Date(value);
@@ -35,7 +38,7 @@ function moveDate(value: Date, amount: number, unit: 'day' | 'month') {
   return targetMonth;
 }
 
-export default function CalendarScreen({ profile }: Props) {
+export default function CalendarScreen({ profile, onBack }: Props) {
   const [date, setDate] = useState(() => new Date());
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [pickerDate, setPickerDate] = useState(() => new Date());
@@ -158,9 +161,22 @@ export default function CalendarScreen({ profile }: Props) {
       >
         <View style={s.content}>
           <View style={s.header}>
-            <TouchableOpacity activeOpacity={0.7} style={s.headerButton} accessibilityLabel="Mở menu"><Ionicons name="menu-outline" size={25} color="#FCEBFF" /></TouchableOpacity>
+            <View style={s.headerSideSlot}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                style={s.headerButton}
+                accessibilityRole="button"
+                accessibilityLabel="Quay lại"
+                onPress={onBack}
+              >
+                <Ionicons name="arrow-back" size={24} color="#FFD793" />
+              </TouchableOpacity>
+            </View>
             <Text style={s.brand}>Numelyra <Text style={s.gold}>✦</Text></Text>
-            <TouchableOpacity activeOpacity={0.7} style={s.headerButton} accessibilityLabel="Lịch sử"><Ionicons name="time-outline" size={23} color="#F5B8E8" /></TouchableOpacity>
+            <View style={s.headerRightActions}>
+              <TouchableOpacity activeOpacity={0.7} style={s.headerButton} accessibilityLabel="Mở menu"><Ionicons name="menu-outline" size={25} color="#FCEBFF" /></TouchableOpacity>
+              <TouchableOpacity activeOpacity={0.7} style={s.headerButton} accessibilityLabel="Lịch sử"><Ionicons name="time-outline" size={23} color="#F5B8E8" /></TouchableOpacity>
+            </View>
           </View>
 
           <View style={s.monthRow}>
@@ -340,6 +356,8 @@ const s = StyleSheet.create({
   scrollContent: { paddingHorizontal: 14, paddingBottom: 42 },
   content: { flexGrow: 1, backgroundColor: '#171044' },
   header: { height: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerSideSlot: { width: 82, alignItems: 'flex-start' },
+  headerRightActions: { width: 82, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 3 },
   headerButton: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
   menu: { color: '#FCEBFF', fontSize: 27 }, history: { color: '#F5B8E8', fontSize: 31 }, brand: { color: '#FFF3FF', fontSize: 24, fontWeight: '500', letterSpacing: -0.6 }, gold: { color: '#FFD187', fontSize: 21 },
   monthRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 7 },

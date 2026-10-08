@@ -82,6 +82,7 @@ const MOCK_IMG4 = require('../../assets/giao_dien/giaodien1/wallpaper_asset/mock
 
 interface Props {
   profile?: UserProfile | null;
+  onBack?: () => void;
 }
 
 type ScreenStep = 'input' | 'generating' | 'result';
@@ -168,7 +169,7 @@ function getRandomAffirmation(lifePath: number, intention: string): string {
   return `${q} (Ý niệm: ${intention})`;
 }
 
-export default function WallpaperStudioScreen({ profile }: Props) {
+export default function WallpaperStudioScreen({ profile, onBack }: Props) {
   // State quản lý luồng màn hình: 'input' -> 'generating' -> 'result'
   const [step, setStep] = useState<ScreenStep>('input');
   const [prompt, setPrompt] = useState<string>('');
@@ -548,10 +549,7 @@ export default function WallpaperStudioScreen({ profile }: Props) {
     } else if (step === 'result') {
       setStep('input');
     } else {
-      // Đang ở input, nếu có wallpaper đã tạo thì cho xem lại kết quả
-      if (history.length > 0) {
-        setStep('result');
-      }
+      onBack?.();
     }
   };
 

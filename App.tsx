@@ -3,20 +3,17 @@
  *
  * Flow:
  * 1. Kiểm tra profile → chưa có → OnboardingScreen
- * 2. Có profile → Bottom Tab Navigator (Chat + Lịch)
+ * 2. Có profile → Chat là màn chính, các tính năng mở từ nút nổi trong cảnh chat
  */
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, ActivityIndicator, StyleSheet, Image
+  View, Text, ActivityIndicator, StyleSheet
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Linking from 'expo-linking';
-
-import { Ionicons } from '@expo/vector-icons';
 
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import ChatScreen from './src/screens/ChatScreen';
@@ -31,15 +28,12 @@ import { loadProfile, hasProfile, UserProfile } from './src/store/userProfile';
 import { AuthProvider, useAuth } from './src/store/authContext';
 import { getNotifications } from './src/services/dailyNotifications';
 
-// Bộ icon 4 Mùa / Linh Vật Lửa cho Thanh Điều Hướng Đáy
-const TAB_CHAT_ICON = require('./assets/icons/tab_chat_flame.jpg');
-const TAB_CALENDAR_ICON = require('./assets/icons/tab_calendar_flame.jpg');
-const TAB_WALLPAPER_ICON = require('./assets/icons/tab_wallpaper_flame.jpg');
-const TAB_SETTINGS_ICON = require('./assets/icons/tab_settings_flame.jpg');
-
-const Tab = createBottomTabNavigator();
 type RootStackParamList = {
   Main: undefined;
+  Calendar: undefined;
+  Astrology: undefined;
+  WallpaperStudio: undefined;
+  Settings: undefined;
   Games: undefined;
   ChatReadingDetail: ChatReadingDetailParams;
 };
@@ -49,7 +43,15 @@ const notifications = getNotifications();
 
 const linking = {
   prefixes: [Linking.createURL('/'), 'numelyra://'],
-  config: { screens: { Games: 'games/:entry?' } },
+  config: {
+    screens: {
+      Calendar: 'calendar',
+      Astrology: 'astrology',
+      WallpaperStudio: 'wallpaper',
+      Settings: 'settings',
+      Games: 'games/:entry?',
+    },
+  },
   async getInitialURL() {
     const url = await Linking.getInitialURL();
     if (url) return url;
@@ -164,126 +166,72 @@ function AppContent() {
         <StatusBar style="light" />
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Main">
-            {({ navigation: rootNavigation }) => (
-        <Tab.Navigator
-          screenOptions={{
-            headerShown: false,
-            tabBarHideOnKeyboard: true,
-            tabBarStyle: {
-              backgroundColor: '#211052',
-              borderTopColor: '#6E3A9D',
-              borderTopWidth: 1,
-              height: 70,
-              paddingBottom: 9,
-              paddingTop: 6
-            },
-            tabBarActiveTintColor: '#FFD07A',
-            tabBarInactiveTintColor: '#B98BDC',
-            tabBarLabelStyle: {
-              fontSize: 11,
-              fontWeight: '600'
-            }
-          }}
-        >
-          <Tab.Screen
-            name="Chat"
-            options={{
-              tabBarLabel: 'Trò chuyện',
-              tabBarIcon: ({ focused }) => (
-                <View style={[styles.tabIconWrap, focused && styles.tabIconWrapFocused]}>
-                  <Image
-                    source={TAB_CHAT_ICON}
-                    style={[styles.tabIconImage, !focused && styles.tabIconInactive]}
-                    resizeMode="cover"
-                  />
-                </View>
-              )
-            }}
-          >
             {({ navigation }) => (
               <ChatScreen
                 profile={profile}
                 onOpenSettings={() => navigation.navigate('Settings')}
-                onOpenGameHub={() => rootNavigation.navigate('Games')}
-                onOpenRawReading={(message, previousQuestion) => rootNavigation.navigate('ChatReadingDetail', { message, previousQuestion })}
+                onOpenCalendar={() => navigation.navigate('Calendar')}
+                onOpenAstrology={() => navigation.navigate('Astrology')}
+                onOpenWallpaper={() => navigation.navigate('WallpaperStudio')}
+                onOpenGameHub={() => navigation.navigate('Games')}
+                onOpenRawReading={(message, previousQuestion) => navigation.navigate('ChatReadingDetail', { message, previousQuestion })}
               />
             )}
-          </Tab.Screen>
-
-          <Tab.Screen
+          </Stack.Screen>
+          <Stack.Screen
             name="Calendar"
             options={{
-              tabBarLabel: 'Lịch của tôi',
-              tabBarIcon: ({ focused }) => (
-                <View style={[styles.tabIconWrap, focused && styles.tabIconWrapFocused]}>
-                  <Image
-                    source={TAB_CALENDAR_ICON}
-                    style={[styles.tabIconImage, !focused && styles.tabIconInactive]}
-                    resizeMode="cover"
-                  />
-                </View>
-              )
+              headerShown: false,
             }}
           >
-            {() => <CalendarScreen profile={profile} />}
-          </Tab.Screen>
-
-          <Tab.Screen
-            name="Astrology"
-            options={{
-              tabBarLabel: 'Chiêm tinh',
-              tabBarIcon: ({ focused }) => (
-                <View style={[styles.tabIconWrap, focused && styles.tabIconWrapFocused]}>
-                  <Ionicons name="planet" size={18} color={focused ? '#FFD07A' : '#B98BDC'} />
-                </View>
-              )
-            }}
-          >
-            {() => (
-              <AstrologyScreen
+            {({ navigation }) => (
+              <CalendarScreen
                 profile={profile}
-                onProfileChange={(updatedProfile) => setProfile(updatedProfile)}
+                onBack={() => navigation.goBack()}
               />
             )}
-          </Tab.Screen>
+          </Stack.Screen>
 
-          <Tab.Screen
-            name="WallpaperStudio"
+          <Stack.Screen
+            name="Astrology"
             options={{
-              tabBarLabel: 'Hình nền',
-              tabBarIcon: ({ focused }) => (
-                <View style={[styles.tabIconWrap, focused && styles.tabIconWrapFocused]}>
-                  <Image
-                    source={TAB_WALLPAPER_ICON}
-                    style={[styles.tabIconImage, !focused && styles.tabIconInactive]}
-                    resizeMode="cover"
-                  />
-                </View>
-              )
+              headerShown: false,
             }}
           >
-            {() => <WallpaperStudioScreen profile={profile} />}
-          </Tab.Screen>
+            {({ navigation }) => (
+              <AstrologyScreen
+                profile={profile}
+                onBack={() => navigation.goBack()}
+              />
+            )}
+          </Stack.Screen>
 
-          <Tab.Screen
+          <Stack.Screen
+            name="WallpaperStudio"
+            options={{
+              headerShown: false,
+            }}
+          >
+            {({ navigation }) => (
+              <WallpaperStudioScreen
+                profile={profile}
+                onBack={() => navigation.goBack()}
+              />
+            )}
+          </Stack.Screen>
+
+          <Stack.Screen
             name="Settings"
             options={{
-              tabBarLabel: 'Cài đặt',
-              tabBarIcon: ({ focused }) => (
-                <View style={[styles.tabIconWrap, focused && styles.tabIconWrapFocused]}>
-                  <Image
-                    source={TAB_SETTINGS_ICON}
-                    style={[styles.tabIconImage, !focused && styles.tabIconInactive]}
-                    resizeMode="cover"
-                  />
-                </View>
-              )
+              headerShown: true,
+              headerTransparent: true,
+              headerTitle: '',
+              headerBackButtonDisplayMode: 'minimal',
+              headerTintColor: '#FFD07A',
+              headerShadowVisible: false,
             }}
           >
             {() => <SettingsScreen onRequestLogin={() => setLoginRequested(true)} />}
-          </Tab.Screen>
-        </Tab.Navigator>
-            )}
           </Stack.Screen>
           <Stack.Screen
             name="Games"
@@ -320,30 +268,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 12,
     fontStyle: 'italic'
-  },
-  tabIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  tabIconWrapFocused: {
-    borderWidth: 1.5,
-    borderColor: '#FFD07A',
-    shadowColor: '#F2A4CF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 7,
-    elevation: 4,
-  },
-  tabIconImage: {
-    width: '100%',
-    height: '100%',
-  },
-  tabIconInactive: {
-    opacity: 0.5,
   },
 });
