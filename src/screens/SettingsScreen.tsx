@@ -1,11 +1,13 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, AppState, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, AppState, Image, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect } from '@react-navigation/native';
+
+const BG_SETTINGS = require('../../assets/background/setting.png');
 
 import { useAuth } from '../store/authContext';
 import { beginCheckout, getBillingStatus, type BillingProvider, type BillingStatus } from '../services/billingService';
@@ -16,6 +18,7 @@ interface Props {
 }
 
 export default function SettingsScreen({ onRequestLogin }: Props) {
+  const { width: winWidth, height: winHeight } = useWindowDimensions();
   const { user, isConfigured, signOut, syncLocalProfiles } = useAuth();
   const [busy, setBusy] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<BillingProvider>('payos');
@@ -115,17 +118,24 @@ export default function SettingsScreen({ onRequestLogin }: Props) {
   const isPro = billing?.plan === 'pro';
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="light" />
-      <LinearGradient pointerEvents="none" colors={['#211052', '#11082F', '#0C0625']} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
-      <View pointerEvents="none" style={styles.sky}>
-        <Text style={styles.moon}>☾</Text>
-        <Text style={[styles.star, styles.starOne]}>✦</Text>
-        <Text style={[styles.star, styles.starTwo]}>✧</Text>
-        <Text style={[styles.star, styles.starThree]}>✦</Text>
-        <View style={styles.orbit} />
+    <View style={[styles.root, { width: winWidth, height: winHeight }]}>
+      <View style={[styles.bgContainer, { width: winWidth, height: winHeight }]} pointerEvents="none">
+        <Image
+          source={BG_SETTINGS}
+          style={styles.bgImage}
+          resizeMode="cover"
+        />
+        <LinearGradient
+          pointerEvents="none"
+          colors={['rgba(17, 8, 47, 0.50)', 'rgba(17, 8, 47, 0.78)', 'rgba(12, 6, 37, 0.92)']}
+          start={{ x: 0.1, y: 0 }}
+          end={{ x: 0.9, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
       </View>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar style="light" />
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         <View style={styles.heroHeader}>
           <Text style={styles.title}>Cài đặt</Text>
           <Text style={styles.subtitle}>Tùy chỉnh hành trình NUMELYRA theo cách của bạn</Text>
@@ -243,7 +253,8 @@ export default function SettingsScreen({ onRequestLogin }: Props) {
         </SettingsCard>
       </ScrollView>
     </SafeAreaView>
-  );
+  </View>
+);
 }
 
 function SettingsCard({ children, pro = false }: { children: React.ReactNode; pro?: boolean }) {
@@ -295,14 +306,35 @@ function PaymentMethod({ provider, selected, title, detail, icon, onPress }: {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0E092B' },
-  sky: { ...StyleSheet.absoluteFill, overflow: 'hidden' },
-  moon: { position: 'absolute', top: 12, right: 22, color: '#FFE7A0', fontSize: 86, lineHeight: 92, transform: [{ rotate: '-18deg' }], opacity: 0.95 },
-  star: { position: 'absolute', color: '#F8B7FF', fontSize: 16 },
-  starOne: { top: 112, left: 26 },
-  starTwo: { top: 76, left: 164, color: '#FFE29A', fontSize: 12 },
-  starThree: { top: 188, right: 52, color: '#FFD779', fontSize: 20 },
-  orbit: { position: 'absolute', top: -105, right: -92, width: 330, height: 250, borderWidth: 1, borderColor: 'rgba(235, 157, 255, 0.32)', borderRadius: 180, transform: [{ rotate: '25deg' }] },
+  root: {
+    flex: 1,
+    backgroundColor: '#0E092B',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  bgContainer: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    overflow: 'hidden',
+    zIndex: 0,
+  },
+  bgImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    zIndex: 1,
+  },
   content: { paddingHorizontal: 17, paddingTop: 12, paddingBottom: 34 },
   heroHeader: { alignItems: 'center', paddingHorizontal: 22, paddingTop: 9, paddingBottom: 26 },
   title: { color: '#FCF5FF', fontSize: 35, lineHeight: 42, fontWeight: '900', letterSpacing: 0.2, textAlign: 'center' },

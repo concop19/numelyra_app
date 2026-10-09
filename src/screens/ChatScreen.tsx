@@ -39,7 +39,11 @@ import { computePersonTuViBazi, evaluateTuViBaziLove, TuViBaziSynastryResult } f
 import { API_ENDPOINTS, authenticatedFetch } from '../services/apiConfig';
 import { getBillingStatus } from '../services/billingService';
 import ChatSceneBackground, { ChatMoonButton } from '../components/chat/ChatSceneBackground';
-import FlameMascot from '../components/chat/FlameMascot';
+import FlameMascot, {
+  FLAME_COLOR_CHANGE_INTERVAL_MS,
+  FLAME_COLOR_PALETTES,
+} from '../components/chat/FlameMascot';
+import MeteorShower from '../components/chat/MeteorShower';
 import ChatInputBar from '../components/chat/ChatInputBar';
 import HighlightedAnswerText from '../components/chat/HighlightedAnswerText';
 import { PlaceSearchContextModal } from '../components/chat/PlaceSearchContextModal';
@@ -74,6 +78,9 @@ type LiveTarotReading = {
 };
 
 type AmbientMascotState = 'idle' | 'thinking' | 'answer';
+
+const CHAT_MASCOT_SIZE = 350;
+const THINKING_MASCOT_SIZE = 370;
 
 interface Props {
   profile?: UserProfile;
@@ -271,10 +278,6 @@ const getRestoredFlippedCards = (history: MessageItem[]): Record<string, boolean
 
   return restored;
 };
-
-const IDLE_IMG = require('../../assets/char/idle.png');
-const LISTENING_IMG = require('../../assets/char/listening.png');
-const EXPLAIN_IMG = require('../../assets/char/explain.png');
 
 const getCategoryFromText = (text: string) => {
   const lower = text.toLowerCase();
@@ -655,6 +658,9 @@ export default function ChatScreen({
   } | null>(null);
   const [liveTarotReading, setLiveTarotReading] = useState<LiveTarotReading | null>(null);
   const [ambientMascotState, setAmbientMascotState] = useState<AmbientMascotState>('idle');
+  const [mascotPaletteIndex, setMascotPaletteIndex] = useState(0);
+  const [meteorBurstKey, setMeteorBurstKey] = useState(0);
+  const nextAccentPaletteIndexRef = useRef(1);
   const [mascotState, setMascotState] = useState<'idle' | 'listening' | 'explain'>('idle');
   const [mascotCategory, setMascotCategory] = useState('default');
   const [viewMode, setViewMode] = useState<'current_state' | 'history_list'>('current_state');
@@ -664,6 +670,23 @@ export default function ChatScreen({
 
   // Theo dõi trạng thái hiển thị bàn phím để tự động thu gọn Mascot và tối ưu không gian cho ô soạn thảo
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const colorTimer = setInterval(() => {
+      setMascotPaletteIndex((current) => {
+        if (current !== 0) return 0;
+
+        const nextAccent = nextAccentPaletteIndexRef.current;
+        nextAccentPaletteIndexRef.current = nextAccent >= FLAME_COLOR_PALETTES.length - 1
+          ? 1
+          : nextAccent + 1;
+        return nextAccent;
+      });
+      setMeteorBurstKey((current) => current + 1);
+    }, FLAME_COLOR_CHANGE_INTERVAL_MS);
+
+    return () => clearInterval(colorTimer);
+  }, []);
 
   useEffect(() => {
     const showSub = Keyboard.addListener(
@@ -872,15 +895,6 @@ export default function ChatScreen({
     inputRange: [0, 1],
     outputRange: [0.85, 1.0]
   });
-
-  const getMascotImage = () => {
-    switch(mascotState) {
-      case 'listening': return LISTENING_IMG;
-      case 'explain': return EXPLAIN_IMG;
-      case 'idle':
-      default: return IDLE_IMG;
-    }
-  };
 
   const handleToggleVoice = () => {
     if (isListening) {
@@ -1709,6 +1723,7 @@ export default function ChatScreen({
 
   const isZeroState = messages.length === 0;
   const currentGlowColor = getFlameGlowColor(mascotCategory);
+  const activeMascotPalette = FLAME_COLOR_PALETTES[mascotPaletteIndex];
 
   // Khi màn chat không có thao tác, luân phiên ngẫu nhiên các sprite idle,
   // listen (thinking) và answer để mascot vẫn có sức sống. Trạng thái thật
@@ -1765,6 +1780,11 @@ export default function ChatScreen({
     <View style={styles.outerScreenWrap}>
       {/* 🌟 1. BỐI CẢNH ĐÊM 3 LỚP PARALLAX + MOON + STARS */}
       <ChatSceneBackground />
+      <MeteorShower
+        burstKey={meteorBurstKey}
+        color={activeMascotPalette.outline}
+        glowColor={activeMascotPalette.primary}
+      />
 
       <KeyboardAvoidingView 
         style={[styles.container, { paddingTop: insets.top }]} 
@@ -1838,15 +1858,27 @@ export default function ChatScreen({
             <View style={styles.emptyMascotStage} pointerEvents="box-none">
               <Text style={styles.welcomeHeading}>Hi, I’m Numelyra</Text>
               <Text style={styles.welcomeParagraph}>Ask me anything{`\n`}or share how you feel.</Text>
-              <TouchableOpacity onPress={handleMascotPress} accessibilityLabel="Mở 24 lá bài Thần số học">
-                <FlameMascot state={ambientMascotState} size={175} />
+              <TouchableOpacity
+                onPress={handleMascotPress}
+                accessibilityLabel="Mở 24 lá bài Thần số học"
+                style={styles.groundedMascotTouch}
+              >
+                <FlameMascot
+                  state={ambientMascotState}
+                  size={CHAT_MASCOT_SIZE}
+                  paletteIndex={mascotPaletteIndex}
+                />
               </TouchableOpacity>
             </View>
           ) : null}
 
           {loading && !isKeyboardVisible ? (
             <View style={styles.thinkingMascotStage} pointerEvents="none">
-              <FlameMascot state="thinking" size={185} />
+              <FlameMascot
+                state="thinking"
+                size={THINKING_MASCOT_SIZE}
+                paletteIndex={mascotPaletteIndex}
+              />
             </View>
           ) : null}
 
@@ -1857,10 +1889,12 @@ export default function ChatScreen({
                 onPress={handleMascotPress}
                 accessibilityRole="button"
                 accessibilityLabel="Mở 24 lá bài Thần số học"
+                style={styles.groundedMascotTouch}
               >
                 <FlameMascot
                   state={speakingMessageId ? 'speaking' : ambientMascotState}
-                  size={175}
+                  size={CHAT_MASCOT_SIZE}
+                  paletteIndex={mascotPaletteIndex}
                 />
               </TouchableOpacity>
             </View>
@@ -2301,7 +2335,7 @@ const styles = StyleSheet.create({
   // The mascot owns this lower area. The list viewport stops above it, so
   // neither newly received bubbles nor history pages can cover the sprite.
   chatTimelineListWithMascot: {
-    marginBottom: 218,
+    marginBottom: 360,
   },
   chatTimelineContent: {
     paddingHorizontal: 24,
@@ -2364,21 +2398,24 @@ const styles = StyleSheet.create({
     left: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingBottom: 24,
+    paddingTop: 28,
   },
   thinkingMascotStage: {
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 22,
+    bottom: -8,
     alignItems: 'center',
   },
   restingMascotStage: {
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 22,
+    bottom: -8,
     alignItems: 'center',
+  },
+  groundedMascotTouch: {
+    transform: [{ translateY: 28 }],
   },
   chatListContent: { paddingHorizontal: 16, paddingVertical: 20 },
   messageRow: { flexDirection: 'row', marginVertical: 8, maxWidth: '90%' },

@@ -20,6 +20,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { useIsFocused } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import LottieView, { type AnimationObject } from 'lottie-react-native';
 
 import { AstrologyInsightSheet } from '../features/astrology/AstrologyInsightSheet';
 import { getAstrologyProfileKey } from '../features/astrology/dailyAstroFortune';
@@ -38,6 +39,7 @@ import { type UserProfile } from '../store/userProfile';
 
 const ASTROLOGY_STAR_SEED = 0x4e554d45;
 const ASTROLOGY_VIDEO_SOURCE = require('../../assets/giao_dien/giaodien1/constellation/Aurora_flowing_over_calm_lake_20261005153804-clean.mp4');
+const ASTROLOGY_VIDEO_LOADING_SOURCE = require('../../assets/giao_dien/giaodien1/constellation/magic cube.json') as AnimationObject;
 
 interface Props {
   profile?: UserProfile | null;
@@ -208,7 +210,8 @@ export default function AstrologyScreen({ profile, onBack }: Props) {
   };
 
   const showVideo = reduceMotion === false && videoStatus !== 'error';
-  const showFallback = !showVideo || !videoReady;
+  const showFallback = !showVideo;
+  const showVideoLoading = showVideo && !videoReady;
   const motionEnabled = isFocused && appState === 'active' && reduceMotion === false;
 
   return (
@@ -235,7 +238,25 @@ export default function AstrologyScreen({ profile, onBack }: Props) {
       )}
       <View style={styles.nightVeil} pointerEvents="none" />
 
-      {fittedGeometry && (
+      {showVideoLoading && (
+        <View
+          accessibilityLabel="Đang tải nền chiêm tinh"
+          accessibilityRole="progressbar"
+          style={styles.videoLoading}
+          pointerEvents="none"
+        >
+          <LottieView
+            source={ASTROLOGY_VIDEO_LOADING_SOURCE}
+            autoPlay
+            loop
+            resizeMode="contain"
+            style={styles.videoLoadingAnimation}
+            webStyle={styles.videoLoadingAnimation}
+          />
+        </View>
+      )}
+
+      {!showVideoLoading && fittedGeometry && (
         <ConstellationCanvas
           width={canvasSize.width}
           height={canvasSize.height}
@@ -286,62 +307,64 @@ export default function AstrologyScreen({ profile, onBack }: Props) {
         </View>
       )}
 
-      <View
-        style={[
-          styles.bottomContent,
-          compact && styles.bottomContentCompact,
-          { paddingBottom: Math.max(14, insets.bottom + 8) },
-        ]}
-        onLayout={handleBottomContentLayout}
-      >
-        {loading && (
-          <View style={styles.statusBlock}>
-            <ActivityIndicator color="#71E7FF" size="small" />
-            <Text style={styles.statusText}>Đang đọc bầu trời của bạn...</Text>
-          </View>
-        )}
+      {!showVideoLoading && (
+        <View
+          style={[
+            styles.bottomContent,
+            compact && styles.bottomContentCompact,
+            { paddingBottom: Math.max(14, insets.bottom + 8) },
+          ]}
+          onLayout={handleBottomContentLayout}
+        >
+          {loading && (
+            <View style={styles.statusBlock}>
+              <ActivityIndicator color="#71E7FF" size="small" />
+              <Text style={styles.statusText}>Đang đọc bầu trời của bạn...</Text>
+            </View>
+          )}
 
-        {!loading && error && (
-          <View style={styles.errorCard}>
-            <Text style={styles.errorText} numberOfLines={2}>{error}</Text>
-            <TouchableOpacity
-              accessibilityRole="button"
-              activeOpacity={0.78}
-              onPress={() => void retry()}
-              style={styles.retryButton}
-            >
-              <Ionicons name="reload-outline" size={16} color="#E7FBFF" />
-              <Text style={styles.retryText}>Thử lại</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {!loading && fortune && (
-          <>
-            <Text style={[styles.fortuneTitle, compact && styles.fortuneTitleCompact]}>
-              {fortune.title || 'Quẻ hôm nay'}
-            </Text>
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel="Câu đối chiêm tinh"
-              accessibilityHint="Nhấn đúp để mở giải mã"
-              activeOpacity={0.9}
-              onPress={handleVersePress}
-              onAccessibilityTap={openInsight}
-              style={styles.verseTapTarget}
-            >
-              <Text
-                style={[styles.verse, compact && styles.verseCompact]}
-                numberOfLines={compact ? 3 : 4}
-                adjustsFontSizeToFit
-                minimumFontScale={0.84}
+          {!loading && error && (
+            <View style={styles.errorCard}>
+              <Text style={styles.errorText} numberOfLines={2}>{error}</Text>
+              <TouchableOpacity
+                accessibilityRole="button"
+                activeOpacity={0.78}
+                onPress={() => void retry()}
+                style={styles.retryButton}
               >
-                {fortune.verse}
+                <Ionicons name="reload-outline" size={16} color="#E7FBFF" />
+                <Text style={styles.retryText}>Thử lại</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {!loading && fortune && (
+            <>
+              <Text style={[styles.fortuneTitle, compact && styles.fortuneTitleCompact]}>
+                {fortune.title || 'Quẻ hôm nay'}
               </Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Câu đối chiêm tinh"
+                accessibilityHint="Nhấn đúp để mở giải mã"
+                activeOpacity={0.9}
+                onPress={handleVersePress}
+                onAccessibilityTap={openInsight}
+                style={styles.verseTapTarget}
+              >
+                <Text
+                  style={[styles.verse, compact && styles.verseCompact]}
+                  numberOfLines={compact ? 3 : 4}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.84}
+                >
+                  {fortune.verse}
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      )}
 
       <AstrologyInsightSheet
         visible={sheetVisible}
@@ -366,6 +389,19 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     backgroundColor: 'rgba(0, 13, 50, 0.1)',
+  },
+  videoLoading: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoLoadingAnimation: {
+    width: 240,
+    height: 240,
   },
   topBackButton: {
     position: 'absolute',

@@ -10,7 +10,7 @@ export interface TTSOptions {
   voice?: string;
 }
 
-const DEFAULT_VIETNAMESE_PITCH = 1.08;
+const DEFAULT_VIETNAMESE_PITCH = 1.15;
 
 function normalizeVoiceLabel(value: string): string {
   return value
@@ -194,7 +194,7 @@ class TTSService {
               language: 'vi-VN',
               voice: options.voice,
               pitch: options.pitch ?? DEFAULT_VIETNAMESE_PITCH,
-              rate: options.rate ?? 1.2,
+              rate: options.rate ?? 1.05,
               onStart: () => {
                 if (token === this.generation) options.onStart?.();
               },

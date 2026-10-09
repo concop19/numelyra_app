@@ -24,8 +24,8 @@ import { IndicatorDetailModal } from './IndicatorDetailModal';
 import { getIndicatorShortSummary } from '../services/numerologySummaryService';
 import { type ProfileItem } from '../store/userProfile';
 
-// Hình nền Tím Tinh Vân Vũ Trụ của Numelyra
-const BG_NEBULA = require('../../assets/giao_dien/giaodien1/chat_screen_asset/backgorund/background_index1.png');
+// Hình nền Vũ Trụ Thần Số Học của Numelyra
+const BG_NUMELYRA_24 = require('../../assets/background/numelyra_background.png');
 
 /**
  * Hệ màu thiết kế chuẩn của ứng dụng Numelyra:
@@ -172,8 +172,8 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
 
   return (
     <Modal visible={visible} animationType="fade" transparent={false} onRequestClose={onClose}>
-      {/* Background Tím Tinh Vân Vũ Trụ Chuẩn Numelyra */}
-      <ImageBackground source={BG_NEBULA} style={styles.bgImage} resizeMode="cover">
+      {/* Background Vũ Trụ Numelyra Chuẩn 24 Chỉ Số */}
+      <ImageBackground source={BG_NUMELYRA_24} style={styles.bgImage} resizeMode="cover">
         {/* Lớp phủ Gradient Tím Sâu Thẳm với tông #160E34 (Nền chính) */}
         <LinearGradient
           colors={['rgba(22, 14, 52, 0.45)', 'rgba(22, 14, 52, 0.65)', 'rgba(22, 14, 52, 0.88)']}
@@ -314,6 +314,7 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
+    overflow: 'hidden',
   },
   container: {
     flex: 1,

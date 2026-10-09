@@ -1,79 +1,129 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Image, Animated, Easing, Pressable } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Animated,
+  Easing,
+  Pressable,
+  StyleProp,
+  StyleSheet,
+  ViewStyle,
+} from 'react-native';
+import LottieView, { type AnimationObject } from 'lottie-react-native';
 
-const FIRE_IDLE = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/character/fire_char_idle_3x4.png');
-const FIRE_THINKING = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/character/fire_char_thinking_3x4.png');
-const FIRE_ANSWER = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/character/fire_char_answer_3x4.png');
+const FIRE_ANIMATION = require('../../../assets/char/Streak fire.json') as AnimationObject;
 
 export type MascotState = 'idle' | 'thinking' | 'answer' | 'speaking';
 
 interface Props {
   state: MascotState;
   size?: number;
-  style?: any;
+  style?: StyleProp<ViewStyle>;
   onPress?: () => void;
+  paletteIndex?: number;
 }
 
-const COLUMNS = 4;
-const ROWS = 3;
-const TOTAL_FRAMES = 12;
-const NATIVE_FRAME_SIZE = 362; // 1448 / 4 = 362, 1086 / 3 = 362
+export type FirePalette = {
+  primary: string;
+  outline: string;
+};
+
+export const FLAME_COLOR_CHANGE_INTERVAL_MS = 7_000;
+const ORIGINAL_PRIMARY = [0.19215686274509805, 0.592156862745098, 0.996078431372549];
+const ORIGINAL_OUTLINE = [0.419607992733, 0.807843017578, 1];
+
+export const FLAME_COLOR_PALETTES: FirePalette[] = [
+  { primary: '#8B5CF6', outline: '#C4B5FD' },
+  { primary: '#EC4899', outline: '#F9A8D4' },
+  { primary: '#F97316', outline: '#FCD34D' },
+  { primary: '#10B981', outline: '#6EE7B7' },
+  { primary: '#3197FE', outline: '#6BCFFF' },
+];
+
+const hexToLottieColor = (hex: string) => {
+  const value = hex.replace('#', '');
+  return [
+    parseInt(value.slice(0, 2), 16) / 255,
+    parseInt(value.slice(2, 4), 16) / 255,
+    parseInt(value.slice(4, 6), 16) / 255,
+    1,
+  ];
+};
+
+const matchesColor = (color: unknown, expected: number[]) => (
+  Array.isArray(color)
+  && color.length >= expected.length
+  && expected.every((channel, index) => Math.abs(Number(color[index]) - channel) < 0.002)
+);
+
+const recolorFireAnimation = (palette: FirePalette): AnimationObject => {
+  const animation = JSON.parse(JSON.stringify(FIRE_ANIMATION)) as AnimationObject;
+  const primary = hexToLottieColor(palette.primary);
+  const outline = hexToLottieColor(palette.outline);
+
+  const visit = (value: unknown) => {
+    if (!value || typeof value !== 'object') return;
+
+    if (Array.isArray(value)) {
+      value.forEach(visit);
+      return;
+    }
+
+    const record = value as Record<string, any>;
+    const color = record.c?.k;
+
+    if ((record.ty === 'fl' || record.ty === 'st') && matchesColor(color, ORIGINAL_PRIMARY)) {
+      record.c.k = primary;
+    } else if ((record.ty === 'fl' || record.ty === 'st') && matchesColor(color, ORIGINAL_OUTLINE)) {
+      record.c.k = outline;
+    }
+
+    Object.values(record).forEach(visit);
+  };
+
+  visit(animation);
+  return animation;
+};
 
 export const FlameMascot: React.FC<Props> = ({
   state = 'idle',
   size = 180,
   style,
   onPress,
+  paletteIndex = 0,
 }) => {
-  const [frameIndex, setFrameIndex] = useState(0);
   const [isPressed, setIsPressed] = useState(false);
   const bounceAnim = useRef(new Animated.Value(1)).current;
-  const glowPulseAnim = useRef(new Animated.Value(0.7)).current;
+  const glowPulseAnim = useRef(new Animated.Value(0.68)).current;
+  const normalizedPaletteIndex = (
+    (paletteIndex % FLAME_COLOR_PALETTES.length) + FLAME_COLOR_PALETTES.length
+  ) % FLAME_COLOR_PALETTES.length;
+  const palette = FLAME_COLOR_PALETTES[normalizedPaletteIndex];
+  const animationSource = useMemo(() => recolorFireAnimation(palette), [palette]);
 
-  // Chọn sprite sheet tương ứng theo state
-  const spriteSource =
-    state === 'thinking'
-      ? FIRE_THINKING
-      : state === 'answer' || state === 'speaking'
-      ? FIRE_ANSWER
-      : FIRE_IDLE;
-
-  // Tốc độ frame: thinking cháy dồn dập hơn (14 fps), idle nhịp nhàng thư thái (10 fps), answer rạng rỡ (12 fps)
-  const fps = state === 'thinking' ? 14 : state === 'speaking' ? 16 : state === 'idle' ? 10 : 12;
-
-  // Chuyển frame animation
   useEffect(() => {
-    const interval = setInterval(() => {
-      setFrameIndex(prev => (prev + 1) % TOTAL_FRAMES);
-    }, 1000 / fps);
-
-    return () => clearInterval(interval);
-  }, [fps, state]);
-
-  // Hiệu ứng nhảy nảy (bounce) khi đổi trạng thái
-  useEffect(() => {
-    Animated.sequence([
+    const bounce = Animated.sequence([
       Animated.timing(bounceAnim, {
-        toValue: 1.15,
+        toValue: 1.08,
         duration: 180,
         easing: Easing.out(Easing.back(1.5)),
         useNativeDriver: true,
       }),
       Animated.spring(bounceAnim, {
-        toValue: 1.0,
+        toValue: 1,
         friction: 4,
         tension: 80,
         useNativeDriver: true,
       }),
-    ]).start();
-  }, [state]);
+    ]);
 
-  // Hiệu ứng hào quang dưới chân linh vật
+    bounce.start();
+    return () => bounce.stop();
+  }, [bounceAnim, state]);
+
   useEffect(() => {
     const pulseLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(glowPulseAnim, {
-          toValue: 1.0,
+          toValue: 1,
           duration: 1800,
           useNativeDriver: true,
         }),
@@ -84,15 +134,18 @@ export const FlameMascot: React.FC<Props> = ({
         }),
       ])
     );
+
     pulseLoop.start();
-
     return () => pulseLoop.stop();
-  }, []);
+  }, [glowPulseAnim]);
 
-  const col = frameIndex % COLUMNS;
-  const row = Math.floor(frameIndex / COLUMNS);
-
-  const scaleRatio = size / NATIVE_FRAME_SIZE;
+  const speed = state === 'thinking'
+    ? 1.25
+    : state === 'speaking'
+      ? 1.15
+      : state === 'answer'
+        ? 1.05
+        : 0.9;
 
   return (
     <Pressable
@@ -103,32 +156,29 @@ export const FlameMascot: React.FC<Props> = ({
       accessibilityRole={onPress ? 'button' : undefined}
       style={[styles.wrapper, { width: size, height: size }, style]}
     >
-      {/* Vầng sáng ma thuật tỏa dưới chân ngọn lửa */}
       <Animated.View
         style={[
           styles.ambientGlow,
           {
-            width: size * 1.3,
-            height: size * 0.45,
-            bottom: -size * 0.08,
+            width: size * 0.68,
+            height: size * 0.68,
+            left: size * 0.16,
+            bottom: -size * 0.13,
+            borderRadius: size * 0.34,
+            backgroundColor: `${palette.primary}4D`,
+            shadowColor: palette.primary,
             opacity: isPressed ? 1 : glowPulseAnim,
-            transform: [{ scale: isPressed ? 1.18 : 1 }],
-            backgroundColor: isPressed
-              ? 'rgba(255, 145, 45, 0.8)'
-              :
-              state === 'thinking'
-                ? 'rgba(255, 170, 70, 0.45)'
-                : state === 'answer' || state === 'speaking'
-                ? 'rgba(255, 120, 150, 0.5)'
-                : 'rgba(255, 195, 100, 0.35)',
+            transform: [
+              { scaleX: isPressed ? 1.16 : 1 },
+              { scaleY: isPressed ? 0.27 : 0.24 },
+            ],
           },
         ]}
       />
 
-      {/* Sprite Sheet frame cropping */}
       <Animated.View
         style={[
-          styles.cropContainer,
+          styles.animationContainer,
           {
             width: size,
             height: size,
@@ -136,17 +186,15 @@ export const FlameMascot: React.FC<Props> = ({
           },
         ]}
       >
-        <Image
-          source={spriteSource}
-          style={{
-            position: 'absolute',
-            left: -col * size,
-            top: -row * size,
-            width: size * COLUMNS,
-            height: size * ROWS,
-            zIndex: 1,
-          }}
-          resizeMode="stretch"
+        <LottieView
+          key={`fire-${normalizedPaletteIndex}`}
+          source={animationSource}
+          autoPlay
+          loop
+          speed={speed}
+          resizeMode="contain"
+          style={styles.animation}
+          webStyle={styles.webAnimation}
         />
       </Animated.View>
     </Pressable>
@@ -161,21 +209,23 @@ const styles = StyleSheet.create({
   },
   ambientGlow: {
     position: 'absolute',
-    borderRadius: 999,
-    shadowColor: '#FFAE64',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 24,
-    elevation: 6,
+    shadowOpacity: 0.9,
+    shadowRadius: 28,
+    elevation: 5,
   },
-  cropContainer: {
-    overflow: 'hidden',
+  animationContainer: {
+    overflow: 'visible',
     position: 'relative',
-    // React Native Web paints the bitmap at a negative internal z-index.
-    // This local context keeps it above the scene background.
     zIndex: 1,
-    alignItems: 'flex-start',
-    justifyContent: 'flex-start',
+  },
+  animation: {
+    width: '100%',
+    height: '100%',
+  },
+  webAnimation: {
+    width: '100%',
+    height: '100%',
   },
 });
 

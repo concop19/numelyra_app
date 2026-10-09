@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Dimensions, Image, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Dimensions, Image, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,7 @@ import { getDailyCaDao, type CaDaoItem } from '../db/cadaoService';
 import { getDailyCalendarArt, type CalendarArtItem } from '../config/calendarArtConfig';
 import BlocDetailModal, { type ModalType } from '../components/BlocDetailModal';
 
+const BG_CALENDAR = require('../../assets/background/canlendar.png');
 const HERO = require('../../assets/giao_dien/giaodien1/calender_asset/background/ChatGPT Image Sep 25, 2026, 11_00_36 PM (1).png');
 const TOPIC = require('../../assets/giao_dien/giaodien1/calender_asset/background/ChatGPT Image Sep 25, 2026, 11_00_38 PM (3).png');
 
@@ -39,6 +40,7 @@ function moveDate(value: Date, amount: number, unit: 'day' | 'month') {
 }
 
 export default function CalendarScreen({ profile, onBack }: Props) {
+  const { width: winWidth, height: winHeight } = useWindowDimensions();
   const [date, setDate] = useState(() => new Date());
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [pickerDate, setPickerDate] = useState(() => new Date());
@@ -151,8 +153,22 @@ export default function CalendarScreen({ profile, onBack }: Props) {
   }), [cultureSheetProgress]);
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
-      <StatusBar style="light" />
+    <View style={[s.root, { width: winWidth, height: winHeight }]}>
+      {/* Background cố định chuẩn kích thước màn hình, không trôi và không làm dài trang */}
+      <View style={[s.bgContainer, { width: winWidth, height: winHeight }]} pointerEvents="none">
+        <Image
+          source={BG_CALENDAR}
+          style={s.bgImage}
+          resizeMode="cover"
+        />
+        <LinearGradient
+          colors={['rgba(23, 16, 68, 0.45)', 'rgba(23, 16, 68, 0.72)', 'rgba(23, 16, 68, 0.90)']}
+          style={StyleSheet.absoluteFill}
+        />
+      </View>
+
+      <SafeAreaView style={s.safe} edges={['top']}>
+        <StatusBar style="light" />
       <ScrollView
         style={s.scroll}
         contentContainerStyle={s.scrollContent}
@@ -334,7 +350,8 @@ export default function CalendarScreen({ profile, onBack }: Props) {
         sheetProgress={cultureSheetProgress} contentScrollEnabled={!isCultureSheetDragging}
         onSheetDragStart={beginCultureSheetDrag} onSheetDragMove={moveCultureSheetDown} onSheetDragEnd={finishCultureSheetDrag}
         artItem={art as CalendarArtItem} caDao={caDao} />
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
@@ -351,10 +368,47 @@ function QuickCard({ icon, color, label, value, detail, onPress }: { icon: React
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#171044' },
-  scroll: { flex: 1, backgroundColor: '#171044' },
-  scrollContent: { paddingHorizontal: 14, paddingBottom: 42 },
-  content: { flexGrow: 1, backgroundColor: '#171044' },
+  root: {
+    flex: 1,
+    backgroundColor: '#171044',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  bgContainer: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    overflow: 'hidden',
+    zIndex: 0,
+  },
+  bgImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+  },
+  safe: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    zIndex: 1,
+  },
+  scroll: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  scrollContent: {
+    paddingHorizontal: 14,
+    paddingBottom: 42,
+  },
+  content: {
+    flexGrow: 1,
+    backgroundColor: 'transparent',
+  },
   header: { height: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerSideSlot: { width: 82, alignItems: 'flex-start' },
   headerRightActions: { width: 82, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 3 },

@@ -559,11 +559,11 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
 
       {/* Ảnh nền phong cảnh vector TOÀN MÀN HÌNH cho Màn hình 1 (không bị cắt cụt) */}
       {step === 'input' && (
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <View style={styles.inputBackgroundLayer} pointerEvents="none">
           <Image
             source={BG_LANDSCAPE}
-            style={StyleSheet.absoluteFill}
-            resizeMode="cover"
+            style={styles.inputBackgroundImage}
+            resizeMode="stretch"
           />
           <FloatingWallpaperCloud />
         </View>
@@ -1224,6 +1224,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#211438',
     position: 'relative',
+  },
+  inputBackgroundLayer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    overflow: 'hidden',
+    backgroundColor: '#211438',
+  },
+  inputBackgroundImage: {
+    width: '100%',
+    height: '100%',
   },
   safeArea: {
     flex: 1,
