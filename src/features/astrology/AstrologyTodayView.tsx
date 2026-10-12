@@ -34,7 +34,7 @@ import {
   planetLabel,
   type AstrologyDetailTarget,
 } from './astrologyPresentation';
-import { ASTROLOGY_UI_ICONS, PLANET_PNG } from './astrologyArtwork';
+import { ASTROLOGY_BACKGROUNDS, ASTROLOGY_UI_ICONS, PLANET_PNG } from './astrologyArtwork';
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -211,7 +211,14 @@ export function AstrologyTodayView({
                     style={[styles.guidanceCard, { width: guidanceCardWidth }]}
                   >
                     <View style={styles.guidanceImage}>
-                      <LinearGradient colors={['rgba(50,31,116,0.24)', 'rgba(12,11,68,0.82)']} style={StyleSheet.absoluteFill} />
+                      <Image
+                        accessibilityElementsHidden
+                        contentFit="cover"
+                        priority="low"
+                        source={ASTROLOGY_BACKGROUNDS.planetDetail}
+                        style={StyleSheet.absoluteFill}
+                      />
+                      <LinearGradient colors={['rgba(18,12,58,0.24)', 'rgba(12,11,68,0.68)']} style={StyleSheet.absoluteFill} />
                       <Image
                         accessibilityElementsHidden
                         cachePolicy="memory-disk"

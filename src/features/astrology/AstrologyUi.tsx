@@ -44,6 +44,7 @@ const VEILS: Record<AstrologyBackgroundVariant, readonly [string, string, string
   today: ['rgba(8,12,67,0.05)', 'rgba(12,11,68,0.28)', 'rgba(8,12,67,0.98)'],
   natal: ['rgba(8,12,67,0.10)', 'rgba(12,11,68,0.34)', 'rgba(8,12,67,0.96)'],
   detail: ['rgba(8,12,67,0.04)', 'rgba(12,11,68,0.22)', 'rgba(8,12,67,0.94)'],
+  planetDetail: ['rgba(8,12,67,0.02)', 'rgba(8,12,52,0.26)', 'rgba(8,12,67,0.95)'],
 };
 
 export function AstrologyBackground({

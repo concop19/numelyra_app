@@ -37,7 +37,7 @@ function metadata() {
 
 describe('astrology presentation mapping', () => {
   it('maps all backgrounds, planets, zodiac art, and constellations', () => {
-    expect(Object.keys(ASTROLOGY_BACKGROUNDS)).toEqual(['today', 'natal', 'detail']);
+    expect(Object.keys(ASTROLOGY_BACKGROUNDS)).toEqual(['today', 'natal', 'detail', 'planetDetail']);
     expect(Object.keys(PLANET_PNG)).toEqual(PLANET_IDS);
     expect(Object.keys(PLANET_SVG)).toEqual(PLANET_IDS);
     expect(Object.keys(ZODIAC_PNG)).toEqual(ZODIAC_IDS);

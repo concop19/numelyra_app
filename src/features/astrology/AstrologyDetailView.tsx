@@ -55,6 +55,7 @@ export function AstrologyDetailView({ target, metadata, onBack }: Props) {
   const constellationSign = resolveDetailConstellation(target, metadata);
   const emblem = target.kind === 'sign' ? ZODIAC_PNG[target.id] : PLANET_PNG[target.id];
   const smallSymbol = target.kind === 'sign' ? ZODIAC_PNG[target.id] : PLANET_SVG[target.id];
+  const isPlanetDetail = target.kind === 'planet';
 
   return (
     <AstrologyBackground variant="detail">
@@ -64,33 +65,76 @@ export function AstrologyDetailView({ target, metadata, onBack }: Props) {
       >
         <AstrologyHeader title="Chi tiết năng lượng" subtitle={target.kind === 'planet' ? 'Hành tinh' : 'Cung hoàng đạo'} onBack={onBack} />
 
-        <View style={styles.hero}>
-          <Image accessibilityElementsHidden contentFit="cover" priority="high" source={ASTROLOGY_BACKGROUNDS.detail} style={StyleSheet.absoluteFill} />
+        <View style={[styles.hero, isPlanetDetail && styles.planetHero]}>
+          <Image
+            accessibilityElementsHidden
+            contentFit="cover"
+            priority="high"
+            source={isPlanetDetail ? ASTROLOGY_BACKGROUNDS.planetDetail : ASTROLOGY_BACKGROUNDS.detail}
+            style={StyleSheet.absoluteFill}
+          />
           <LinearGradient
-            colors={['rgba(8,12,67,0.04)', 'rgba(12,11,68,0.08)', 'rgba(8,12,67,0.52)']}
-            locations={[0, 0.6, 1]}
+            colors={isPlanetDetail
+              ? ['rgba(8,12,47,0.02)', 'rgba(8,12,55,0.18)', 'rgba(8,10,48,0.78)']
+              : ['rgba(8,12,67,0.04)', 'rgba(12,11,68,0.08)', 'rgba(8,12,67,0.52)']}
+            locations={isPlanetDetail ? [0, 0.5, 1] : [0, 0.6, 1]}
             pointerEvents="none"
             style={StyleSheet.absoluteFill}
           />
-          <View style={styles.heroTop}>
-            <Image accessibilityLabel={`Biểu tượng ${info.nameVi}`} contentFit="contain" source={emblem} style={styles.emblem} />
-            <Text style={styles.heroTitle}>{info.nameVi}</Text>
-            <Text style={styles.heroDescription}>{info.description}</Text>
-            <View style={styles.themeRow}>
-              {info.themes.map((theme) => <Text key={theme} style={styles.themePill}>{theme}</Text>)}
+          {isPlanetDetail ? (
+            <View style={styles.planetHeroRow}>
+              <View style={styles.planetArtStage}>
+                <View pointerEvents="none" style={styles.planetAura} />
+                <View style={styles.planetEmblemWrap}>
+                  <Image
+                    accessibilityLabel={`Hành tinh ${info.nameVi}`}
+                    contentFit="contain"
+                    source={emblem}
+                    style={styles.planetEmblem}
+                  />
+                </View>
+              </View>
+              <View style={styles.planetCopy}>
+                <Image
+                  accessibilityElementsHidden
+                  contentFit="contain"
+                  pointerEvents="none"
+                  source={CONSTELLATION_SVG[constellationSign]}
+                  style={styles.planetConstellationHalo}
+                />
+                <View style={styles.planetCopyContent}>
+                  <Text style={styles.planetConstellationCaption}>CHÒM SAO {zodiacLabel(constellationSign).toUpperCase()}</Text>
+                  <Text style={styles.planetTitle}>{info.nameVi}</Text>
+                  <Text style={[styles.heroDescription, styles.planetDescription]}>{info.description}</Text>
+                  <View style={styles.themeRow}>
+                    {info.themes.map((theme) => <Text key={theme} style={styles.themePill}>{theme}</Text>)}
+                  </View>
+                </View>
+              </View>
             </View>
-          </View>
-          <View style={styles.constellationWrap}>
-            <Text style={styles.constellationLabel}>CHÒM SAO {zodiacLabel(constellationSign).toUpperCase()}</Text>
-            <Image
-              accessibilityLabel={`Chòm sao ${zodiacLabel(constellationSign)}`}
-              contentFit="contain"
-              source={CONSTELLATION_SVG[constellationSign]}
-              style={styles.constellation}
-            />
-          </View>
+          ) : (
+            <>
+              <View style={styles.heroTop}>
+                <Image accessibilityLabel={`Biểu tượng ${info.nameVi}`} contentFit="contain" source={emblem} style={styles.emblem} />
+                <Text style={styles.heroTitle}>{info.nameVi}</Text>
+                <Text style={styles.heroDescription}>{info.description}</Text>
+                <View style={styles.themeRow}>
+                  {info.themes.map((theme) => <Text key={theme} style={styles.themePill}>{theme}</Text>)}
+                </View>
+              </View>
+              <View style={styles.constellationWrap}>
+                <Text style={styles.constellationLabel}>CHÒM SAO {zodiacLabel(constellationSign).toUpperCase()}</Text>
+                <Image
+                  accessibilityLabel={`Chòm sao ${zodiacLabel(constellationSign)}`}
+                  contentFit="contain"
+                  source={CONSTELLATION_SVG[constellationSign]}
+                  style={styles.constellation}
+                />
+              </View>
+            </>
+          )}
           {(natalPlanet || transitPlanet) && (
-            <View style={styles.placementPanel}>
+            <View style={[styles.placementPanel, isPlanetDetail && styles.planetPlacementPanel]}>
               {!!natalPlanet && (
                 <View style={styles.placementItem}>
                   <Image contentFit="contain" source={smallSymbol} style={styles.placementIcon} />
@@ -174,16 +218,29 @@ export function AstrologyDetailView({ target, metadata, onBack }: Props) {
 
 const styles = StyleSheet.create({
   hero: { marginTop: 12, minHeight: 520, alignItems: 'center', padding: 18, borderRadius: 28, borderWidth: 1, borderColor: 'rgba(255,214,155,0.48)', overflow: 'hidden', shadowColor: '#7C51D6', shadowOpacity: 0.3, shadowRadius: 18, elevation: 7 },
+  planetHero: { minHeight: 0, paddingHorizontal: 12, paddingTop: 14, paddingBottom: 16, borderColor: 'rgba(201,167,255,0.58)', shadowColor: '#B77CFF', shadowOpacity: 0.34, shadowRadius: 22 },
   heroTop: { width: '100%', alignItems: 'center', zIndex: 2 },
   emblem: { width: 72, height: 72, marginTop: -4 },
+  planetHeroRow: { width: '100%', minHeight: 244, flexDirection: 'row', alignItems: 'center', zIndex: 2 },
+  planetArtStage: { width: '40%', minHeight: 218, alignItems: 'center', justifyContent: 'center' },
+  planetAura: { position: 'absolute', width: 124, height: 124, borderRadius: 62, backgroundColor: 'rgba(167,111,255,0.2)', shadowColor: '#FFD69B', shadowOpacity: 0.74, shadowRadius: 28, elevation: 10 },
+  planetEmblemWrap: { width: '100%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', shadowColor: '#F8C98C', shadowOpacity: 0.72, shadowRadius: 22, elevation: 12 },
+  planetEmblem: { width: '94%', height: '94%' },
+  planetConstellationHalo: { position: 'absolute', width: 148, height: 148, top: -7, alignSelf: 'center', opacity: 0.48 },
+  planetCopy: { width: '60%', minHeight: 244, alignItems: 'center', justifyContent: 'center', position: 'relative', paddingHorizontal: 3 },
+  planetCopyContent: { width: '100%', alignItems: 'center', zIndex: 2, paddingTop: 36, paddingBottom: 8 },
+  planetConstellationCaption: { color: ASTRO_COLORS.cyan, fontSize: 8, lineHeight: 12, fontWeight: '900', letterSpacing: 0.8, textAlign: 'center', marginBottom: 4 },
+  planetTitle: { color: ASTRO_COLORS.text, fontSize: 25, lineHeight: 30, textAlign: 'center', fontFamily: 'serif', fontWeight: '900', textShadowColor: '#1B0D45', textShadowRadius: 8 },
   heroTitle: { color: ASTRO_COLORS.text, fontSize: 31, lineHeight: 36, fontFamily: 'serif', fontWeight: '900', textShadowColor: '#1B0D45', textShadowRadius: 8 },
   heroDescription: { maxWidth: 430, color: '#F2ECF8', fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 6, textShadowColor: '#110A34', textShadowRadius: 5 },
+  planetDescription: { maxWidth: 260, paddingHorizontal: 2, fontSize: 10, lineHeight: 15 },
   themeRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 9 },
   themePill: { color: '#FFF2FB', fontSize: 8.5, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.7, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, backgroundColor: 'rgba(17,10,55,0.48)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)' },
   constellationWrap: { width: '100%', maxWidth: 440, height: 205, alignItems: 'center', marginTop: 1, zIndex: 2 },
   constellationLabel: { position: 'absolute', top: 8, zIndex: 2, color: ASTRO_COLORS.cyan, fontSize: 8, fontWeight: '900', letterSpacing: 1.35 },
   constellation: { width: '100%', height: '100%', transform: [{ scale: 1.17 }] },
   placementPanel: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 'auto', zIndex: 2 },
+  planetPlacementPanel: { marginTop: 12 },
   placementItem: { flex: 1, minWidth: 142, minHeight: 61, flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 16, backgroundColor: 'rgba(8,12,67,0.72)', borderWidth: 1, borderColor: 'rgba(255,220,178,0.3)' },
   placementIcon: { width: 30, height: 30, marginRight: 8 },
   placementCopy: { flex: 1 },

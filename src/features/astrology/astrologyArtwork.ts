@@ -1,6 +1,6 @@
 import type { PlanetId, ZodiacId } from './astrologyPresentation';
 
-export type AstrologyBackgroundVariant = 'today' | 'natal' | 'detail';
+export type AstrologyBackgroundVariant = 'today' | 'natal' | 'detail' | 'planetDetail';
 export type AstrologyUiIconId =
   | 'calendar'
   | 'clock'
@@ -24,6 +24,7 @@ export const ASTROLOGY_BACKGROUNDS = {
   today: require('../../../assets/giao_dien/giaodien1/astrology/background/ChatGPT Image Oct 11, 2026, 08_47_57 PM-3.png'),
   natal: require('../../../assets/giao_dien/giaodien1/astrology/background/ChatGPT Image Oct 11, 2026, 08_47_56 PM-2.png'),
   detail: require('../../../assets/giao_dien/giaodien1/astrology/background/ChatGPT Image Oct 11, 2026, 08_47_55 PM-1.png'),
+  planetDetail: require('../../../assets/giao_dien/giaodien1/astrology/background/planet-detail-milky-way-v2.png'),
 } satisfies Record<AstrologyBackgroundVariant, number>;
 
 export const PLANET_PNG = {
