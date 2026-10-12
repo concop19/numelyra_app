@@ -14,7 +14,7 @@ import {
   StyleSheet, View, Text, TextInput, TouchableOpacity,
   FlatList, KeyboardAvoidingView, Platform, Keyboard,
   Animated, Easing, Image, Alert, ScrollView, Modal, Linking,
-  ActivityIndicator
+  ActivityIndicator, type ImageSourcePropType
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -59,6 +59,10 @@ import {
 
 const VIP_ACCOUNT_ICON = require('../../assets/giao_dien/vip.png');
 const AMBIENT_GLOW_IMG = require('../../assets/giao_dien/ambient_glow.png');
+const ASTROLOGY_ACTION_ICON = require('../../assets/astrology_icon.webp');
+const CALENDAR_ACTION_ICON = require('../../assets/calendar_icon.webp');
+const SETTINGS_ACTION_ICON = require('../../assets/setting_icon.webp');
+const WALLPAPER_ACTION_ICON = require('../../assets/wallpaper_icon.webp');
 
 export interface MessageItem {
   id: string;
@@ -95,7 +99,7 @@ interface Props {
 interface SceneActionButtonProps {
   label: string;
   accessibilityLabel: string;
-  iconName: React.ComponentProps<typeof Ionicons>['name'];
+  iconSource: ImageSourcePropType;
   accentColor: string;
   onPress?: () => void;
 }
@@ -103,7 +107,7 @@ interface SceneActionButtonProps {
 const SceneActionButton: React.FC<SceneActionButtonProps> = ({
   label,
   accessibilityLabel,
-  iconName,
+  iconSource,
   accentColor,
   onPress,
 }) => (
@@ -128,7 +132,7 @@ const SceneActionButton: React.FC<SceneActionButtonProps> = ({
         style={[styles.sceneActionOrb, { borderColor: accentColor }]}
       >
         <View style={[styles.sceneActionIconHalo, { backgroundColor: `${accentColor}1F` }]}>
-          <Ionicons name={iconName} size={17} color={accentColor} />
+          <Image source={iconSource} style={styles.sceneActionIcon} resizeMode="contain" />
         </View>
       </LinearGradient>
     </TouchableOpacity>
@@ -164,7 +168,7 @@ const ChatSceneActions: React.FC<ChatSceneActionsProps> = ({
       <SceneActionButton
         label="Chiêm tinh"
         accessibilityLabel="Mở Chiêm tinh"
-        iconName="planet-outline"
+        iconSource={ASTROLOGY_ACTION_ICON}
         accentColor="#D6C2FF"
         onPress={onOpenAstrology}
       />
@@ -174,21 +178,21 @@ const ChatSceneActions: React.FC<ChatSceneActionsProps> = ({
       <SceneActionButton
         label="Lịch"
         accessibilityLabel="Mở Lịch của tôi"
-        iconName="calendar-clear-outline"
+        iconSource={CALENDAR_ACTION_ICON}
         accentColor="#FFD67C"
         onPress={onOpenCalendar}
       />
       <SceneActionButton
         label="Cài đặt"
         accessibilityLabel="Mở Cài đặt"
-        iconName="options-outline"
+        iconSource={SETTINGS_ACTION_ICON}
         accentColor="#AEE8F5"
         onPress={onOpenSettings}
       />
       <SceneActionButton
         label="Hình nền"
         accessibilityLabel="Mở Xưởng hình nền"
-        iconName="color-palette-outline"
+        iconSource={WALLPAPER_ACTION_ICON}
         accentColor="#F6B5DF"
         onPress={onOpenWallpaper}
       />
@@ -2303,6 +2307,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  sceneActionIcon: {
+    width: 27,
+    height: 27,
   },
   sceneActionLabelPill: {
     maxWidth: 54,

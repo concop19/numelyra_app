@@ -32,24 +32,60 @@ async function importBundledDatabase(forceOverwrite = false): Promise<void> {
   });
 }
 
+async function hasRepresentativesTable(db: SQLite.SQLiteDatabase): Promise<boolean> {
+  try {
+    const result = await db.getFirstAsync<{ count: number }>(
+      "SELECT count(*) as count FROM sqlite_master WHERE type='table' AND name='representatives'"
+    );
+    return (result?.count ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
+async function hasBiographiesVi(db: SQLite.SQLiteDatabase): Promise<boolean> {
+  try {
+    const result = await db.getFirstAsync<{ count: number }>(
+      "SELECT count(*) as count FROM pragma_table_info('representatives') WHERE name='biography_vi'"
+    );
+    return (result?.count ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
+async function getDatabaseUserVersion(db: SQLite.SQLiteDatabase): Promise<number> {
+  try {
+    const result = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
+    return result?.user_version ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
-  // With forceOverwrite=false this only installs the bundled DB if no local
-  // copy exists, preserving the normal fast path on subsequent launches.
+  // Cài đặt bundle nếu chưa có bản local nào
   await importBundledDatabase();
   let db = await SQLite.openDatabaseAsync(DATABASE_NAME);
 
   try {
     const count = await getStoredCaDaoCount(db);
-    if (count > 0) return db;
+    const hasReps = await hasRepresentativesTable(db);
+    const hasVi = await hasBiographiesVi(db);
+    const version = await getDatabaseUserVersion(db);
+
+    // Yêu cầu bản cập nhật mới nhất (version >= 2 có bảng representatives và cột biography_vi tiếng Việt)
+    if (count > 0 && hasReps && hasVi && version >= 2) return db;
   } catch {
-    // Older app versions created an empty cadao.db. Replace that invalid copy.
+    // Bản cài cũ có DB cũ hoặc thiếu bảng / thiếu cột biography_vi. Thay thế bản đó.
   }
 
+  // Tự động ghi đè bản DB mới nhất từ bundle assets
   await db.closeAsync();
   await importBundledDatabase(true);
   db = await SQLite.openDatabaseAsync(DATABASE_NAME);
 
-  if (await getStoredCaDaoCount(db) === 0) {
+  if ((await getStoredCaDaoCount(db)) === 0) {
     await db.closeAsync();
     throw new Error('Bundled ca dao database is empty.');
   }

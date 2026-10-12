@@ -21,6 +21,8 @@ import * as Haptics from 'expo-haptics';
 import { calculate24Indicators, CalculatedIndicator } from '../services/numerologyEngine';
 import { IndicatorCategory } from '../config/numerologyCards';
 import { IndicatorDetailModal } from './IndicatorDetailModal';
+import { HistoricalFigureModal } from './HistoricalFigureModal';
+import { getRepresentativeByTriple, RepresentativeItem } from '../db/representativeService';
 import { getIndicatorShortSummary } from '../services/numerologySummaryService';
 import { type ProfileItem } from '../store/userProfile';
 
@@ -75,6 +77,9 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<'all' | IndicatorCategory>('all');
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedIndicatorForDetail, setSelectedIndicatorForDetail] = useState<CalculatedIndicator | null>(null);
+  const [isFigureModalOpen, setIsFigureModalOpen] = useState(false);
+  const [matchedFigure, setMatchedFigure] = useState<RepresentativeItem | null>(null);
+  const [loadingFigure, setLoadingFigure] = useState(false);
 
   const flatListRef = useRef<FlatList<CalculatedIndicator>>(null);
 
@@ -82,6 +87,31 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
     if (!profile) return [];
     return calculate24Indicators(profile.fullName, profile.birthDate);
   }, [profile?.fullName, profile?.birthDate]);
+
+  // Tìm nhân vật có chung 3 chỉ số cốt lõi (Đường đời, Sứ mệnh, Linh hồn)
+  const handleFindFigure = useCallback(async () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsFigureModalOpen(true);
+    setLoadingFigure(true);
+
+    try {
+      const lpInd = indicators.find((i) => i.key === 'walksOfLife');
+      const expInd = indicators.find((i) => i.key === 'mission');
+      const suInd = indicators.find((i) => i.key === 'soul');
+
+      const lifePath = Number(lpInd?.value) || 1;
+      const expression = Number(expInd?.value) || 1;
+      const soulUrge = Number(suInd?.value) || 1;
+
+      const rep = await getRepresentativeByTriple(lifePath, expression, soulUrge);
+      setMatchedFigure(rep);
+    } catch (err) {
+      console.warn('Lỗi khi truy vấn nhân vật đồng điệu:', err);
+      setMatchedFigure(null);
+    } finally {
+      setLoadingFigure(false);
+    }
+  }, [indicators]);
 
   const filteredIndicators = useMemo(() => {
     if (selectedCategory === 'all') return indicators;
@@ -185,7 +215,16 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
 
           {/* Top Header */}
           <View style={styles.topHeader}>
-            <View style={styles.headerSpacer} />
+            <TouchableOpacity
+              activeOpacity={0.75}
+              onPress={handleFindFigure}
+              style={styles.headerFigureQuickBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Tìm nhân vật đồng điệu 3 chỉ số"
+            >
+              <Ionicons name="sparkles" size={12} color="#E8BC79" style={{ marginRight: 4 }} />
+              <Text style={styles.headerFigureQuickText}>Tri Kỷ 3 Số</Text>
+            </TouchableOpacity>
 
             <View style={styles.headerCenter}>
               <View style={styles.headerTitleRow}>
@@ -276,21 +315,42 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
               </Text>
 
               {/* Đúc kết nguyên mẫu 1-2 câu sâu sắc (Chữ phụ #ADA2C5) */}
-              <Text style={styles.insightSummary} numberOfLines={3}>
+              <Text style={styles.insightSummary} numberOfLines={2}>
                 {shortSummary}
               </Text>
 
-              {/* Nút bấm Khám phá luận giải ↗ (Điểm nhấn #E8BC79) */}
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setSelectedIndicatorForDetail(currentIndicator);
-                }}
-                style={styles.exploreActionBtn}
-              >
-                <Text style={styles.exploreActionText}>Khám phá luận giải ↗</Text>
-              </TouchableOpacity>
+              {/* Cụm nút hành động: Nút Nổi Bật Tìm Người Chung 3 Chỉ Số + Nút Khám phá luận giải */}
+              <View style={styles.insightActionsContainer}>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={handleFindFigure}
+                  style={styles.findFigureActionBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="Tìm nhân vật có cùng 3 chỉ số với bạn"
+                >
+                  <LinearGradient
+                    colors={['#FFE4A0', '#E8BC79', '#D19A4B']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.findFigureActionGradient}
+                  >
+                    <Ionicons name="sparkles" size={14} color="#160E34" style={{ marginRight: 6 }} />
+                    <Text style={styles.findFigureActionText}>Tìm người chung 3 chỉ số với bạn</Text>
+                    <Ionicons name="arrow-forward" size={13} color="#160E34" style={{ marginLeft: 6 }} />
+                  </LinearGradient>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setSelectedIndicatorForDetail(currentIndicator);
+                  }}
+                  style={styles.exploreActionBtn}
+                >
+                  <Text style={styles.exploreActionText}>Khám phá luận giải chỉ số này ↗</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
 
@@ -299,6 +359,14 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
             visible={!!selectedIndicatorForDetail}
             indicator={selectedIndicatorForDetail}
             onClose={() => setSelectedIndicatorForDetail(null)}
+          />
+
+          {/* Historical Figure Modal (Thẻ nhân vật lịch sử theo layout Dorian Gray) */}
+          <HistoricalFigureModal
+            visible={isFigureModalOpen}
+            figure={matchedFigure}
+            loading={loadingFigure}
+            onClose={() => setIsFigureModalOpen(false)}
           />
         </SafeAreaView>
       </ImageBackground>
@@ -325,12 +393,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 8,
   },
-  headerSpacer: {
-    width: 36,
+  headerFigureQuickBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(232, 188, 121, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(232, 188, 121, 0.45)',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 14,
+  },
+  headerFigureQuickText: {
+    color: '#E8BC79',
+    fontSize: 11,
+    fontWeight: '600',
   },
   headerCenter: {
     alignItems: 'center',
@@ -547,19 +627,41 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   exploreActionBtn: {
-    marginTop: 14,
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(232, 188, 121, 0.55)',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
   },
   exploreActionText: {
-    color: PALETTE.accent, // #E8BC79 Điểm nhấn
-    fontSize: 14.5,
+    color: PALETTE.textSecondary,
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: 0.2,
+    textDecorationLine: 'underline',
+  },
+  insightActionsContainer: {
+    alignItems: 'center',
+    width: '100%',
+    marginTop: 10,
+    gap: 8,
+  },
+  findFigureActionBtn: {
+    borderRadius: 22,
+    overflow: 'hidden',
+    shadowColor: '#E8BC79',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  findFigureActionGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+  },
+  findFigureActionText: {
+    color: '#160E34',
+    fontSize: 13,
     fontWeight: '700',
-    letterSpacing: 0.3,
-    textShadowColor: 'rgba(0, 0, 0, 0.35)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    letterSpacing: 0.2,
   },
 });
