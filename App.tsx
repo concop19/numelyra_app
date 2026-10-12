@@ -188,6 +188,7 @@ function AppContent() {
               <CalendarScreen
                 profile={profile}
                 onBack={() => navigation.goBack()}
+                onOpenSettings={() => navigation.navigate('Settings')}
               />
             )}
           </Stack.Screen>
@@ -202,6 +203,7 @@ function AppContent() {
               <AstrologyScreen
                 profile={profile}
                 onBack={() => navigation.goBack()}
+                onProfileChange={setProfile}
               />
             )}
           </Stack.Screen>
@@ -223,15 +225,15 @@ function AppContent() {
           <Stack.Screen
             name="Settings"
             options={{
-              headerShown: true,
-              headerTransparent: true,
-              headerTitle: '',
-              headerBackButtonDisplayMode: 'minimal',
-              headerTintColor: '#FFD07A',
-              headerShadowVisible: false,
+              headerShown: false,
             }}
           >
-            {() => <SettingsScreen onRequestLogin={() => setLoginRequested(true)} />}
+            {({ navigation }) => (
+              <SettingsScreen
+                onBack={() => navigation.goBack()}
+                onRequestLogin={() => setLoginRequested(true)}
+              />
+            )}
           </Stack.Screen>
           <Stack.Screen
             name="Games"

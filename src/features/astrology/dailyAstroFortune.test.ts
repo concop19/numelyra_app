@@ -1,4 +1,5 @@
 import type { AstroFortuneSlip } from '../../services/astro/astroFortuneService';
+import type { PureAstroFeatureMetadata } from '../../services/astro/astroVectorEngine';
 import {
   formatLocalDateKey,
   getAstroFortuneStorageKey,
@@ -6,6 +7,7 @@ import {
   getAstrologyProfileKey,
   loadCachedAstroFortune,
   loadRecentAstroAdvice,
+  refreshCachedAstroMetadata,
   saveCachedAstroFortune,
   type KeyValueStorage,
 } from './dailyAstroFortune';
@@ -104,5 +106,23 @@ describe('daily astrology fortune cache', () => {
       ...complete,
       birthLocation: { placeId: 'danang' },
     })).not.toBe(getAstroFortuneStorageKey(date, complete));
+  });
+
+  it('keeps a cached narrative but rebuilds its astrology metadata', () => {
+    const currentMetadata = {
+      engineVersion: 'astrology-v2-porphyry-1',
+      natalPlanets: [],
+      notableTransitAspects: [],
+      natalAspects: [],
+    } as unknown as PureAstroFeatureMetadata;
+    const refreshed = refreshCachedAstroMetadata(fortune, currentMetadata);
+
+    expect(refreshed.metadataChanged).toBe(true);
+    expect(refreshed.fortune).toMatchObject({
+      title: fortune.title,
+      mirror: fortune.mirror,
+      astroMetadata: currentMetadata,
+    });
+    expect(fortune.astroMetadata).toBeUndefined();
   });
 });

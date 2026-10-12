@@ -16,8 +16,10 @@ import {
 } from './astroEngine';
 import {
   analyzeTransitToNatalAspects,
+  analyzeNatalAspects,
   AspectAnalysisResult,
   DetectedAspect,
+  NatalAspect,
   getShortestAngleDiff,
   MAJOR_ASPECTS,
   TRANSIT_ACTIVITY_WEIGHTS,
@@ -59,7 +61,17 @@ export interface AstroDailyContext {
   activatedHouses: ActivatedHouseScore[];
 }
 
+export interface AstroPlanetSnapshot {
+  name: string;
+  longitude: number;
+  sign: string;
+  signIndex: number;
+  degreeInSign: number;
+  normalized: number;
+}
+
 export interface PureAstroFeatureMetadata {
+  engineVersion: string;
   birthDate: string;
   birthTime: string | null;
   hasExactTime: boolean;
@@ -92,6 +104,10 @@ export interface PureAstroFeatureMetadata {
   birthDataPrecision: AstroBirthDataPrecision;
   natalContext: AstroNatalContext | null;
   dailyContext: AstroDailyContext | null;
+  natalPlanets: AstroPlanetSnapshot[];
+  transitPlanets: AstroPlanetSnapshot[];
+  notableTransitAspects: DetectedAspect[];
+  natalAspects: NatalAspect[];
 }
 
 export interface PureAstroVectorResult {
@@ -224,6 +240,7 @@ export function generatePureAstroVector(
 
   // 2. Phân tích góc hợp Transit-to-Natal
   const aspectResult: AspectAnalysisResult = analyzeTransitToNatalAspects(transitChart, natalChart);
+  const natalAspects = analyzeNatalAspects(natalChart);
   const dailyContext = natalSnapshot.context
     ? makeDailyContext(transitChart, natalSnapshot.context, aspectResult.aspects)
     : null;
@@ -304,6 +321,7 @@ export function generatePureAstroVector(
   const vibeSummary = vibeSummaryBySignal[dominantSignal];
 
   const metadata: PureAstroFeatureMetadata = {
+    engineVersion: natalSnapshot.engineVersion,
     birthDate: userInput.birthDate,
     birthTime: userInput.birthTime || null,
     hasExactTime: !natalChart.isTimeEstimated,
@@ -331,6 +349,10 @@ export function generatePureAstroVector(
       ?? (natalChart.isTimeEstimated ? 'dateOnly' : 'timeWithoutLocation'),
     natalContext: natalSnapshot.context,
     dailyContext,
+    natalPlanets: natalChart.planetList.map(({ body: _body, ...planet }) => planet),
+    transitPlanets: transitChart.planetList.map(({ body: _body, ...planet }) => planet),
+    notableTransitAspects: aspectResult.aspects.slice(0, 8),
+    natalAspects,
   };
 
   return {

@@ -13,6 +13,7 @@ import {
 } from '../astroEngine';
 import {
   calculateAspectScores,
+  analyzeNatalAspects,
   getShortestAngleDiff,
   type DetectedAspect,
 } from '../aspectCalculator';
@@ -198,6 +199,17 @@ describe('Pure Astrology Feature Vector Engine', () => {
   });
 
   describe('Aspect Angle Calculations', () => {
+    it('creates unique natal pairs without self aspects and sorts by strength', () => {
+      const chart = computeNatalChart('1998-10-20', '14:30', 'exact');
+      const aspects = analyzeNatalAspects(chart);
+      const pairKeys = aspects.map((item) => [item.planetA, item.planetB].sort().join('|'));
+
+      expect(aspects.length).toBeGreaterThan(0);
+      expect(new Set(pairKeys).size).toBe(pairKeys.length);
+      expect(aspects.every((item) => item.planetA !== item.planetB)).toBe(true);
+      expect(aspects.every((item, index) => index === 0 || aspects[index - 1].weight >= item.weight)).toBe(true);
+    });
+
     it('tính đúng khoảng cách góc ngắn nhất giữa 2 độ', () => {
       expect(getShortestAngleDiff(10, 350)).toBe(20);
       expect(getShortestAngleDiff(0, 180)).toBe(180);

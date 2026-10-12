@@ -54,7 +54,8 @@
         {
           "initialOrientation": "DEFAULT"
         }
-      ]
+      ],
+      "expo-image"
     ],
     "web": {
       "favicon": "./assets/favicon.png"

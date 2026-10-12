@@ -38,6 +38,19 @@ export interface DetectedAspect {
   nature: 'tension' | 'harmony' | 'neutral';
 }
 
+export interface NatalAspect {
+  planetA: string;
+  planetB: string;
+  type: AspectType;
+  symbol: string;
+  nameVi: string;
+  targetAngle: number;
+  actualAngle: number;
+  orb: number;
+  weight: number;
+  nature: 'tension' | 'harmony' | 'neutral';
+}
+
 export interface AspectAnalysisResult {
   aspects: DetectedAspect[];
   topAspect: DetectedAspect | null;
@@ -169,4 +182,41 @@ export function analyzeTransitToNatalAspects(
     topAspect,
     ...scores,
   };
+}
+
+/**
+ * Phân tích các góc chính ngay trong một lá số. Mỗi cặp hành tinh chỉ xuất hiện
+ * một lần; toàn bộ định nghĩa orb/trọng số dùng chung với pipeline transit.
+ */
+export function analyzeNatalAspects(chart: PlanetaryChart): NatalAspect[] {
+  const detected: NatalAspect[] = [];
+
+  for (let leftIndex = 0; leftIndex < chart.planetList.length; leftIndex += 1) {
+    const left = chart.planetList[leftIndex];
+    for (let rightIndex = leftIndex + 1; rightIndex < chart.planetList.length; rightIndex += 1) {
+      const right = chart.planetList[rightIndex];
+      const angle = getShortestAngleDiff(left.longitude, right.longitude);
+
+      for (const definition of MAJOR_ASPECTS) {
+        const orb = Math.abs(angle - definition.targetAngle);
+        if (orb > definition.maxOrb) continue;
+
+        detected.push({
+          planetA: left.name,
+          planetB: right.name,
+          type: definition.type,
+          symbol: definition.symbol,
+          nameVi: definition.nameVi,
+          targetAngle: definition.targetAngle,
+          actualAngle: Number(angle.toFixed(2)),
+          orb: Number(orb.toFixed(2)),
+          weight: Number((definition.baseWeight * Math.max(0, 1 - orb / definition.maxOrb)).toFixed(4)),
+          nature: definition.nature,
+        });
+        break;
+      }
+    }
+  }
+
+  return detected.sort((left, right) => right.weight - left.weight || left.orb - right.orb);
 }

@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AstroFortuneSlip } from '../../services/astro/astroFortuneService';
 import type { PureAstroFeatureMetadata } from '../../services/astro/astroVectorEngine';
 import { longitudeToZodiac } from '../../services/astro/astroEngine';
+import { buildTodayInterpretation } from './astrologyPresentation';
 
 const ZODIAC_VI: Record<string, string> = {
   Aries: 'Bạch Dương ♈',
@@ -107,6 +108,16 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
+            {metadata && (
+              <View style={styles.interpretationCard}>
+                <View style={styles.sectionTitleRow}>
+                  <Ionicons name="sparkles" size={18} color="#FBBF24" />
+                  <Text style={styles.sectionTitle}>Luận giải hôm nay</Text>
+                </View>
+                <Text style={styles.bodyText}>{buildTodayInterpretation(metadata)}</Text>
+              </View>
+            )}
+
             {fortune && (
               <>
                 <View style={styles.insightCard}>
@@ -311,6 +322,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(30, 44, 91, 0.58)',
     borderWidth: 1,
     borderColor: 'rgba(131, 183, 255, 0.22)',
+  },
+  interpretationCard: {
+    padding: 16,
+    borderRadius: 18,
+    backgroundColor: 'rgba(72, 49, 118, 0.62)',
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.24)',
   },
   sectionTitleRow: {
     flexDirection: 'row',

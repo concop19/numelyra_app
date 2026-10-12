@@ -69,6 +69,16 @@ export function BirthDataModal({ visible, profile, onSave, onClose }: Props) {
     const normalized = place.trim();
     const existingLabel = profile.birthLocation?.userLabel.trim();
     if (
+      Platform.OS === 'web' &&
+      normalized.length >= 3 &&
+      normalized !== existingLabel
+    ) {
+      setSuggestions([]);
+      setSearching(false);
+      setSearchError('Tra cứu nơi sinh mới hiện chỉ hỗ trợ trên ứng dụng iOS và Android. Dữ liệu nơi sinh đã lưu vẫn xem được trên web.');
+      return;
+    }
+    if (
       normalized.length < 3
       || normalized === existingLabel
       || selectedSuggestion?.userLabel === normalized
@@ -199,6 +209,9 @@ export function BirthDataModal({ visible, profile, onSave, onClose }: Props) {
               />
             </View>
             <Text style={styles.hint}>Ghi thêm tỉnh hoặc quốc gia nếu có nhiều địa danh trùng tên.</Text>
+            {Platform.OS === 'web' && !profile.birthLocation && (
+              <Text style={styles.webNotice}>Hãy bổ sung nơi sinh trên iOS hoặc Android; phiên bản web chưa có dịch vụ phân giải địa điểm.</Text>
+            )}
 
             {(searching || suggestions.length > 0 || searchError) && (
               <View style={styles.suggestionPanel}>
@@ -326,6 +339,7 @@ const styles = StyleSheet.create({
   inputWrap: { minHeight: 50, flexDirection: 'row', alignItems: 'center', gap: 9, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(118,205,244,0.38)', backgroundColor: 'rgba(11,25,58,0.84)', paddingHorizontal: 13 },
   input: { flex: 1, color: '#FFFFFF', fontSize: 15, paddingVertical: Platform.OS === 'ios' ? 14 : 10 },
   hint: { color: '#8398B3', fontSize: 11, lineHeight: 16, marginTop: 6 },
+  webNotice: { color: '#F0C77A', fontSize: 11, lineHeight: 16, marginTop: 7 },
   suggestionPanel: { marginTop: 8, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(113,231,255,0.25)', backgroundColor: 'rgba(7,19,49,0.96)', overflow: 'hidden' },
   searchStatus: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   searchStatusText: { color: '#BBD4E5', fontSize: 12, fontWeight: '600' },

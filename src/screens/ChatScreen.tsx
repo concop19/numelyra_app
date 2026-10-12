@@ -79,8 +79,8 @@ type LiveTarotReading = {
 
 type AmbientMascotState = 'idle' | 'thinking' | 'answer';
 
-const CHAT_MASCOT_SIZE = 350;
-const THINKING_MASCOT_SIZE = 370;
+const CHAT_MASCOT_SIZE = 175;
+const THINKING_MASCOT_SIZE = 185;
 
 interface Props {
   profile?: UserProfile;
@@ -1861,7 +1861,6 @@ export default function ChatScreen({
               <TouchableOpacity
                 onPress={handleMascotPress}
                 accessibilityLabel="Mở 24 lá bài Thần số học"
-                style={styles.groundedMascotTouch}
               >
                 <FlameMascot
                   state={ambientMascotState}
@@ -1889,7 +1888,6 @@ export default function ChatScreen({
                 onPress={handleMascotPress}
                 accessibilityRole="button"
                 accessibilityLabel="Mở 24 lá bài Thần số học"
-                style={styles.groundedMascotTouch}
               >
                 <FlameMascot
                   state={speakingMessageId ? 'speaking' : ambientMascotState}
@@ -2335,7 +2333,7 @@ const styles = StyleSheet.create({
   // The mascot owns this lower area. The list viewport stops above it, so
   // neither newly received bubbles nor history pages can cover the sprite.
   chatTimelineListWithMascot: {
-    marginBottom: 360,
+    marginBottom: 218,
   },
   chatTimelineContent: {
     paddingHorizontal: 24,
@@ -2398,24 +2396,21 @@ const styles = StyleSheet.create({
     left: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 28,
+    paddingBottom: 24,
   },
   thinkingMascotStage: {
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: -8,
+    bottom: 22,
     alignItems: 'center',
   },
   restingMascotStage: {
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: -8,
+    bottom: 22,
     alignItems: 'center',
-  },
-  groundedMascotTouch: {
-    transform: [{ translateY: 28 }],
   },
   chatListContent: { paddingHorizontal: 16, paddingVertical: 20 },
   messageRow: { flexDirection: 'row', marginVertical: 8, maxWidth: '90%' },

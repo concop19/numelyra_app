@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Clock">
+  <title>Clock</title>
+  <desc>Clock icon for birth time and transit readings.</desc>
+<g fill="none" stroke="#E8DFFF" stroke-width="6.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.16"><circle cx="32" cy="32" r="22"/><path d="M32 19 V33 L43 40"/></g><g fill="none" stroke="#E8DFFF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="32" r="22"/><path d="M32 19 V33 L43 40"/></g><g fill="none" stroke="#8AE5EA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.16"><path d="M32 19 V33 L43 40"/></g><g fill="none" stroke="#8AE5EA" stroke-width="2.9" stroke-linecap="round" stroke-linejoin="round"><path d="M32 19 V33 L43 40"/></g><g fill="#FFD69B"><circle cx="32" cy="32" r="2.4"/></g>
+</svg>

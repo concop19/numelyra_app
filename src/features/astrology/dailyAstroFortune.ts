@@ -1,4 +1,5 @@
 import type { AstroFortuneSlip } from '../../services/astro/astroFortuneService';
+import type { PureAstroFeatureMetadata } from '../../services/astro/astroVectorEngine';
 
 export interface AstroProfileIdentity {
   id?: string | null;
@@ -17,6 +18,27 @@ export interface KeyValueStorage {
 export interface CachedAstroFortune {
   fortune: AstroFortuneSlip;
   currentKey: string;
+}
+
+export interface RefreshedAstroFortune {
+  fortune: AstroFortuneSlip;
+  metadataChanged: boolean;
+}
+
+export function refreshCachedAstroMetadata(
+  fortune: AstroFortuneSlip,
+  metadata: PureAstroFeatureMetadata
+): RefreshedAstroFortune {
+  const cachedMetadata = fortune.astroMetadata;
+  const metadataChanged = cachedMetadata?.engineVersion !== metadata.engineVersion
+    || !cachedMetadata?.natalPlanets
+    || !cachedMetadata?.notableTransitAspects
+    || !cachedMetadata?.natalAspects;
+
+  return {
+    fortune: { ...fortune, astroMetadata: metadata },
+    metadataChanged,
+  };
 }
 
 export function formatLocalDateKey(date: Date): string {

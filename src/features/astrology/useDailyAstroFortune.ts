@@ -16,6 +16,7 @@ import {
   formatLocalDateKey,
   loadCachedAstroFortune,
   loadRecentAstroAdvice,
+  refreshCachedAstroMetadata,
   saveCachedAstroFortune,
 } from './dailyAstroFortune';
 
@@ -25,17 +26,18 @@ export interface DailyAstroFortuneState {
   metadata: PureAstroFeatureMetadata | undefined;
   loading: boolean;
   error: string | null;
+  calculationError: string | null;
   retry(): Promise<void>;
   share(): Promise<void>;
 }
 
-function createAstroMetadata(profile: UserProfile | null | undefined, date: Date) {
+function createAstroMetadata(profile: UserProfile, date: Date) {
   return generatePureAstroVector({
-    birthDate: profile?.birthDate || '1998-10-20',
-    birthTime: profile?.birthTime || undefined,
-    fullName: profile?.fullName || 'Đương số',
-    birthTimeAccuracy: profile?.birthTimeAccuracy,
-    resolvedBirthLocation: profile?.birthLocation,
+    birthDate: profile.birthDate,
+    birthTime: profile.birthTime || undefined,
+    fullName: profile.fullName,
+    birthTimeAccuracy: profile.birthTimeAccuracy,
+    resolvedBirthLocation: profile.birthLocation,
   }, date).metadata;
 }
 
@@ -47,49 +49,73 @@ export function useDailyAstroFortune(profile?: UserProfile | null): DailyAstroFo
   const requestVersion = useRef(0);
   const localDateKey = formatLocalDateKey(currentDate);
 
-  const metadata = useMemo(
-    () => fortune?.astroMetadata,
-    [fortune]
-  );
+  const localAstro = useMemo(() => {
+    if (!profile?.fullName || !profile.birthDate) {
+      return {
+        metadata: undefined,
+        error: 'Chưa có hồ sơ hợp lệ để dựng dữ liệu chiêm tinh.',
+      };
+    }
+    try {
+      return { metadata: createAstroMetadata(profile, currentDate), error: null };
+    } catch (caught) {
+      return {
+        metadata: undefined,
+        error: caught instanceof Error
+          ? caught.message
+          : 'Không thể dựng dữ liệu chiêm tinh từ hồ sơ hiện tại.',
+      };
+    }
+  }, [
+    currentDate,
+    profile?.birthDate,
+    profile?.birthLocation?.placeId,
+    profile?.birthLocation?.resolvedAt,
+    profile?.birthTime,
+    profile?.birthTimeAccuracy,
+    profile?.fullName,
+  ]);
+  const metadata = localAstro.metadata;
 
   const fetchFortune = useCallback(async (allowCache: boolean) => {
     const version = ++requestVersion.current;
     setLoading(true);
     setError(null);
 
+    if (!metadata) {
+      setFortune(null);
+      setLoading(false);
+      return;
+    }
+
     try {
       if (allowCache) {
         const cached = await loadCachedAstroFortune(AsyncStorage, currentDate, profile);
         if (cached) {
-          const cachedFortune = cached.fortune;
-          const needsMetadata = !cachedFortune.astroMetadata;
-          if (needsMetadata) {
-            cachedFortune.astroMetadata = createAstroMetadata(profile, currentDate);
-          }
-          if (needsMetadata) {
+          const refreshed = refreshCachedAstroMetadata(cached.fortune, metadata);
+          if (refreshed.metadataChanged) {
             try {
-              await saveCachedAstroFortune(AsyncStorage, currentDate, profile, cachedFortune);
+              await saveCachedAstroFortune(AsyncStorage, currentDate, profile, refreshed.fortune);
             } catch {
               // Cache migration should never prevent a valid fortune from rendering.
             }
           }
-          if (requestVersion.current === version) setFortune(cachedFortune);
+          if (requestVersion.current === version) setFortune(refreshed.fortune);
           return;
         }
       }
 
-      const astroMetadata = createAstroMetadata(profile, currentDate);
       const recentAdvice = await loadRecentAstroAdvice(
         AsyncStorage,
         currentDate,
         profile
       );
       const result = await requestAstroFortuneSlip({
-        astroMetadata,
+        astroMetadata: metadata,
         caDaoMode: 'daily',
         recentAdvice,
       });
-      result.astroMetadata = astroMetadata;
+      result.astroMetadata = metadata;
       try {
         await saveCachedAstroFortune(AsyncStorage, currentDate, profile, result);
       } catch {
@@ -114,6 +140,7 @@ export function useDailyAstroFortune(profile?: UserProfile | null): DailyAstroFo
     }
   }, [
     currentDate,
+    metadata,
     profile?.birthDate,
     profile?.birthLocation?.placeId,
     profile?.birthTime,
@@ -161,5 +188,14 @@ export function useDailyAstroFortune(profile?: UserProfile | null): DailyAstroFo
     }
   }, [fortune]);
 
-  return { currentDate, fortune, metadata, loading, error, retry, share };
+  return {
+    currentDate,
+    fortune,
+    metadata,
+    loading,
+    error,
+    calculationError: localAstro.error,
+    retry,
+    share,
+  };
 }
