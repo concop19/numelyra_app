@@ -1,4 +1,9 @@
-import type { DetectedAspect } from '../../services/astro/aspectCalculator';
+import {
+  TRANSIT_ACTIVITY_WEIGHTS,
+  type AspectType,
+  type DetectedAspect,
+  type NatalAspect,
+} from '../../services/astro/aspectCalculator';
 import type {
   AstroDominantSignal,
   PureAstroFeatureMetadata,
@@ -16,6 +21,7 @@ export const ZODIAC_IDS = [
 
 export type PlanetId = (typeof PLANET_IDS)[number];
 export type ZodiacId = (typeof ZODIAC_IDS)[number];
+export type PlanetDetailMode = 'natal' | 'transit';
 
 export type AstrologyDetailTarget =
   | { kind: 'planet'; id: PlanetId }
@@ -31,15 +37,17 @@ export function isZodiacId(value: string): value is ZodiacId {
 
 export function resolveDetailConstellation(
   target: AstrologyDetailTarget,
-  metadata?: PureAstroFeatureMetadata
+  metadata?: PureAstroFeatureMetadata,
+  mode: PlanetDetailMode = 'natal'
 ): ZodiacId {
   if (target.kind === 'sign') return target.id;
 
-  const natalSign = metadata?.natalPlanets.find((planet) => planet.name === target.id)?.sign;
-  if (natalSign && isZodiacId(natalSign)) return natalSign;
-
   const transitSign = metadata?.transitPlanets.find((planet) => planet.name === target.id)?.sign;
-  if (transitSign && isZodiacId(transitSign)) return transitSign;
+  const natalSign = metadata?.natalPlanets.find((planet) => planet.name === target.id)?.sign;
+  const preferredSign = mode === 'transit' ? transitSign : natalSign;
+  const fallbackSign = mode === 'transit' ? natalSign : transitSign;
+  if (preferredSign && isZodiacId(preferredSign)) return preferredSign;
+  if (fallbackSign && isZodiacId(fallbackSign)) return fallbackSign;
 
   return metadata?.natalSunSign && isZodiacId(metadata.natalSunSign)
     ? metadata.natalSunSign
@@ -106,6 +114,50 @@ export const PLANET_INFO: Record<PlanetId, CelestialInfo> = {
   Uranus: { id: 'Uranus', nameVi: 'Thiên Vương', symbol: '♅', description: 'Nhu cầu đổi mới, tự do và phá vỡ khuôn mẫu cũ.', themes: ['Đổi mới', 'Tự do', 'Thức tỉnh'] },
   Neptune: { id: 'Neptune', nameVi: 'Hải Vương', symbol: '♆', description: 'Trực giác, lý tưởng và ranh giới tinh tế của cảm nhận.', themes: ['Trực giác', 'Lý tưởng', 'Cảm hứng'] },
   Pluto: { id: 'Pluto', nameVi: 'Diêm Vương', symbol: '♇', description: 'Quá trình chuyển hóa sâu và tái cấu trúc quyền lực.', themes: ['Chuyển hóa', 'Tái sinh', 'Chiều sâu'] },
+};
+
+export interface HouseInfo {
+  number: number;
+  nameVi: string;
+  description: string;
+}
+
+export const HOUSE_INFO: Record<number, HouseInfo> = {
+  1: { number: 1, nameVi: 'Bản thân', description: 'cách bạn hiện diện, khởi đầu và tạo ấn tượng trực tiếp' },
+  2: { number: 2, nameVi: 'Giá trị & nguồn lực', description: 'giá trị cá nhân, nguồn lực và cảm giác ổn định' },
+  3: { number: 3, nameVi: 'Giao tiếp & học hỏi', description: 'tư duy hằng ngày, giao tiếp và cách tiếp nhận thông tin' },
+  4: { number: 4, nameVi: 'Gia đình & nền tảng', description: 'gốc rễ cảm xúc, gia đình và không gian riêng tư' },
+  5: { number: 5, nameVi: 'Sáng tạo & biểu đạt', description: 'niềm vui, sáng tạo, tình cảm và khả năng thể hiện bản thân' },
+  6: { number: 6, nameVi: 'Thói quen & phụng sự', description: 'nếp sống, công việc thường nhật và cách chăm sóc điều thiết thực' },
+  7: { number: 7, nameVi: 'Quan hệ & hợp tác', description: 'quan hệ một-một, cam kết và cách bạn gặp gỡ người khác' },
+  8: { number: 8, nameVi: 'Chuyển hóa & sẻ chia', description: 'sự thân mật, nguồn lực chung và những thay đổi ở tầng sâu' },
+  9: { number: 9, nameVi: 'Niềm tin & mở rộng', description: 'thế giới quan, học vấn cao hơn và hành trình mở rộng trải nghiệm' },
+  10: { number: 10, nameVi: 'Sự nghiệp & vị thế', description: 'hướng phát triển công khai, trách nhiệm và vai trò trong xã hội' },
+  11: { number: 11, nameVi: 'Cộng đồng & tương lai', description: 'bạn bè, cộng đồng, lý tưởng và kế hoạch dài hạn' },
+  12: { number: 12, nameVi: 'Nội tâm & buông xả', description: 'đời sống vô thức, khoảng lặng và những điều cần được khép lại' },
+};
+
+const ZODIAC_EXPRESSION_VI: Record<ZodiacId, string> = {
+  Aries: 'chủ động, nhanh và trực diện',
+  Taurus: 'bền bỉ, thực tế và hướng tới sự ổn định',
+  Gemini: 'linh hoạt, hiếu kỳ và giàu nhu cầu trao đổi',
+  Cancer: 'nhạy cảm, bảo vệ và gắn với cảm giác thuộc về',
+  Leo: 'ấm áp, sáng tạo và muốn được biểu đạt rõ ràng',
+  Virgo: 'quan sát kỹ, thực tế và chú trọng cải thiện',
+  Libra: 'cân nhắc, hợp tác và tìm kiếm sự hài hòa',
+  Scorpio: 'tập trung, sâu sắc và có xu hướng chuyển hóa tận gốc',
+  Sagittarius: 'cởi mở, hướng ngoại và muốn mở rộng tầm nhìn',
+  Capricorn: 'kỷ luật, có cấu trúc và hướng tới kết quả lâu dài',
+  Aquarius: 'độc lập, đổi mới và quan tâm tới bức tranh tập thể',
+  Pisces: 'trực giác, cảm thông và dễ tiếp nhận những tín hiệu tinh tế',
+};
+
+const ASPECT_ENERGY_VI: Record<AspectType, string> = {
+  conjunction: 'Hai nguồn lực hội tụ và khuếch đại lẫn nhau; cách sử dụng năng lượng này quyết định nó dễ chịu hay căng thẳng.',
+  sextile: 'Một cơ hội hỗ trợ nhẹ đang mở ra, nhưng cần sự chủ động để biến tiềm năng thành hành động.',
+  square: 'Ma sát giữa hai nhu cầu tạo áp lực phải điều chỉnh, đồng thời cung cấp động lực để thay đổi.',
+  trine: 'Hai nguồn lực phối hợp tự nhiên, giúp năng lượng lưu chuyển thuận lợi và dễ được phát huy.',
+  opposition: 'Hai đầu nhu cầu kéo theo hướng khác nhau, đòi hỏi sự cân bằng và nhận biết cả hai phía.',
 };
 
 const SIGNAL_LABELS: Record<AstroDominantSignal, string> = {
@@ -236,6 +288,108 @@ export function getPrecisionMessage(metadata: PureAstroFeatureMetadata): string 
     return 'Đã có giờ sinh nhưng chưa có nơi sinh/múi giờ. Vị trí hiện tạm quy chiếu UTC; ASC, MC và 12 nhà chưa được hiển thị.';
   }
   return 'Chưa có giờ sinh chính xác. Lá số đang dùng mốc 12:00 tạm tính; ASC, MC và 12 nhà chưa được hiển thị.';
+}
+
+function transitAspectStrength(aspect: DetectedAspect): number {
+  return aspect.weight * (TRANSIT_ACTIVITY_WEIGHTS[aspect.transitPlanet] ?? 0.25);
+}
+
+function sortTransitAspects(aspects: DetectedAspect[]): DetectedAspect[] {
+  return [...aspects].sort((left, right) => (
+    transitAspectStrength(right) - transitAspectStrength(left)
+    || left.orb - right.orb
+  ));
+}
+
+export function getNatalAspectsForPlanet(
+  metadata: PureAstroFeatureMetadata,
+  planet: PlanetId
+): NatalAspect[] {
+  return metadata.natalAspects
+    .filter((aspect) => aspect.planetA === planet || aspect.planetB === planet)
+    .sort((left, right) => right.weight - left.weight || left.orb - right.orb);
+}
+
+export function getIncomingTransitAspects(
+  metadata: PureAstroFeatureMetadata,
+  natalPlanet: PlanetId
+): DetectedAspect[] {
+  const aspects = metadata.transitAspects ?? metadata.notableTransitAspects;
+  return sortTransitAspects(aspects.filter((aspect) => aspect.natalPlanet === natalPlanet));
+}
+
+export function getOutgoingTransitAspects(
+  metadata: PureAstroFeatureMetadata,
+  transitPlanet: PlanetId
+): DetectedAspect[] {
+  const aspects = metadata.transitAspects ?? metadata.notableTransitAspects;
+  return sortTransitAspects(aspects.filter((aspect) => aspect.transitPlanet === transitPlanet));
+}
+
+export function getNatalAspectCounterpart(aspect: NatalAspect, planet: PlanetId): string {
+  return aspect.planetA === planet ? aspect.planetB : aspect.planetA;
+}
+
+export function getAspectEnergyDescription(type: AspectType): string {
+  return ASPECT_ENERGY_VI[type];
+}
+
+export function buildPlanetPlacementInterpretation(
+  planet: PlanetId,
+  sign: string | undefined,
+  house: number | undefined,
+  mode: PlanetDetailMode
+): string[] {
+  const info = PLANET_INFO[planet];
+  const normalizedDescription = `${info.description.charAt(0).toLocaleLowerCase('vi-VN')}${info.description.slice(1)}`;
+  const paragraphs = [`${info.nameVi} đại diện cho ${normalizedDescription}`];
+  if (sign && isZodiacId(sign)) {
+    const modeLead = mode === 'natal'
+      ? 'Trong bản mệnh, nguồn lực này được biểu đạt'
+      : 'Ở thời điểm hiện tại, nguồn lực này đang vận hành';
+    paragraphs.push(`${modeLead} theo cách ${ZODIAC_EXPRESSION_VI[sign]} khi đi qua ${zodiacLabel(sign)}.`);
+  }
+  const houseInfo = house ? HOUSE_INFO[house] : undefined;
+  if (houseInfo) {
+    const houseLead = mode === 'natal'
+      ? `Nhà ${house} cho biết năng lượng này thường bộc lộ qua`
+      : `Khi đi qua Nhà ${house} trong lá số của bạn, năng lượng tạm thời tập trung vào`;
+    paragraphs.push(`${houseLead} ${houseInfo.description}.`);
+  }
+  return paragraphs;
+}
+
+export function buildPlanetModeSummary(
+  metadata: PureAstroFeatureMetadata,
+  planet: PlanetId,
+  mode: PlanetDetailMode
+): string {
+  const placement = mode === 'natal'
+    ? metadata.natalPlanets.find((item) => item.name === planet)
+    : metadata.transitPlanets.find((item) => item.name === planet);
+  const house = mode === 'natal'
+    ? metadata.natalContext?.planetHouses[planet]
+    : metadata.dailyContext?.transitHouses[planet];
+  const sentences = buildPlanetPlacementInterpretation(planet, placement?.sign, house, mode);
+
+  if (mode === 'natal') {
+    const natalAspect = getNatalAspectsForPlanet(metadata, planet)[0];
+    if (natalAspect) {
+      const counterpart = getNatalAspectCounterpart(natalAspect, planet);
+      sentences.push(`Góc bản mệnh nổi bật nhất nối ${planetLabel(planet)} với ${planetLabel(counterpart)} qua ${natalAspect.nameVi.toLocaleLowerCase('vi-VN')}, orb ${natalAspect.orb.toFixed(1)}°.`);
+    }
+    const incoming = getIncomingTransitAspects(metadata, planet)[0];
+    if (incoming) {
+      sentences.push(`Tác động hiện tại nổi bật nhất đến từ ${planetLabel(incoming.transitPlanet)} qua ${incoming.nameVi.toLocaleLowerCase('vi-VN')}, orb ${incoming.orb.toFixed(1)}°.`);
+    }
+  } else {
+    const outgoing = getOutgoingTransitAspects(metadata, planet)[0];
+    if (outgoing) {
+      sentences.push(`${planetLabel(planet)} hiện tác động rõ nhất lên ${planetLabel(outgoing.natalPlanet)} bản mệnh qua ${outgoing.nameVi.toLocaleLowerCase('vi-VN')}, orb ${outgoing.orb.toFixed(1)}°.`);
+    }
+  }
+
+  return sentences.join(' ');
 }
 
 export function getActiveInfluences(

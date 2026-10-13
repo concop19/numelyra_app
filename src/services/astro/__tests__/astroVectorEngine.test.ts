@@ -188,6 +188,19 @@ describe('Pure Astrology Feature Vector Engine', () => {
       expect(result.metadata.dailyContext?.activatedHouses.length).toBeGreaterThan(0);
     });
 
+    it('giữ toàn bộ transit aspects và vẫn giới hạn notable aspects ở top 8', () => {
+      const result = generatePureAstroVector({
+        birthDate: '1998-10-20',
+        birthTime: '14:30',
+      }, fixedTestCurrentDate);
+
+      expect(result.metadata.notableTransitAspects).toEqual(
+        result.metadata.transitAspects.slice(0, 8)
+      );
+      expect(result.metadata.transitAspects.length)
+        .toBeGreaterThanOrEqual(result.metadata.notableTransitAspects.length);
+    });
+
     it('đảm bảo tính nhất quán (deterministic)', () => {
       const run1 = generatePureAstroVector({ birthDate: '2001-07-15' }, fixedTestCurrentDate);
       const run2 = generatePureAstroVector({ birthDate: '2001-07-15' }, fixedTestCurrentDate);

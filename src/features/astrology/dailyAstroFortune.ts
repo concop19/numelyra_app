@@ -32,6 +32,7 @@ export function refreshCachedAstroMetadata(
   const cachedMetadata = fortune.astroMetadata;
   const metadataChanged = cachedMetadata?.engineVersion !== metadata.engineVersion
     || !cachedMetadata?.natalPlanets
+    || !cachedMetadata?.transitAspects
     || !cachedMetadata?.notableTransitAspects
     || !cachedMetadata?.natalAspects;
 

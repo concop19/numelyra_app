@@ -11,7 +11,10 @@ import { AstrologyInsightSheet } from '../features/astrology/AstrologyInsightShe
 import { AstrologyTodayView } from '../features/astrology/AstrologyTodayView';
 import { BirthDataModal } from '../features/astrology/BirthDataModal';
 import { NatalChartView } from '../features/astrology/NatalChartView';
-import type { AstrologyDetailTarget } from '../features/astrology/astrologyPresentation';
+import type {
+  AstrologyDetailTarget,
+  PlanetDetailMode,
+} from '../features/astrology/astrologyPresentation';
 import { useDailyAstroFortune } from '../features/astrology/useDailyAstroFortune';
 import {
   getActiveProfile,
@@ -23,7 +26,10 @@ import {
 type AstrologyStackParamList = {
   Today: undefined;
   NatalChart: undefined;
-  Detail: AstrologyDetailTarget;
+  Detail: {
+    target: AstrologyDetailTarget;
+    initialMode?: PlanetDetailMode;
+  };
 };
 
 const Stack = createNativeStackNavigator<AstrologyStackParamList>();
@@ -141,7 +147,10 @@ export default function AstrologyScreen({ profile, onBack, onProfileChange }: Pr
               onOpenProfile={() => afterWebFocusReleased(() => setProfilePickerVisible(true))}
               onOpenBirthData={() => afterWebFocusReleased(() => { if (activeProfile) setBirthDataVisible(true); })}
               onOpenNatal={() => afterWebFocusReleased(() => navigation.navigate('NatalChart'))}
-              onOpenDetail={(target) => afterWebFocusReleased(() => navigation.navigate('Detail', target))}
+              onOpenDetail={(target) => afterWebFocusReleased(() => navigation.navigate('Detail', {
+                target,
+                initialMode: target.kind === 'planet' ? 'transit' : undefined,
+              }))}
               onOpenInterpretation={() => afterWebFocusReleased(() => setInsightVisible(true))}
               onRetry={() => void retry()}
               onShare={() => void share()}
@@ -156,16 +165,21 @@ export default function AstrologyScreen({ profile, onBack, onProfileChange }: Pr
               calculationError={calculationError}
               onBack={() => afterWebFocusReleased(() => navigation.goBack())}
               onEditBirthData={() => afterWebFocusReleased(() => { if (activeProfile) setBirthDataVisible(true); })}
-              onOpenDetail={(target) => afterWebFocusReleased(() => navigation.navigate('Detail', target))}
+              onOpenDetail={(target) => afterWebFocusReleased(() => navigation.navigate('Detail', {
+                target,
+                initialMode: target.kind === 'planet' ? 'natal' : undefined,
+              }))}
             />
           )}
         </Stack.Screen>
         <Stack.Screen name="Detail">
           {({ navigation, route }) => (
             <AstrologyDetailView
-              target={route.params}
+              target={route.params.target}
+              initialMode={route.params.initialMode}
               metadata={metadata}
               onBack={() => afterWebFocusReleased(() => navigation.goBack())}
+              onEditBirthData={() => afterWebFocusReleased(() => { if (activeProfile) setBirthDataVisible(true); })}
             />
           )}
         </Stack.Screen>

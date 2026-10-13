@@ -1,6 +1,11 @@
 import {
   buildTodayInterpretation,
+  buildPlanetModeSummary,
+  buildPlanetPlacementInterpretation,
   getActiveInfluences,
+  getIncomingTransitAspects,
+  getNatalAspectsForPlanet,
+  getOutgoingTransitAspects,
   getPlanetGuidanceItems,
   getPrecisionMessage,
   getTodaySummaryCards,
@@ -8,6 +13,7 @@ import {
   resolveDetailConstellation,
   ZODIAC_IDS,
 } from '../../../features/astrology/astrologyPresentation';
+import type { DetectedAspect } from '../aspectCalculator';
 import {
   ASTROLOGY_BACKGROUNDS,
   CONSTELLATION_SVG,
@@ -35,6 +41,26 @@ function metadata() {
   }, new Date('2026-10-11T12:00:00.000Z')).metadata;
 }
 
+function transitAspect(
+  transitPlanet: string,
+  natalPlanet: string,
+  weight: number,
+  orb: number
+): DetectedAspect {
+  return {
+    transitPlanet,
+    natalPlanet,
+    type: 'square',
+    symbol: '□',
+    nameVi: 'Vuông góc',
+    targetAngle: 90,
+    actualAngle: 90 + orb,
+    orb,
+    weight,
+    nature: 'tension',
+  };
+}
+
 describe('astrology presentation mapping', () => {
   it('maps all backgrounds, planets, zodiac art, and constellations', () => {
     expect(Object.keys(ASTROLOGY_BACKGROUNDS)).toEqual(['today', 'natal', 'detail', 'planetDetail']);
@@ -56,9 +82,45 @@ describe('astrology presentation mapping', () => {
   it('resolves detail constellations for signs, planet placements, and missing metadata', () => {
     const input = metadata();
     const natalMoon = input.natalPlanets.find((planet) => planet.name === 'Moon');
+    const transitMoon = input.transitPlanets.find((planet) => planet.name === 'Moon');
     expect(resolveDetailConstellation({ kind: 'sign', id: 'Cancer' }, input)).toBe('Cancer');
     expect(resolveDetailConstellation({ kind: 'planet', id: 'Moon' }, input)).toBe(natalMoon?.sign);
+    expect(resolveDetailConstellation({ kind: 'planet', id: 'Moon' }, input, 'transit')).toBe(transitMoon?.sign);
     expect(resolveDetailConstellation({ kind: 'planet', id: 'Pluto' })).toBe('Pisces');
+  });
+
+  it('keeps incoming and outgoing transit aspects directional', () => {
+    const input = metadata();
+    input.transitAspects = [
+      transitAspect('Moon', 'Sun', 0.5, 1),
+      transitAspect('Sun', 'Moon', 0.8, 0.5),
+      transitAspect('Moon', 'Venus', 0.7, 0.2),
+      transitAspect('Pluto', 'Moon', 1, 0.1),
+    ];
+
+    expect(getIncomingTransitAspects(input, 'Moon').map((item) => item.transitPlanet))
+      .toEqual(['Sun', 'Pluto']);
+    expect(getOutgoingTransitAspects(input, 'Moon').map((item) => item.natalPlanet))
+      .toEqual(['Venus', 'Sun']);
+  });
+
+  it('selects natal aspects for either side and keeps the strongest first', () => {
+    const input = metadata();
+    const selected = getNatalAspectsForPlanet(input, 'Moon');
+    expect(selected.every((item) => item.planetA === 'Moon' || item.planetB === 'Moon')).toBe(true);
+    expect(selected.every((item, index) => index === 0 || selected[index - 1].weight >= item.weight)).toBe(true);
+  });
+
+  it('builds structured placement and mode summaries from the selected planet only', () => {
+    const input = metadata();
+    const natalMoon = input.natalPlanets.find((planet) => planet.name === 'Moon');
+    const house = input.natalContext?.planetHouses.Moon;
+    const placement = buildPlanetPlacementInterpretation('Moon', natalMoon?.sign, house, 'natal');
+    const summary = buildPlanetModeSummary(input, 'Moon', 'transit');
+
+    expect(placement.join(' ')).toContain('Mặt Trăng');
+    if (house) expect(placement.join(' ')).toContain(`Nhà ${house}`);
+    expect(summary).toContain('Mặt Trăng');
   });
 
   it.each<AstroDominantSignal>(['tension', 'harmony', 'conjunction', 'balanced'])(

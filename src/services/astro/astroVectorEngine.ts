@@ -106,6 +106,7 @@ export interface PureAstroFeatureMetadata {
   dailyContext: AstroDailyContext | null;
   natalPlanets: AstroPlanetSnapshot[];
   transitPlanets: AstroPlanetSnapshot[];
+  transitAspects: DetectedAspect[];
   notableTransitAspects: DetectedAspect[];
   natalAspects: NatalAspect[];
 }
@@ -351,6 +352,7 @@ export function generatePureAstroVector(
     dailyContext,
     natalPlanets: natalChart.planetList.map(({ body: _body, ...planet }) => planet),
     transitPlanets: transitChart.planetList.map(({ body: _body, ...planet }) => planet),
+    transitAspects: aspectResult.aspects,
     notableTransitAspects: aspectResult.aspects.slice(0, 8),
     natalAspects,
   };
