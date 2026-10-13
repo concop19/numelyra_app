@@ -6,6 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { DrawnCardResult } from '../services/tarotService';
 import { getTarotCardImage } from '../services/tarotAssets';
 import HighlightedAnswerText from '../components/chat/HighlightedAnswerText';
+import LoveCompatibilityDetail from '../components/chat/love/LoveCompatibilityDetail';
+import { getLoveReadingViewModel } from '../components/chat/love/loveReadingModel';
 import type { MessageItem } from './ChatScreen';
 
 export type ChatReadingDetailParams = {
@@ -36,9 +38,22 @@ const getDrawnCards = (card: unknown): DrawnCardResult[] => {
 export default function ChatReadingDetailScreen({ navigation, route }: Props) {
   const { message, previousQuestion } = route.params;
   const cards = useMemo(() => getDrawnCards(message.card), [message.card]);
+  const loveReading = useMemo(
+    () => getLoveReadingViewModel(message.card, message.text, previousQuestion),
+    [message.card, message.text, previousQuestion],
+  );
   const question = typeof (message.card as { questionText?: unknown } | undefined)?.questionText === 'string'
     ? (message.card as { questionText: string }).questionText
     : previousQuestion;
+
+  if (loveReading) {
+    return (
+      <LoveCompatibilityDetail
+        model={loveReading}
+        onClose={() => navigation.goBack()}
+      />
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>

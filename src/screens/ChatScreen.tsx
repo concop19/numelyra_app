@@ -73,6 +73,11 @@ export interface MessageItem {
   isTypingCompleted?: boolean;
 }
 
+const isCompatibilityMessage = (message: MessageItem) => (
+  message.card?.decision?.mode === 'compatibility'
+  || (Array.isArray(message.card?.profiles) && message.card.profiles.length >= 2 && !!message.card?.tuViBazi)
+);
+
 type LiveTarotReading = {
   id: string;
   question: string;
@@ -224,6 +229,7 @@ const AssistantPreviewBubble: React.FC<AssistantPreviewBubbleProps> = ({
   onOpen,
 }) => {
   const text = withoutQuickConclusionHeading(message.text);
+  const canOpenDetail = !!message.isTypingCompleted || isCompatibilityMessage(message);
   const [shownLength, setShownLength] = useState(message.isTypingCompleted ? text.length : 0);
   const finishedRef = useRef(!!message.isTypingCompleted);
 
@@ -254,7 +260,7 @@ const AssistantPreviewBubble: React.FC<AssistantPreviewBubbleProps> = ({
     <View style={styles.assistantBubbleRow}>
       <TouchableOpacity
         activeOpacity={0.82}
-        onPress={message.isTypingCompleted ? onOpen : undefined}
+        onPress={canOpenDetail ? onOpen : undefined}
         accessibilityRole="button"
         accessibilityLabel="Mở lời giải chi tiết"
         style={styles.assistantBubble}
@@ -719,7 +725,7 @@ export default function ChatScreen({
   }, []);
 
   const openRawReading = useCallback((message: MessageItem) => {
-    if (message.sender !== 'mascot' || !message.isTypingCompleted) return;
+    if (message.sender !== 'mascot' || (!message.isTypingCompleted && !isCompatibilityMessage(message))) return;
     const messageIndex = messages.findIndex((item) => item.id === message.id);
     const previousQuestion = messageIndex >= 0
       ? messages.slice(0, messageIndex).reverse().find((item) => item.sender === 'user')?.text
@@ -727,6 +733,12 @@ export default function ChatScreen({
     onOpenRawReading?.(message, previousQuestion);
     void Haptics.selectionAsync();
   }, [messages, onOpenRawReading]);
+
+  const openCompatibilityDetail = useCallback((message: MessageItem, question: string) => {
+    if (!isCompatibilityMessage(message) || !onOpenRawReading) return;
+    onOpenRawReading({ ...message, isTypingCompleted: true }, question);
+    void Haptics.selectionAsync();
+  }, [onOpenRawReading]);
 
   const markMessageTypingCompleted = useCallback((messageId: string) => {
     setMessages(prev => prev.map(message => (
@@ -1303,11 +1315,21 @@ export default function ChatScreen({
       if (data.ok && data.data) {
         // The local draw is the source of truth for the reveal interaction.
         // Preserve it even when the backend omits it from cardPayload.
+        const serverCardPayload = data.data.cardPayload || {};
         const cardPayload = {
-          ...(data.data.cardPayload || {}),
+          type: 'agent_synthesis',
+          decision,
+          profiles: selectedProfiles,
+          indicators1,
+          indicators2,
+          ...(tuViBaziPayload ? {
+            tuViBazi: tuViBaziPayload,
+            compatibilityScore: tuViBaziPayload.compatibilityScore,
+          } : {}),
+          ...serverCardPayload,
           questionText: prompt,
-          drawnCards: data.data.cardPayload?.drawnCards?.length
-            ? data.data.cardPayload.drawnCards
+          drawnCards: serverCardPayload.drawnCards?.length
+            ? serverCardPayload.drawnCards
             : drawnCards,
         };
         const mascotMsg: MessageItem = {
@@ -1316,9 +1338,13 @@ export default function ChatScreen({
           text: data.data.replyText,
           card: cardPayload,
           time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-          isTypingCompleted: drawnCards.length > 0
+          isTypingCompleted: decision.mode === 'compatibility' || drawnCards.length > 0
         };
         appendMessage(mascotMsg);
+
+        if (decision.mode === 'compatibility') {
+          openCompatibilityDetail(mascotMsg, prompt);
+        }
 
         if (drawnCards.length > 0) {
           setLiveTarotReading((current) => current?.id === tarotMessageId
@@ -1348,9 +1374,13 @@ export default function ChatScreen({
         text: synthesis.text,
         card: synthesis.card ? { ...synthesis.card, questionText: prompt } : { questionText: prompt },
         time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-        isTypingCompleted: drawnCards.length > 0
+        isTypingCompleted: decision.mode === 'compatibility' || drawnCards.length > 0
       };
       appendMessage(mascotMsg);
+
+      if (decision.mode === 'compatibility') {
+        openCompatibilityDetail(mascotMsg, prompt);
+      }
 
       if (drawnCards.length > 0) {
         setLiveTarotReading((current) => current?.id === tarotMessageId
