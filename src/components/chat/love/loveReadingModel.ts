@@ -1,6 +1,14 @@
+import {
+  computePersonTuViBazi,
+  evaluateTuViBaziLove,
+  type TuViBaziSynastryResult,
+} from '../../../services/tuViBaziService';
+
 export type LoveReadingProfile = {
   id?: string;
   fullName: string;
+  birthDate?: string;
+  gender?: 'male' | 'female';
 };
 
 export type LoveReadingViewModel = {
@@ -11,6 +19,8 @@ export type LoveReadingViewModel = {
   summary?: string;
   advice?: string;
   answer: string;
+  thoughtProcess?: string;
+  tuViBazi?: TuViBaziSynastryResult;
 };
 
 type UnknownRecord = Record<string, unknown>;
@@ -31,6 +41,8 @@ const asProfile = (value: unknown): LoveReadingProfile | undefined => {
   return {
     id: asNonEmptyString(value.id),
     fullName,
+    birthDate: asNonEmptyString(value.birthDate),
+    gender: value.gender === 'male' || value.gender === 'female' ? value.gender : undefined,
   };
 };
 
@@ -50,27 +62,52 @@ export function getLoveReadingViewModel(
   const profiles = Array.isArray(card.profiles)
     ? card.profiles.map(asProfile).filter((profile): profile is LoveReadingProfile => !!profile)
     : [];
-  const tuViBazi = isRecord(card.tuViBazi)
+  const rawTuViBazi = isRecord(card.tuViBazi)
     ? card.tuViBazi
     : isRecord(card.baziResult)
       ? card.baziResult
       : undefined;
-  const personA = asProfile(tuViBazi?.personA) || profiles[0];
-  const personB = asProfile(tuViBazi?.personB) || profiles[1];
+
+  const rawPersonA = asProfile(rawTuViBazi?.personA);
+  const rawPersonB = asProfile(rawTuViBazi?.personB);
+  const personA = rawPersonA
+    ? { ...rawPersonA, ...(profiles[0] ? { ...profiles[0], fullName: rawPersonA.fullName } : {}) }
+    : profiles[0];
+  const personB = rawPersonB
+    ? { ...rawPersonB, ...(profiles[1] ? { ...profiles[1], fullName: rawPersonB.fullName } : {}) }
+    : profiles[1];
   const isCompatibility = decision?.mode === 'compatibility'
-    || (profiles.length >= 2 && !!tuViBazi)
-    || (!!personA && !!personB && typeof tuViBazi?.compatibilityScore === 'number');
+    || (profiles.length >= 2 && !!rawTuViBazi)
+    || (!!personA && !!personB && typeof rawTuViBazi?.compatibilityScore === 'number');
 
   if (!isCompatibility || !personA || !personB) return null;
+
+  let resolvedTuViBazi: TuViBaziSynastryResult | undefined;
+  if (rawTuViBazi && isRecord(rawTuViBazi.spousalInteraction) && isRecord(rawTuViBazi.cungPhiBatTrach)) {
+    resolvedTuViBazi = rawTuViBazi as unknown as TuViBaziSynastryResult;
+  } else if (personA.birthDate && personB.birthDate) {
+    try {
+      const chartA = computePersonTuViBazi(personA.fullName, personA.birthDate, personA.gender || 'female');
+      const chartB = computePersonTuViBazi(personB.fullName, personB.birthDate, personB.gender || 'male');
+      resolvedTuViBazi = evaluateTuViBaziLove(chartA, chartB);
+    } catch {
+      // Gracefully continue without recomputed chart
+    }
+  }
+
+  const score = asScore(resolvedTuViBazi?.compatibilityScore)
+    ?? asScore(rawTuViBazi?.compatibilityScore)
+    ?? asScore(card.compatibilityScore);
 
   return {
     profileA: personA,
     profileB: personB,
-    compatibilityScore: asScore(tuViBazi?.compatibilityScore)
-      ?? asScore(card.compatibilityScore),
+    compatibilityScore: score,
     question: asNonEmptyString(card.questionText) || asNonEmptyString(fallbackQuestion),
-    summary: asNonEmptyString(tuViBazi?.summaryVi),
-    advice: asNonEmptyString(tuViBazi?.adviceVi),
+    summary: asNonEmptyString(resolvedTuViBazi?.summaryVi) || asNonEmptyString(rawTuViBazi?.summaryVi),
+    advice: asNonEmptyString(resolvedTuViBazi?.adviceVi) || asNonEmptyString(rawTuViBazi?.adviceVi),
     answer: answer.trim(),
+    thoughtProcess: asNonEmptyString(decision?.thoughtProcess),
+    tuViBazi: resolvedTuViBazi,
   };
 }

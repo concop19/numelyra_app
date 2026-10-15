@@ -29,6 +29,7 @@ import { NumerologyCardsModal } from '../components/NumerologyCardsModal';
 import { MysticIndicatorDetailModal } from '../components/MysticIndicatorDetailModal';
 import TarotCardFlipView from '../components/TarotCardFlipView';
 import MysticReadingTraceModal from '../components/chat/MysticReadingTraceModal';
+import LoveCompatibilityFlow from '../components/chat/love/LoveCompatibilityFlow';
 import { getTarotCardImage } from '../services/tarotAssets';
 import { evaluateAgentDecision, AgentDecision } from '../services/agentDecisionEngine';
 import { NumerologyCalculator, IndicatorInfo } from '../services/numerology24Service';
@@ -85,6 +86,10 @@ type LiveTarotReading = {
   status: 'waiting' | 'ready' | 'revealed';
   replyText?: string;
 };
+
+type LoveCompatibilityFlowState =
+  | { phase: 'loading'; question: string }
+  | { phase: 'result'; question: string; message: MessageItem };
 
 type AmbientMascotState = 'idle' | 'thinking' | 'answer';
 
@@ -655,6 +660,8 @@ export default function ChatScreen({
 
   // Messages & States
   const [messages, setMessages] = useState<MessageItem[]>([]);
+  const [loveCompatibilityFlow, setLoveCompatibilityFlow] = useState<LoveCompatibilityFlowState | null>(null);
+  const loveCompatibilityFlowDismissedRef = useRef(false);
   const [visibleMessageCount, setVisibleMessageCount] = useState(1);
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const [inputVal, setInputVal] = useState('');
@@ -735,10 +742,13 @@ export default function ChatScreen({
   }, [messages, onOpenRawReading]);
 
   const openCompatibilityDetail = useCallback((message: MessageItem, question: string) => {
-    if (!isCompatibilityMessage(message) || !onOpenRawReading) return;
-    onOpenRawReading({ ...message, isTypingCompleted: true }, question);
-    void Haptics.selectionAsync();
-  }, [onOpenRawReading]);
+    if (!isCompatibilityMessage(message) || loveCompatibilityFlowDismissedRef.current) return;
+    setLoveCompatibilityFlow({
+      phase: 'result',
+      question,
+      message: { ...message, isTypingCompleted: true },
+    });
+  }, []);
 
   const markMessageTypingCompleted = useCallback((messageId: string) => {
     setMessages(prev => prev.map(message => (
@@ -1195,6 +1205,10 @@ export default function ChatScreen({
     // 3. Khóa màu lửa chính xác theo classification của AI Agent
     if (decision.mode === 'compatibility' || decision.intent === 'love_match') {
       setMascotCategory('love');
+      if (decision.mode === 'compatibility') {
+        loveCompatibilityFlowDismissedRef.current = false;
+        setLoveCompatibilityFlow({ phase: 'loading', question: prompt });
+      }
     } else if (decision.intent === 'two_choices') {
       setMascotCategory('decision');
     } else if (decision.intent === 'timing_trajectory') {
@@ -2162,6 +2176,21 @@ export default function ChatScreen({
       </Modal>
 
       <ChatMoonButton onPress={onOpenGameHub} />
+
+      <LoveCompatibilityFlow
+        visible={!!loveCompatibilityFlow}
+        message={loveCompatibilityFlow?.phase === 'result' ? loveCompatibilityFlow.message : undefined}
+        question={loveCompatibilityFlow?.question || ''}
+        onClose={() => {
+          loveCompatibilityFlowDismissedRef.current = true;
+          setLoveCompatibilityFlow(null);
+        }}
+        onOpenDetail={(message, question) => {
+          if (!onOpenRawReading) return;
+          onOpenRawReading({ ...message, isTypingCompleted: true }, question);
+          void Haptics.selectionAsync();
+        }}
+      />
 
       {/* 24 Numerology Cards Modal */}
       <NumerologyCardsModal
