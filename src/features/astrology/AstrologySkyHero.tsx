@@ -128,7 +128,7 @@ export function AstrologySkyHero({
             <Text style={styles.loadingText}>Đang đọc bầu trời của bạn…</Text>
           </View>
         ) : (
-          <Text numberOfLines={4} style={styles.quote}>
+          <Text style={styles.quote}>
             {fortune?.verse ?? metadata?.vibeSummary ?? 'Chạm để xem bức tranh năng lượng hôm nay.'}
           </Text>
         )}
@@ -143,7 +143,7 @@ export function AstrologySkyHero({
 
 const styles = StyleSheet.create({
   hero: {
-    height: 340,
+    minHeight: 320,
     borderRadius: 30,
     overflow: 'hidden',
     borderWidth: 1,
@@ -153,9 +153,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.42,
     shadowRadius: 18,
     elevation: 8,
+    paddingBottom: 16,
   },
   shootingStar: { position: 'absolute', right: 18, top: 88, width: 76, height: 76, opacity: 0.58 },
-  profileRow: { position: 'absolute', top: 14, left: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 8, zIndex: 4 },
+  profileRow: {
+    marginTop: 14,
+    marginHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    zIndex: 4,
+  },
   roundButton: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(12,11,68,0.72)', borderWidth: 1, borderColor: 'rgba(255,214,155,0.52)' },
   profileButton: { flex: 1, minWidth: 0, minHeight: 52, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 7, borderRadius: 24, backgroundColor: 'rgba(8,12,67,0.58)', borderWidth: 1, borderColor: 'rgba(255,214,155,0.38)' },
   avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: 'rgba(50,31,116,0.82)', borderWidth: 1.5, borderColor: ASTRO_COLORS.gold },
@@ -166,11 +174,31 @@ const styles = StyleSheet.create({
   profileMeta: { color: ASTRO_COLORS.muted, fontSize: 10.5, marginTop: 3 },
   actionIcon: { width: 24, height: 24 },
   disabled: { opacity: 0.46 },
-  quoteArea: { position: 'absolute', left: 20, right: 20, top: 98, minHeight: 128, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 19, backgroundColor: 'rgba(12,11,68,0.27)', borderWidth: 1, borderColor: 'rgba(255,214,155,0.18)', zIndex: 3 },
+  quoteArea: {
+    marginHorizontal: 16,
+    marginTop: 14,
+    minHeight: 128,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: 'rgba(12,11,68,0.32)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,214,155,0.22)',
+    zIndex: 3,
+  },
   quoteEyebrow: { color: ASTRO_COLORS.gold, fontSize: 9, fontWeight: '900', letterSpacing: 1.5 },
-  quote: { maxWidth: 300, color: ASTRO_COLORS.text, fontFamily: 'serif', fontStyle: 'italic', fontSize: 16, lineHeight: 21, marginTop: 7, textShadowColor: '#12072F', textShadowRadius: 7 },
+  quote: {
+    color: ASTRO_COLORS.text,
+    fontFamily: 'serif',
+    fontStyle: 'italic',
+    fontSize: 15.5,
+    lineHeight: 23.5,
+    marginTop: 8,
+    textShadowColor: '#12072F',
+    textShadowRadius: 7,
+  },
   loadingRow: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: 9 },
   loadingText: { color: ASTRO_COLORS.muted, fontSize: 12 },
-  interpretRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 9 },
+  interpretRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 12 },
   interpretText: { color: ASTRO_COLORS.gold, fontSize: 12, fontWeight: '900' },
 });

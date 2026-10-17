@@ -96,8 +96,8 @@ type AmbientMascotState = 'idle' | 'thinking' | 'answer';
 
 const CHAT_MASCOT_SIZE = 175;
 const THINKING_MASCOT_SIZE = 185;
-const SPECIAL_MASCOT_DURATION_MS = 3_000;
-const SPECIAL_MASCOT_IDLE_REST_MS = 3_500;
+const SPECIAL_MASCOT_DURATION_MS = 10_000;
+const SPECIAL_MASCOT_IDLE_REST_MS = 3_000;
 
 interface Props {
   profile?: UserProfile;
@@ -1787,34 +1787,7 @@ export default function ChatScreen({
   const currentGlowColor = getFlameGlowColor(mascotCategory);
   const activeMascotPalette = FLAME_COLOR_PALETTES[mascotPaletteIndex];
 
-  // Khi màn chat không có thao tác, luân phiên ngẫu nhiên các sprite idle,
-  // listen (thinking) và answer để mascot vẫn có sức sống. Trạng thái thật
-  // của mic, giọng đọc hoặc AI luôn được ưu tiên, không bị hiệu ứng nền này
-  // ghi đè.
-  useEffect(() => {
-    if (viewMode !== 'current_state' || loading || isListening || isKeyboardVisible || speakingMessageId) {
-      setAmbientMascotState('idle');
-      return;
-    }
-
-    let transitionTimer: ReturnType<typeof setTimeout>;
-    const scheduleNextState = () => {
-      transitionTimer = setTimeout(() => {
-        setAmbientMascotState((current) => {
-          const nextStates = (['idle', 'thinking', 'answer'] as AmbientMascotState[])
-            .filter((state) => state !== current);
-          return nextStates[Math.floor(Math.random() * nextStates.length)];
-        });
-        scheduleNextState();
-      }, 15_000);
-    };
-
-    scheduleNextState();
-    return () => clearTimeout(transitionTimer);
-  }, [isKeyboardVisible, isListening, loading, speakingMessageId, viewMode]);
-
-  // Chạy hoạt cảnh WebP ngẫu nhiên từ assets/char (1.2s hành động + 1.8s dừng tĩnh ở scene cuối),
-  // sau đó trở lại ngọn lửa bình thường và nghỉ 3.5s trước chu kỳ tiếp theo.
+  // Chạy hoạt cảnh WebP ngẫu nhiên từ assets/char (10s hiển thị + 3s nghỉ trước chu kỳ tiếp theo).
   useEffect(() => {
     if (viewMode !== 'current_state' || loading || isListening || isKeyboardVisible || speakingMessageId) {
       setShowSpecialMascotAnimation(false);
