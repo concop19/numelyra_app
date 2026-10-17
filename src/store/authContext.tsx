@@ -8,6 +8,8 @@ import {
   loadAllProfiles,
   saveAllProfiles,
   getActiveProfileId,
+  isMissingGenderColumnError,
+  isProfileGender,
   setActiveProfileId,
   type ProfileItem
 } from './userProfile';
@@ -52,19 +54,31 @@ async function syncProfilesForUser(user: User): Promise<void> {
     if (accountError) throw accountError;
 
     // 2. Kéo toàn bộ hồ sơ đám mây từ Supabase về (Cloud -> Local)
-    const { data: remoteProfiles, error: selectError } = await supabase
+    let { data: remoteProfiles, error: selectError } = await supabase
       .from('user_numerology_profiles')
-      .select('id, name, birth_date, created_at')
+      .select('id, name, birth_date, gender, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
+    if (selectError && isMissingGenderColumnError(selectError)) {
+      const legacyResult = await supabase
+        .from('user_numerology_profiles')
+        .select('id, name, birth_date, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      remoteProfiles = legacyResult.data as typeof remoteProfiles;
+      selectError = legacyResult.error;
+    }
     if (selectError) throw selectError;
 
-    const remoteItems: ProfileItem[] = (remoteProfiles || []).map((r) => ({
-      id: r.id,
-      fullName: r.name,
-      birthDate: r.birth_date,
-      gender: 'female',
-    }));
+    const remoteItems: ProfileItem[] = (remoteProfiles || []).map((r) => {
+      const remoteGender = 'gender' in r ? r.gender : undefined;
+      return {
+        id: r.id,
+        fullName: r.name,
+        birthDate: r.birth_date,
+        gender: isProfileGender(remoteGender) ? remoteGender : undefined,
+      };
+    });
 
     // 3. Tìm các hồ sơ ở máy cục bộ chưa có trên Cloud để đẩy lên (Local -> Cloud)
     const remoteKeySet = new Set(
@@ -75,24 +89,44 @@ async function syncProfilesForUser(user: User): Promise<void> {
     );
 
     if (localOnlyProfiles.length > 0) {
-      const { data: insertedData, error: insertError } = await supabase
+      let { data: insertedData, error: insertError } = await supabase
         .from('user_numerology_profiles')
         .insert(
           localOnlyProfiles.map((p) => ({
             user_id: user.id,
             name: p.fullName,
             birth_date: p.birthDate,
+            gender: p.gender,
           }))
         )
-        .select('id, name, birth_date');
+        .select('id, name, birth_date, gender');
+
+      if (insertError && isMissingGenderColumnError(insertError)) {
+        const legacyInsert = await supabase
+          .from('user_numerology_profiles')
+          .insert(
+            localOnlyProfiles.map((p) => ({
+              user_id: user.id,
+              name: p.fullName,
+              birth_date: p.birthDate,
+            }))
+          )
+          .select('id, name, birth_date');
+        insertedData = legacyInsert.data as typeof insertedData;
+        insertError = legacyInsert.error;
+      }
 
       if (!insertError && insertedData) {
         insertedData.forEach((ins) => {
+          const localMatch = localOnlyProfiles.find((profile) => (
+            profile.fullName === ins.name && profile.birthDate === ins.birth_date
+          ));
+          const insertedGender = 'gender' in ins ? ins.gender : undefined;
           remoteItems.unshift({
             id: ins.id,
             fullName: ins.name,
             birthDate: ins.birth_date,
-            gender: 'female',
+            gender: isProfileGender(insertedGender) ? insertedGender : localMatch?.gender,
           });
         });
       }

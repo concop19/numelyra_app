@@ -306,7 +306,7 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
             <View style={styles.insightPanel}>
               {/* Category Tag + Con số (Điểm nhấn #E8BC79) */}
               <Text style={styles.insightCategoryTag}>
-                {currentIndicator.categoryNameVi.toUpperCase()} · SỐ {currentIndicator.displayValue}
+                {currentIndicator.categoryNameVi.toUpperCase()} · {currentIndicator.chartData ? 'BIỂU ĐỒ CÁ NHÂN' : `SỐ ${currentIndicator.displayValue}`}
               </Text>
 
               {/* Tên chỉ số (Chữ chính #F6F0E8) */}

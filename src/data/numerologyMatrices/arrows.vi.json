@@ -1,0 +1,78 @@
+{
+  "matrixKey": "arrows",
+  "title": "8 mũi tên cá tính",
+  "arrows": [
+    {
+      "label": "1-4-7",
+      "theme": "Thể chất và tính thực tế",
+      "states": {
+        "strong": { "summary": "Đủ 1-4-7: xu hướng thực tế và bắt tay làm việc có thể là điểm tựa.", "strength": "Có thể biến ý tưởng thành hành động cụ thể và kiên trì với việc đã chọn.", "challenge": "Đôi lúc quá chú trọng việc làm ngay mà bỏ qua cảm xúc hoặc phương án khác.", "advice": "Kết hợp hành động với nghỉ ngơi, rà soát mục tiêu và lắng nghe góp ý." },
+        "partial": { "summary": "Có một phần 1-4-7: nét thực tế đã có nhưng có thể chưa ổn định ở mọi tình huống.", "strength": "Những số hiện diện cho bạn một điểm khởi đầu để tổ chức hành động.", "challenge": "Kế hoạch có thể bị ngắt quãng khi thiếu một mắt xích về chủ động, nề nếp hoặc trải nghiệm.", "advice": "Chọn một thói quen nhỏ giúp nối ý định với việc làm đều đặn." },
+        "empty": { "summary": "Trống 1-4-7: tổ chức hành động và duy trì nề nếp có thể là hướng cần rèn thêm.", "strength": "Bạn có thể chủ động xây dựng cách làm riêng thay vì phụ thuộc vào thói quen có sẵn.", "challenge": "Việc thực tế có thể dễ bị trì hoãn hoặc thiếu trình tự.", "advice": "Dùng danh sách bước ngắn, lịch nhắc và bắt đầu từ việc dễ hoàn thành." }
+      }
+    },
+    {
+      "label": "2-5-8",
+      "theme": "Cảm xúc và khả năng cân bằng",
+      "states": {
+        "strong": { "summary": "Đủ 2-5-8: khả năng nhận biết và điều hòa cảm xúc có thể được hỗ trợ tốt.", "strength": "Có thể nhạy với bầu không khí và tìm cách giữ cân bằng trong quan hệ.", "challenge": "Đôi lúc cố giữ hòa khí hoặc kiểm soát cảm xúc quá nhiều.", "advice": "Bày tỏ cảm xúc thật một cách bình tĩnh và giữ ranh giới cá nhân." },
+        "partial": { "summary": "Có một phần 2-5-8: một số năng lực cảm xúc đã hiện diện nhưng sự cân bằng có thể thay đổi theo hoàn cảnh.", "strength": "Số đang có giúp bạn nhận ra điểm tựa cảm xúc của mình.", "challenge": "Có thể khó duy trì bình tĩnh khi thiếu một mắt xích về cảm nhận, tự điều chỉnh hoặc tự tin.", "advice": "Ghi nhận cảm xúc, tạm dừng trước phản ứng và tìm người tin cậy để trao đổi." },
+        "empty": { "summary": "Trống 2-5-8: điều hòa cảm xúc và giữ cân bằng có thể là bài học đáng quan tâm.", "strength": "Bạn có thể rèn kỹ năng cảm xúc bằng phương pháp thực tế và có ý thức.", "challenge": "Cảm xúc có thể khó gọi tên hoặc bị dồn nén khi tình huống căng thẳng.", "advice": "Thực hành đặt tên cảm xúc, thở chậm và nói rõ điều mình cần." }
+      }
+    },
+    {
+      "label": "3-6-9",
+      "theme": "Tư duy và khả năng tiếp nhận",
+      "states": {
+        "strong": { "summary": "Đủ 3-6-9: khả năng tiếp nhận, ghi nhớ và liên kết thông tin có thể là thế mạnh.", "strength": "Có thể nhìn vấn đề theo nhiều góc và ghi nhớ điều đã học.", "challenge": "Đôi lúc suy nghĩ quá nhiều hoặc đặt nặng phân tích.", "advice": "Kết hợp tư duy với trải nghiệm thực tế và nghỉ ngơi tinh thần." },
+        "partial": { "summary": "Có một phần 3-6-9: một số năng lực tư duy đã hiện diện nhưng có thể chưa phát huy đều.", "strength": "Các số có mặt cho thấy cách học hoặc thế mạnh tư duy bạn có thể dựa vào.", "challenge": "Có thể khó kết nối biểu đạt, quan sát và tư duy rộng thành một mạch ổn định.", "advice": "Dùng ghi chú, sơ đồ và ôn tập để hỗ trợ mắt xích còn yếu." },
+        "empty": { "summary": "Trống 3-6-9: duy trì tập trung và hệ thống hóa điều đã học có thể cần thêm công cụ hỗ trợ.", "strength": "Bạn có thể chọn phương pháp học phù hợp thay vì dựa vào ghi nhớ tự nhiên.", "challenge": "Thông tin dễ rời rạc hoặc khó được gọi lại khi cần.", "advice": "Chia nội dung thành phần nhỏ, ôn theo lịch và diễn đạt lại bằng lời của mình." }
+      }
+    },
+    {
+      "label": "1-2-3",
+      "theme": "Lập kế hoạch và khởi đầu",
+      "states": {
+        "strong": { "summary": "Đủ 1-2-3: việc nảy ý tưởng và sắp xếp bước khởi đầu có thể diễn ra thuận lợi.", "strength": "Có thể xác định điều muốn làm và diễn đạt kế hoạch.", "challenge": "Kế hoạch đôi lúc thiên về ý tưởng mà chưa đủ nguồn lực hoặc bước thực hiện.", "advice": "Gắn mỗi kế hoạch với thời hạn, người phối hợp và bước đầu tiên cụ thể." },
+        "partial": { "summary": "Có một phần 1-2-3: một số yếu tố lập kế hoạch đã có nhưng chuỗi từ ý tưởng đến bắt đầu có thể thiếu đoạn nối.", "strength": "Số hiện diện cho biết nơi bạn dễ bắt đầu xây dựng kế hoạch.", "challenge": "Có thể khó kết hợp chính kiến, phối hợp và diễn đạt rõ ràng.", "advice": "Viết kế hoạch thành ba ý: mục tiêu, người liên quan và hành động đầu tiên." },
+        "empty": { "summary": "Trống 1-2-3: lập kế hoạch và bắt đầu có thể là kỹ năng nên rèn từng bước.", "strength": "Bạn có thể dùng công cụ bên ngoài để biến ý định thành trình tự rõ ràng.", "challenge": "Có thể trì hoãn vì mục tiêu còn mơ hồ hoặc khó chia nhỏ.", "advice": "Chọn một việc, đặt bước đầu tiên dưới 15 phút và ghi lại kết quả." }
+      }
+    },
+    {
+      "label": "4-5-6",
+      "theme": "Ý chí và tính bền bỉ",
+      "states": {
+        "strong": { "summary": "Đủ 4-5-6: sự kiên trì và khả năng giữ cam kết có thể là điểm mạnh.", "strength": "Có thể duy trì nỗ lực và chịu trách nhiệm với công việc đã nhận.", "challenge": "Đôi lúc cố quá lâu với một cách làm không còn hiệu quả.", "advice": "Giữ mục tiêu nhưng định kỳ điều chỉnh phương pháp và nhịp làm việc." },
+        "partial": { "summary": "Có một phần 4-5-6: ý chí đã có điểm tựa nhưng độ bền có thể phụ thuộc hoàn cảnh.", "strength": "Số hiện diện giúp nhận ra điều đang hỗ trợ bạn duy trì động lực.", "challenge": "Có thể thiếu cấu trúc, linh hoạt hoặc trách nhiệm rõ để giữ đà.", "advice": "Tạo mốc tiến độ ngắn và nhờ một người đồng hành nhắc mục tiêu." },
+        "empty": { "summary": "Trống 4-5-6: giữ nhịp nỗ lực và theo đuổi mục tiêu dài hơi có thể cần rèn luyện.", "strength": "Bạn có thể xây dựng động lực từ những thành công nhỏ, quan sát được.", "challenge": "Dễ mất đà khi kết quả chưa đến nhanh.", "advice": "Chia mục tiêu thành mốc gần, nghỉ đúng lúc và ghi nhận tiến bộ." }
+      }
+    },
+    {
+      "label": "7-8-9",
+      "theme": "Hoạt động và kết quả",
+      "states": {
+        "strong": { "summary": "Đủ 7-8-9: khả năng học từ trải nghiệm và hướng hành động đến kết quả có thể nổi bật.", "strength": "Có thể rút kinh nghiệm và chuyển hiểu biết thành hành động.", "challenge": "Đôi lúc tập trung thành tích mà quên xem lại cảm nhận và giới hạn.", "advice": "Đánh giá cả kết quả, bài học và mức năng lượng đã sử dụng." },
+        "partial": { "summary": "Có một phần 7-8-9: một số yếu tố giúp hành động và đạt mục tiêu đã có, nhưng có thể chưa liền mạch.", "strength": "Số hiện diện giúp xác định điểm mạnh sẵn có khi triển khai việc.", "challenge": "Có thể khó nối trải nghiệm, quản lý nguồn lực và tầm nhìn mục tiêu.", "advice": "Sau mỗi mốc, xem lại điều học được và bước tiếp theo cần thiết." },
+        "empty": { "summary": "Trống 7-8-9: duy trì hoạt động hướng mục tiêu và rút kinh nghiệm có thể là hướng phát triển.", "strength": "Bạn có thể dùng kế hoạch và phản hồi bên ngoài để tạo đà hành động.", "challenge": "Có thể khó duy trì mục tiêu khi chưa thấy kết quả hoặc ý nghĩa rõ.", "advice": "Chọn mục tiêu gần, theo dõi tiến độ và kết nối với lý do bạn quan tâm." }
+      }
+    },
+    {
+      "label": "1-5-9",
+      "theme": "Quyết tâm và tập trung",
+      "states": {
+        "strong": { "summary": "Đủ 1-5-9: sự quyết tâm và khả năng giữ mục tiêu có thể được hỗ trợ tốt.", "strength": "Có thể tập trung vào điều quan trọng và theo đuổi đến cùng.", "challenge": "Đôi lúc quá quyết liệt hoặc khó đổi hướng khi có dữ liệu mới.", "advice": "Giữ cam kết nhưng thường xuyên kiểm tra mục tiêu còn phù hợp không." },
+        "partial": { "summary": "Có một phần 1-5-9: động lực đã có nhưng khả năng giữ tập trung có thể thay đổi.", "strength": "Số hiện diện cho thấy nguồn quyết tâm bạn có thể phát huy.", "challenge": "Có thể khó cân bằng ý chí, linh hoạt và tầm nhìn dài hạn.", "advice": "Viết mục tiêu, lý do theo đuổi và một mốc rà soát điều chỉnh." },
+        "empty": { "summary": "Trống 1-5-9: duy trì tập trung vào mục tiêu dài hạn có thể cần phương pháp hỗ trợ.", "strength": "Bạn có thể thử nhiều cách tạo động lực để tìm cách phù hợp.", "challenge": "Mục tiêu dễ bị thay thế bởi việc gấp hoặc thay đổi trước mắt.", "advice": "Chọn một ưu tiên mỗi giai đoạn và dùng nhắc lịch để quay lại mục tiêu." }
+      }
+    },
+    {
+      "label": "3-5-7",
+      "theme": "Quan sát và thấu hiểu",
+      "states": {
+        "strong": { "summary": "Đủ 3-5-7: khả năng quan sát, suy ngẫm và tìm ý nghĩa có thể là điểm tựa.", "strength": "Có thể học sâu từ trải nghiệm và kết nối nhiều góc nhìn.", "challenge": "Đôi lúc suy tư nhiều hoặc tách khỏi hành động cụ thể.", "advice": "Biến điều đã hiểu thành một hành động nhỏ và chia sẻ với người tin cậy." },
+        "partial": { "summary": "Có một phần 3-5-7: một số yếu tố của sự quan sát và thấu hiểu đã có nhưng có thể cần bồi đắp.", "strength": "Số hiện diện gợi cách bạn thường tiếp nhận và suy ngẫm.", "challenge": "Có thể thiếu nhịp cân bằng giữa biểu đạt, điều chỉnh và nhìn lại trải nghiệm.", "advice": "Ghi lại câu hỏi, quan sát dữ kiện và dành thời gian phản tư ngắn." },
+        "empty": { "summary": "Trống 3-5-7: dành thời gian quan sát và rút ý nghĩa từ trải nghiệm có thể cần chủ động hơn.", "strength": "Bạn có thể phát triển sự thấu hiểu thông qua học hỏi có cấu trúc và đối thoại.", "challenge": "Có thể phản ứng nhanh mà chưa kịp nhìn lại điều gì đang diễn ra.", "advice": "Tạm dừng, mô tả sự việc bằng dữ kiện rồi mới chọn cách phản hồi." }
+      }
+    }
+  ]
+}

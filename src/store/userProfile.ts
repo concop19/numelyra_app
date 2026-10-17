@@ -8,6 +8,22 @@ import { getNguHanh as getNapAmElement } from '../services/lunarService';
 const PROFILE_KEY = '@tieu_linh_mieu_profile';
 
 export type BirthTimeAccuracy = 'exact' | 'unknown';
+export type ProfileGender = 'male' | 'female';
+
+export function isProfileGender(value: unknown): value is ProfileGender {
+  return value === 'male' || value === 'female';
+}
+
+export function isMissingGenderColumnError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as { message?: unknown; details?: unknown; hint?: unknown };
+  const text = [candidate.message, candidate.details, candidate.hint]
+    .filter((value): value is string => typeof value === 'string')
+    .join(' ')
+    .toLowerCase();
+  return text.includes('gender')
+    && (text.includes('column') || text.includes('schema cache'));
+}
 
 /**
  * Dữ liệu đã phân giải từ tên nơi sinh. Chỉ được lưu cục bộ để dựng lá số;
@@ -25,7 +41,7 @@ export interface ResolvedBirthLocation {
 export interface UserProfile {
   fullName: string;
   birthDate: string; // ISO string (dương lịch), vd: '1998-10-20'
-  gender: 'male' | 'female';
+  gender: ProfileGender;
   birthTime?: string; // vd: '14:30' (tùy chọn)
   birthPlace?: string; // vd: 'Hà Nội' (tùy chọn)
   birthLocation?: ResolvedBirthLocation;
@@ -36,7 +52,7 @@ export interface ProfileItem {
   id: string;
   fullName: string;
   birthDate: string; // ISO string (dương lịch), vd: '1998-10-20'
-  gender?: 'male' | 'female';
+  gender?: ProfileGender;
   isDefault?: boolean;
   birthTime?: string; // vd: '14:30' (tùy chọn)
   birthPlace?: string; // vd: 'Hà Nội' (tùy chọn)
@@ -134,7 +150,9 @@ export async function saveAllProfiles(profiles: ProfileItem[]): Promise<void> {
   await AsyncStorage.setItem(PROFILES_LIST_KEY, JSON.stringify(profiles));
 }
 
-export async function addProfile(profileData: Omit<ProfileItem, 'id'>): Promise<ProfileItem> {
+export async function addProfile(
+  profileData: Omit<ProfileItem, 'id' | 'gender'> & { gender: ProfileGender },
+): Promise<ProfileItem> {
   const all = await loadAllProfiles();
   let generatedId = `prof-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
 
@@ -144,15 +162,29 @@ export async function addProfile(profileData: Omit<ProfileItem, 'id'>): Promise<
       const { data: sessionData } = await supabase.auth.getSession();
       const user = sessionData?.session?.user;
       if (user) {
-        const { data: inserted, error } = await supabase
+        let { data: inserted, error } = await supabase
           .from('user_numerology_profiles')
           .insert({
             user_id: user.id,
             name: profileData.fullName,
             birth_date: profileData.birthDate,
+            gender: profileData.gender,
           })
           .select('id')
           .single();
+        if (error && isMissingGenderColumnError(error)) {
+          const legacyInsert = await supabase
+            .from('user_numerology_profiles')
+            .insert({
+              user_id: user.id,
+              name: profileData.fullName,
+              birth_date: profileData.birthDate,
+            })
+            .select('id')
+            .single();
+          inserted = legacyInsert.data;
+          error = legacyInsert.error;
+        }
         if (!error && inserted?.id) {
           generatedId = inserted.id;
         }
@@ -162,7 +194,7 @@ export async function addProfile(profileData: Omit<ProfileItem, 'id'>): Promise<
     }
   }
 
-  const newProfile: ProfileItem = {
+  const newProfile: ProfileItem & { gender: ProfileGender } = {
     id: generatedId,
     ...profileData
   };
@@ -174,7 +206,7 @@ export async function addProfile(profileData: Omit<ProfileItem, 'id'>): Promise<
   await saveProfile({
     fullName: newProfile.fullName,
     birthDate: newProfile.birthDate,
-    gender: newProfile.gender || 'female',
+    gender: newProfile.gender,
     birthTime: newProfile.birthTime,
     birthPlace: newProfile.birthPlace,
     birthLocation: newProfile.birthLocation,
@@ -182,6 +214,80 @@ export async function addProfile(profileData: Omit<ProfileItem, 'id'>): Promise<
   });
 
   return newProfile;
+}
+
+export async function updateProfile(
+  id: string,
+  changes: Pick<ProfileItem, 'fullName' | 'birthDate'> & { gender: ProfileGender },
+): Promise<ProfileItem> {
+  const all = await loadAllProfiles();
+  const index = all.findIndex((profile) => profile.id === id);
+  if (index < 0) throw new Error('Profile not found');
+
+  const updatedProfile: ProfileItem & { gender: ProfileGender } = {
+    ...all[index],
+    fullName: changes.fullName,
+    birthDate: changes.birthDate,
+    gender: changes.gender,
+  };
+  const updatedProfiles = all.map((profile, profileIndex) => (
+    profileIndex === index ? updatedProfile : profile
+  ));
+  await saveAllProfiles(updatedProfiles);
+
+  const activeId = await getActiveProfileId();
+  if (activeId === id) {
+    await saveProfile({
+      fullName: updatedProfile.fullName,
+      birthDate: updatedProfile.birthDate,
+      gender: updatedProfile.gender,
+      birthTime: updatedProfile.birthTime,
+      birthPlace: updatedProfile.birthPlace,
+      birthLocation: updatedProfile.birthLocation,
+      birthTimeAccuracy: updatedProfile.birthTimeAccuracy,
+    });
+  }
+
+  const supabaseClient = supabase;
+  if (supabaseClient) {
+    try {
+      const { data: sessionData } = await supabaseClient.auth.getSession();
+      const user = sessionData?.session?.user;
+      if (user) {
+        const applyRemoteUpdate = async (includeGender: boolean) => {
+          const payload = includeGender
+            ? {
+              name: updatedProfile.fullName,
+              birth_date: updatedProfile.birthDate,
+              gender: updatedProfile.gender,
+            }
+            : {
+              name: updatedProfile.fullName,
+              birth_date: updatedProfile.birthDate,
+            };
+          const query = supabaseClient
+            .from('user_numerology_profiles')
+            .update(payload)
+            .eq('user_id', user.id);
+          return id.length === 36 && id.includes('-')
+            ? await query.eq('id', id)
+            : await query
+              .eq('name', all[index].fullName)
+              .eq('birth_date', all[index].birthDate);
+        };
+
+        let { error } = await applyRemoteUpdate(true);
+        if (error && isMissingGenderColumnError(error)) {
+          ({ error } = await applyRemoteUpdate(false));
+        }
+        if (error) throw error;
+      }
+    } catch (err) {
+      console.warn('[userProfile] Supabase updateProfile kept local changes only:', err);
+    }
+  }
+
+  return updatedProfile;
 }
 
 export async function deleteProfile(id: string): Promise<ProfileItem[]> {
@@ -213,15 +319,6 @@ export async function deleteProfile(id: string): Promise<ProfileItem[]> {
   const activeId = await getActiveProfileId();
   if (activeId === id && updated.length > 0) {
     await setActiveProfileId(updated[0].id);
-    await saveProfile({
-      fullName: updated[0].fullName,
-      birthDate: updated[0].birthDate,
-      gender: updated[0].gender || 'female',
-      birthTime: updated[0].birthTime,
-      birthPlace: updated[0].birthPlace,
-      birthLocation: updated[0].birthLocation,
-      birthTimeAccuracy: updated[0].birthTimeAccuracy,
-    });
   }
   return updated;
 }
@@ -235,11 +332,11 @@ export async function setActiveProfileId(id: string): Promise<void> {
   // Đồng bộ legacy profile
   const all = await loadAllProfiles();
   const found = all.find(p => p.id === id);
-  if (found) {
+  if (found?.gender) {
     await saveProfile({
       fullName: found.fullName,
       birthDate: found.birthDate,
-      gender: found.gender || 'female',
+      gender: found.gender,
       birthTime: found.birthTime,
       birthPlace: found.birthPlace,
       birthLocation: found.birthLocation,

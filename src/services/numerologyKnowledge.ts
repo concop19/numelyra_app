@@ -246,6 +246,29 @@ export async function getIndicatorReading(
   const valStr = String(indicatorValue).trim();
   const numVal = parseInt(valStr, 10);
 
+  // These indicators contain a matrix/string, not a single number to map to an archetype.
+  if (indicatorKey === 'nameChart' || indicatorKey === 'birthChart' || indicatorKey === 'arrows') {
+    const chartTitle = indicatorKey === 'nameChart'
+      ? 'Biểu đồ tên'
+      : indicatorKey === 'birthChart'
+        ? 'Biểu đồ ngày sinh'
+        : '8 mũi tên cá tính';
+    const chartOverview = indicatorKey === 'nameChart'
+      ? 'Ma trận cho biết tần suất các con số được quy đổi từ từng chữ cái trong họ tên. Mỗi hồ sơ có thể có phân bố khác nhau.'
+      : indicatorKey === 'birthChart'
+        ? 'Ma trận cho biết số lần xuất hiện của từng chữ số khác 0 trong ngày, tháng và năm sinh.'
+        : 'Các trạng thái bên dưới được tính từ ma trận ngày sinh: đủ bộ khi có cả ba số, trống khi không có số nào, và có một phần khi chỉ có một hoặc hai số.';
+
+    return {
+      title: `${cardNameVi}: ${chartTitle}`,
+      source: 'offline-archetype',
+      overview: chartOverview,
+      strengths: [],
+      challenges: [],
+      advice: 'Đọc ma trận và tần suất từng số ở phần trên để xem dữ liệu riêng của hồ sơ này.',
+    };
+  }
+
   // 1. Tra cứu trực tiếp từ Supabase Database (O(1) search) nếu có mạng
   if (supabase) {
     try {

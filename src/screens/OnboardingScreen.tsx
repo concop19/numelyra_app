@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { saveProfile, UserProfile } from '../store/userProfile';
+import { saveProfile, UserProfile, type ProfileGender } from '../store/userProfile';
 
 interface Props {
   onComplete: () => void;
@@ -19,12 +19,17 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const [birthDay, setBirthDay] = useState('');
   const [birthMonth, setBirthMonth] = useState('');
   const [birthYear, setBirthYear] = useState('');
-  const [gender, setGender] = useState<'male' | 'female'>('male');
+  const [gender, setGender] = useState<ProfileGender | null>(null);
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async () => {
     if (!fullName.trim()) {
       Alert.alert('Thiếu thông tin', 'Vui lòng nhập họ tên của bạn.');
+      return;
+    }
+
+    if (!gender) {
+      Alert.alert('Thiếu thông tin', 'Vui lòng chọn giới tính Nam hoặc Nữ.');
       return;
     }
 

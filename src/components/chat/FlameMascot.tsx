@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Image as ExpoImage } from 'expo-image';
 import {
   Animated,
   Easing,
@@ -6,12 +7,26 @@ import {
   Pressable,
   StyleProp,
   StyleSheet,
+  View,
   ViewStyle,
 } from 'react-native';
 
 const FIRE_IDLE = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/character/fire_char_idle_3x4.png');
 const FIRE_THINKING = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/character/fire_char_thinking_3x4.png');
 const FIRE_ANSWER = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/character/fire_char_answer_3x4.png');
+export const CHAR_ANIMATIONS = [
+  require('../../../assets/char/preview.webp'),
+  require('../../../assets/char/preview copy.webp'),
+  require('../../../assets/char/preview copy 2.webp'),
+  require('../../../assets/char/preview copy 3.webp'),
+  require('../../../assets/char/preview copy 4.webp'),
+  require('../../../assets/char/preview copy 5.webp'),
+  require('../../../assets/char/preview copy 6.webp'),
+  require('../../../assets/char/preview copy 7.webp'),
+  require('../../../assets/char/preview copy 8.webp'),
+  require('../../../assets/char/preview copy 9.webp'),
+  require('../../../assets/char/preview copy 10.webp'),
+];
 
 const FIRE_SPRITES = [
   { key: 'idle', source: FIRE_IDLE },
@@ -27,6 +42,8 @@ interface Props {
   style?: StyleProp<ViewStyle>;
   onPress?: () => void;
   paletteIndex?: number;
+  specialAnimationActive?: boolean;
+  specialAnimationIndex?: number;
 }
 
 export type FirePalette = {
@@ -52,11 +69,33 @@ export const FlameMascot: React.FC<Props> = ({
   size = 180,
   style,
   onPress,
+  specialAnimationActive = false,
+  specialAnimationIndex,
 }) => {
   const [frameIndex, setFrameIndex] = useState(0);
+  const [internalAnimationIndex, setInternalAnimationIndex] = useState(0);
   const [isPressed, setIsPressed] = useState(false);
   const bounceAnim = useRef(new Animated.Value(1)).current;
   const glowPulseAnim = useRef(new Animated.Value(0.7)).current;
+
+  useEffect(() => {
+    if (specialAnimationActive && specialAnimationIndex === undefined) {
+      setInternalAnimationIndex((prev) => {
+        if (CHAR_ANIMATIONS.length <= 1) return 0;
+        let next = Math.floor(Math.random() * CHAR_ANIMATIONS.length);
+        if (next === prev) {
+          next = (next + 1) % CHAR_ANIMATIONS.length;
+        }
+        return next;
+      });
+    }
+  }, [specialAnimationActive, specialAnimationIndex]);
+
+  const activeSpecialIndex = specialAnimationIndex !== undefined
+    ? specialAnimationIndex
+    : internalAnimationIndex;
+
+  const activeSpecialSource = CHAR_ANIMATIONS[activeSpecialIndex % CHAR_ANIMATIONS.length] || CHAR_ANIMATIONS[0];
 
   const activeSpriteKey = state === 'thinking'
     ? 'thinking'
@@ -163,23 +202,35 @@ export const FlameMascot: React.FC<Props> = ({
           },
         ]}
       >
-        {FIRE_SPRITES.map((sprite) => (
-          <Image
-            key={sprite.key}
-            source={sprite.source}
-            style={{
-              position: 'absolute',
-              left: -column * size,
-              top: -row * size,
-              width: size * COLUMNS,
-              height: size * ROWS,
-              opacity: sprite.key === activeSpriteKey ? 1 : 0,
-              zIndex: sprite.key === activeSpriteKey ? 1 : 0,
-            }}
-            resizeMode="stretch"
-            fadeDuration={0}
-          />
-        ))}
+        {specialAnimationActive ? (
+          <View style={[styles.specialPreviewWrap, { width: size, height: size }]}>
+            <ExpoImage
+              key={`special-mascot-${activeSpecialIndex}`}
+              source={activeSpecialSource}
+              style={{ width: size * 0.8, height: size * 0.8 }}
+              contentFit="contain"
+              autoplay
+            />
+          </View>
+        ) : (
+          FIRE_SPRITES.map((sprite) => (
+            <Image
+              key={sprite.key}
+              source={sprite.source}
+              style={{
+                position: 'absolute',
+                left: -column * size,
+                top: -row * size,
+                width: size * COLUMNS,
+                height: size * ROWS,
+                opacity: sprite.key === activeSpriteKey ? 1 : 0,
+                zIndex: sprite.key === activeSpriteKey ? 1 : 0,
+              }}
+              resizeMode="stretch"
+              fadeDuration={0}
+            />
+          ))
+        )}
       </Animated.View>
     </Pressable>
   );
@@ -206,6 +257,10 @@ const styles = StyleSheet.create({
     zIndex: 1,
     alignItems: 'flex-start',
     justifyContent: 'flex-start',
+  },
+  specialPreviewWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

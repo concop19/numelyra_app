@@ -1,0 +1,87 @@
+{
+  "matrixKey": "birthChart",
+  "title": "Biểu đồ ngày sinh",
+  "numbers": {
+    "1": {
+      "theme": "Cái tôi và khả năng bắt đầu",
+      "states": {
+        "missing": { "summary": "Số 1 vắng trong ngày sinh; việc khẳng định nhu cầu và tự bắt đầu có thể là bài học cần chú ý.", "strength": "Bạn có cơ hội phát triển cách tự chủ phù hợp, không bị đóng khung bởi tính cách cố định.", "challenge": "Có thể khó nói rõ mong muốn hoặc chờ người khác quyết định thay.", "advice": "Tập đưa ra lựa chọn nhỏ và nói nhu cầu bằng câu trực tiếp." },
+        "baseline": { "summary": "Một số 1 gợi nền tảng tự chủ và khả năng chủ động ở mức cơ bản.", "strength": "Có thể tự bắt đầu khi mục tiêu đã rõ.", "challenge": "Đôi lúc cần thêm sự khích lệ để duy trì quyết định.", "advice": "Chia quyết định lớn thành bước nhỏ và ghi nhận tiến triển." },
+        "highlighted": { "summary": "Hai số 1 làm sự độc lập và ý chí khởi đầu nổi bật hơn.", "strength": "Có thể chủ động và giữ quan điểm cá nhân.", "challenge": "Dễ cứng ý hoặc khó nhờ người khác hỗ trợ.", "advice": "Giữ chủ động nhưng luyện hỏi ý kiến trước khi chốt việc chung." },
+        "amplified": { "summary": "Từ ba số 1 trở lên tăng mạnh xu hướng tự quyết và khẳng định bản thân.", "strength": "Năng lực tự khởi xướng có thể rất rõ.", "challenge": "Có thể nóng vội, độc lập quá mức hoặc áp đặt ý mình.", "advice": "Kết hợp quyết đoán với kiên nhẫn, lắng nghe và cộng tác." }
+      }
+    },
+    "2": {
+      "theme": "Cảm nhận và kết nối",
+      "states": {
+        "missing": { "summary": "Số 2 vắng trong ngày sinh; nhận biết và điều hòa cảm xúc có thể là một hướng rèn luyện.", "strength": "Bạn có thể học cách kết nối mà vẫn giữ được sự bình ổn của riêng mình.", "challenge": "Có thể khó diễn đạt cảm xúc hoặc nhận ra nhu cầu tinh tế của người khác.", "advice": "Gọi tên cảm xúc, hỏi lại khi chưa rõ và luyện lắng nghe không phán xét." },
+        "baseline": { "summary": "Một số 2 gợi độ nhạy cảm xúc và khả năng kết nối nền tảng.", "strength": "Có thể nhận ra cảm xúc trong những tình huống quen thuộc.", "challenge": "Phản hồi bất ngờ đôi lúc khiến bạn dao động.", "advice": "Tạm dừng trước khi phản ứng và nói rõ điều mình cần." },
+        "highlighted": { "summary": "Hai số 2 làm độ nhạy và khả năng đồng cảm nổi bật hơn.", "strength": "Có thể tinh ý với bầu không khí và phối hợp tốt.", "challenge": "Dễ bị ảnh hưởng bởi tâm trạng hoặc lời nhận xét xung quanh.", "advice": "Tách điều mình cảm nhận khỏi điều người khác đang trải qua." },
+        "amplified": { "summary": "Từ ba số 2 trở lên nhấn mạnh mạnh độ nhạy cảm và nhu cầu hòa hợp.", "strength": "Sự đồng cảm có thể giúp bạn hỗ trợ và kết nối sâu.", "challenge": "Quá tải cảm xúc hoặc né tránh bất đồng có thể xảy ra.", "advice": "Thiết lập ranh giới, nghỉ ngơi cảm xúc và trao đổi thẳng thắn." }
+      }
+    },
+    "3": {
+      "theme": "Trí nhớ và biểu đạt",
+      "states": {
+        "missing": { "summary": "Số 3 vắng trong ngày sinh; việc ghi nhớ, diễn đạt hoặc duy trì tinh thần vui tươi có thể cần phương pháp hỗ trợ.", "strength": "Bạn có thể xây dựng cách học thực tế và không phụ thuộc vào trí nhớ tức thời.", "challenge": "Có thể khó sắp xếp ý tưởng hoặc diễn đạt điều mình nghĩ.", "advice": "Dùng ghi chú, sơ đồ và luyện trình bày ngắn theo ý chính." },
+        "baseline": { "summary": "Một số 3 gợi nền tảng ghi nhớ và khả năng biểu đạt.", "strength": "Có thể chia sẻ suy nghĩ khi có thời gian sắp xếp.", "challenge": "Thông tin nhiều hoặc áp lực có thể làm giảm tập trung.", "advice": "Ôn lại theo nhịp đều và tóm tắt bằng lời của mình." },
+        "highlighted": { "summary": "Hai số 3 làm trí nhớ và năng lực truyền đạt nổi bật hơn.", "strength": "Có thể học qua trao đổi, kể lại và sáng tạo.", "challenge": "Dễ bị cuốn theo nhiều ý hoặc nói trước khi sắp xếp đủ.", "advice": "Chọn trọng tâm, ghi lại việc cần nhớ và dành thời gian kiểm tra thông tin." },
+        "amplified": { "summary": "Từ ba số 3 trở lên tăng mạnh hoạt động tư duy và biểu đạt.", "strength": "Có thể tiếp nhận, liên tưởng và chia sẻ thông tin nhanh.", "challenge": "Tâm trí dễ quá tải hoặc phân tán.", "advice": "Giảm đa nhiệm, chia phiên tập trung và ưu tiên nghỉ ngơi." }
+      }
+    },
+    "4": {
+      "theme": "Nề nếp và thực hành",
+      "states": {
+        "missing": { "summary": "Số 4 vắng trong ngày sinh; tính đều đặn và khả năng bám quy trình có thể là bài học thực hành.", "strength": "Bạn có thể chọn hệ thống linh hoạt phù hợp nhịp sống của mình.", "challenge": "Có thể khó duy trì thói quen hoặc hoàn tất việc theo từng bước.", "advice": "Tạo lịch tối giản, nhắc việc và theo dõi một thói quen mỗi lần." },
+        "baseline": { "summary": "Một số 4 gợi nền tảng thực tế và khả năng làm việc có trình tự.", "strength": "Có thể duy trì việc quen thuộc khi mục tiêu rõ.", "challenge": "Thói quen mới có thể cần thời gian để ổn định.", "advice": "Dùng nhắc lịch và đặt mục tiêu nhỏ có thời hạn cụ thể." },
+        "highlighted": { "summary": "Hai số 4 làm tính kiên trì và thực tế nổi bật hơn.", "strength": "Có thể xây dựng nề nếp và hoàn thành việc dài hơi.", "challenge": "Dễ khó chịu khi kế hoạch bị thay đổi.", "advice": "Chuẩn bị phương án dự phòng và giữ khoảng trống cho điều bất ngờ." },
+        "amplified": { "summary": "Từ ba số 4 trở lên nhấn mạnh mạnh kỷ luật và nhu cầu trật tự.", "strength": "Khả năng tổ chức và làm việc bền bỉ có thể rất rõ.", "challenge": "Có thể cứng nhắc, cầu toàn hoặc quá chú trọng quy tắc.", "advice": "Thử cách làm mới và cân bằng hiệu suất với thời gian hồi phục." }
+      }
+    },
+    "5": {
+      "theme": "Cân bằng và thích nghi",
+      "states": {
+        "missing": { "summary": "Số 5 vắng trong ngày sinh; điều hòa thay đổi và giữ nhịp cân bằng có thể cần được rèn luyện.", "strength": "Bạn có thể xây dựng sự ổn định có chủ đích thay vì phụ thuộc vào hứng thú.", "challenge": "Có thể dao động trước thay đổi hoặc khó giữ nhịp sinh hoạt.", "advice": "Duy trì một vài thói quen neo giữ và thay đổi từng bước." },
+        "baseline": { "summary": "Một số 5 gợi khả năng điều chỉnh và tìm cân bằng ở mức nền tảng.", "strength": "Có thể thích nghi khi có thời gian chuẩn bị.", "challenge": "Thay đổi nhanh đôi lúc tạo cảm giác mất phương hướng.", "advice": "Giữ ưu tiên cốt lõi và linh hoạt ở cách thực hiện." },
+        "highlighted": { "summary": "Hai số 5 làm khả năng ứng biến và tự điều chỉnh nổi bật hơn.", "strength": "Có thể xoay xở trong môi trường nhiều biến động.", "challenge": "Dễ đổi hướng liên tục hoặc khó duy trì nhịp ổn định.", "advice": "Đặt giới hạn cho số thay đổi cùng lúc và rà soát tiến độ hàng tuần." },
+        "amplified": { "summary": "Từ ba số 5 trở lên nhấn mạnh mạnh nhu cầu trải nghiệm và thay đổi.", "strength": "Khả năng ứng biến có thể là lợi thế lớn khi hoàn cảnh biến chuyển.", "challenge": "Quá nhiều kích thích có thể làm bạn phân tán hoặc bốc đồng.", "advice": "Tạo lịch sinh hoạt ổn định và cân nhắc hệ quả trước quyết định lớn." }
+      }
+    },
+    "6": {
+      "theme": "Trách nhiệm và chăm lo",
+      "states": {
+        "missing": { "summary": "Số 6 vắng trong ngày sinh; cân bằng trách nhiệm cá nhân và tập thể có thể là nội dung cần lưu tâm.", "strength": "Bạn có thể chủ động định nghĩa sự quan tâm theo cách không làm mất ranh giới.", "challenge": "Có thể né trách nhiệm chung hoặc khó duy trì cam kết chăm sóc.", "advice": "Nhận một phần việc vừa sức và thống nhất rõ kỳ vọng với mọi người." },
+        "baseline": { "summary": "Một số 6 gợi nền tảng quan tâm và tinh thần trách nhiệm.", "strength": "Có thể đáng tin cậy trong các cam kết quen thuộc.", "challenge": "Đôi lúc ngại bày tỏ sự quan tâm hoặc nhận thêm việc.", "advice": "Nói rõ khả năng của mình trước khi nhận trách nhiệm mới." },
+        "highlighted": { "summary": "Hai số 6 làm ý thức chăm lo và trách nhiệm nổi bật hơn.", "strength": "Có thể hỗ trợ gia đình hoặc nhóm bằng hành động thiết thực.", "challenge": "Dễ ôm đồm hoặc mong người khác đáp lại theo cùng cách.", "advice": "Chia việc, hỏi nhu cầu thực tế và dành thời gian cho bản thân." },
+        "amplified": { "summary": "Từ ba số 6 trở lên nhấn mạnh mạnh trách nhiệm và nhu cầu chăm sóc.", "strength": "Khả năng vun đắp môi trường ổn định có thể rất rõ.", "challenge": "Có thể kiểm soát, hy sinh quá mức hoặc thấy khó từ chối.", "advice": "Giữ giới hạn, ủy quyền và để người khác chịu trách nhiệm phần của họ." }
+      }
+    },
+    "7": {
+      "theme": "Trải nghiệm và suy ngẫm",
+      "states": {
+        "missing": { "summary": "Số 7 vắng trong ngày sinh; học từ trải nghiệm và dành thời gian suy ngẫm có thể là bài học cần chủ động.", "strength": "Bạn có thể tiếp cận cuộc sống trực tiếp và tập trung vào thực hành.", "challenge": "Có thể bỏ qua việc rút kinh nghiệm hoặc khó tin vào tiến trình dài hạn.", "advice": "Sau trải nghiệm quan trọng, ghi lại bài học và điều muốn thử khác đi." },
+        "baseline": { "summary": "Một số 7 gợi nền tảng quan sát và suy ngẫm từ trải nghiệm.", "strength": "Có thể tự rút ra bài học sau khi có thời gian nhìn lại.", "challenge": "Đôi lúc cần thêm kiên nhẫn để hiểu điều chưa rõ ngay.", "advice": "Kết hợp suy ngẫm với trao đổi cùng người đáng tin." },
+        "highlighted": { "summary": "Hai số 7 làm nhu cầu tìm hiểu và chiêm nghiệm nổi bật hơn.", "strength": "Có thể học sâu qua quan sát và trải nghiệm cá nhân.", "challenge": "Dễ thu mình hoặc xem khó khăn như dấu hiệu thất bại.", "advice": "Chia sẻ điều đã học và nhìn thử thách như dữ liệu để điều chỉnh." },
+        "amplified": { "summary": "Từ ba số 7 trở lên nhấn mạnh mạnh chiều sâu nội tâm và sự quan sát.", "strength": "Khả năng tập trung suy ngẫm có thể giúp bạn hiểu vấn đề kỹ.", "challenge": "Có thể cô lập, dè dặt hoặc tự diễn giải quá nhiều.", "advice": "Giữ liên hệ xã hội và kiểm chứng suy nghĩ bằng hành động thực tế." }
+      }
+    },
+    "8": {
+      "theme": "Tổ chức và năng lực quản lý",
+      "states": {
+        "missing": { "summary": "Số 8 vắng trong ngày sinh; tổ chức nguồn lực và theo đuổi mục tiêu vật chất có thể cần luyện tập.", "strength": "Bạn có thể tìm cách thành công không dựa riêng vào quyền lực hay tiền bạc.", "challenge": "Có thể ngại quản lý tài chính, thời hạn hoặc trách nhiệm điều phối.", "advice": "Theo dõi ngân sách đơn giản và chia mục tiêu thành mốc cụ thể." },
+        "baseline": { "summary": "Một số 8 gợi nền tảng quản lý và định hướng kết quả.", "strength": "Có thể chịu trách nhiệm với mục tiêu khi kế hoạch rõ ràng.", "challenge": "Đôi lúc thiếu tự tin khi cần quyết định về nguồn lực.", "advice": "Luyện ra quyết định dựa trên dữ liệu và rà soát kết quả định kỳ." },
+        "highlighted": { "summary": "Hai số 8 làm năng lực điều phối và quyết tâm thành tựu nổi bật hơn.", "strength": "Có thể tổ chức người và nguồn lực hướng tới kết quả chung.", "challenge": "Dễ chịu áp lực thành tích hoặc quá tập trung kiểm soát.", "advice": "Chia sẻ quyền quyết định và cân bằng mục tiêu với sức khỏe." },
+        "amplified": { "summary": "Từ ba số 8 trở lên nhấn mạnh mạnh tính điều hành và tham vọng.", "strength": "Khả năng lập kế hoạch và triển khai mục tiêu có thể rất rõ.", "challenge": "Năng lượng này có thể thành áp lực, cạnh tranh hoặc kiểm soát quá mức.", "advice": "Xác định giới hạn làm việc, giữ chuẩn mực công bằng và biết nghỉ." }
+      }
+    },
+    "9": {
+      "theme": "Tư duy rộng và lý tưởng",
+      "states": {
+        "missing": { "summary": "Số 9 vắng trong ngày sinh; mở rộng góc nhìn và chuyển lý tưởng thành hành động có thể là bài học.", "strength": "Bạn có thể tập trung tốt vào mục tiêu gần và kết quả cụ thể.", "challenge": "Có thể khó nhìn bối cảnh rộng hoặc duy trì động lực vì mục tiêu dài hạn.", "advice": "Kết nối một việc thường ngày với giá trị lớn hơn mà bạn quan tâm." },
+        "baseline": { "summary": "Một số 9 gợi nền tảng lý tưởng và khả năng nhìn vấn đề rộng hơn.", "strength": "Có thể quan tâm đến ý nghĩa và tác động chung của lựa chọn.", "challenge": "Đôi lúc lý tưởng chưa được chuyển thành bước thực tế.", "advice": "Chọn một hành động nhỏ để đưa giá trị của mình vào thực tế." },
+        "highlighted": { "summary": "Hai số 9 làm tư duy bao quát và lòng trắc ẩn nổi bật hơn.", "strength": "Có thể nhận ra mối liên hệ và mục tiêu chung.", "challenge": "Dễ thất vọng với thực tế hoặc nhận về mình quá nhiều vấn đề.", "advice": "Giữ lý tưởng nhưng xác định rõ phần việc nằm trong khả năng." },
+        "amplified": { "summary": "Từ ba số 9 trở lên nhấn mạnh mạnh lý tưởng và sự quan tâm rộng.", "strength": "Khả năng truyền cảm hứng cho mục tiêu có ý nghĩa có thể rõ rệt.", "challenge": "Có thể quá tải vì cảm xúc, kỳ vọng hoặc mong muốn cứu giúp mọi người.", "advice": "Đặt ranh giới, nghỉ ngơi và tập trung vào đóng góp bền vững." }
+      }
+    }
+  }
+}

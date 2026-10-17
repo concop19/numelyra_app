@@ -1,5 +1,10 @@
 import { getIndicatorShortSummary } from './numerologySummaryService';
-import { CalculatedIndicator } from './numerologyEngine';
+import { CalculatedIndicator, calculate24Indicators } from './numerologyEngine';
+import {
+  getArrowReading,
+  getDigitReading,
+  getFrequencyBand,
+} from './numerologyMatrixInterpretations';
 
 describe('numerologySummaryService', () => {
   it('returns the exact archetype summary for Life Path 7 (as in mockup)', () => {
@@ -77,5 +82,73 @@ describe('numerologySummaryService', () => {
 
     const summaryMissing = getIndicatorShortSummary(mockMissing);
     expect(summaryMissing).toContain('số 2, 7');
+  });
+});
+
+describe('matrix-specific interpretations', () => {
+  it('selects the four digit-frequency bands at 0, 1, 2, and 3+ occurrences', () => {
+    expect([0, 1, 2, 3, 8].map(getFrequencyBand)).toEqual([
+      'missing', 'baseline', 'highlighted', 'amplified', 'amplified',
+    ]);
+  });
+
+  it('uses distinct Vietnamese readings for the same number in each matrix', () => {
+    const nameReading = getDigitReading('nameChart', 1, 0);
+    const birthReading = getDigitReading('birthChart', 1, 0);
+
+    expect(nameReading.theme).not.toBe(birthReading.theme);
+    expect(nameReading.summary).not.toBe(birthReading.summary);
+    expect(nameReading.advice).toBeTruthy();
+    expect(birthReading.challenge).toBeTruthy();
+  });
+
+  it('has usable readings for every digit and safely falls back for an unavailable JSON entry', () => {
+    for (const matrix of ['nameChart', 'birthChart'] as const) {
+      for (let digit = 1; digit <= 9; digit += 1) {
+        for (const count of [0, 1, 2, 3]) {
+          const reading = getDigitReading(matrix, digit, count);
+          expect(reading.summary).toBeTruthy();
+          expect(reading.strength).toBeTruthy();
+          expect(reading.challenge).toBeTruthy();
+          expect(reading.advice).toBeTruthy();
+        }
+      }
+    }
+
+    expect(getDigitReading('nameChart', 99, 0).summary).toContain('99');
+  });
+
+  it('provides all three states and a safe fallback for each of the eight arrows', () => {
+    const arrowLabels = ['1-4-7', '2-5-8', '3-6-9', '1-2-3', '4-5-6', '7-8-9', '1-5-9', '3-5-7'];
+
+    for (const label of arrowLabels) {
+      for (const status of ['strong', 'partial', 'empty'] as const) {
+        const reading = getArrowReading(label, status);
+        expect(reading.summary).toBeTruthy();
+        expect(reading.advice).toBeTruthy();
+      }
+    }
+
+    expect(getArrowReading('unknown-arrow', 'empty').summary).toContain('unknown-arrow');
+  });
+
+  it('derives name counts independently and all three arrow states from birth digits', () => {
+    const firstProfile = calculate24Indicators('A', '01/02/2003');
+    const otherName = calculate24Indicators('B', '01/02/2003');
+    const otherBirthDate = calculate24Indicators('A', '01/02/2004');
+    const firstNameChart = firstProfile.find((item) => item.key === 'nameChart')!;
+    const otherNameChart = otherName.find((item) => item.key === 'nameChart')!;
+    const firstBirthChart = firstProfile.find((item) => item.key === 'birthChart')!;
+    const otherNameBirthChart = otherName.find((item) => item.key === 'birthChart')!;
+    const laterBirthChart = otherBirthDate.find((item) => item.key === 'birthChart')!;
+    const arrowChart = firstProfile.find((item) => item.key === 'arrows')!;
+
+    expect(firstNameChart.chartData?.counts[1]).toBe(1);
+    expect(otherNameChart.chartData?.counts[2]).toBe(1);
+    expect(firstBirthChart.chartData?.counts).toEqual(otherNameBirthChart.chartData?.counts);
+    expect(laterBirthChart.chartData?.counts).not.toEqual(firstBirthChart.chartData?.counts);
+    expect(new Set(arrowChart.chartData?.arrows?.map((arrow) => arrow.status))).toEqual(
+      new Set(['strong', 'partial', 'empty'])
+    );
   });
 });

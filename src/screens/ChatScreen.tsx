@@ -41,6 +41,7 @@ import { API_ENDPOINTS, authenticatedFetch } from '../services/apiConfig';
 import { getBillingStatus } from '../services/billingService';
 import ChatSceneBackground, { ChatMoonButton } from '../components/chat/ChatSceneBackground';
 import FlameMascot, {
+  CHAR_ANIMATIONS,
   FLAME_COLOR_CHANGE_INTERVAL_MS,
   FLAME_COLOR_PALETTES,
 } from '../components/chat/FlameMascot';
@@ -95,6 +96,8 @@ type AmbientMascotState = 'idle' | 'thinking' | 'answer';
 
 const CHAT_MASCOT_SIZE = 175;
 const THINKING_MASCOT_SIZE = 185;
+const SPECIAL_MASCOT_DURATION_MS = 3_000;
+const SPECIAL_MASCOT_IDLE_REST_MS = 3_500;
 
 interface Props {
   profile?: UserProfile;
@@ -675,6 +678,8 @@ export default function ChatScreen({
   } | null>(null);
   const [liveTarotReading, setLiveTarotReading] = useState<LiveTarotReading | null>(null);
   const [ambientMascotState, setAmbientMascotState] = useState<AmbientMascotState>('idle');
+  const [showSpecialMascotAnimation, setShowSpecialMascotAnimation] = useState(false);
+  const [specialMascotAnimationIndex, setSpecialMascotAnimationIndex] = useState(0);
   const [mascotPaletteIndex, setMascotPaletteIndex] = useState(0);
   const [meteorBurstKey, setMeteorBurstKey] = useState(0);
   const nextAccentPaletteIndexRef = useRef(1);
@@ -1140,6 +1145,15 @@ export default function ChatScreen({
     // Yêu cầu: Phải chọn ít nhất 1 profile khi đặt câu hỏi
     if (selectedProfiles.length === 0) {
       setProfilePromptNotice('⚠️ Bạn cần chọn hoặc thêm ít nhất 1 hồ sơ trước khi hỏi Tiểu Linh Miêu!');
+      setIsProfileModalOpen(true);
+      return;
+    }
+
+    const profileWithoutGender = selectedProfiles.find((profileItem) => !profileItem.gender);
+    if (profileWithoutGender) {
+      setProfilePromptNotice(
+        `⚠️ Hồ sơ “${profileWithoutGender.fullName}” chưa có giới tính. Hãy bấm biểu tượng bút chì và chọn Nam hoặc Nữ trước khi luận giải.`,
+      );
       setIsProfileModalOpen(true);
       return;
     }
@@ -1799,6 +1813,47 @@ export default function ChatScreen({
     return () => clearTimeout(transitionTimer);
   }, [isKeyboardVisible, isListening, loading, speakingMessageId, viewMode]);
 
+  // Chạy hoạt cảnh WebP ngẫu nhiên từ assets/char (1.2s hành động + 1.8s dừng tĩnh ở scene cuối),
+  // sau đó trở lại ngọn lửa bình thường và nghỉ 3.5s trước chu kỳ tiếp theo.
+  useEffect(() => {
+    if (viewMode !== 'current_state' || loading || isListening || isKeyboardVisible || speakingMessageId) {
+      setShowSpecialMascotAnimation(false);
+      return;
+    }
+
+    let activeTimer: ReturnType<typeof setTimeout> | undefined;
+    let isCancelled = false;
+
+    const runCycle = () => {
+      activeTimer = setTimeout(() => {
+        if (isCancelled) return;
+
+        setSpecialMascotAnimationIndex((prev) => {
+          if (CHAR_ANIMATIONS.length <= 1) return 0;
+          let next = Math.floor(Math.random() * CHAR_ANIMATIONS.length);
+          if (next === prev) {
+            next = (next + 1) % CHAR_ANIMATIONS.length;
+          }
+          return next;
+        });
+        setShowSpecialMascotAnimation(true);
+
+        activeTimer = setTimeout(() => {
+          if (isCancelled) return;
+          setShowSpecialMascotAnimation(false);
+          runCycle();
+        }, SPECIAL_MASCOT_DURATION_MS);
+      }, SPECIAL_MASCOT_IDLE_REST_MS);
+    };
+
+    runCycle();
+
+    return () => {
+      isCancelled = true;
+      if (activeTimer) clearTimeout(activeTimer);
+    };
+  }, [isKeyboardVisible, isListening, loading, speakingMessageId, viewMode]);
+
   const visibleMessages = useMemo(
     () => messages.slice(-visibleMessageCount),
     [messages, visibleMessageCount]
@@ -1914,6 +1969,8 @@ export default function ChatScreen({
                   state={ambientMascotState}
                   size={CHAT_MASCOT_SIZE}
                   paletteIndex={mascotPaletteIndex}
+                  specialAnimationActive={showSpecialMascotAnimation}
+                  specialAnimationIndex={specialMascotAnimationIndex}
                 />
               </TouchableOpacity>
             </View>
@@ -1941,6 +1998,8 @@ export default function ChatScreen({
                   state={speakingMessageId ? 'speaking' : ambientMascotState}
                   size={CHAT_MASCOT_SIZE}
                   paletteIndex={mascotPaletteIndex}
+                  specialAnimationActive={showSpecialMascotAnimation}
+                  specialAnimationIndex={specialMascotAnimationIndex}
                 />
               </TouchableOpacity>
             </View>
