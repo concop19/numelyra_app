@@ -155,7 +155,7 @@ export function calculate24Indicators(fullName: string, birthDate: string): Calc
   for (let i = 0; i < dateNumStr.length; i++) {
     lifeSum += parseInt(dateNumStr[i], 10);
   }
-  while (lifeSum >= 10 && lifeSum !== 10 && lifeSum !== 11 && lifeSum !== 22) {
+  while (lifeSum >= 10 && lifeSum !== 10 && lifeSum !== 11 && lifeSum !== 22 && lifeSum !== 33) {
     let tSum = 0;
     const s = String(lifeSum);
     for (let i = 0; i < s.length; i++) tSum += parseInt(s[i], 10);
@@ -272,11 +272,15 @@ export function calculate24Indicators(fullName: string, birthDate: string): Calc
   const rSoul = reduceDigits(soul, false);
   const rPers = reduceDigits(personality, false);
   const rMat = reduceDigits(mature, false);
-  const rPass = typeof passion === 'number' ? reduceDigits(passion, false) : 0;
 
   const bridgeLifeMission = Math.abs(rWalk - rMiss);
   const bridgeSoulPersonality = Math.abs(rSoul - rPers);
-  const bridgeMaturityPassion = Math.abs(rMat - rPass);
+  const bridgeMaturityPassionValues = Array.from(new Set(
+    passionList.map((passionNumber) => Math.abs(rMat - reduceDigits(passionNumber, false)))
+  )).sort((a, b) => a - b);
+  const bridgeMaturityPassion = bridgeMaturityPassionValues.length > 0
+    ? bridgeMaturityPassionValues.join(', ')
+    : String(rMat);
 
   // 14. Cycles (Vận hạn: Năm, Tháng, Ngày cá nhân)
   const rCurYear = reduceDigits(curYear, false);

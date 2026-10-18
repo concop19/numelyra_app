@@ -6,6 +6,11 @@
  */
 
 import { CalculatedIndicator } from './numerologyEngine';
+import {
+  getHiddenPassionSummary,
+  getKarmicDebtSummary,
+  getMissingNumbersSummary,
+} from './numerologySpecialInterpretations';
 
 // Từ điển đúc kết nguyên mẫu theo con số (1-9, 10, 11, 22, 33)
 const NUMBER_CORE_SUMMARIES: Record<string | number, string> = {
@@ -24,34 +29,31 @@ const NUMBER_CORE_SUMMARIES: Record<string | number, string> = {
   33: 'Bậc thầy chữa lành từ bi, nâng tầm tâm thức nhân loại bằng tình thương bao la và trí tuệ khai sáng.',
 };
 
+function getChartSummary(indicator: CalculatedIndicator, sourceLabel: 'tên' | 'ngày sinh'): string {
+  const counts = indicator.chartData?.counts;
+  if (!counts) return indicator.description;
+
+  const missing = Object.entries(counts)
+    .filter(([, count]) => count === 0)
+    .map(([number]) => number);
+  const maxCount = Math.max(...Object.values(counts));
+  const dominant = Object.entries(counts)
+    .filter(([, count]) => count === maxCount && count > 0)
+    .map(([number]) => number);
+
+  return `Biểu đồ ${sourceLabel}: thiếu ${missing.join(', ') || 'không có'} · nổi trội ${dominant.join(', ') || 'không có'} (${maxCount} lần).`;
+}
+
 // Từ điển đúc kết riêng cho các chỉ số đặc biệt (nợ nghiệp, bài học, biểu đồ...)
 const SPECIAL_INDICATOR_SUMMARIES: Record<string, (indicator: CalculatedIndicator) => string> = {
   // Chỉ số nợ nghiệp
-  karmicDebts: (ind) => {
-    const val = String(ind.value);
-    if (val.includes('13')) {
-      return 'Nợ nghiệp 13/4: Bài học chuyển hóa sự chây lười thành tính kỷ luật thép và sự kiên trì bền bỉ.';
-    }
-    if (val.includes('14')) {
-      return 'Nợ nghiệp 14/5: Bài học kiểm soát dục vọng, tìm thấy tự do đích thực trong sự chừng mực và làm chủ bản thân.';
-    }
-    if (val.includes('16')) {
-      return 'Nợ nghiệp 16/7: Bài học thanh tẩy bản ngã kiêu hãnh, xây dựng lại niềm tin từ sự khiêm nhường sâu sắc.';
-    }
-    if (val.includes('19')) {
-      return 'Nợ nghiệp 19/1: Bài học hóa giải tính độc đoán, học cách lắng nghe và nâng đỡ người xung quanh.';
-    }
-    return 'Lộ trình hóa giải những nợ duyên tiền kiếp để chuyển hóa nghiệp lực thành phúc báu trọn vẹn.';
-  },
+  karmicDebts: (ind) => getKarmicDebtSummary(ind.value),
 
   // Bài học số thiếu
-  missingNumbers: (ind) => {
-    const val = String(ind.displayValue || ind.value);
-    if (!val || val === 'Không có' || val === '0') {
-      return 'Bạn sở hữu bộ năng lượng tương đối trọn vẹn, ít chướng ngại năng lượng thiếu hụt trong danh xưng.';
-    }
-    return `Bài học rèn luyện những phẩm chất còn khuyết (số ${val}) để hoàn thiện bức tranh năng lượng toàn diện của linh hồn.`;
-  },
+  missingNumbers: (ind) => getMissingNumbersSummary(ind.value),
+
+  // Đam mê ẩn giấu có thể có nhiều số đồng hạng
+  passion: (ind) => getHiddenPassionSummary(ind.value),
 
   // Cầu nối Đường đời - Sứ mệnh
   bridgeLifeMission: (ind) => {
@@ -79,18 +81,21 @@ const SPECIAL_INDICATOR_SUMMARIES: Record<string, (indicator: CalculatedIndicato
   },
 
   // Mũi tên cá tính
-  arrows: () => {
-    return 'Các trục năng lượng vượt trội hoặc khoảng trống cần bồi đắp trong ma trận số học ngày sinh.';
+  arrows: (ind) => {
+    const arrows = ind.chartData?.arrows || [];
+    const strong = arrows.filter((arrow) => arrow.status === 'strong').map((arrow) => arrow.label);
+    const empty = arrows.filter((arrow) => arrow.status === 'empty').map((arrow) => arrow.label);
+    return `Mũi tên đủ bộ: ${strong.join(', ') || 'không có'} · Mũi tên trống: ${empty.join(', ') || 'không có'}.`;
   },
 
   // Biểu đồ tên
-  nameChart: () => {
-    return 'Ma trận phân bổ tần số âm rung của từng chữ cái, soi chiếu năng lực biểu đạt và khí chất nội tâm.';
+  nameChart: (ind) => {
+    return getChartSummary(ind, 'tên');
   },
 
   // Biểu đồ ngày sinh
-  birthChart: () => {
-    return 'Bản đồ căn nguyên thể hiện 3 tầng thân - tâm - trí qua sự phân bố các con số trên ma trận 3x3.';
+  birthChart: (ind) => {
+    return getChartSummary(ind, 'ngày sinh');
   },
 
   // Năm cá nhân

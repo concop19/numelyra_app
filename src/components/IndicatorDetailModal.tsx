@@ -13,11 +13,21 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { CalculatedIndicator } from '../services/numerologyEngine';
-import { getIndicatorReading, KnowledgeReadingResult } from '../services/numerologyKnowledge';
+import {
+  getIndicatorReading,
+  getMatrixKnowledgeBundle,
+  KnowledgeReadingResult,
+  MatrixKnowledgeBundle,
+} from '../services/numerologyKnowledge';
+import {
+  getArrowKnowledgeValue,
+  getMatrixKnowledgeValue,
+} from '../services/numerologyKnowledgeContract';
 import {
   ArrowStatus,
   getArrowReading,
   getDigitReading,
+  getFrequencyBand,
   MatrixKey,
 } from '../services/numerologyMatrixInterpretations';
 
@@ -232,7 +242,18 @@ const MATRIX_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 function ChartDataSection({ indicator }: { indicator: CalculatedIndicator }) {
   const [selectedDigit, setSelectedDigit] = useState<number | null>(null);
   const [selectedArrowLabel, setSelectedArrowLabel] = useState<string | null>(null);
+  const [dbReadings, setDbReadings] = useState<MatrixKnowledgeBundle>({});
   const chartData = indicator.chartData;
+
+  useEffect(() => {
+    let active = true;
+    setDbReadings({});
+    getMatrixKnowledgeBundle(indicator).then((bundle) => {
+      if (active) setDbReadings(bundle);
+    });
+    return () => { active = false; };
+  }, [indicator]);
+
   if (!chartData) return null;
 
   const isArrows = indicator.key === 'arrows';
@@ -247,6 +268,20 @@ function ChartDataSection({ indicator }: { indicator: CalculatedIndicator }) {
     empty: 'Trống',
     partial: 'Có một phần',
   } as const;
+  const resolveDigitReading = (number: number, count: number) => {
+    const band = getFrequencyBand(count);
+    const fallback = getDigitReading(matrixInterpretationKey, number, count);
+    const dbReading = dbReadings[getMatrixKnowledgeValue(number, band)];
+    return dbReading ? { ...fallback, ...dbReading } : fallback;
+  };
+  const resolveArrowReading = (label: string, status: ArrowStatus) => {
+    const fallback = getArrowReading(label, status);
+    const dbReading = dbReadings[getArrowKnowledgeValue(label, status)];
+    return dbReading ? { ...fallback, ...dbReading } : fallback;
+  };
+  const selectedDigitReading = selectedDigit === null
+    ? null
+    : resolveDigitReading(selectedDigit, chartData.counts[selectedDigit] || 0);
 
   return (
     <View style={styles.chartSection}>
@@ -258,7 +293,7 @@ function ChartDataSection({ indicator }: { indicator: CalculatedIndicator }) {
       <View style={styles.matrixGrid}>
         {MATRIX_ORDER.map((number) => {
           const count = chartData.counts[number] || 0;
-          const reading = getDigitReading(matrixInterpretationKey, number, count);
+          const reading = resolveDigitReading(number, count);
           const selected = selectedDigit === number;
           return (
             <TouchableOpacity
@@ -286,18 +321,10 @@ function ChartDataSection({ indicator }: { indicator: CalculatedIndicator }) {
         })}
       </View>
 
-      {selectedDigit !== null && (
+      {selectedDigit !== null && selectedDigitReading && (
         <InterpretationDetails
-          title={`Số ${selectedDigit} · ${getDigitReading(
-            matrixInterpretationKey,
-            selectedDigit,
-            chartData.counts[selectedDigit] || 0
-          ).theme}`}
-          reading={getDigitReading(
-            matrixInterpretationKey,
-            selectedDigit,
-            chartData.counts[selectedDigit] || 0
-          )}
+          title={`Số ${selectedDigit} · ${selectedDigitReading.theme}`}
+          reading={selectedDigitReading}
         />
       )}
 
@@ -305,7 +332,7 @@ function ChartDataSection({ indicator }: { indicator: CalculatedIndicator }) {
         <View style={styles.arrowList}>
           <Text style={styles.arrowListTitle}>Trạng thái 8 mũi tên</Text>
           {chartData.arrows.map((arrow) => {
-            const reading = getArrowReading(arrow.label, arrow.status as ArrowStatus);
+            const reading = resolveArrowReading(arrow.label, arrow.status as ArrowStatus);
             const selected = selectedArrowLabel === arrow.label;
             return (
               <View key={arrow.label}>
@@ -331,7 +358,13 @@ function ChartDataSection({ indicator }: { indicator: CalculatedIndicator }) {
                   </View>
                   <Ionicons name={selected ? 'chevron-up' : 'chevron-down'} size={16} color="#ADA2C5" />
                 </TouchableOpacity>
-                {selected && <InterpretationDetails title={reading.theme} reading={reading} compact />}
+                {selected && (
+                  <InterpretationDetails
+                    title={reading.theme}
+                    reading={reading}
+                    compact
+                  />
+                )}
               </View>
             );
           })}

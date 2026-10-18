@@ -54,6 +54,21 @@ async function hasBiographiesVi(db: SQLite.SQLiteDatabase): Promise<boolean> {
   }
 }
 
+async function hasNumerologyKnowledge(db: SQLite.SQLiteDatabase): Promise<boolean> {
+  try {
+    const table = await db.getFirstAsync<{ count: number }>(
+      "SELECT count(*) as count FROM sqlite_master WHERE type='table' AND name='numerology_knowledge'"
+    );
+    if ((table?.count ?? 0) === 0) return false;
+    const rows = await db.getFirstAsync<{ count: number }>(
+      'SELECT count(*) as count FROM numerology_knowledge'
+    );
+    return (rows?.count ?? 0) >= 304;
+  } catch {
+    return false;
+  }
+}
+
 async function getDatabaseUserVersion(db: SQLite.SQLiteDatabase): Promise<number> {
   try {
     const result = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
@@ -72,10 +87,11 @@ async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
     const count = await getStoredCaDaoCount(db);
     const hasReps = await hasRepresentativesTable(db);
     const hasVi = await hasBiographiesVi(db);
+    const hasKnowledge = await hasNumerologyKnowledge(db);
     const version = await getDatabaseUserVersion(db);
 
-    // Yêu cầu bản cập nhật mới nhất (version >= 2 có bảng representatives và cột biography_vi tiếng Việt)
-    if (count > 0 && hasReps && hasVi && version >= 2) return db;
+    // Version 3 bổ sung 320 luận giải thần số học cục bộ.
+    if (count > 0 && hasReps && hasVi && hasKnowledge && version >= 3) return db;
   } catch {
     // Bản cài cũ có DB cũ hoặc thiếu bảng / thiếu cột biography_vi. Thay thế bản đó.
   }
@@ -88,6 +104,10 @@ async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
   if ((await getStoredCaDaoCount(db)) === 0) {
     await db.closeAsync();
     throw new Error('Bundled ca dao database is empty.');
+  }
+  if (!(await hasNumerologyKnowledge(db))) {
+    await db.closeAsync();
+    throw new Error('Bundled numerology knowledge database is incomplete.');
   }
   return db;
 }

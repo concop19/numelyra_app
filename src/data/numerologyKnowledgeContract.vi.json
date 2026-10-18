@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "locale": "vi",
+  "indicators": [
+    { "key": "walksOfLife", "requiredValues": ["2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "22", "33"] },
+    { "key": "mission", "requiredValues": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "11", "22", "33"] },
+    { "key": "soul", "requiredValues": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "11", "22", "33"] },
+    { "key": "personality", "requiredValues": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "11", "22", "33"] },
+    { "key": "dateOfBirth", "requiredValues": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "11", "22"] },
+    { "key": "mature", "requiredValues": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "11", "22", "33"] },
+    { "key": "balance", "requiredValues": ["1", "2", "3", "4", "5", "6", "7", "8", "9"] },
+    { "key": "rationalThinking", "requiredValues": ["1", "2", "3", "4", "5", "6", "7", "8", "9"] },
+    { "key": "subconsciousPower", "requiredValues": ["1", "2", "3", "4", "5", "6", "7", "8", "9"] },
+    { "key": "passion", "requiredValues": ["1", "2", "3", "4", "5", "6", "7", "8", "9"] },
+    { "key": "attitude", "requiredValues": ["1", "2", "3", "4", "5", "6", "7", "8", "9"] },
+    { "key": "karmicDebts", "requiredValues": ["13/4", "14/5", "16/7", "19/1", "none"] },
+    { "key": "missingNumbers", "requiredValues": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "none"] },
+    { "key": "bridgeLifeMission", "requiredValues": ["0", "1", "2", "3", "4", "5", "6", "7", "8"] },
+    { "key": "bridgeSoulPersonality", "requiredValues": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"] },
+    { "key": "bridgeMaturityPassion", "requiredValues": ["0", "1", "2", "3", "4", "5", "6", "7", "8"] },
+    { "key": "yearIndividual", "requiredValues": ["1", "2", "3", "4", "5", "6", "7", "8", "9"] },
+    { "key": "monthIndividual", "requiredValues": ["1", "2", "3", "4", "5", "6", "7", "8", "9"] },
+    { "key": "dayIndividual", "requiredValues": ["1", "2", "3", "4", "5", "6", "7", "8", "9"] },
+    { "key": "way", "requiredValues": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"] },
+    { "key": "challenges", "requiredValues": ["0", "1", "2", "3", "4", "5", "6", "7", "8"] },
+    {
+      "key": "arrows",
+      "requiredValues": [
+        "1-4-7:strong", "1-4-7:partial", "1-4-7:empty",
+        "2-5-8:strong", "2-5-8:partial", "2-5-8:empty",
+        "3-6-9:strong", "3-6-9:partial", "3-6-9:empty",
+        "1-2-3:strong", "1-2-3:partial", "1-2-3:empty",
+        "4-5-6:strong", "4-5-6:partial", "4-5-6:empty",
+        "7-8-9:strong", "7-8-9:partial", "7-8-9:empty",
+        "1-5-9:strong", "1-5-9:partial", "1-5-9:empty",
+        "3-5-7:strong", "3-5-7:partial", "3-5-7:empty"
+      ]
+    },
+    {
+      "key": "nameChart",
+      "requiredValues": [
+        "1:missing", "1:baseline", "1:highlighted", "1:amplified",
+        "2:missing", "2:baseline", "2:highlighted", "2:amplified",
+        "3:missing", "3:baseline", "3:highlighted", "3:amplified",
+        "4:missing", "4:baseline", "4:highlighted", "4:amplified",
+        "5:missing", "5:baseline", "5:highlighted", "5:amplified",
+        "6:missing", "6:baseline", "6:highlighted", "6:amplified",
+        "7:missing", "7:baseline", "7:highlighted", "7:amplified",
+        "8:missing", "8:baseline", "8:highlighted", "8:amplified",
+        "9:missing", "9:baseline", "9:highlighted", "9:amplified"
+      ]
+    },
+    {
+      "key": "birthChart",
+      "requiredValues": [
+        "1:missing", "1:baseline", "1:highlighted", "1:amplified",
+        "2:missing", "2:baseline", "2:highlighted", "2:amplified",
+        "3:missing", "3:baseline", "3:highlighted", "3:amplified",
+        "4:missing", "4:baseline", "4:highlighted", "4:amplified",
+        "5:missing", "5:baseline", "5:highlighted", "5:amplified",
+        "6:missing", "6:baseline", "6:highlighted", "6:amplified",
+        "7:missing", "7:baseline", "7:highlighted", "7:amplified",
+        "8:missing", "8:baseline", "8:highlighted", "8:amplified",
+        "9:missing", "9:baseline", "9:highlighted", "9:amplified"
+      ]
+    }
+  ]
+}

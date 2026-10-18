@@ -157,6 +157,13 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
   // Lá bài hiện đang được chọn ở giữa
   const currentIndicator = filteredIndicators[activeIndex] || filteredIndicators[0];
   const shortSummary = currentIndicator ? getIndicatorShortSummary(currentIndicator) : '';
+  const currentValueLabel = currentIndicator
+    ? currentIndicator.chartData
+      ? 'BIỂU ĐỒ CÁ NHÂN'
+      : currentIndicator.key === 'karmicDebts' || currentIndicator.key === 'missingNumbers'
+        ? `KẾT QUẢ ${currentIndicator.displayValue.toUpperCase()}`
+        : `SỐ ${currentIndicator.displayValue}`
+    : '';
 
   const renderCardItem = ({ item, index }: { item: CalculatedIndicator; index: number }) => {
     const isActive = index === activeIndex;
@@ -306,7 +313,7 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
             <View style={styles.insightPanel}>
               {/* Category Tag + Con số (Điểm nhấn #E8BC79) */}
               <Text style={styles.insightCategoryTag}>
-                {currentIndicator.categoryNameVi.toUpperCase()} · {currentIndicator.chartData ? 'BIỂU ĐỒ CÁ NHÂN' : `SỐ ${currentIndicator.displayValue}`}
+                {currentIndicator.categoryNameVi.toUpperCase()} · {currentValueLabel}
               </Text>
 
               {/* Tên chỉ số (Chữ chính #F6F0E8) */}
