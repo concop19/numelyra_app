@@ -1,5 +1,9 @@
 import type { AstroFortuneSlip } from '../../services/astro/astroFortuneService';
 import type { PureAstroFeatureMetadata } from '../../services/astro/astroVectorEngine';
+import { ASTRO_ENGINE_VERSION } from '../../services/astro/astroVersion';
+
+const LEGACY_V4_ENGINE_VERSION = 'astrology-v2-porphyry-1';
+const LEGACY_V5_ENGINE_VERSION = 'astrology-v3-porphyry-1';
 
 export interface AstroProfileIdentity {
   id?: string | null;
@@ -34,7 +38,8 @@ export function refreshCachedAstroMetadata(
     || !cachedMetadata?.natalPlanets
     || !cachedMetadata?.transitAspects
     || !cachedMetadata?.notableTransitAspects
-    || !cachedMetadata?.natalAspects;
+    || !cachedMetadata?.natalAspects
+    || (!!metadata.ruleEvaluation && !cachedMetadata?.ruleEvaluation);
 
   return {
     fortune: { ...fortune, astroMetadata: metadata },
@@ -65,11 +70,12 @@ function hashProfileKey(value: string): string {
   return (hash >>> 0).toString(16).padStart(8, '0');
 }
 
-export function getAstrologyProfileFingerprint(
-  profile?: AstroProfileIdentity | null
+function getAstrologyProfileFingerprintForEngine(
+  profile: AstroProfileIdentity | null | undefined,
+  engineVersion: string
 ): string {
   if (!profile) {
-    return hashProfileKey('guest|unknown-date|unknown-time|unknown-place|unknown|porphyry|astrology-v2-porphyry-1');
+    return hashProfileKey(`guest|unknown-date|unknown-time|unknown-place|unknown|porphyry|${engineVersion}`);
   }
   const hasExactTime = profile.birthTimeAccuracy
     ? profile.birthTimeAccuracy === 'exact'
@@ -81,15 +87,35 @@ export function getAstrologyProfileFingerprint(
     profile.birthLocation?.placeId || 'unknown-place',
     hasExactTime ? 'exact' : 'unknown',
     'porphyry',
-    'astrology-v2-porphyry-1',
+    engineVersion,
   ].join('|'));
+}
+
+export function getAstrologyProfileFingerprint(
+  profile?: AstroProfileIdentity | null
+): string {
+  return getAstrologyProfileFingerprintForEngine(profile, ASTRO_ENGINE_VERSION);
 }
 
 export function getAstroFortuneStorageKey(
   date: Date,
   profile?: AstroProfileIdentity | null
 ): string {
-  return `@astro_fortune_v4_${formatLocalDateKey(date)}_${getAstrologyProfileFingerprint(profile)}`;
+  return `@astro_fortune_v6_${formatLocalDateKey(date)}_${getAstrologyProfileFingerprint(profile)}`;
+}
+
+export function getAstroFortuneV5StorageKey(
+  date: Date,
+  profile?: AstroProfileIdentity | null
+): string {
+  return `@astro_fortune_v5_${formatLocalDateKey(date)}_${getAstrologyProfileFingerprintForEngine(profile, LEGACY_V5_ENGINE_VERSION)}`;
+}
+
+export function getAstroFortuneV4StorageKey(
+  date: Date,
+  profile?: AstroProfileIdentity | null
+): string {
+  return `@astro_fortune_v4_${formatLocalDateKey(date)}_${getAstrologyProfileFingerprintForEngine(profile, LEGACY_V4_ENGINE_VERSION)}`;
 }
 
 export function getAstroFortuneV3StorageKey(
@@ -149,6 +175,8 @@ export async function loadRecentAstroAdvice(
     const previousDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - offset);
     const candidateKeys = [
       getAstroFortuneStorageKey(previousDate, profile),
+      getAstroFortuneV5StorageKey(previousDate, profile),
+      getAstroFortuneV4StorageKey(previousDate, profile),
       getAstroFortuneV3StorageKey(previousDate, profile),
       getAstroFortuneV2StorageKey(previousDate, profile),
     ];

@@ -88,6 +88,33 @@ export interface PlanetGuidanceItem {
   natureLabel: string;
 }
 
+export interface AstrologyRuleTopicSummary {
+  key: string;
+  title: string;
+  experience: string;
+  advice: string;
+}
+
+export interface PlanetRuleInsight {
+  key: string;
+  title: string;
+  experience: string;
+  challenge: string;
+  supportiveExpression: string;
+  advice: string;
+}
+
+export function getAstrologyRuleTopicSummaries(
+  metadata?: PureAstroFeatureMetadata
+): AstrologyRuleTopicSummary[] {
+  return (metadata?.ruleEvaluation?.topTopics ?? []).slice(0, 3).map((topic) => ({
+    key: topic.topicId,
+    title: topic.title,
+    experience: topic.payload.experience,
+    advice: topic.payload.advice,
+  }));
+}
+
 export const ZODIAC_INFO: Record<ZodiacId, CelestialInfo> = {
   Aries: { id: 'Aries', nameVi: 'Bạch Dương', symbol: '♈', description: 'Nguồn lực khởi đầu, trực diện và sẵn sàng hành động.', themes: ['Tiên phong', 'Can đảm', 'Chủ động'] },
   Taurus: { id: 'Taurus', nameVi: 'Kim Ngưu', symbol: '♉', description: 'Năng lượng bền bỉ, cảm nhận giá trị và xây nền ổn định.', themes: ['Ổn định', 'Giá trị', 'Bền bỉ'] },
@@ -195,9 +222,14 @@ function aspectLine(aspect: DetectedAspect): string {
 export function getPlanetGuidanceItems(metadata: PureAstroFeatureMetadata): PlanetGuidanceItem[] {
   return PLANET_IDS.map((id) => {
     const transit = metadata.transitPlanets.find((planet) => planet.name === id);
-    const aspect = metadata.notableTransitAspects.find(
-      (item) => item.transitPlanet === id || item.natalPlanet === id
-    ) ?? null;
+    const allAspects = metadata.transitAspects ?? metadata.notableTransitAspects;
+    const outgoing = sortTransitAspects(
+      allAspects.filter((item) => item.transitPlanet === id)
+    )[0];
+    const incoming = sortTransitAspects(
+      allAspects.filter((item) => item.natalPlanet === id)
+    )[0];
+    const aspect = outgoing ?? incoming ?? null;
     const sign = transit && isZodiacId(transit.sign) ? transit.sign : null;
     return {
       id,
@@ -334,6 +366,66 @@ export function getAspectEnergyDescription(type: AspectType): string {
   return ASPECT_ENERGY_VI[type];
 }
 
+export function describeTransitAspect(aspect: DetectedAspect): string {
+  const transit = isPlanetId(aspect.transitPlanet) ? PLANET_INFO[aspect.transitPlanet] : undefined;
+  const natal = isPlanetId(aspect.natalPlanet) ? PLANET_INFO[aspect.natalPlanet] : undefined;
+  const transitTheme = transit?.themes[0]?.toLocaleLowerCase('vi-VN') ?? 'chuyển động hiện tại';
+  const natalTheme = natal?.themes[0]?.toLocaleLowerCase('vi-VN') ?? 'nền tảng bản mệnh';
+  return `Nhịp ${transitTheme} của ${planetLabel(aspect.transitPlanet)} đang chạm vào vùng ${natalTheme} của ${planetLabel(aspect.natalPlanet)} bản mệnh. ${getAspectEnergyDescription(aspect.type)}`;
+}
+
+export function describeNatalAspect(aspect: NatalAspect): string {
+  const first = isPlanetId(aspect.planetA) ? PLANET_INFO[aspect.planetA] : undefined;
+  const second = isPlanetId(aspect.planetB) ? PLANET_INFO[aspect.planetB] : undefined;
+  const firstTheme = first?.themes[0]?.toLocaleLowerCase('vi-VN') ?? 'nguồn lực thứ nhất';
+  const secondTheme = second?.themes[0]?.toLocaleLowerCase('vi-VN') ?? 'nguồn lực thứ hai';
+  return `Trong bản mệnh, mạch ${firstTheme} của ${planetLabel(aspect.planetA)} liên hệ với mạch ${secondTheme} của ${planetLabel(aspect.planetB)}. ${getAspectEnergyDescription(aspect.type)}`;
+}
+
+export function getPlanetRuleInsights(
+  metadata: PureAstroFeatureMetadata,
+  planet: PlanetId,
+  mode: PlanetDetailMode
+): PlanetRuleInsight[] {
+  const matches = metadata.ruleEvaluation?.matches ?? [];
+  const placementPrefix = `placement.planet.${planet}.`;
+  const transitHousePrefix = `transit.house.${planet}.`;
+  const seen = new Set<string>();
+
+  return matches.flatMap((match) => {
+    const primaryId = match.ruleIds[0] ?? '';
+    // Aspect rules already have their own list below the guidance cards. Keeping
+    // them here would describe the same transit twice and repeat a generic
+    // caution for every aspect.
+    const relevant = mode === 'natal'
+      ? primaryId.startsWith(placementPrefix)
+      : primaryId.startsWith(transitHousePrefix);
+    if (!relevant) return [];
+
+    const payloadKey = [
+      match.payload.experience,
+      match.payload.challenge,
+      match.payload.supportiveExpression,
+      match.payload.advice,
+    ].join('|');
+    if (seen.has(payloadKey)) return [];
+    seen.add(payloadKey);
+
+    let title = mode === 'natal' ? `Dấu ấn ${planetLabel(planet)}` : `Nhịp hiện tại của ${planetLabel(planet)}`;
+    if (primaryId.includes('.sign.')) title = 'Cách biểu đạt';
+    if (primaryId.includes('.house.')) title = mode === 'natal' ? 'Lĩnh vực biểu hiện' : 'Trọng tâm quá cảnh';
+
+    return [{
+      key: `${mode}-${planet}-${seen.size}`,
+      title,
+      experience: match.payload.experience,
+      challenge: match.payload.challenge,
+      supportiveExpression: match.payload.supportiveExpression,
+      advice: match.payload.advice,
+    }];
+  }).slice(0, 2);
+}
+
 export function buildPlanetPlacementInterpretation(
   planet: PlanetId,
   sign: string | undefined,
@@ -397,15 +489,16 @@ export function getActiveInfluences(
   target?: AstrologyDetailTarget
 ): DetectedAspect[] {
   if (!target) return metadata.notableTransitAspects.slice(0, 4);
+  const aspects = sortTransitAspects(metadata.transitAspects ?? metadata.notableTransitAspects);
   if (target.kind === 'planet') {
-    return metadata.notableTransitAspects.filter(
+    return aspects.filter(
       (aspect) => aspect.transitPlanet === target.id || aspect.natalPlanet === target.id
     ).slice(0, 4);
   }
   const planetsInSign = new Set(
     metadata.natalPlanets.filter((planet) => planet.sign === target.id).map((planet) => planet.name)
   );
-  return metadata.notableTransitAspects.filter(
+  return aspects.filter(
     (aspect) => planetsInSign.has(aspect.transitPlanet) || planetsInSign.has(aspect.natalPlanet)
   ).slice(0, 4);
 }
@@ -429,8 +522,11 @@ export function buildTodayInterpretation(
       sentences.push(`${zodiacLabel(target.id)} chứa ${placements.map((planet) => planetLabel(planet.name)).join(', ')} trong lá số bản mệnh.`);
     }
   }
-  if (metadata.topAspect) {
-    sentences.push(`Góc nổi bật: ${aspectLine(metadata.topAspect)}.`);
+  const relevantAspect = target
+    ? getActiveInfluences(metadata, target)[0]
+    : metadata.topAspect;
+  if (relevantAspect) {
+    sentences.push(`Góc nổi bật liên quan: ${aspectLine(relevantAspect)}.`);
   }
   const house = metadata.dailyContext?.activatedHouses[0];
   if (house) sentences.push(`Trọng tâm đang nghiêng về Nhà ${house.house} — ${house.topicVi}.`);

@@ -2,12 +2,16 @@ import {
   buildTodayInterpretation,
   buildPlanetModeSummary,
   buildPlanetPlacementInterpretation,
+  describeNatalAspect,
+  describeTransitAspect,
   getActiveInfluences,
   getIncomingTransitAspects,
   getNatalAspectsForPlanet,
   getOutgoingTransitAspects,
   getPlanetGuidanceItems,
+  getPlanetRuleInsights,
   getPrecisionMessage,
+  getAstrologyRuleTopicSummaries,
   getTodaySummaryCards,
   PLANET_IDS,
   resolveDetailConstellation,
@@ -73,10 +77,26 @@ describe('astrology presentation mapping', () => {
   it('always builds guidance for all ten planets in canonical order', () => {
     const input = metadata();
     input.notableTransitAspects = [];
+    input.transitAspects = [];
     const items = getPlanetGuidanceItems(input);
     expect(items.map((item) => item.id)).toEqual(PLANET_IDS);
     expect(items).toHaveLength(10);
     expect(items.every((item) => item.aspect === null && item.aspectText.length > 0)).toBe(true);
+  });
+
+  it('chooses each planet guidance aspect from the complete transit set', () => {
+    const input = metadata();
+    input.notableTransitAspects = [transitAspect('Sun', 'Moon', 0.2, 2)];
+    input.transitAspects = [
+      transitAspect('Sun', 'Moon', 0.2, 2),
+      transitAspect('Moon', 'Venus', 0.9, 0.2),
+    ];
+
+    const moon = getPlanetGuidanceItems(input).find((item) => item.id === 'Moon');
+    expect(moon?.aspect).toEqual(expect.objectContaining({
+      transitPlanet: 'Moon',
+      natalPlanet: 'Venus',
+    }));
   });
 
   it('resolves detail constellations for signs, planet placements, and missing metadata', () => {
@@ -111,6 +131,29 @@ describe('astrology presentation mapping', () => {
     expect(selected.every((item, index) => index === 0 || selected[index - 1].weight >= item.weight)).toBe(true);
   });
 
+  it('makes aspect explanations specific to both planets', () => {
+    const transit = transitAspect('Mars', 'Moon', 0.8, 0.4);
+    const transitText = describeTransitAspect(transit);
+    const natalText = describeNatalAspect({
+      planetA: 'Venus',
+      planetB: 'Saturn',
+      type: 'trine',
+      symbol: '△',
+      nameVi: 'Tam hợp',
+      targetAngle: 120,
+      actualAngle: 119.5,
+      orb: 0.5,
+      weight: 0.9,
+      nature: 'harmony',
+    });
+
+    expect(transitText).toContain('Sao Hỏa');
+    expect(transitText).toContain('Mặt Trăng');
+    expect(natalText).toContain('Sao Kim');
+    expect(natalText).toContain('Sao Thổ');
+    expect(transitText).not.toEqual(natalText);
+  });
+
   it('builds structured placement and mode summaries from the selected planet only', () => {
     const input = metadata();
     const natalMoon = input.natalPlanets.find((planet) => planet.name === 'Moon');
@@ -121,6 +164,21 @@ describe('astrology presentation mapping', () => {
     expect(placement.join(' ')).toContain('Mặt Trăng');
     if (house) expect(placement.join(' ')).toContain(`Nhà ${house}`);
     expect(summary).toContain('Mặt Trăng');
+  });
+
+  it('projects only relevant rules into a planet detail without exposing rule IDs', () => {
+    const input = metadata();
+    const moonNatal = getPlanetRuleInsights(input, 'Moon', 'natal');
+    const moonTransit = getPlanetRuleInsights(input, 'Moon', 'transit');
+
+    expect(moonNatal.length).toBeGreaterThan(0);
+    expect(moonTransit.length).toBeGreaterThan(0);
+    expect(moonNatal).toHaveLength(2);
+    expect(moonTransit).toHaveLength(1);
+    expect([...moonNatal, ...moonTransit].map((insight) => insight.title))
+      .not.toContain('Mặt Trăng đang tác động');
+    expect(JSON.stringify([...moonNatal, ...moonTransit])).not.toContain('placement.planet.');
+    expect(JSON.stringify([...moonNatal, ...moonTransit])).not.toContain('aspect.pair.transit.');
   });
 
   it.each<AstroDominantSignal>(['tension', 'harmony', 'conjunction', 'balanced'])(
@@ -137,8 +195,15 @@ describe('astrology presentation mapping', () => {
 
   it('filters Moon and Venus influences from real aspects', () => {
     const input = metadata();
+    input.notableTransitAspects = [];
+    input.transitAspects = [
+      transitAspect('Moon', 'Sun', 0.8, 0.2),
+      transitAspect('Mars', 'Venus', 0.7, 0.3),
+    ];
     const moon = getActiveInfluences(input, { kind: 'planet', id: 'Moon' });
     const venus = getActiveInfluences(input, { kind: 'planet', id: 'Venus' });
+    expect(moon).toHaveLength(1);
+    expect(venus).toHaveLength(1);
     expect(moon.every((item) => item.transitPlanet === 'Moon' || item.natalPlanet === 'Moon')).toBe(true);
     expect(venus.every((item) => item.transitPlanet === 'Venus' || item.natalPlanet === 'Venus')).toBe(true);
   });
@@ -153,9 +218,33 @@ describe('astrology presentation mapping', () => {
 
   it('builds interpretation only from current metadata', () => {
     const input = metadata();
+    input.topAspect = transitAspect('Mars', 'Sun', 0.95, 0.1);
+    input.notableTransitAspects = [input.topAspect];
+    input.transitAspects = [
+      input.topAspect,
+      transitAspect('Venus', 'Moon', 0.7, 0.4),
+    ];
     const text = buildTodayInterpretation(input, { kind: 'planet', id: 'Moon' });
     expect(text).toContain(input.vibeSummary);
     expect(text).not.toContain('1998-10-20');
-    if (input.topAspect) expect(text).toContain(input.topAspect.orb.toFixed(1));
+    expect(text).toContain('Sao Kim');
+    expect(text).not.toContain('Sao Hỏa vuông góc Mặt Trời');
+  });
+
+  it('projects rule topics into user-facing summaries without rule IDs', () => {
+    const input = metadata();
+    const summaries = getAstrologyRuleTopicSummaries(input);
+    expect(summaries.length).toBeGreaterThan(0);
+    expect(summaries.length).toBeLessThanOrEqual(3);
+    expect(summaries[0]).toEqual(expect.objectContaining({
+      title: expect.any(String),
+      experience: expect.any(String),
+      advice: expect.any(String),
+    }));
+    expect(JSON.stringify(summaries)).not.toContain('matchedRuleIds');
+    expect(getAstrologyRuleTopicSummaries({
+      ...input,
+      ruleEvaluation: null,
+    })).toEqual([]);
   });
 });

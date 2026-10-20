@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Location">
+  <title>Location</title>
+  <desc>Location pin with a glowing inner star.</desc>
+<g fill="none" stroke="#E8DFFF" stroke-width="6.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.16"><path d="M32 57 C28 50 14 36 14 26 C14 15.5 22 8 32 8 C42 8 50 15.5 50 26 C50 36 36 50 32 57 Z"/></g><g fill="none" stroke="#E8DFFF" stroke-width="3.1" stroke-linecap="round" stroke-linejoin="round"><path d="M32 57 C28 50 14 36 14 26 C14 15.5 22 8 32 8 C42 8 50 15.5 50 26 C50 36 36 50 32 57 Z"/></g><g fill="none" stroke="#F9B7DD" stroke-width="4.9" stroke-linecap="round" stroke-linejoin="round" opacity="0.16"><path d="M32.00 17.00 L33.91 23.09 L40.00 25.00 L33.91 26.91 L32.00 33.00 L30.09 26.91 L24.00 25.00 L30.09 23.09 Z"/></g><g fill="none" stroke="#F9B7DD" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M32.00 17.00 L33.91 23.09 L40.00 25.00 L33.91 26.91 L32.00 33.00 L30.09 26.91 L24.00 25.00 L30.09 23.09 Z"/></g><g fill="#FFD69B"><circle cx="32" cy="25" r="1.9"/></g>
+</svg>

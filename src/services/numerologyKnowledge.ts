@@ -18,6 +18,7 @@ import {
 } from './numerologyKnowledgeContract';
 import { getFrequencyBand, type MatrixReading } from './numerologyMatrixInterpretations';
 import type { CalculatedIndicator } from './numerologyEngine';
+import { getConciseIndicatorReading } from './chatNumerologyContextService';
 
 export interface KnowledgeReadingResult {
   title: string;
@@ -364,7 +365,13 @@ export async function getIndicatorReading(
     };
   }
 
-  // 1. Ưu tiên SQLite cục bộ. Kết quả ghép được tách thành các hàng nguyên tử rồi ghép lại.
+  // 1. Ưu tiên dữ liệu ngắn gọn cho 9 chỉ số Chat Agent (ChatNumerologyContext.v1.json)
+  const chatConciseReading = getConciseIndicatorReading(indicatorKey, indicatorValue, cardNameVi);
+  if (chatConciseReading) {
+    return chatConciseReading;
+  }
+
+  // 2. Ưu tiên SQLite cục bộ cho các chỉ số ngoài 9 chỉ số chat hoặc chỉ số ma trận.
   try {
     const atoms = getKnowledgeAtoms(indicatorKey, indicatorValue);
     const orderedValues = atoms.map((atom) => atom.numberValue);

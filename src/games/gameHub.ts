@@ -6,6 +6,7 @@ export const GAME_IDS = [
   'sudoku',
   'game-2048',
   'zip',
+  'lua-ga',
 ] as const;
 
 export type GameId = (typeof GAME_IDS)[number];

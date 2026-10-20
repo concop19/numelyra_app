@@ -14,6 +14,12 @@ export interface CaDaoItem {
   url: string;
 }
 
+export interface CaDaoContextQuery {
+  categories: string[];
+  keywords: string[];
+  seed: string;
+}
+
 const DATABASE_NAME = 'cadao.db';
 const BUNDLED_DATABASE_ASSET = require('../../assets/cadao.db');
 
@@ -191,6 +197,52 @@ export async function getDailyCaDao(date: Date): Promise<CaDaoItem | null> {
       category: 'Ca dao dân gian',
       url: ''
     };
+  }
+}
+
+function stablePositiveSeed(value: string): number {
+  let hash = 2_166_136_261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16_777_619);
+  }
+  return hash >>> 0;
+}
+
+/**
+ * Chọn ca dao theo nhóm chủ đề và từ khóa chiêm tinh, nhưng vẫn ổn định trong
+ * cùng một ngày/ngữ cảnh để cache và giao diện không thay đổi ngẫu nhiên.
+ */
+export async function getContextualDailyCaDao(
+  date: Date,
+  query: CaDaoContextQuery
+): Promise<CaDaoItem | null> {
+  const categories = [...new Set(query.categories.filter(Boolean))].slice(0, 4);
+  const keywords = [...new Set(query.keywords.map((item) => item.trim()).filter(Boolean))].slice(0, 10);
+  if (categories.length === 0) return null;
+
+  try {
+    const db = await openCaDaoDatabase();
+    const categorySlots = categories.map(() => '?').join(', ');
+    const relevance = keywords.length > 0
+      ? keywords.map(() => '(CASE WHEN title LIKE ? OR content LIKE ? THEN 1 ELSE 0 END)').join(' + ')
+      : '0';
+    const keywordParameters = keywords.flatMap((keyword) => [`%${keyword}%`, `%${keyword}%`]);
+    const dateKey = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+    const seed = stablePositiveSeed(`${dateKey}|${query.seed}`);
+    return await db.getFirstAsync<CaDaoItem>(
+      `SELECT id, title, content, category, url
+       FROM cadao
+       WHERE category IN (${categorySlots})
+         AND length(trim(content)) BETWEEN 20 AND 600
+       ORDER BY (${relevance}) DESC,
+         abs(((id * 1103515245) + ?) % 2147483647),
+         id
+       LIMIT 1`,
+      [...categories, ...keywordParameters, seed]
+    );
+  } catch {
+    return null;
   }
 }
 

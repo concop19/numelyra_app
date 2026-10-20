@@ -3,6 +3,8 @@
  * Cung cấp cho AI Agent khả năng tra cứu chính xác từng chỉ số theo nhu cầu của câu hỏi.
  */
 
+import { getConciseIndicatorMeaning } from './chatNumerologyContextService';
+
 export const PYTHAGOREAN_MAP: Record<string, number> = {
   A: 1, J: 1, S: 1,
   B: 2, K: 2, T: 2,
@@ -89,7 +91,8 @@ export class NumerologyCalculator {
       key: 'walksOfLife',
       name: 'Số Đường Đời (Life Path)',
       value: val,
-      meaning: `Chỉ số cốt lõi số ${val}, phản ánh bài học và con đường tiến hóa cả đời của bạn.`
+      meaning: getConciseIndicatorMeaning('walksOfLife', val) ||
+        `Chỉ số cốt lõi số ${val}, phản ánh bài học và con đường tiến hóa cả đời của bạn.`
     };
   }
 
@@ -104,7 +107,8 @@ export class NumerologyCalculator {
       key: 'mission',
       name: 'Số Sứ Mệnh (Destiny / Mission)',
       value: val,
-      meaning: `Năng lực bẩm sinh và đích đến mà bạn được sinh ra để cống hiến cho cuộc đời (Số ${val}).`
+      meaning: getConciseIndicatorMeaning('mission', val) ||
+        `Năng lực bẩm sinh và đích đến mà bạn được sinh ra để cống hiến cho cuộc đời (Số ${val}).`
     };
   }
 
@@ -124,7 +128,8 @@ export class NumerologyCalculator {
       key: 'soul',
       name: 'Số Linh Hồn (Soul Urge)',
       value: val,
-      meaning: `Khát vọng sâu kín, điều thực sự nuôi dưỡng cảm xúc và mang lại hạnh phúc cho bạn (Số ${val}).`
+      meaning: getConciseIndicatorMeaning('soul', val) ||
+        `Khát vọng sâu kín, điều thực sự nuôi dưỡng cảm xúc và mang lại hạnh phúc cho bạn (Số ${val}).`
     };
   }
 
@@ -144,7 +149,8 @@ export class NumerologyCalculator {
       key: 'personality',
       name: 'Số Nhân Cách (Personality)',
       value: val,
-      meaning: `Ấn tượng và phong thái bên ngoài mà người khác cảm nhận được từ bạn (Số ${val}).`
+      meaning: getConciseIndicatorMeaning('personality', val) ||
+        `Ấn tượng và phong thái bên ngoài mà người khác cảm nhận được từ bạn (Số ${val}).`
     };
   }
 
@@ -155,7 +161,8 @@ export class NumerologyCalculator {
       key: 'dateOfBirth',
       name: 'Số Ngày Sinh (Birthday Number)',
       value: val,
-      meaning: `Món quà tài năng đặc biệt và phản xạ tự nhiên trong cuộc sống thường nhật (Số ${val}).`
+      meaning: getConciseIndicatorMeaning('dateOfBirth', val) ||
+        `Món quà tài năng đặc biệt và phản xạ tự nhiên trong cuộc sống thường nhật (Số ${val}).`
     };
   }
 
@@ -168,7 +175,8 @@ export class NumerologyCalculator {
       key: 'mature',
       name: 'Số Trưởng Thành (Maturity)',
       value: val,
-      meaning: `Sức mạnh nở rộ sau tuổi 35–40 khi Đường đời và Sứ mệnh hội tụ (Số ${val}).`
+      meaning: getConciseIndicatorMeaning('mature', val) ||
+        `Sức mạnh nở rộ sau tuổi 35–40 khi Đường đời và Sứ mệnh hội tụ (Số ${val}).`
     };
   }
 
@@ -185,7 +193,8 @@ export class NumerologyCalculator {
       key: 'rationalThinking',
       name: 'Số Tư Duy Lý Trí (Rational Thought)',
       value: val,
-      meaning: `Cách bạn phân tích dữ kiện và đưa ra quyết định khi đứng trước các ngã rẽ (Số ${val}).`
+      meaning: getConciseIndicatorMeaning('rationalThinking', val) ||
+        `Cách bạn phân tích dữ kiện và đưa ra quyết định khi đứng trước các ngã rẽ (Số ${val}).`
     };
   }
 
@@ -199,7 +208,8 @@ export class NumerologyCalculator {
       key: 'yearIndividual',
       name: `Năm Cá Nhân ${targetYear} (Personal Year)`,
       value: val,
-      meaning: `Năm số ${val} trong chu kỳ 9 năm: ${getPersonalYearTheme(val)}`
+      meaning: getConciseIndicatorMeaning('yearIndividual', val) ||
+        `Năm số ${val} trong chu kỳ 9 năm: ${getPersonalYearTheme(val)}`
     };
   }
 
@@ -212,7 +222,8 @@ export class NumerologyCalculator {
       key: 'attitude',
       name: 'Số Thái Độ (Attitude Number)',
       value: val,
-      meaning: `Phản xạ đầu tiên và tâm thế của bạn khi đối diện biến cố hay cơ hội (Số ${val}).`
+      meaning: getConciseIndicatorMeaning('attitude', val) ||
+        `Phản xạ đầu tiên và tâm thế của bạn khi đối diện biến cố hay cơ hội (Số ${val}).`
     };
   }
 

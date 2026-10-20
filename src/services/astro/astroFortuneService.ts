@@ -3,12 +3,22 @@
  * để nhận "Lá Thăm Chiêm Tinh Dân Gian" (Thơ 4 câu - Gương soi - Kế sách).
  */
 import { API_ENDPOINTS, authenticatedFetch } from '../apiConfig';
-import { getDailyCaDao, getRandomCaDao, CaDaoItem } from '../../db/cadaoService';
+import {
+  getContextualDailyCaDao,
+  getDailyCaDao,
+  getRandomCaDao,
+  CaDaoItem,
+} from '../../db/cadaoService';
 import type {
   ActivatedHouseScore,
   PureAstroFeatureMetadata,
 } from './astroVectorEngine';
+import type {
+  AstrologyRuleEvaluation,
+  AstrologyRuleTopic,
+} from './astrologyRuleEvaluator';
 import { longitudeToZodiac } from './astroEngine';
+import { buildAstrologyCaDaoMatchPlan } from './astrologyCaDaoMatcher';
 
 export interface AstroFortuneSlip {
   title?: string;
@@ -18,6 +28,7 @@ export interface AstroFortuneSlip {
   anchorCaDao: {
     content: string;
     category?: string;
+    matchReason?: string;
   };
   astroMetadata?: PureAstroFeatureMetadata;
 }
@@ -29,6 +40,42 @@ export interface RequestFortuneSlipOptions {
   caDaoMode?: 'daily' | 'random';
   customCaDao?: CaDaoItem;
 }
+
+export interface AstrologyRuleRequestContext {
+  catalogId: string;
+  schemaVersion: number;
+  topics: AstrologyRuleTopic[];
+  matchedRuleIds: string[];
+}
+
+export interface AstroFortuneRequestMetadata {
+  tensionScore: number;
+  harmonyScore: number;
+  conjunctionScore: number;
+  dominantSignal: PureAstroFeatureMetadata['dominantSignal'];
+  dominantElements: string[];
+  highlights: string[];
+  birthDataPrecision?: PureAstroFeatureMetadata['birthDataPrecision'];
+  houseSystem?: 'porphyry';
+  ascendantSign?: string;
+  midheavenSign?: string;
+  planetHouses?: Record<string, number>;
+  activatedHouses?: ActivatedHouseScore[];
+  angleHighlights?: string[];
+}
+
+export interface AstroFortuneRequestPayload {
+  caDaoSample: string;
+  caDaoCategory: string;
+  astroSummary: string;
+  metadata: AstroFortuneRequestMetadata;
+  recentAdvice?: string[];
+  userContext?: string;
+  ruleContext?: AstrologyRuleRequestContext;
+}
+
+type RuleContextCapability = 'unknown' | 'supported' | 'legacy';
+let ruleContextCapability: RuleContextCapability = 'unknown';
 
 /**
  * Tạo bản tóm tắt tình thế chiêm tinh dễ hiểu cho Prompt AI
@@ -99,6 +146,68 @@ function buildAstroSummary(meta?: PureAstroFeatureMetadata): {
   };
 }
 
+export function makeAstrologyRuleRequestContext(
+  evaluation?: AstrologyRuleEvaluation | null
+): AstrologyRuleRequestContext | undefined {
+  const topics = evaluation?.topTopics.slice(0, 3) ?? [];
+  if (!evaluation || topics.length === 0) return undefined;
+  return {
+    catalogId: evaluation.catalogId,
+    schemaVersion: evaluation.schemaVersion,
+    topics,
+    matchedRuleIds: [...new Set(topics.flatMap((topic) => topic.matchedRuleIds))].sort(),
+  };
+}
+
+export function buildAstroFortuneRequestPayload(
+  sampleText: string,
+  sampleCategory: string,
+  options: RequestFortuneSlipOptions,
+  includeRuleContext = true
+): AstroFortuneRequestPayload {
+  const astroData = buildAstroSummary(options.astroMetadata);
+  const ruleContext = includeRuleContext
+    ? makeAstrologyRuleRequestContext(options.astroMetadata?.ruleEvaluation)
+    : undefined;
+  return {
+    caDaoSample: sampleText,
+    caDaoCategory: sampleCategory,
+    astroSummary: astroData.summary,
+    metadata: {
+      tensionScore: astroData.tensionScore,
+      harmonyScore: astroData.harmonyScore,
+      conjunctionScore: astroData.conjunctionScore,
+      dominantSignal: astroData.dominantSignal,
+      dominantElements: astroData.dominantElements,
+      highlights: astroData.highlights,
+      birthDataPrecision: astroData.birthDataPrecision,
+      houseSystem: astroData.houseSystem,
+      ascendantSign: astroData.ascendantSign,
+      midheavenSign: astroData.midheavenSign,
+      planetHouses: astroData.planetHouses,
+      activatedHouses: astroData.activatedHouses,
+      angleHighlights: astroData.angleHighlights,
+    },
+    recentAdvice: options.recentAdvice?.slice(0, 7),
+    userContext: options.userContext,
+    ruleContext,
+  };
+}
+
+async function sendFortuneRequest(payload: AstroFortuneRequestPayload): Promise<Response> {
+  return authenticatedFetch(API_ENDPOINTS.ASTRO_FORTUNE, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function resetAstroFortuneRuleContextCapabilityForTests(): void {
+  ruleContextCapability = 'unknown';
+}
+
 /**
  * Gửi yêu cầu lên Backend để bốc Lá Thăm Chiêm Tinh Dân Gian
  */
@@ -107,11 +216,16 @@ export async function requestAstroFortuneSlip(
 ): Promise<AstroFortuneSlip> {
   // 1. Lấy câu ca dao làm mẫu nhịp điệu (ưu tiên custom, nếu không lấy theo ngày hoặc ngẫu nhiên)
   let caDao: CaDaoItem | null = options.customCaDao ?? null;
+  let caDaoMatchReason: string | undefined;
   if (!caDao) {
     if (options.caDaoMode === 'random') {
       caDao = await getRandomCaDao();
     } else {
-      caDao = await getDailyCaDao(new Date());
+      const today = new Date();
+      const matchPlan = buildAstrologyCaDaoMatchPlan(options.astroMetadata);
+      caDao = await getContextualDailyCaDao(today, matchPlan);
+      if (caDao) caDaoMatchReason = matchPlan.reason;
+      else caDao = await getDailyCaDao(today);
     }
   }
 
@@ -120,38 +234,23 @@ export async function requestAstroFortuneSlip(
     'Cái cò cái vạc cái nông\nBa con cùng béo vặt lông con nào\nVặt lông con cốc cho tao\nTao nấu tao nướng tao xào tao ăn';
   const sampleCategory = caDao?.category || 'Dân gian';
 
-  // 2. Chuẩn bị dữ liệu chiêm tinh
-  const astroData = buildAstroSummary(options.astroMetadata);
-
-  // 3. Gọi Backend API
-  const response = await authenticatedFetch(API_ENDPOINTS.ASTRO_FORTUNE, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      caDaoSample: sampleText,
-      caDaoCategory: sampleCategory,
-      astroSummary: astroData.summary,
-      metadata: {
-        tensionScore: astroData.tensionScore,
-        harmonyScore: astroData.harmonyScore,
-        conjunctionScore: astroData.conjunctionScore,
-        dominantSignal: astroData.dominantSignal,
-        dominantElements: astroData.dominantElements,
-        highlights: astroData.highlights,
-        birthDataPrecision: astroData.birthDataPrecision,
-        houseSystem: astroData.houseSystem,
-        ascendantSign: astroData.ascendantSign,
-        midheavenSign: astroData.midheavenSign,
-        planetHouses: astroData.planetHouses,
-        activatedHouses: astroData.activatedHouses,
-        angleHighlights: astroData.angleHighlights,
-      },
-      recentAdvice: options.recentAdvice?.slice(0, 7),
-      userContext: options.userContext,
-    }),
-  });
+  // 2. Gửi rule context khi server hỗ trợ. Server cũ được phát hiện một lần mỗi phiên.
+  const shouldIncludeRuleContext = ruleContextCapability !== 'legacy';
+  const payload = buildAstroFortuneRequestPayload(
+    sampleText,
+    sampleCategory,
+    options,
+    shouldIncludeRuleContext
+  );
+  let response = await sendFortuneRequest(payload);
+  if (payload.ruleContext && (response.status === 400 || response.status === 422)) {
+    const legacyPayload = { ...payload };
+    delete legacyPayload.ruleContext;
+    response = await sendFortuneRequest(legacyPayload);
+    if (response.ok) ruleContextCapability = 'legacy';
+  } else if (payload.ruleContext && response.ok) {
+    ruleContextCapability = 'supported';
+  }
 
   if (!response.ok) {
     const errorJson = await response.json().catch(() => ({}));
@@ -182,6 +281,7 @@ export async function requestAstroFortuneSlip(
     anchorCaDao: {
       content: sampleText,
       category: sampleCategory,
+      matchReason: caDaoMatchReason,
     },
     astroMetadata: options.astroMetadata,
   };

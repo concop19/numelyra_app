@@ -8,8 +8,9 @@ import type {
   BirthTimeAccuracy,
   ResolvedBirthLocation,
 } from '../../store/userProfile';
+import { ASTRO_ENGINE_VERSION } from './astroVersion';
 
-export const ASTRO_ENGINE_VERSION = 'astrology-v2-porphyry-1';
+export { ASTRO_ENGINE_VERSION } from './astroVersion';
 
 export type AstroBirthDataPrecision = 'dateOnly' | 'timeWithoutLocation' | 'complete';
 

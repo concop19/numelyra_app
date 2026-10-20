@@ -2,7 +2,7 @@
  * tarotAssets.ts - Quản lý hình ảnh 78 lá bài Tarot Rider-Waite & Lưng bài
  */
 
-export const TAROT_CARD_BACK = require('../../assets/tarot/card-back.png');
+export const TAROT_CARD_BACK = require('../../assets/tarot/card-back.webp');
 
 export const TAROT_IMAGE_MAP: Record<string, any> = {
   '0-fool': require('../../assets/tarot/cards/00-fool.jpg'),

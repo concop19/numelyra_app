@@ -34,6 +34,7 @@ import { getTarotCardImage } from '../services/tarotAssets';
 import { evaluateAgentDecision, AgentDecision } from '../services/agentDecisionEngine';
 import { NumerologyCalculator, IndicatorInfo } from '../services/numerology24Service';
 import { CalculatedIndicator } from '../services/numerologyEngine';
+import { NUMEROLOGY_CARDS } from '../config/numerologyCards';
 import { drawCardsForSpread, DrawnCardResult, TAROT_SPREADS } from '../services/tarotService';
 import { createColorGuidance, isColorQuestion, type ColorGuidanceContext } from '../services/colorGuidanceService';
 import { computePersonTuViBazi, evaluateTuViBaziLove, TuViBaziSynastryResult } from '../services/tuViBaziService';
@@ -730,6 +731,35 @@ export default function ChatScreen({
   const [zoomedCard, setZoomedCard] = useState<DrawnCardResult | null>(null);
   const [readingTraceMessageId, setReadingTraceMessageId] = useState<string | null>(null);
   const [detailIndicator, setDetailIndicator] = useState<CalculatedIndicator | null>(null);
+
+  const handleOpenIndicator = useCallback((ind: any) => {
+    void Haptics.selectionAsync();
+    const meta = NUMEROLOGY_CARDS.find((card) => card.key === ind.key);
+    const numVal = Number(ind.value);
+    if (meta) {
+      setDetailIndicator({
+        ...meta,
+        value: ind.value,
+        displayValue: String(ind.value),
+        isMaster: [11, 22, 33].includes(numVal),
+      });
+    } else {
+      setDetailIndicator({
+        id: `card_${ind.key}`,
+        number: '00',
+        key: ind.key,
+        nameVi: ind.nameVi || ind.name || ind.key,
+        nameEn: ind.name || ind.key,
+        category: 'core',
+        categoryNameVi: 'Chỉ Số',
+        image: require('../../assets/cards/card_01_walksOfLife.jpg'),
+        description: '',
+        value: ind.value,
+        displayValue: String(ind.value),
+        isMaster: [11, 22, 33].includes(numVal),
+      });
+    }
+  }, []);
 
   const appendMessage = useCallback((message: MessageItem) => {
     setMessages(prev => [...prev, message].slice(-MAX_STORED_CHAT_MESSAGES));
@@ -1478,16 +1508,26 @@ export default function ChatScreen({
             <Text style={styles.chipsLabel}>Chỉ số mục tiêu (tối đa 5):</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
               {indicators1.map((ind: any, idx) => (
-                <View key={idx} style={styles.indicatorChip}>
+                <TouchableOpacity
+                  key={idx}
+                  activeOpacity={0.7}
+                  onPress={() => handleOpenIndicator(ind)}
+                  style={styles.indicatorChip}
+                >
                   <Text style={styles.indicatorChipName}>{((ind.nameVi || ind.name || '').split('(')[0].trim())}:</Text>
                   <Text style={styles.indicatorChipVal}>{ind.value}</Text>
-                </View>
+                </TouchableOpacity>
               ))}
               {indicators2 && indicators2.length > 0 && indicators2.map((ind: any, idx) => (
-                <View key={`p2-${idx}`} style={[styles.indicatorChip, styles.indicatorChipP2]}>
+                <TouchableOpacity
+                  key={`p2-${idx}`}
+                  activeOpacity={0.7}
+                  onPress={() => handleOpenIndicator(ind)}
+                  style={[styles.indicatorChip, styles.indicatorChipP2]}
+                >
                   <Text style={styles.indicatorChipName}>P2 {((ind.nameVi || ind.name || '').split('(')[0].trim())}:</Text>
                   <Text style={styles.indicatorChipVal}>{ind.value}</Text>
-                </View>
+                </TouchableOpacity>
               ))}
             </ScrollView>
           </View>}

@@ -1,8 +1,32 @@
 import { registerRootComponent } from 'expo';
+import React, { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 
-import App from './App';
+function Root() {
+  const [AppComponent, setAppComponent] = useState<React.ComponentType | null>(null);
+  const [startupError, setStartupError] = useState<unknown>(null);
 
-// registerRootComponent calls AppRegistry.registerComponent('main', () => App);
-// It also ensures that whether you load the app in Expo Go or in a native build,
-// the environment is set up appropriately
-registerRootComponent(App);
+  useEffect(() => {
+    let active = true;
+
+    void (async () => {
+      if (Platform.OS === 'web') {
+        const { LoadSkiaWeb } = await import('@shopify/react-native-skia/lib/module/web');
+        await LoadSkiaWeb({ locateFile: () => '/canvaskit.wasm' });
+      }
+
+      const { default: App } = await import('./App');
+      if (active) setAppComponent(() => App);
+    })().catch(error => {
+      console.error('Không thể khởi tạo ứng dụng.', error);
+      if (active) setStartupError(error);
+    });
+
+    return () => { active = false; };
+  }, []);
+
+  if (startupError) throw startupError;
+  return AppComponent ? React.createElement(AppComponent) : null;
+}
+
+registerRootComponent(Root);

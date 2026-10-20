@@ -74,4 +74,18 @@ describe('numerologyKnowledge SQLite-first resolution', () => {
     expect(bundle['1:baseline']?.summary).toContain('số 1 nền tảng');
     expect(bundle['2:missing']).toBeUndefined();
   });
+
+  it('uses ChatNumerologyContext for any of the 9 chat indicators without querying SQLite DB', async () => {
+    const reading = await getIndicatorReading('walksOfLife', 7, 'Số Đường Đời');
+
+    expect(reading.source).toBe('offline-archetype');
+    expect(reading.overview).toContain('chiêm nghiệm');
+    expect(reading.title).toBe('Đường Đời 7');
+    expect(mockFetchRows).not.toHaveBeenCalled();
+
+    const masterReading = await getIndicatorReading('mission', 33, 'Số Sứ Mệnh');
+    expect(masterReading.source).toBe('offline-archetype');
+    expect(masterReading.overview).toContain('chữa lành');
+    expect(mockFetchRows).not.toHaveBeenCalled();
+  });
 });

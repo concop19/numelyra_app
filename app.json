@@ -55,7 +55,8 @@
           "initialOrientation": "DEFAULT"
         }
       ],
-      "expo-image"
+      "expo-image",
+      "@react-native-community/datetimepicker"
     ],
     "web": {
       "favicon": "./assets/favicon.png"

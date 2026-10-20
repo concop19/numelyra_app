@@ -14,7 +14,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AstroFortuneSlip } from '../../services/astro/astroFortuneService';
 import type { PureAstroFeatureMetadata } from '../../services/astro/astroVectorEngine';
 import { longitudeToZodiac } from '../../services/astro/astroEngine';
-import { buildTodayInterpretation } from './astrologyPresentation';
+import {
+  buildTodayInterpretation,
+  getAstrologyRuleTopicSummaries,
+} from './astrologyPresentation';
 
 const ZODIAC_VI: Record<string, string> = {
   Aries: 'Bạch Dương ♈',
@@ -68,6 +71,7 @@ function ScoreBar({ label, value, color }: { label: string; value: number; color
 
 export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: Props) {
   const insets = useSafeAreaInsets();
+  const ruleTopics = getAstrologyRuleTopicSummaries(metadata);
 
   return (
     <Modal
@@ -120,6 +124,30 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
 
             {fortune && (
               <>
+                <View style={styles.fortuneVerseCard}>
+                  <View style={styles.sectionTitleRow}>
+                    <Ionicons name="sparkles-outline" size={18} color="#FBBF24" />
+                    <Text style={styles.sectionTitle}>Bài thơ quẻ hôm nay</Text>
+                  </View>
+                  <Text style={styles.fortuneVerse}>{fortune.verse}</Text>
+                </View>
+
+                {!!fortune.anchorCaDao?.content && (
+                  <View style={styles.verseCard}>
+                    <View style={styles.sectionTitleRow}>
+                      <Ionicons name="musical-notes-outline" size={17} color="#71E7FF" />
+                      <Text style={styles.sectionTitle}>Ca dao gieo nhịp</Text>
+                    </View>
+                    <Text style={styles.anchorVerse}>“{fortune.anchorCaDao.content}”</Text>
+                    {!!fortune.anchorCaDao.category && (
+                      <Text style={styles.anchorCategory}>{fortune.anchorCaDao.category}</Text>
+                    )}
+                    {!!fortune.anchorCaDao.matchReason && (
+                      <Text style={styles.anchorReason}>{fortune.anchorCaDao.matchReason}</Text>
+                    )}
+                  </View>
+                )}
+
                 <View style={styles.insightCard}>
                   <View style={styles.sectionTitleRow}>
                     <Ionicons name="eye-outline" size={18} color="#A78BFA" />
@@ -136,6 +164,28 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
                   <Text style={styles.bodyText}>{fortune.advice}</Text>
                 </View>
               </>
+            )}
+
+            {ruleTopics.length > 0 && (
+              <View style={styles.ruleSection}>
+                <View style={styles.sectionTitleRow}>
+                  <Ionicons name="git-branch-outline" size={18} color="#7CEBFF" />
+                  <Text style={styles.sectionTitle}>Căn cứ luận giải</Text>
+                </View>
+                <Text style={styles.ruleIntro}>
+                  Các chủ đề nổi bật được chọn từ dữ liệu lá số và bầu trời hôm nay.
+                </Text>
+                {ruleTopics.map((topic) => (
+                  <View key={topic.key} style={styles.ruleTopicCard}>
+                    <Text style={styles.ruleTopicTitle}>{topic.title}</Text>
+                    <Text style={styles.bodyText}>{topic.experience}</Text>
+                    <View style={styles.ruleAdviceRow}>
+                      <Ionicons name="compass-outline" size={15} color="#5EEAD4" />
+                      <Text style={styles.ruleAdviceText}>{topic.advice}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
             )}
 
             {metadata && (
@@ -237,18 +287,6 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
               </>
             )}
 
-            {fortune?.anchorCaDao?.content && (
-              <>
-                <View style={styles.divider} />
-                <Text style={styles.groupTitle}>Nhịp ca dao neo quẻ</Text>
-                <View style={styles.verseCard}>
-                  <Text style={styles.anchorVerse}>“{fortune.anchorCaDao.content}”</Text>
-                  {!!fortune.anchorCaDao.category && (
-                    <Text style={styles.anchorCategory}>{fortune.anchorCaDao.category}</Text>
-                  )}
-                </View>
-              </>
-            )}
           </ScrollView>
         </LinearGradient>
       </View>
@@ -323,12 +361,64 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(131, 183, 255, 0.22)',
   },
+  fortuneVerseCard: {
+    padding: 17,
+    borderRadius: 18,
+    backgroundColor: 'rgba(74, 47, 112, 0.66)',
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.3)',
+  },
+  fortuneVerse: {
+    color: '#FFF4CF',
+    fontFamily: 'serif',
+    fontSize: 15,
+    fontStyle: 'italic',
+    lineHeight: 24,
+  },
   interpretationCard: {
     padding: 16,
     borderRadius: 18,
     backgroundColor: 'rgba(72, 49, 118, 0.62)',
     borderWidth: 1,
     borderColor: 'rgba(251, 191, 36, 0.24)',
+  },
+  ruleSection: {
+    padding: 16,
+    borderRadius: 18,
+    backgroundColor: 'rgba(20, 57, 88, 0.58)',
+    borderWidth: 1,
+    borderColor: 'rgba(113, 231, 255, 0.24)',
+    gap: 10,
+  },
+  ruleIntro: {
+    color: '#AFC3D9',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: -4,
+  },
+  ruleTopicCard: {
+    padding: 13,
+    borderRadius: 14,
+    backgroundColor: 'rgba(9, 24, 58, 0.62)',
+    gap: 7,
+  },
+  ruleTopicTitle: {
+    color: '#7CEBFF',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  ruleAdviceRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 7,
+    paddingTop: 2,
+  },
+  ruleAdviceText: {
+    flex: 1,
+    color: '#CFFCF4',
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '600',
   },
   sectionTitleRow: {
     flexDirection: 'row',
@@ -522,5 +612,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     marginTop: 10,
+  },
+  anchorReason: {
+    color: '#AFC3D9',
+    fontSize: 11,
+    lineHeight: 17,
+    marginTop: 7,
   },
 });

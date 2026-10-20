@@ -8,6 +8,7 @@
     "@lottiefiles/dotlottie-react": "^0.13.5",
     "@mdi/js": "^7.4.47",
     "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native-community/datetimepicker": "9.1.0",
     "@react-native-community/netinfo": "12.0.1",
     "@react-navigation/bottom-tabs": "^7.19.1",
     "@react-navigation/native": "^7.4.1",
@@ -69,7 +70,7 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "testRegex": "(src/games/(gameHub|zip/game/(logic|generator)|arrow-escape/src/(levels/levels|space_game/engine/spaceEngine)|sudoku/src/utils/sudokuLogic)|src/services/(colorGuidance|chatHistoryStorage|lunarService|numerologyKnowledge|numerologySummaryService|astro/.*)|src/db/numerologyKnowledgeService|src/features/constellation/constellationGeometry|src/features/astrology/dailyAstroFortune)\\.test\\.ts$",
+    "testRegex": "(src/games/(gameHub|lua-ga/engine|zip/game/(logic|generator)|arrow-escape/src/(levels/levels|space_game/engine/spaceEngine)|sudoku/src/utils/sudokuLogic)|src/services/(chatNumerologyContextService|colorGuidance|chatHistoryStorage|lunarService|numerologyKnowledge|numerologySummaryService|astro/.*)|src/db/numerologyKnowledgeService|src/features/constellation/constellationGeometry|src/features/astrology/dailyAstroFortune)\\.test\\.ts$",
     "modulePathIgnorePatterns": [
       "<rootDir>/src/games/zip/router-source/"
     ]

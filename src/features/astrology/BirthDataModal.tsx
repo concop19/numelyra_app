@@ -18,10 +18,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   resolveBirthLocation,
   resolveBirthPlaceSuggestion,
-  searchBirthPlaceSuggestions,
   type BirthPlaceSuggestion,
 } from '../../services/astro/birthLocation';
 import type { UserProfile } from '../../store/userProfile';
+import { useBirthPlaceSuggestions } from './useBirthPlaceSuggestions';
 
 interface Props {
   visible: boolean;
@@ -45,10 +45,13 @@ export function BirthDataModal({ visible, profile, onSave, onClose }: Props) {
   const [birthTime, setBirthTime] = useState(profile.birthTime ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [suggestions, setSuggestions] = useState<BirthPlaceSuggestion[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState<BirthPlaceSuggestion | null>(null);
-  const [searching, setSearching] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
+  const { suggestions, searching, searchError } = useBirthPlaceSuggestions({
+    query: place,
+    existingLabel: profile.birthLocation?.userLabel,
+    selectedLabel: selectedSuggestion?.userLabel,
+    enabled: visible,
+  });
 
   useEffect(() => {
     if (!visible) return;
@@ -58,63 +61,8 @@ export function BirthDataModal({ visible, profile, onSave, onClose }: Props) {
     );
     setBirthTime(profile.birthTime ?? '');
     setError(null);
-    setSuggestions([]);
     setSelectedSuggestion(null);
-    setSearching(false);
-    setSearchError(null);
   }, [profile, visible]);
-
-  useEffect(() => {
-    if (!visible) return;
-    const normalized = place.trim();
-    const existingLabel = profile.birthLocation?.userLabel.trim();
-    if (
-      Platform.OS === 'web' &&
-      normalized.length >= 3 &&
-      normalized !== existingLabel
-    ) {
-      setSuggestions([]);
-      setSearching(false);
-      setSearchError('Tra cứu nơi sinh mới hiện chỉ hỗ trợ trên ứng dụng iOS và Android. Dữ liệu nơi sinh đã lưu vẫn xem được trên web.');
-      return;
-    }
-    if (
-      normalized.length < 3
-      || normalized === existingLabel
-      || selectedSuggestion?.userLabel === normalized
-    ) {
-      setSuggestions([]);
-      setSearching(false);
-      setSearchError(null);
-      return;
-    }
-
-    const controller = new AbortController();
-    const timer = setTimeout(() => {
-      setSearching(true);
-      setSearchError(null);
-      void searchBirthPlaceSuggestions(normalized, controller.signal)
-        .then((items) => {
-          setSuggestions(items);
-          if (items.length === 0) setSearchError('Không tìm thấy địa điểm phù hợp.');
-        })
-        .catch((caught) => {
-          if (caught instanceof Error && caught.name === 'AbortError') return;
-          setSuggestions([]);
-          setSearchError(
-            caught instanceof Error ? caught.message : 'Không thể tải đề xuất địa điểm.'
-          );
-        })
-        .finally(() => {
-          if (!controller.signal.aborted) setSearching(false);
-        });
-    }, 500);
-
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [place, profile.birthLocation?.userLabel, selectedSuggestion, visible]);
 
   const handleSave = async () => {
     const normalizedPlace = place.trim();
@@ -229,8 +177,6 @@ export function BirthDataModal({ visible, profile, onSave, onClose }: Props) {
                     onPress={() => {
                       setSelectedSuggestion(suggestion);
                       setPlace(suggestion.userLabel);
-                      setSuggestions([]);
-                      setSearchError(null);
                     }}
                   >
                     <Ionicons name="location-outline" size={18} color="#71E7FF" />

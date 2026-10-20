@@ -155,6 +155,9 @@ describe('Pure Astrology Feature Vector Engine', () => {
       expect(result.metadata.natalSunSign).toBe('Aries'); // 21/03 là Bạch Dương
       expect(result.metadata.temperament.dominantElement).toBeDefined();
       expect(result.metadata.temperament.dominantModality).toBeDefined();
+      expect(result.metadata.engineVersion).toBe('astrology-v3-porphyry-1');
+      expect(result.metadata.ruleEvaluation?.catalogId).toBe('astrology_rule_v1');
+      expect(result.metadata.ruleEvaluation?.topTopics.length).toBeLessThanOrEqual(3);
     });
 
     it('tăng confidenceScore lên 1.0 khi có giờ sinh cụ thể', () => {
@@ -186,6 +189,9 @@ describe('Pure Astrology Feature Vector Engine', () => {
       expect(result.metadata.natalContext?.houseCusps).toHaveLength(12);
       expect(Object.keys(result.metadata.natalContext?.planetHouses ?? {})).toHaveLength(10);
       expect(result.metadata.dailyContext?.activatedHouses.length).toBeGreaterThan(0);
+      expect(result.metadata.ruleEvaluation?.matches.some((match) => (
+        match.ruleIds.some((ruleId) => ruleId.includes('.house.'))
+      ))).toBe(true);
     });
 
     it('giữ toàn bộ transit aspects và vẫn giới hạn notable aspects ở top 8', () => {

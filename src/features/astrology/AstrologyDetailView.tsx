@@ -12,18 +12,19 @@ import { EnergyScoreRing } from './EnergyScoreRing';
 import { ASTRO_COLORS, AstrologyBackground, AstrologyHeader, MysticCard, SectionHeading, astrologyUiStyles } from './AstrologyUi';
 import {
   HOUSE_INFO,
-  buildPlanetModeSummary,
   buildPlanetPlacementInterpretation,
   buildTodayInterpretation,
+  describeNatalAspect,
+  describeTransitAspect,
   formatAspect,
   getActiveInfluences,
-  getAspectEnergyDescription,
   getCelestialInfo,
   getEnergyFocus,
   getIncomingTransitAspects,
   getNatalAspectCounterpart,
   getNatalAspectsForPlanet,
   getOutgoingTransitAspects,
+  getPlanetRuleInsights,
   getPrecisionMessage,
   planetLabel,
   resolveDetailConstellation,
@@ -85,7 +86,7 @@ function transitAspectItems(aspects: DetectedAspect[]): AspectDisplayItem[] {
     key: `${aspect.transitPlanet}-${aspect.natalPlanet}-${aspect.type}-${index}`,
     title: `${planetLabel(aspect.transitPlanet)} ${aspect.symbol} ${planetLabel(aspect.natalPlanet)}`,
     meta: `${aspect.nameVi} · góc thực tế ${aspect.actualAngle.toFixed(1)}° · orb ${aspect.orb.toFixed(1)}°`,
-    description: getAspectEnergyDescription(aspect.type),
+    description: describeTransitAspect(aspect),
     nature: aspect.nature,
   }));
 }
@@ -97,7 +98,7 @@ function natalAspectItems(aspects: NatalAspect[], selectedPlanet: PlanetId): Asp
       key: `${aspect.planetA}-${aspect.planetB}-${aspect.type}-${index}`,
       title: `${planetLabel(selectedPlanet)} ${aspect.symbol} ${planetLabel(counterpart)}`,
       meta: `${aspect.nameVi} · góc thực tế ${aspect.actualAngle.toFixed(1)}° · orb ${aspect.orb.toFixed(1)}°`,
-      description: getAspectEnergyDescription(aspect.type),
+      description: describeNatalAspect(aspect),
       nature: aspect.nature,
     };
   });
@@ -160,7 +161,10 @@ function PlanetDetailView({
   const natalAspects = useMemo(() => metadata ? getNatalAspectsForPlanet(metadata, planetId) : [], [metadata, planetId]);
   const incomingAspects = useMemo(() => metadata ? getIncomingTransitAspects(metadata, planetId) : [], [metadata, planetId]);
   const outgoingAspects = useMemo(() => metadata ? getOutgoingTransitAspects(metadata, planetId) : [], [metadata, planetId]);
-  const summary = metadata ? buildPlanetModeSummary(metadata, planetId, mode) : '';
+  const ruleInsights = useMemo(
+    () => metadata ? getPlanetRuleInsights(metadata, planetId, mode) : [],
+    [metadata, mode, planetId]
+  );
   const houseInfo = house ? HOUSE_INFO[house] : undefined;
   const needsBirthData = !!metadata && metadata.birthDataPrecision !== 'complete';
 
@@ -242,6 +246,30 @@ function PlanetDetailView({
               ))}
             </MysticCard>
 
+            {ruleInsights.length > 0 && (
+              <>
+                <SectionHeading title="Điểm cần chú ý" eyebrow="Personal Guidance" />
+                <View style={styles.ruleInsightList}>
+                  {ruleInsights.map((insight) => (
+                    <MysticCard key={insight.key} style={styles.ruleInsightCard}>
+                      <View style={styles.ruleInsightHeader}>
+                        <Ionicons name="git-branch-outline" size={17} color={ASTRO_COLORS.cyan} />
+                        <Text style={styles.ruleInsightTitle}>{insight.title}</Text>
+                      </View>
+                      <View style={styles.ruleInsightRow}>
+                        <Text style={styles.ruleInsightLabel}>CẦN LƯU Ý</Text>
+                        <Text style={styles.ruleInsightValue}>{insight.challenge}</Text>
+                      </View>
+                      <View style={styles.ruleAdviceBox}>
+                        <Ionicons name="compass-outline" size={16} color="#5EEAD4" />
+                        <Text style={styles.ruleAdviceText}>{insight.advice}</Text>
+                      </View>
+                    </MysticCard>
+                  ))}
+                </View>
+              </>
+            )}
+
             {mode === 'natal' ? (
               <>
                 <SectionHeading title="Góc trong lá số" eyebrow="Natal Aspects" />
@@ -256,13 +284,6 @@ function PlanetDetailView({
               </>
             )}
 
-            <SectionHeading title="Luận giải tổng hợp" eyebrow="Structured Interpretation" />
-            <MysticCard style={styles.summaryCard}>
-              <LinearGradient colors={[ASTRO_COLORS.paperLight, ASTRO_COLORS.paperDeep]} style={StyleSheet.absoluteFill} />
-              <View style={styles.summaryIcon}><Ionicons name="sparkles" size={22} color="#35205D" /></View>
-              <Text style={styles.summaryText}>{summary}</Text>
-              <Text style={styles.summaryFootnote}>Luận giải được ghép từ vị trí hành tinh, cung, nhà và các góc chính do engine tính toán.</Text>
-            </MysticCard>
           </>
         )}
       </ScrollView>
@@ -387,6 +408,15 @@ const styles = StyleSheet.create({
   energyParagraphRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, marginTop: 12 },
   energyBullet: { width: 6, height: 6, borderRadius: 3, backgroundColor: ASTRO_COLORS.cyan, marginTop: 7 },
   energyParagraph: { flex: 1, color: '#D7D2E9', fontSize: 12, lineHeight: 19 },
+  ruleInsightList: { gap: 10 },
+  ruleInsightCard: { padding: 16, backgroundColor: 'rgba(20,57,88,0.7)', borderColor: 'rgba(113,231,255,0.3)' },
+  ruleInsightHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 9 },
+  ruleInsightTitle: { flex: 1, color: '#EAFBFF', fontSize: 13, fontWeight: '900' },
+  ruleInsightRow: { paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.12)' },
+  ruleInsightLabel: { color: '#7CEBFF', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.9 },
+  ruleInsightValue: { color: '#C6D6E5', fontSize: 11, lineHeight: 17, marginTop: 4 },
+  ruleAdviceBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 12, padding: 11, borderRadius: 13, backgroundColor: 'rgba(18,92,92,0.28)' },
+  ruleAdviceText: { flex: 1, color: '#D7FFF8', fontSize: 11, lineHeight: 17, fontWeight: '700' },
   aspectCard: { paddingHorizontal: 16, backgroundColor: 'rgba(31,23,93,0.94)' },
   aspectRow: { minHeight: 112, flexDirection: 'row', alignItems: 'flex-start', gap: 11, paddingVertical: 15 },
   rowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.12)' },

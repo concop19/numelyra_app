@@ -28,6 +28,10 @@ import type {
   BirthTimeAccuracy,
   ResolvedBirthLocation,
 } from '../../store/userProfile';
+import {
+  getBundledAstrologyRuleEvaluator,
+  type AstrologyRuleEvaluation,
+} from './astrologyRuleEvaluator';
 
 export interface UserBirthInput {
   birthDate: string;        // 'YYYY-MM-DD' hoặc 'DD/MM/YYYY'
@@ -109,6 +113,7 @@ export interface PureAstroFeatureMetadata {
   transitAspects: DetectedAspect[];
   notableTransitAspects: DetectedAspect[];
   natalAspects: NatalAspect[];
+  ruleEvaluation?: AstrologyRuleEvaluation | null;
 }
 
 export interface PureAstroVectorResult {
@@ -320,6 +325,24 @@ export function generatePureAstroVector(
     balanced: 'Các dòng tác động đan xen khá cân bằng, phù hợp để duy trì nhịp sống và quan sát tín hiệu mới.',
   };
   const vibeSummary = vibeSummaryBySignal[dominantSignal];
+  const ruleEvaluation = getBundledAstrologyRuleEvaluator()?.evaluate({
+    temperament: {
+      'temperament.fire': temperament.fire,
+      'temperament.earth': temperament.earth,
+      'temperament.air': temperament.air,
+      'temperament.water': temperament.water,
+      'temperament.cardinal': temperament.cardinal,
+      'temperament.fixed': temperament.fixed,
+      'temperament.mutable': temperament.mutable,
+    },
+    natalSigns: Object.fromEntries(
+      natalChart.planetList.map((planet) => [planet.name, planet.sign])
+    ),
+    natalHouses: natalSnapshot.context?.planetHouses ?? {},
+    transitHouses: dailyContext?.transitHouses ?? {},
+    aspects: aspectResult.aspects,
+    hasReliableNatalContext: natalSnapshot.context?.precision === 'complete',
+  }) ?? null;
 
   const metadata: PureAstroFeatureMetadata = {
     engineVersion: natalSnapshot.engineVersion,
@@ -355,6 +378,7 @@ export function generatePureAstroVector(
     transitAspects: aspectResult.aspects,
     notableTransitAspects: aspectResult.aspects.slice(0, 8),
     natalAspects,
+    ruleEvaluation,
   };
 
   return {

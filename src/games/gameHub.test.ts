@@ -1,4 +1,4 @@
-import { getDailyChallenge, getLocalDateKey, getYesterdayKey } from './gameHub';
+import { GAME_IDS, getDailyChallenge, getLocalDateKey, getYesterdayKey } from './gameHub';
 
 describe('Game Hub daily challenge', () => {
   it('uses a stable local date key', () => {
@@ -13,5 +13,13 @@ describe('Game Hub daily challenge', () => {
     expect(morning).toEqual(evening);
     expect(tomorrow.id).not.toBe(morning.id);
     expect(['zip', 'mind-rules', 'sudoku', 'game-2048', 'arrow-escape']).toContain(morning.gameId);
+  });
+
+  it('registers Lua Ga without adding it to the daily challenge rotation', () => {
+    expect(GAME_IDS).toContain('lua-ga');
+    const dailyGames = Array.from({ length: 20 }, (_, offset) =>
+      getDailyChallenge(new Date(2026, 8, 1 + offset)).gameId,
+    );
+    expect(dailyGames).not.toContain('lua-ga');
   });
 });

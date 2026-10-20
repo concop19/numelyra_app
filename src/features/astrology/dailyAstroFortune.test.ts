@@ -4,6 +4,8 @@ import {
   formatLocalDateKey,
   getAstroFortuneStorageKey,
   getAstroFortuneV2StorageKey,
+  getAstroFortuneV4StorageKey,
+  getAstroFortuneV5StorageKey,
   getAstrologyProfileKey,
   loadCachedAstroFortune,
   loadRecentAstroAdvice,
@@ -52,11 +54,15 @@ describe('daily astrology fortune cache', () => {
       .not.toBe(getAstroFortuneStorageKey(date, profile));
   });
 
-  it('uses v4 and invalidates a same-day v2 fortune', async () => {
+  it('uses v6 and invalidates a same-day v5 fortune', async () => {
+    const v5Key = getAstroFortuneV5StorageKey(date, profile);
     const v2Key = getAstroFortuneV2StorageKey(date, profile);
-    const { storage } = createStorage({ [v2Key]: JSON.stringify(fortune) });
+    const { storage } = createStorage({
+      [v5Key]: JSON.stringify(fortune),
+      [v2Key]: JSON.stringify(fortune),
+    });
 
-    expect(getAstroFortuneStorageKey(date, profile)).toContain('@astro_fortune_v4_');
+    expect(getAstroFortuneStorageKey(date, profile)).toContain('@astro_fortune_v6_');
     await expect(loadCachedAstroFortune(storage, date, profile)).resolves.toBeNull();
   });
 
@@ -70,23 +76,31 @@ describe('daily astrology fortune cache', () => {
     await expect(loadCachedAstroFortune(storage, date, profile)).resolves.toBeNull();
   });
 
-  it('reads v4 first and v2 only as prior-day anti-repetition history', async () => {
+  it('reads v6, legacy v5, v4, and v2 as prior-day anti-repetition history', async () => {
     const yesterday = new Date(2026, 9, 4, 12, 0, 0);
     const twoDaysAgo = new Date(2026, 9, 3, 12, 0, 0);
-    const v4Fortune = { ...fortune, advice: 'Gọi một cuộc điện thoại quan trọng.' };
-    const v2Fortune = { ...fortune, advice: 'Viết ba việc cần hoàn thành.' };
+    const threeDaysAgo = new Date(2026, 9, 2, 12, 0, 0);
+    const fourDaysAgo = new Date(2026, 9, 1, 12, 0, 0);
+    const v6Fortune = { ...fortune, advice: 'Gọi một cuộc điện thoại quan trọng.' };
+    const v5Fortune = { ...fortune, advice: 'Đi bộ chậm trong mười phút.' };
+    const v4Fortune = { ...fortune, advice: 'Viết ba việc cần hoàn thành.' };
+    const v2Fortune = { ...fortune, advice: 'Sắp lại góc bàn trước bữa tối.' };
     const { storage } = createStorage({
-      [getAstroFortuneStorageKey(yesterday, profile)]: JSON.stringify(v4Fortune),
-      [getAstroFortuneV2StorageKey(twoDaysAgo, profile)]: JSON.stringify(v2Fortune),
+      [getAstroFortuneStorageKey(yesterday, profile)]: JSON.stringify(v6Fortune),
+      [getAstroFortuneV5StorageKey(twoDaysAgo, profile)]: JSON.stringify(v5Fortune),
+      [getAstroFortuneV4StorageKey(threeDaysAgo, profile)]: JSON.stringify(v4Fortune),
+      [getAstroFortuneV2StorageKey(fourDaysAgo, profile)]: JSON.stringify(v2Fortune),
     });
 
     await expect(loadRecentAstroAdvice(storage, date, profile)).resolves.toEqual([
+      v6Fortune.advice,
+      v5Fortune.advice,
       v4Fortune.advice,
       v2Fortune.advice,
     ]);
   });
 
-  it('saves the corrected fortune under the v4 key', async () => {
+  it('saves the contextual-ca-dao fortune under the v6 key', async () => {
     const { storage, values } = createStorage();
     await saveCachedAstroFortune(storage, date, profile, fortune);
     expect(JSON.parse(values.get(getAstroFortuneStorageKey(date, profile))!)).toEqual(fortune);
