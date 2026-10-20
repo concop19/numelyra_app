@@ -14,6 +14,12 @@ export interface CaDaoItem {
   url: string;
 }
 
+export interface CaDaoContextQuery {
+  categories: string[];
+  keywords: string[];
+  seed: string;
+}
+
 const DATABASE_NAME = 'cadao.db';
 const BUNDLED_DATABASE_ASSET = require('../../assets/cadao.db');
 
@@ -32,26 +38,82 @@ async function importBundledDatabase(forceOverwrite = false): Promise<void> {
   });
 }
 
+async function hasRepresentativesTable(db: SQLite.SQLiteDatabase): Promise<boolean> {
+  try {
+    const result = await db.getFirstAsync<{ count: number }>(
+      "SELECT count(*) as count FROM sqlite_master WHERE type='table' AND name='representatives'"
+    );
+    return (result?.count ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
+async function hasBiographiesVi(db: SQLite.SQLiteDatabase): Promise<boolean> {
+  try {
+    const result = await db.getFirstAsync<{ count: number }>(
+      "SELECT count(*) as count FROM pragma_table_info('representatives') WHERE name='biography_vi'"
+    );
+    return (result?.count ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
+async function hasNumerologyKnowledge(db: SQLite.SQLiteDatabase): Promise<boolean> {
+  try {
+    const table = await db.getFirstAsync<{ count: number }>(
+      "SELECT count(*) as count FROM sqlite_master WHERE type='table' AND name='numerology_knowledge'"
+    );
+    if ((table?.count ?? 0) === 0) return false;
+    const rows = await db.getFirstAsync<{ count: number }>(
+      'SELECT count(*) as count FROM numerology_knowledge'
+    );
+    return (rows?.count ?? 0) >= 304;
+  } catch {
+    return false;
+  }
+}
+
+async function getDatabaseUserVersion(db: SQLite.SQLiteDatabase): Promise<number> {
+  try {
+    const result = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
+    return result?.user_version ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
-  // With forceOverwrite=false this only installs the bundled DB if no local
-  // copy exists, preserving the normal fast path on subsequent launches.
+  // Cài đặt bundle nếu chưa có bản local nào
   await importBundledDatabase();
   let db = await SQLite.openDatabaseAsync(DATABASE_NAME);
 
   try {
     const count = await getStoredCaDaoCount(db);
-    if (count > 0) return db;
+    const hasReps = await hasRepresentativesTable(db);
+    const hasVi = await hasBiographiesVi(db);
+    const hasKnowledge = await hasNumerologyKnowledge(db);
+    const version = await getDatabaseUserVersion(db);
+
+    // Version 3 bổ sung 320 luận giải thần số học cục bộ.
+    if (count > 0 && hasReps && hasVi && hasKnowledge && version >= 3) return db;
   } catch {
-    // Older app versions created an empty cadao.db. Replace that invalid copy.
+    // Bản cài cũ có DB cũ hoặc thiếu bảng / thiếu cột biography_vi. Thay thế bản đó.
   }
 
+  // Tự động ghi đè bản DB mới nhất từ bundle assets
   await db.closeAsync();
   await importBundledDatabase(true);
   db = await SQLite.openDatabaseAsync(DATABASE_NAME);
 
-  if (await getStoredCaDaoCount(db) === 0) {
+  if ((await getStoredCaDaoCount(db)) === 0) {
     await db.closeAsync();
     throw new Error('Bundled ca dao database is empty.');
+  }
+  if (!(await hasNumerologyKnowledge(db))) {
+    await db.closeAsync();
+    throw new Error('Bundled numerology knowledge database is incomplete.');
   }
   return db;
 }
@@ -135,6 +197,52 @@ export async function getDailyCaDao(date: Date): Promise<CaDaoItem | null> {
       category: 'Ca dao dân gian',
       url: ''
     };
+  }
+}
+
+function stablePositiveSeed(value: string): number {
+  let hash = 2_166_136_261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16_777_619);
+  }
+  return hash >>> 0;
+}
+
+/**
+ * Chọn ca dao theo nhóm chủ đề và từ khóa chiêm tinh, nhưng vẫn ổn định trong
+ * cùng một ngày/ngữ cảnh để cache và giao diện không thay đổi ngẫu nhiên.
+ */
+export async function getContextualDailyCaDao(
+  date: Date,
+  query: CaDaoContextQuery
+): Promise<CaDaoItem | null> {
+  const categories = [...new Set(query.categories.filter(Boolean))].slice(0, 4);
+  const keywords = [...new Set(query.keywords.map((item) => item.trim()).filter(Boolean))].slice(0, 10);
+  if (categories.length === 0) return null;
+
+  try {
+    const db = await openCaDaoDatabase();
+    const categorySlots = categories.map(() => '?').join(', ');
+    const relevance = keywords.length > 0
+      ? keywords.map(() => '(CASE WHEN title LIKE ? OR content LIKE ? THEN 1 ELSE 0 END)').join(' + ')
+      : '0';
+    const keywordParameters = keywords.flatMap((keyword) => [`%${keyword}%`, `%${keyword}%`]);
+    const dateKey = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+    const seed = stablePositiveSeed(`${dateKey}|${query.seed}`);
+    return await db.getFirstAsync<CaDaoItem>(
+      `SELECT id, title, content, category, url
+       FROM cadao
+       WHERE category IN (${categorySlots})
+         AND length(trim(content)) BETWEEN 20 AND 600
+       ORDER BY (${relevance}) DESC,
+         abs(((id * 1103515245) + ?) % 2147483647),
+         id
+       LIMIT 1`,
+      [...categories, ...keywordParameters, seed]
+    );
+  } catch {
+    return null;
   }
 }
 

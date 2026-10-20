@@ -7,6 +7,7 @@ import MindRulesGame from '../games/mind-rules/MindRulesGame';
 import OAnQuanGame from '../games/o-an-quan/OAnQuanGame';
 import SudokuScreen from '../games/sudoku/SudokuScreen';
 import ZipGameScreen from '../games/zip/ZipGameScreen';
+import LuaGaGameScreen from '../games/lua-ga/LuaGaGameScreen';
 import { getDailyChallenge, type DailyChallenge, type GameHubProgress, type GameHubRouteParams, type GameId } from '../games/gameHub';
 import { completeDailyChallenge, loadGameHubProgress, recordGameActivity } from '../games/gameHubStorage';
 
@@ -18,6 +19,7 @@ const GAME_AVATARS: Record<GameId, ImageSourcePropType> = {
   'sudoku': require('../../assets/image/game_avt/sudoku.png'),
   'game-2048': require('../../assets/image/game_avt/2024.png'),
   'zip': require('../../assets/image/game_avt/dot.png'),
+  'lua-ga': require('../../assets/image/game_avt/lua_ga.png'),
 };
 
 const GAMES: Array<{ id: GameId; title: string; subtitle: string; emoji: string; color: string; avatar: ImageSourcePropType }> = [
@@ -28,6 +30,7 @@ const GAMES: Array<{ id: GameId; title: string; subtitle: string; emoji: string;
   { id: 'sudoku', title: 'Sudoku', subtitle: 'Bốn mức độ khó', emoji: '🔢', color: '#3E7DDB', avatar: GAME_AVATARS['sudoku'] },
   { id: 'game-2048', title: '2048', subtitle: 'Chạm mốc cao mới', emoji: '🔷', color: '#C752A4', avatar: GAME_AVATARS['game-2048'] },
   { id: 'zip', title: 'Zip', subtitle: '24 puzzle và Daily', emoji: '〰️', color: '#7E58D1', avatar: GAME_AVATARS['zip'] },
+  { id: 'lua-ga', title: 'Lùa Gà', subtitle: 'Đưa 9 chú gà về chuồng', emoji: '🐔', color: '#6A963E', avatar: GAME_AVATARS['lua-ga'] },
 ];
 
 type Props = {
@@ -61,7 +64,7 @@ export default function GameHubScreen({ navigation, route }: Props) {
   if (selectedGame) return <View style={styles.gameShell}>
     <Pressable accessibilityRole="button" accessibilityLabel="Quay lại Game Hub" onPress={() => { setSelectedGame(null); setDailyMode(false); void refresh(); }} style={({ pressed }) => [styles.backButton, { top: insets.top + 8, left: insets.left + 12 }, pressed && styles.backButtonPressed]}><Text style={styles.backText}>‹  Game Hub</Text></Pressable>
     {dailyMode && <DailyBanner daily={daily} completed={progress?.lastDailyDate === daily.dateKey} />}
-    <View style={styles.gameContent}>{renderGame(selectedGame, dailyMode, completeDaily)}</View>
+    <View style={styles.gameContent}>{renderGame(selectedGame, dailyMode, completeDaily, () => { setSelectedGame(null); setDailyMode(false); void refresh(); })}</View>
   </View>;
 
   const continueGame = [...GAMES].sort((a, b) => (progress?.games[b.id]?.playedAt ?? '').localeCompare(progress?.games[a.id]?.playedAt ?? ''))[0];
@@ -118,7 +121,7 @@ export default function GameHubScreen({ navigation, route }: Props) {
   </ScrollView></SafeAreaView>;
 }
 
-function renderGame(gameId: GameId, daily: boolean, onDailyComplete: () => void) {
+function renderGame(gameId: GameId, daily: boolean, onDailyComplete: () => void, onExit: () => void) {
   switch (gameId) {
     case 'arrow-escape': return <ArrowEscapeScreen dailyMode={daily} onDailyComplete={onDailyComplete} />;
     case 'mind-rules': return <MindRulesGame dailyMode={daily} onDailyComplete={onDailyComplete} />;
@@ -127,6 +130,7 @@ function renderGame(gameId: GameId, daily: boolean, onDailyComplete: () => void)
     case 'sudoku': return <SudokuScreen dailyMode={daily} onDailyComplete={onDailyComplete} />;
     case 'game-2048': return <Game2048Screen dailyMode={daily} onDailyComplete={onDailyComplete} />;
     case 'zip': return <ZipGameScreen dailyMode={daily} onDailyComplete={onDailyComplete} />;
+    case 'lua-ga': return <LuaGaGameScreen onExit={onExit} />;
   }
 }
 

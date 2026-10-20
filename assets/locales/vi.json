@@ -1,0 +1,11 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "NUMELYRA",
+    "NSPhotoLibraryUsageDescription": "Cho phép NUMELYRA truy cập thư viện ảnh để lưu hình nền.",
+    "NSPhotoLibraryAddUsageDescription": "Cho phép NUMELYRA lưu hình nền vào thư viện ảnh của bạn.",
+    "NSLocationWhenInUseUsageDescription": "Cho phép NUMELYRA dùng vị trí của bạn trong lúc tìm địa điểm phù hợp."
+  },
+  "android": {
+    "app_name": "NUMELYRA"
+  }
+}

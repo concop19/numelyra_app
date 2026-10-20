@@ -11,8 +11,10 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import {
   ProfileItem, loadAllProfiles, addProfile, deleteProfile,
-  setActiveProfileId, getZodiac, getZodiacEmoji, getNguHanh, getNguHanhEmoji
+  setActiveProfileId, updateProfile, getZodiac, getZodiacEmoji, getNguHanh, getNguHanhEmoji,
+  type ProfileGender,
 } from '../store/userProfile';
+import { extractBirthYear } from '../services/lunarService';
 
 interface Props {
   visible: boolean;
@@ -38,12 +40,35 @@ export default function ProfilePickerModal({
   );
 
   const [isAdding, setIsAdding] = useState(false);
+  const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
   
   // Form state
   const [newName, setNewName] = useState('');
   const [newBirthDate, setNewBirthDate] = useState('');
-  const [newGender, setNewGender] = useState<'male' | 'female'>('female');
+  const [newGender, setNewGender] = useState<ProfileGender | null>(null);
   const [formError, setFormError] = useState('');
+
+  const resetProfileForm = () => {
+    setNewName('');
+    setNewBirthDate('');
+    setNewGender(null);
+    setEditingProfileId(null);
+    setFormError('');
+  };
+
+  const startAddingProfile = () => {
+    resetProfileForm();
+    setIsAdding(true);
+  };
+
+  const startEditingProfile = (item: ProfileItem, notice = '') => {
+    setEditingProfileId(item.id);
+    setNewName(item.fullName);
+    setNewBirthDate(item.birthDate);
+    setNewGender(item.gender || null);
+    setFormError(notice);
+    setIsAdding(true);
+  };
 
   const fetchProfiles = async () => {
     const list = await loadAllProfiles();
@@ -58,7 +83,7 @@ export default function ProfilePickerModal({
     if (visible) {
       fetchProfiles();
       setIsAdding(false);
-      setFormError('');
+      resetProfileForm();
       const forcedSingleMode = !allowCoupleMode;
       setIsCoupleMode(forcedSingleMode ? false : selectedProfiles.length >= 2);
       setTempSelectedIds((forcedSingleMode ? selectedProfiles.slice(0, 1) : selectedProfiles).map(p => p.id));
@@ -67,6 +92,10 @@ export default function ProfilePickerModal({
 
   const handleSelectProfile = async (item: ProfileItem) => {
     void Haptics.selectionAsync();
+    if (!item.gender) {
+      startEditingProfile(item, 'Hồ sơ này chưa có giới tính. Vui lòng chọn Nam hoặc Nữ trước khi sử dụng.');
+      return;
+    }
     if (!allowCoupleMode || !isCoupleMode) {
       // Chế độ 1 người: Chọn ngay và đóng modal
       await setActiveProfileId(item.id);
@@ -106,6 +135,14 @@ export default function ProfilePickerModal({
       Alert.alert('Thông báo', 'Vui lòng chọn đủ 2 hồ sơ để xem mức độ tương hợp tình duyên!');
       return;
     }
+    const missingGenderProfile = chosen.find((profile) => !profile.gender);
+    if (missingGenderProfile) {
+      startEditingProfile(
+        missingGenderProfile,
+        'Hồ sơ này chưa có giới tính. Vui lòng cập nhật trước khi ghép đôi.',
+      );
+      return;
+    }
     onProfilesSelected(chosen.slice(0, 2));
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onClose();
@@ -137,7 +174,7 @@ export default function ProfilePickerModal({
     }
   };
 
-  const handleCreateProfile = async () => {
+  const handleSaveProfile = async () => {
     const trimmedName = newName.trim();
     const trimmedDate = newBirthDate.trim();
 
@@ -157,15 +194,38 @@ export default function ProfilePickerModal({
       return;
     }
 
+    if (!newGender) {
+      setFormError('Vui lòng chọn giới tính Nam hoặc Nữ. Thông tin này ảnh hưởng trực tiếp đến kết quả luận giải.');
+      return;
+    }
+
     try {
+      if (editingProfileId) {
+        const updated = await updateProfile(editingProfileId, {
+          fullName: trimmedName,
+          birthDate: formattedDate,
+          gender: newGender,
+        });
+        setProfiles((current) => current.map((profile) => (
+          profile.id === updated.id ? updated : profile
+        )));
+        if (selectedProfiles.some((profile) => profile.id === updated.id)) {
+          onProfilesSelected(selectedProfiles.map((profile) => (
+            profile.id === updated.id ? updated : profile
+          )));
+        }
+        resetProfileForm();
+        setIsAdding(false);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        return;
+      }
+
       const created = await addProfile({
         fullName: trimmedName,
         birthDate: formattedDate,
         gender: newGender
       });
-      setNewName('');
-      setNewBirthDate('');
-      setFormError('');
+      resetProfileForm();
       setIsAdding(false);
       await fetchProfiles();
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -253,7 +313,7 @@ export default function ProfilePickerModal({
               {profiles.map((p) => {
                 const isSelected = tempSelectedIds.includes(p.id);
                 const order = tempSelectedIds.indexOf(p.id) + 1;
-                const birthYear = parseInt(p.birthDate.substring(0, 4), 10) || 2000;
+                const birthYear = extractBirthYear(p.birthDate, 2000);
                 const zodiac = getZodiac(birthYear);
                 const zodiacEmoji = getZodiacEmoji(zodiac);
                 const nguHanh = getNguHanh(birthYear);
@@ -285,13 +345,27 @@ export default function ProfilePickerModal({
                             </View>
                           )}
                         </View>
-                        <Text style={styles.profileDetails}>
-                          📅 {p.birthDate} · {nguHanhEmoji} {nguHanh} · {zodiac}
+                        <Text style={[styles.profileDetails, !p.gender && styles.profileDetailsWarning]}>
+                          📅 {p.birthDate} · {nguHanhEmoji} {nguHanh} · {zodiac} · {' '}
+                          {p.gender === 'male' ? '👨 Nam' : p.gender === 'female' ? '👩 Nữ' : '⚠️ Chưa chọn giới tính'}
                         </Text>
                       </View>
                     </View>
 
                     <View style={styles.profileRight}>
+                      <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel={`Chỉnh sửa hồ sơ ${p.fullName}`}
+                        activeOpacity={0.7}
+                        style={styles.editBtn}
+                        onPress={(event) => {
+                          event.stopPropagation();
+                          void Haptics.selectionAsync();
+                          startEditingProfile(p);
+                        }}
+                      >
+                        <Ionicons name="pencil-outline" size={16} color="#93C5FD" />
+                      </TouchableOpacity>
                       {profiles.length > 1 && (
                         <TouchableOpacity
                           activeOpacity={0.7}
@@ -319,7 +393,16 @@ export default function ProfilePickerModal({
             {/* Add Profile Section */}
             {isAdding ? (
               <View style={styles.formContainer}>
-                <View style={styles.formTitleRow}><Ionicons name="add-circle-outline" size={17} color="#F5BA5B" /><Text style={styles.formTitle}>Thêm Hồ Sơ Mới</Text></View>
+                <View style={styles.formTitleRow}>
+                  <Ionicons
+                    name={editingProfileId ? 'create-outline' : 'add-circle-outline'}
+                    size={17}
+                    color="#F5BA5B"
+                  />
+                  <Text style={styles.formTitle}>
+                    {editingProfileId ? 'Chỉnh Sửa Hồ Sơ' : 'Thêm Hồ Sơ Mới'}
+                  </Text>
+                </View>
                 
                 {formError ? <Text style={styles.formError}>{formError}</Text> : null}
 
@@ -369,20 +452,25 @@ export default function ProfilePickerModal({
                     style={styles.cancelBtn}
                     onPress={() => {
                       setIsAdding(false);
-                      setFormError('');
+                      resetProfileForm();
                     }}
                   >
                     <Text style={styles.cancelBtnText}>Hủy</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity activeOpacity={0.7} style={styles.submitBtn} onPress={handleCreateProfile}>
-                    <Text style={styles.submitBtnText}>Lưu Hồ Sơ</Text>
+                  <TouchableOpacity activeOpacity={0.7} style={styles.submitBtn} onPress={handleSaveProfile}>
+                    <Text style={styles.submitBtnText}>
+                      {editingProfileId ? 'Cập Nhật' : 'Lưu Hồ Sơ'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
             ) : (
               <TouchableOpacity
                 style={styles.addTriggerBtn}
-                onPress={() => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setIsAdding(true); }}
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  startAddingProfile();
+                }}
                 activeOpacity={0.7}
               >
                 <Ionicons name="add-circle-outline" size={16} color="#F5BA5B" style={styles.addTriggerIcon} />
@@ -585,9 +673,16 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 2
   },
+  profileDetailsWarning: {
+    color: '#FBBF24',
+    fontWeight: '700',
+  },
   profileRight: {
     flexDirection: 'row',
     alignItems: 'center'
+  },
+  editBtn: {
+    padding: 6,
   },
   deleteBtn: {
     padding: 6

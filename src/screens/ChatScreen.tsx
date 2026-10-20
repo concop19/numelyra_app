@@ -14,13 +14,14 @@ import {
   StyleSheet, View, Text, TextInput, TouchableOpacity,
   FlatList, KeyboardAvoidingView, Platform, Keyboard,
   Animated, Easing, Image, Alert, ScrollView, Modal, Linking,
-  ActivityIndicator
+  ActivityIndicator, type ImageSourcePropType
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserProfile, ProfileItem, getActiveProfile } from '../store/userProfile';
 import { useAuth } from '../store/authContext';
 import { startVoiceListening, stopVoiceListening, isVoiceSupported } from '../services/voiceService';
@@ -29,18 +30,24 @@ import { NumerologyCardsModal } from '../components/NumerologyCardsModal';
 import { MysticIndicatorDetailModal } from '../components/MysticIndicatorDetailModal';
 import TarotCardFlipView from '../components/TarotCardFlipView';
 import MysticReadingTraceModal from '../components/chat/MysticReadingTraceModal';
+import LoveCompatibilityFlow from '../components/chat/love/LoveCompatibilityFlow';
 import { getTarotCardImage } from '../services/tarotAssets';
 import { evaluateAgentDecision, AgentDecision } from '../services/agentDecisionEngine';
 import { NumerologyCalculator, IndicatorInfo } from '../services/numerology24Service';
 import { CalculatedIndicator } from '../services/numerologyEngine';
+import { NUMEROLOGY_CARDS } from '../config/numerologyCards';
 import { drawCardsForSpread, DrawnCardResult, TAROT_SPREADS } from '../services/tarotService';
 import { createColorGuidance, isColorQuestion, type ColorGuidanceContext } from '../services/colorGuidanceService';
 import { computePersonTuViBazi, evaluateTuViBaziLove, TuViBaziSynastryResult } from '../services/tuViBaziService';
 import { API_ENDPOINTS, authenticatedFetch } from '../services/apiConfig';
 import { getBillingStatus } from '../services/billingService';
 import ChatSceneBackground, { ChatMoonButton } from '../components/chat/ChatSceneBackground';
-import FlameMascot from '../components/chat/FlameMascot';
-import AnswerFlamePopup from '../components/chat/AnswerFlamePopup';
+import FlameMascot, {
+  CHAR_ANIMATIONS,
+  FLAME_COLOR_CHANGE_INTERVAL_MS,
+  FLAME_COLOR_PALETTES,
+} from '../components/chat/FlameMascot';
+import MeteorShower from '../components/chat/MeteorShower';
 import ChatInputBar from '../components/chat/ChatInputBar';
 import HighlightedAnswerText from '../components/chat/HighlightedAnswerText';
 import { PlaceSearchContextModal } from '../components/chat/PlaceSearchContextModal';
@@ -53,10 +60,17 @@ import {
   MAX_STORED_CHAT_MESSAGES,
   saveChatHistory,
 } from '../services/chatHistoryStorage';
+import { useLocalization } from '../i18n/LocalizationContext';
+import { buildDailyInsight, cacheDailyInsight } from '../features/daily-insight/dailyInsight';
+import DailyInsightCard from '../features/daily-insight/DailyInsightCard';
+import DailyInsightSheet from '../features/daily-insight/DailyInsightSheet';
 
-const NORMAL_ACCOUNT_ICON = require('../../assets/giao_dien/normal.png');
 const VIP_ACCOUNT_ICON = require('../../assets/giao_dien/vip.png');
 const AMBIENT_GLOW_IMG = require('../../assets/giao_dien/ambient_glow.png');
+const ASTROLOGY_ACTION_ICON = require('../../assets/astrology_icon.webp');
+const CALENDAR_ACTION_ICON = require('../../assets/calendar_icon.webp');
+const SETTINGS_ACTION_ICON = require('../../assets/setting_icon.webp');
+const WALLPAPER_ACTION_ICON = require('../../assets/wallpaper_icon.webp');
 
 export interface MessageItem {
   id: string;
@@ -67,6 +81,11 @@ export interface MessageItem {
   isTypingCompleted?: boolean;
 }
 
+const isCompatibilityMessage = (message: MessageItem) => (
+  message.card?.decision?.mode === 'compatibility'
+  || (Array.isArray(message.card?.profiles) && message.card.profiles.length >= 2 && !!message.card?.tuViBazi)
+);
+
 type LiveTarotReading = {
   id: string;
   question: string;
@@ -75,13 +94,203 @@ type LiveTarotReading = {
   replyText?: string;
 };
 
+type LoveCompatibilityFlowState =
+  | { phase: 'loading'; question: string }
+  | { phase: 'result'; question: string; message: MessageItem };
+
 type AmbientMascotState = 'idle' | 'thinking' | 'answer';
+
+const CHAT_MASCOT_SIZE = 175;
+const THINKING_MASCOT_SIZE = 185;
+const SPECIAL_MASCOT_DURATION_MS = 10_000;
+const SPECIAL_MASCOT_IDLE_REST_MS = 3_000;
 
 interface Props {
   profile?: UserProfile;
+  openDailyDate?: string;
   onOpenSettings?: () => void;
+  onOpenCalendar?: () => void;
+  onOpenAstrology?: () => void;
+  onOpenWallpaper?: () => void;
   onOpenGameHub?: () => void;
+  onOpenRawReading?: (message: MessageItem, previousQuestion?: string) => void;
 }
+
+interface SceneActionButtonProps {
+  label: string;
+  accessibilityLabel: string;
+  iconSource: ImageSourcePropType;
+  accentColor: string;
+  onPress?: () => void;
+}
+
+const SceneActionButton: React.FC<SceneActionButtonProps> = ({
+  label,
+  accessibilityLabel,
+  iconSource,
+  accentColor,
+  onPress,
+}) => (
+  <View style={styles.sceneActionItem}>
+    <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint="Mở màn hình này từ không gian trò chuyện"
+      activeOpacity={0.76}
+      disabled={!onPress}
+      hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+      onPress={() => {
+        void Haptics.selectionAsync();
+        onPress?.();
+      }}
+      style={[styles.sceneActionTouch, { shadowColor: accentColor }]}
+    >
+      <LinearGradient
+        colors={['rgba(91, 56, 153, 0.98)', 'rgba(44, 26, 91, 0.98)', 'rgba(25, 15, 57, 0.99)']}
+        start={{ x: 0.1, y: 0 }}
+        end={{ x: 0.9, y: 1 }}
+        style={[styles.sceneActionOrb, { borderColor: accentColor }]}
+      >
+        <View style={[styles.sceneActionIconHalo, { backgroundColor: `${accentColor}1F` }]}>
+          <Image source={iconSource} style={styles.sceneActionIcon} resizeMode="contain" />
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
+    <View style={styles.sceneActionLabelPill} pointerEvents="none">
+      <Text numberOfLines={1} style={styles.sceneActionLabel}>{label}</Text>
+    </View>
+  </View>
+);
+
+interface ChatSceneActionsProps {
+  alignWithCenter: boolean;
+  onOpenCalendar?: () => void;
+  onOpenAstrology?: () => void;
+  onOpenWallpaper?: () => void;
+  onOpenSettings?: () => void;
+}
+
+const ChatSceneActions: React.FC<ChatSceneActionsProps> = ({
+  alignWithCenter,
+  onOpenCalendar,
+  onOpenAstrology,
+  onOpenWallpaper,
+  onOpenSettings,
+}) => {
+  const { t } = useLocalization();
+  return (
+  <View
+    pointerEvents="box-none"
+    style={[
+      styles.sceneActionsOverlay,
+      alignWithCenter ? styles.sceneActionsCentered : styles.sceneActionsBottom,
+    ]}
+  >
+    <View style={styles.sceneActionRail} pointerEvents="box-none">
+      <SceneActionButton
+        label={t('chat.astrology')}
+        accessibilityLabel={t('chat.astrology')}
+        iconSource={ASTROLOGY_ACTION_ICON}
+        accentColor="#D6C2FF"
+        onPress={onOpenAstrology}
+      />
+    </View>
+
+    <View style={[styles.sceneActionRail, styles.sceneActionRailRight]} pointerEvents="box-none">
+      <SceneActionButton
+        label={t('chat.calendar')}
+        accessibilityLabel={t('chat.calendar')}
+        iconSource={CALENDAR_ACTION_ICON}
+        accentColor="#FFD67C"
+        onPress={onOpenCalendar}
+      />
+      <SceneActionButton
+        label={t('chat.settings')}
+        accessibilityLabel={t('chat.settings')}
+        iconSource={SETTINGS_ACTION_ICON}
+        accentColor="#AEE8F5"
+        onPress={onOpenSettings}
+      />
+      <SceneActionButton
+        label={t('chat.wallpaper')}
+        accessibilityLabel={t('chat.wallpaper')}
+        iconSource={WALLPAPER_ACTION_ICON}
+        accentColor="#F6B5DF"
+        onPress={onOpenWallpaper}
+      />
+    </View>
+  </View>
+  );
+};
+
+const getLatestConversationCount = (history: MessageItem[]) => {
+  if (history.length === 0) return 1;
+  return history[history.length - 1]?.sender === 'mascot'
+    ? Math.min(2, history.length)
+    : 1;
+};
+
+const withoutQuickConclusionHeading = (text: string) => text
+  .replace(/^\s*[✦★✨•-]*\s*KẾT\s+LUẬN\s+NHANH\s*:\s*/i, '')
+  .trim();
+
+interface AssistantPreviewBubbleProps {
+  message: MessageItem;
+  onFinishTyping: (messageId: string) => void;
+  onOpen: () => void;
+}
+
+/** A compact history-safe preview. The complete reading belongs to raw detail. */
+const AssistantPreviewBubble: React.FC<AssistantPreviewBubbleProps> = ({
+  message,
+  onFinishTyping,
+  onOpen,
+}) => {
+  const text = withoutQuickConclusionHeading(message.text);
+  const canOpenDetail = !!message.isTypingCompleted || isCompatibilityMessage(message);
+  const [shownLength, setShownLength] = useState(message.isTypingCompleted ? text.length : 0);
+  const finishedRef = useRef(!!message.isTypingCompleted);
+
+  useEffect(() => {
+    if (message.isTypingCompleted) {
+      finishedRef.current = true;
+      setShownLength(text.length);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setShownLength((current) => {
+        const next = Math.min(text.length, current + 4);
+        if (next === text.length && !finishedRef.current) {
+          finishedRef.current = true;
+          onFinishTyping(message.id);
+        }
+        return next;
+      });
+    }, 20);
+
+    return () => clearInterval(timer);
+  }, [message.id, message.isTypingCompleted, onFinishTyping, text]);
+
+  const displayText = message.isTypingCompleted ? text : text.slice(0, shownLength);
+
+  return (
+    <View style={styles.assistantBubbleRow}>
+      <TouchableOpacity
+        activeOpacity={0.82}
+        onPress={canOpenDetail ? onOpen : undefined}
+        accessibilityRole="button"
+        accessibilityLabel="Mở lời giải chi tiết"
+        style={styles.assistantBubble}
+      >
+        <Text numberOfLines={3} style={styles.assistantBubbleText}>
+          {displayText}
+          {!message.isTypingCompleted ? <Text style={styles.assistantTypingCursor}> ▌</Text> : null}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 const getRestoredFlippedCards = (history: MessageItem[]): Record<string, boolean> => {
   const restored: Record<string, boolean> = {};
@@ -97,10 +306,6 @@ const getRestoredFlippedCards = (history: MessageItem[]): Record<string, boolean
 
   return restored;
 };
-
-const IDLE_IMG = require('../../assets/char/idle.png');
-const LISTENING_IMG = require('../../assets/char/listening.png');
-const EXPLAIN_IMG = require('../../assets/char/explain.png');
 
 const getCategoryFromText = (text: string) => {
   const lower = text.toLowerCase();
@@ -376,11 +581,33 @@ const TypewriterMessage: React.FC<TypewriterMessageProps> = ({
   );
 };
 
-export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: Props) {
+export default function ChatScreen({
+  profile,
+  openDailyDate,
+  onOpenSettings,
+  onOpenCalendar,
+  onOpenAstrology,
+  onOpenWallpaper,
+  onOpenGameHub,
+  onOpenRawReading,
+}: Props) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { locale, t } = useLocalization();
   const chatHistoryOwner = user?.id || 'guest';
   const [isPro, setIsPro] = useState(false);
+  const [dailyClock, setDailyClock] = useState(() => new Date());
+  const [dailySheetVisible, setDailySheetVisible] = useState(false);
+  const [suggestionOffset, setSuggestionOffset] = useState(0);
+
+  const dailyInsight = useMemo(() => {
+    if (!profile) return null;
+    const linkedDate = openDailyDate && /^\d{4}-\d{2}-\d{2}$/.test(openDailyDate)
+      ? new Date(`${openDailyDate}T12:00:00`)
+      : dailyClock;
+    try { return buildDailyInsight(profile, linkedDate, locale); }
+    catch { return null; }
+  }, [dailyClock, locale, openDailyDate, profile]);
 
   const refreshPlan = useCallback(async () => {
     try {
@@ -460,6 +687,9 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
 
   // Messages & States
   const [messages, setMessages] = useState<MessageItem[]>([]);
+  const [loveCompatibilityFlow, setLoveCompatibilityFlow] = useState<LoveCompatibilityFlowState | null>(null);
+  const loveCompatibilityFlowDismissedRef = useRef(false);
+  const [visibleMessageCount, setVisibleMessageCount] = useState(1);
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const [inputVal, setInputVal] = useState('');
   const [loading, setLoading] = useState(false);
@@ -472,6 +702,11 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
   } | null>(null);
   const [liveTarotReading, setLiveTarotReading] = useState<LiveTarotReading | null>(null);
   const [ambientMascotState, setAmbientMascotState] = useState<AmbientMascotState>('idle');
+  const [showSpecialMascotAnimation, setShowSpecialMascotAnimation] = useState(false);
+  const [specialMascotAnimationIndex, setSpecialMascotAnimationIndex] = useState(0);
+  const [mascotPaletteIndex, setMascotPaletteIndex] = useState(0);
+  const [meteorBurstKey, setMeteorBurstKey] = useState(0);
+  const nextAccentPaletteIndexRef = useRef(1);
   const [mascotState, setMascotState] = useState<'idle' | 'listening' | 'explain'>('idle');
   const [mascotCategory, setMascotCategory] = useState('default');
   const [viewMode, setViewMode] = useState<'current_state' | 'history_list'>('current_state');
@@ -479,8 +714,56 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
   const skipNextHistoryPersistForOwnerRef = useRef<string | null>(null);
   const isHistoryReady = hydratedHistoryOwner === chatHistoryOwner;
 
+  useEffect(() => {
+    const timer = setInterval(() => setDailyClock(new Date()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!dailyInsight || !isHistoryReady) return;
+    let active = true;
+    void cacheDailyInsight(AsyncStorage, dailyInsight).catch(() => undefined);
+    const seenKey = `@numelyra:daily-insight-seen:${dailyInsight.profileKey}:${dailyInsight.dateKey}`;
+    if (openDailyDate) {
+      setDailySheetVisible(true);
+      void AsyncStorage.setItem(seenKey, '1');
+      return;
+    }
+    AsyncStorage.getItem(seenKey).then((seen) => {
+      if (!active || seen) return;
+      setDailySheetVisible(true);
+      return AsyncStorage.setItem(seenKey, '1');
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [dailyInsight?.dateKey, dailyInsight?.profileKey, isHistoryReady, openDailyDate]);
+
   // Theo dõi trạng thái hiển thị bàn phím để tự động thu gọn Mascot và tối ưu không gian cho ô soạn thảo
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    if (!dailyInsight || inputVal || isKeyboardVisible) return;
+    const timer = setInterval(() => {
+      setSuggestionOffset((current) => (current + 1) % dailyInsight.suggestedQuestions.length);
+    }, 8_000);
+    return () => clearInterval(timer);
+  }, [dailyInsight, inputVal, isKeyboardVisible]);
+
+  useEffect(() => {
+    const colorTimer = setInterval(() => {
+      setMascotPaletteIndex((current) => {
+        if (current !== 0) return 0;
+
+        const nextAccent = nextAccentPaletteIndexRef.current;
+        nextAccentPaletteIndexRef.current = nextAccent >= FLAME_COLOR_PALETTES.length - 1
+          ? 1
+          : nextAccent + 1;
+        return nextAccent;
+      });
+      setMeteorBurstKey((current) => current + 1);
+    }, FLAME_COLOR_CHANGE_INTERVAL_MS);
+
+    return () => clearInterval(colorTimer);
+  }, []);
 
   useEffect(() => {
     const showSub = Keyboard.addListener(
@@ -503,16 +786,58 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
   const [readingTraceMessageId, setReadingTraceMessageId] = useState<string | null>(null);
   const [detailIndicator, setDetailIndicator] = useState<CalculatedIndicator | null>(null);
 
-  const appendMessage = useCallback((message: MessageItem) => {
-    setMessages(prev => [...prev, message].slice(-MAX_STORED_CHAT_MESSAGES));
+  const handleOpenIndicator = useCallback((ind: any) => {
+    void Haptics.selectionAsync();
+    const meta = NUMEROLOGY_CARDS.find((card) => card.key === ind.key);
+    const numVal = Number(ind.value);
+    if (meta) {
+      setDetailIndicator({
+        ...meta,
+        value: ind.value,
+        displayValue: String(ind.value),
+        isMaster: [11, 22, 33].includes(numVal),
+      });
+    } else {
+      setDetailIndicator({
+        id: `card_${ind.key}`,
+        number: '00',
+        key: ind.key,
+        nameVi: ind.nameVi || ind.name || ind.key,
+        nameEn: ind.name || ind.key,
+        category: 'core',
+        categoryNameVi: 'Chỉ Số',
+        image: require('../../assets/cards/card_01_walksOfLife.jpg'),
+        description: '',
+        value: ind.value,
+        displayValue: String(ind.value),
+        isMaster: [11, 22, 33].includes(numVal),
+      });
+    }
   }, []);
 
-  const handleOpenReadingTrace = useCallback((messageId: string) => {
-    const message = messages.find((item) => item.id === messageId);
-    if (!message || message.sender !== 'mascot' || !message.isTypingCompleted) return;
-    setReadingTraceMessageId(messageId);
+  const appendMessage = useCallback((message: MessageItem) => {
+    setMessages(prev => [...prev, message].slice(-MAX_STORED_CHAT_MESSAGES));
+    setVisibleMessageCount(message.sender === 'mascot' ? 2 : 1);
+  }, []);
+
+  const openRawReading = useCallback((message: MessageItem) => {
+    if (message.sender !== 'mascot' || (!message.isTypingCompleted && !isCompatibilityMessage(message))) return;
+    const messageIndex = messages.findIndex((item) => item.id === message.id);
+    const previousQuestion = messageIndex >= 0
+      ? messages.slice(0, messageIndex).reverse().find((item) => item.sender === 'user')?.text
+      : undefined;
+    onOpenRawReading?.(message, previousQuestion);
     void Haptics.selectionAsync();
-  }, [messages]);
+  }, [messages, onOpenRawReading]);
+
+  const openCompatibilityDetail = useCallback((message: MessageItem, question: string) => {
+    if (!isCompatibilityMessage(message) || loveCompatibilityFlowDismissedRef.current) return;
+    setLoveCompatibilityFlow({
+      phase: 'result',
+      question,
+      message: { ...message, isTypingCompleted: true },
+    });
+  }, []);
 
   const markMessageTypingCompleted = useCallback((messageId: string) => {
     setMessages(prev => prev.map(message => (
@@ -524,6 +849,7 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
 
   const handleToggleSpeech = useCallback((messageId: string, text: string) => {
     void ttsService.speak(messageId, text, {
+      language: locale === 'en' ? 'en-US' : 'vi-VN',
       onStart: () => setSpeakingMessageId(messageId),
       onDone: () => setSpeakingMessageId((current) => current === messageId ? null : current),
       onStopped: () => setSpeakingMessageId((current) => current === messageId ? null : current),
@@ -532,7 +858,7 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
         Alert.alert('Không thể phát giọng đọc', 'Hãy kiểm tra cài đặt giọng nói tiếng Việt trên thiết bị rồi thử lại.');
       },
     });
-  }, []);
+  }, [locale]);
 
   const handleFlipCard = (messageId: string, cardIndex: number) => {
     const key = `${messageId}_${cardIndex}`;
@@ -572,13 +898,14 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
     return () => clearTimeout(revealTimer);
   }, [flippedCards, liveTarotReading, pendingTarotReveal]);
 
-  const flatListRef = useRef<FlatList>(null);
+  const flatListRef = useRef<FlatList<MessageItem>>(null);
 
   useEffect(() => {
     let isCurrentOwner = true;
 
     setHydratedHistoryOwner(null);
     setMessages([]);
+    setVisibleMessageCount(1);
     setFlippedCards({});
     setPendingTarotReveal(null);
     setLiveTarotReading(null);
@@ -592,8 +919,10 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
 
       const restoredHistory = storedHistory as MessageItem[];
       setMessages(restoredHistory);
+      setVisibleMessageCount(getLatestConversationCount(restoredHistory));
       setFlippedCards(getRestoredFlippedCards(restoredHistory));
       setHydratedHistoryOwner(chatHistoryOwner);
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 0);
     });
 
     return () => {
@@ -683,15 +1012,6 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
     outputRange: [0.85, 1.0]
   });
 
-  const getMascotImage = () => {
-    switch(mascotState) {
-      case 'listening': return LISTENING_IMG;
-      case 'explain': return EXPLAIN_IMG;
-      case 'idle':
-      default: return IDLE_IMG;
-    }
-  };
-
   const handleToggleVoice = () => {
     if (isListening) {
       stopVoiceRef.current?.();
@@ -713,6 +1033,7 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
     setMascotState('listening');
 
     const stopFn = startVoiceListening({
+      lang: locale === 'en' ? 'en-US' : 'vi-VN',
       onTranscript: (text) => {
         setInputVal(text);
       },
@@ -914,6 +1235,15 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
       return;
     }
 
+    const profileWithoutGender = selectedProfiles.find((profileItem) => !profileItem.gender);
+    if (profileWithoutGender) {
+      setProfilePromptNotice(
+        `⚠️ Hồ sơ “${profileWithoutGender.fullName}” chưa có giới tính. Hãy bấm biểu tượng bút chì và chọn Nam hoặc Nữ trước khi luận giải.`,
+      );
+      setIsProfileModalOpen(true);
+      return;
+    }
+
     // Tắt voice nếu đang nghe
     if (isListening) {
       stopVoiceRef.current?.();
@@ -958,7 +1288,8 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: prompt,
-          profiles: selectedProfiles
+          profiles: selectedProfiles,
+          locale,
         })
       });
       const classData = await classRes.json();
@@ -975,6 +1306,10 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
     // 3. Khóa màu lửa chính xác theo classification của AI Agent
     if (decision.mode === 'compatibility' || decision.intent === 'love_match') {
       setMascotCategory('love');
+      if (decision.mode === 'compatibility') {
+        loveCompatibilityFlowDismissedRef.current = false;
+        setLoveCompatibilityFlow({ phase: 'loading', question: prompt });
+      }
     } else if (decision.intent === 'two_choices') {
       setMascotCategory('decision');
     } else if (decision.intent === 'timing_trajectory') {
@@ -1073,6 +1408,7 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: prompt,
+          locale,
           decision,
           timeZone: (() => {
             try { return Intl.DateTimeFormat().resolvedOptions().timeZone; }
@@ -1095,11 +1431,21 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
       if (data.ok && data.data) {
         // The local draw is the source of truth for the reveal interaction.
         // Preserve it even when the backend omits it from cardPayload.
+        const serverCardPayload = data.data.cardPayload || {};
         const cardPayload = {
-          ...(data.data.cardPayload || {}),
+          type: 'agent_synthesis',
+          decision,
+          profiles: selectedProfiles,
+          indicators1,
+          indicators2,
+          ...(tuViBaziPayload ? {
+            tuViBazi: tuViBaziPayload,
+            compatibilityScore: tuViBaziPayload.compatibilityScore,
+          } : {}),
+          ...serverCardPayload,
           questionText: prompt,
-          drawnCards: data.data.cardPayload?.drawnCards?.length
-            ? data.data.cardPayload.drawnCards
+          drawnCards: serverCardPayload.drawnCards?.length
+            ? serverCardPayload.drawnCards
             : drawnCards,
         };
         const mascotMsg: MessageItem = {
@@ -1108,9 +1454,13 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
           text: data.data.replyText,
           card: cardPayload,
           time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-          isTypingCompleted: drawnCards.length > 0
+          isTypingCompleted: decision.mode === 'compatibility' || drawnCards.length > 0
         };
         appendMessage(mascotMsg);
+
+        if (decision.mode === 'compatibility') {
+          openCompatibilityDetail(mascotMsg, prompt);
+        }
 
         if (drawnCards.length > 0) {
           setLiveTarotReading((current) => current?.id === tarotMessageId
@@ -1140,9 +1490,13 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
         text: synthesis.text,
         card: synthesis.card ? { ...synthesis.card, questionText: prompt } : { questionText: prompt },
         time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-        isTypingCompleted: drawnCards.length > 0
+        isTypingCompleted: decision.mode === 'compatibility' || drawnCards.length > 0
       };
       appendMessage(mascotMsg);
+
+      if (decision.mode === 'compatibility') {
+        openCompatibilityDetail(mascotMsg, prompt);
+      }
 
       if (drawnCards.length > 0) {
         setLiveTarotReading((current) => current?.id === tarotMessageId
@@ -1212,16 +1566,26 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
             <Text style={styles.chipsLabel}>Chỉ số mục tiêu (tối đa 5):</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
               {indicators1.map((ind: any, idx) => (
-                <View key={idx} style={styles.indicatorChip}>
+                <TouchableOpacity
+                  key={idx}
+                  activeOpacity={0.7}
+                  onPress={() => handleOpenIndicator(ind)}
+                  style={styles.indicatorChip}
+                >
                   <Text style={styles.indicatorChipName}>{((ind.nameVi || ind.name || '').split('(')[0].trim())}:</Text>
                   <Text style={styles.indicatorChipVal}>{ind.value}</Text>
-                </View>
+                </TouchableOpacity>
               ))}
               {indicators2 && indicators2.length > 0 && indicators2.map((ind: any, idx) => (
-                <View key={`p2-${idx}`} style={[styles.indicatorChip, styles.indicatorChipP2]}>
+                <TouchableOpacity
+                  key={`p2-${idx}`}
+                  activeOpacity={0.7}
+                  onPress={() => handleOpenIndicator(ind)}
+                  style={[styles.indicatorChip, styles.indicatorChipP2]}
+                >
                   <Text style={styles.indicatorChipName}>P2 {((ind.nameVi || ind.name || '').split('(')[0].trim())}:</Text>
                   <Text style={styles.indicatorChipVal}>{ind.value}</Text>
-                </View>
+                </TouchableOpacity>
               ))}
             </ScrollView>
           </View>}
@@ -1519,35 +1883,59 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
 
   const isZeroState = messages.length === 0;
   const currentGlowColor = getFlameGlowColor(mascotCategory);
+  const activeMascotPalette = FLAME_COLOR_PALETTES[mascotPaletteIndex];
 
-  // Khi màn chat không có thao tác, luân phiên ngẫu nhiên các sprite idle,
-  // listen (thinking) và answer để mascot vẫn có sức sống. Trạng thái thật
-  // của mic, giọng đọc hoặc AI luôn được ưu tiên, không bị hiệu ứng nền này
-  // ghi đè.
+  // Chạy hoạt cảnh WebP ngẫu nhiên từ assets/char (10s hiển thị + 3s nghỉ trước chu kỳ tiếp theo).
   useEffect(() => {
     if (viewMode !== 'current_state' || loading || isListening || isKeyboardVisible || speakingMessageId) {
-      setAmbientMascotState('idle');
+      setShowSpecialMascotAnimation(false);
       return;
     }
 
-    let transitionTimer: ReturnType<typeof setTimeout>;
-    const scheduleNextState = () => {
-      transitionTimer = setTimeout(() => {
-        setAmbientMascotState((current) => {
-          const nextStates = (['idle', 'thinking', 'answer'] as AmbientMascotState[])
-            .filter((state) => state !== current);
-          return nextStates[Math.floor(Math.random() * nextStates.length)];
+    let activeTimer: ReturnType<typeof setTimeout> | undefined;
+    let isCancelled = false;
+
+    const runCycle = () => {
+      activeTimer = setTimeout(() => {
+        if (isCancelled) return;
+
+        setSpecialMascotAnimationIndex((prev) => {
+          if (CHAR_ANIMATIONS.length <= 1) return 0;
+          let next = Math.floor(Math.random() * CHAR_ANIMATIONS.length);
+          if (next === prev) {
+            next = (next + 1) % CHAR_ANIMATIONS.length;
+          }
+          return next;
         });
-        scheduleNextState();
-      }, 15_000);
+        setShowSpecialMascotAnimation(true);
+
+        activeTimer = setTimeout(() => {
+          if (isCancelled) return;
+          setShowSpecialMascotAnimation(false);
+          runCycle();
+        }, SPECIAL_MASCOT_DURATION_MS);
+      }, SPECIAL_MASCOT_IDLE_REST_MS);
     };
 
-    scheduleNextState();
-    return () => clearTimeout(transitionTimer);
+    runCycle();
+
+    return () => {
+      isCancelled = true;
+      if (activeTimer) clearTimeout(activeTimer);
+    };
   }, [isKeyboardVisible, isListening, loading, speakingMessageId, viewMode]);
 
-  const latestUserMsg = [...messages].reverse().find(m => m.sender === 'user');
-  const latestMascotMsg = [...messages].reverse().find(m => m.sender === 'mascot');
+  const visibleMessages = useMemo(
+    () => messages.slice(-visibleMessageCount),
+    [messages, visibleMessageCount]
+  );
+  const visibleSuggestedQuestions = useMemo(() => {
+    if (!dailyInsight) return [];
+    const questions = dailyInsight.suggestedQuestions;
+    return Array.from({ length: Math.min(3, questions.length) }, (_, index) => (
+      questions[(suggestionOffset + index) % questions.length]
+    ));
+  }, [dailyInsight, suggestionOffset]);
   const readingTraceIndex = readingTraceMessageId
     ? messages.findIndex((message) => message.id === readingTraceMessageId)
     : -1;
@@ -1573,39 +1961,31 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
     <View style={styles.outerScreenWrap}>
       {/* 🌟 1. BỐI CẢNH ĐÊM 3 LỚP PARALLAX + MOON + STARS */}
       <ChatSceneBackground />
+      <MeteorShower
+        burstKey={meteorBurstKey}
+        color={activeMascotPalette.outline}
+        glowColor={activeMascotPalette.primary}
+      />
 
       <KeyboardAvoidingView 
         style={[styles.container, { paddingTop: insets.top }]} 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
       >
-        {/* 🌟 2. HEADER BAR (HAMBURGER - NUMELYRA TITLE - CLOCK/HISTORY) */}
         <View style={styles.numelyraHeader}>
-          {/* Nút Hamburger menu */}
-          <TouchableOpacity
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Mở menu cài đặt"
-            onPress={onOpenSettings}
-            style={styles.headerCircleBtn}
-          >
-            <View style={styles.hamburgerStack}>
-              <View style={styles.hamburgerLine} />
-              <View style={[styles.hamburgerLine, { width: 14 }]} />
-              <View style={styles.hamburgerLine} />
-            </View>
-          </TouchableOpacity>
-
-          {/* Tiêu đề trung tâm giữ cố định trong cả ba trạng thái. */}
+          <View style={styles.headerSideSpacer} />
           <View style={styles.headerTitleWrap}>
             <Text style={styles.numelyraBrandTitle}>Numelyra</Text>
           </View>
-
-          {/* Nút Clock / Xem lịch sử */}
           <TouchableOpacity
             accessibilityRole="button"
-            accessibilityLabel="Lịch sử trò chuyện"
-            onPress={() => { void Haptics.selectionAsync(); setViewMode(prev => prev === 'current_state' ? 'history_list' : 'current_state'); }}
+            accessibilityLabel={visibleMessageCount === messages.length ? t('chat.collapseHistory') : t('chat.openHistory')}
+            onPress={() => {
+              const showAll = visibleMessageCount !== messages.length;
+              setVisibleMessageCount(showAll ? messages.length : getLatestConversationCount(messages));
+              setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 0);
+              void Haptics.selectionAsync();
+            }}
             style={styles.headerCircleBtn}
           >
             <View style={styles.historyClock}>
@@ -1615,211 +1995,121 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
           </TouchableOpacity>
         </View>
 
-        {/* 🌟 3. MAIN CONTENT STAGE */}
-        {viewMode === 'history_list' ? (
-          // CHẾ ĐỘ XEM TOÀN BỘ LỊCH SỬ CHAT
-          <View style={styles.historyListContainer}>
-            <View style={styles.historyBannerRow}>
-              <Text style={styles.historyBannerText}>Lịch sử hội thoại</Text>
-              <View style={styles.historyBannerActions}>
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={requestClearHistory}
-                  disabled={loading}
-                  style={[styles.clearHistoryBtn, loading && styles.clearHistoryBtnDisabled]}
-                  accessibilityRole="button"
-                  accessibilityLabel="Xóa lịch sử hội thoại"
+        {!isKeyboardVisible && dailyInsight ? (
+          <DailyInsightCard insight={dailyInsight} onPress={() => setDailySheetVisible(true)} />
+        ) : null}
+
+        {/* Một luồng chat duy nhất: tin mới nhất ở đầu, kéo xuống để nạp tin cũ. */}
+        <View style={styles.chatTimeline}>
+          <FlatList
+            ref={flatListRef}
+            data={visibleMessages}
+            keyExtractor={(item) => item.id}
+            style={[styles.chatTimelineList, !isKeyboardVisible && styles.chatTimelineListWithMascot]}
+            contentContainerStyle={styles.chatTimelineContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            renderItem={({ item }) => item.sender === 'user' ? (
+              <View style={styles.userTimelineRow}>
+                <LinearGradient
+                  colors={['#4B2475', '#7C42A6']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.userTimelineBubble}
                 >
-                  <Ionicons name="trash-outline" size={16} color="#FF9AAC" />
-                  <Text style={styles.clearHistoryBtnText}>Xóa</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() => { void Haptics.selectionAsync(); setViewMode('current_state'); }}
-                  style={styles.returnStageBtn}
-                >
-                  <Text style={styles.returnStageBtnText}>Trở về giao diện ngọn lửa</Text><Ionicons name="arrow-forward" size={16} color="#FFD67C" />
-                </TouchableOpacity>
+                  <Text style={styles.userTimelineText}>{item.text}</Text>
+                </LinearGradient>
               </View>
-            </View>
-            <FlatList
-              ref={flatListRef}
-              data={messages}
-              keyExtractor={item => item.id}
-              contentContainerStyle={styles.chatListContent}
-              renderItem={({ item }) => {
-                const isUser = item.sender === 'user';
-                if (isUser) {
-                  return (
-                    <View style={[styles.messageRow, styles.messageRowUser]}>
-                      <View style={[styles.messageBubble, styles.bubbleUser]}>
-                        <Text style={styles.messageText}>{item.text}</Text>
-                      </View>
-                    </View>
-                  );
-                }
+            ) : (
+              <AssistantPreviewBubble
+                message={item}
+                onFinishTyping={markMessageTypingCompleted}
+                onOpen={() => openRawReading(item)}
+              />
+            )}
+          />
 
-                const drawnCards: DrawnCardResult[] = item.card?.drawnCards || [];
-                const totalCards = drawnCards.length;
-                const hasTarot = totalCards > 0;
-                const isCardsFlipped = totalCards > 0
-                  ? drawnCards.some((_, idx) => !!flippedCards[`${item.id}_${idx}`])
-                  : false;
-
-                return (
-                  <View style={[styles.messageRow, styles.messageRowMascot]}>
-                    <View style={[styles.messageBubble, styles.bubbleMascot]}>
-                      {item.card ? renderCardWidget(item.card, item.id) : null}
-                      <TypewriterMessage
-                        key={`typewriter-${item.id}`}
-                        text={item.text}
-                        hasTarot={hasTarot}
-                        isCardsFlipped={isCardsFlipped}
-                        onFlipCards={() => handleFlipAllCards(item.id, totalCards)}
-                        isAlreadyFinished={!!item.isTypingCompleted}
-                        onFinish={() => markMessageTypingCompleted(item.id)}
-                        onDoublePress={() => handleOpenReadingTrace(item.id)}
-                        onScrollRequest={() => {
-                          flatListRef.current?.scrollToEnd({ animated: true });
-                        }}
-                      />
-                      {!!item.isTypingCompleted && (
-                        <TouchableOpacity
-                          activeOpacity={0.7}
-                          onPress={() => handleToggleSpeech(item.id, item.text)}
-                          style={styles.historySpeechButton}
-                          accessibilityRole="button"
-                          accessibilityLabel={speakingMessageId === item.id ? 'Dừng đọc câu trả lời' : 'Đọc câu trả lời thành tiếng'}
-                        >
-                          <Ionicons
-                            name={speakingMessageId === item.id ? 'volume-high' : 'volume-medium-outline'}
-                            size={17}
-                            color={speakingMessageId === item.id ? '#FFD67C' : '#D8C9E8'}
-                      />
-                          <Text style={styles.historySpeechLabel}>
-                            {speakingMessageId === item.id ? 'Đang đọc · Dừng' : 'Đọc thành tiếng'}
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  </View>
-                );
-              }}
-              ListFooterComponent={
-                loading ? (
-                  <View style={styles.loadingRow}>
-                    <Text style={styles.loadingText}>Ngọn lửa đang cảm nhận và tính toán...</Text>
-                  </View>
-                ) : null
-              }
+          {!isKeyboardVisible ? (
+            <ChatSceneActions
+              alignWithCenter={isZeroState}
+              onOpenCalendar={onOpenCalendar}
+              onOpenAstrology={onOpenAstrology}
+              onOpenWallpaper={onOpenWallpaper}
+              onOpenSettings={onOpenSettings}
             />
-          </View>
-        ) : (
-          // CHẾ ĐỘ 3 TRẠNG THÁI CHUẨN NUMELYRA
-          <View style={styles.threeStateStage}>
-            {/* TRẠNG THÁI 1: IDLE / WELCOME */}
-            {isZeroState && !loading && (
-              <View style={[styles.idleStageWrap, isKeyboardVisible && { paddingTop: 20 }]}>
-                <View style={styles.welcomeTypography}>
-                  <Text style={styles.welcomeHeading}>Hi, I’m Numelyra</Text>
-                  <Text style={styles.welcomeParagraph}>
-                    Ask me anything{'\n'}or share how you feel.
-                  </Text>
-                </View>
+          ) : null}
 
-                {!isKeyboardVisible && (
-                  <View style={styles.mascotBottomSpot}>
-                    <FlameMascot
-                      state={ambientMascotState}
-                      size={175}
-                      onPress={handleMascotPress}
-                    />
-                  </View>
-                )}
-              </View>
-            )}
+          {isZeroState && !loading && !isKeyboardVisible ? (
+            <View style={styles.emptyMascotStage} pointerEvents="box-none">
+              <Text style={styles.welcomeHeading}>{t('chat.welcomeHeading')}</Text>
+              <Text style={styles.welcomeParagraph}>{t('chat.welcomeParagraph')}</Text>
+              <TouchableOpacity
+                onPress={handleMascotPress}
+                accessibilityLabel={t('chat.openCards')}
+              >
+                <FlameMascot
+                  state={ambientMascotState}
+                  size={CHAT_MASCOT_SIZE}
+                  paletteIndex={mascotPaletteIndex}
+                  specialAnimationActive={showSpecialMascotAnimation}
+                  specialAnimationIndex={specialMascotAnimationIndex}
+                />
+              </TouchableOpacity>
+            </View>
+          ) : null}
 
-            {/* TRẠNG THÁI 2: THINKING */}
-            {loading && (
-              <View style={[styles.thinkingStageWrap, isKeyboardVisible && { paddingTop: 10 }]}>
-                {latestUserMsg && (
-                  <View style={styles.userBubbleWrapper}>
-                    <View style={styles.userBubbleCard}>
-                      <Text style={styles.userBubbleContent}>
-                        {latestUserMsg.text}
-                      </Text>
-                    </View>
-                  </View>
-                )}
+          {loading && !isKeyboardVisible ? (
+            <View style={styles.thinkingMascotStage} pointerEvents="none">
+              <FlameMascot
+                state="thinking"
+                size={THINKING_MASCOT_SIZE}
+                paletteIndex={mascotPaletteIndex}
+              />
+            </View>
+          ) : null}
 
-                <View style={styles.thinkingBubbleCard}>
-                  <View style={styles.thinkingHeaderRow}>
-                    <View style={styles.thinkingOrangeDot} />
-                    <Text style={styles.thinkingSenderTitle}>Numelyra</Text>
-                  </View>
-                  <Text style={styles.thinkingMessageBody}>Thinking...</Text>
-                </View>
-
-                {!isKeyboardVisible && (
-                  <View style={styles.mascotBottomSpot}>
-                    <FlameMascot state="thinking" size={185} />
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* TRẠNG THÁI 3: ANSWER / REVEAL */}
-            {!isZeroState && !loading && (
-              <View style={[styles.answerStageWrap, isKeyboardVisible && { paddingTop: 4 }]}>
-                {latestUserMsg && (
-                  <View style={[styles.userBubbleWrapper, isKeyboardVisible && { marginBottom: 2 }]}>
-                    <View style={[styles.userBubbleCard, isKeyboardVisible && styles.userBubbleCardCompact]}>
-                      <Text
-                        style={[styles.userBubbleContent, isKeyboardVisible && styles.userBubbleContentCompact]}
-                        numberOfLines={isKeyboardVisible ? 1 : undefined}
-                      >
-                        {latestUserMsg.text}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-
-                {latestMascotMsg && (
-                  <View style={styles.answerPopupContainer}>
-                    <AnswerFlamePopup
-                      messageId={latestMascotMsg.id}
-                      text={latestMascotMsg.text}
-                      senderName="Numelyra"
-                      isTypingCompleted={!!latestMascotMsg.isTypingCompleted}
-                      isSpeaking={speakingMessageId === latestMascotMsg.id}
-                      onToggleSpeech={handleToggleSpeech}
-                      onDoublePress={() => handleOpenReadingTrace(latestMascotMsg.id)}
-                      onFinishTyping={() => markMessageTypingCompleted(latestMascotMsg.id)}
-                      isCompact={isKeyboardVisible}
-                    />
-                    {!isKeyboardVisible && <PlaceSuggestionsCard data={latestMascotMsg.card?.placeSuggestions} />}
-                  </View>
-                )}
-
-                {!isKeyboardVisible && (
-                  <View style={styles.mascotBottomSpot}>
-                    <TouchableOpacity
-                      activeOpacity={0.7}
-                      onPress={handleMascotPress}
-                      accessibilityRole="button"
-                      accessibilityLabel="Mở 24 lá bài Thần số học"
-                    >
-                    <FlameMascot state={speakingMessageId === latestMascotMsg?.id ? 'speaking' : ambientMascotState} size={155} />
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-            )}
-          </View>
-        )}
+          {!isZeroState && !loading && !isKeyboardVisible ? (
+            <View style={styles.restingMascotStage} pointerEvents="box-none">
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={handleMascotPress}
+                accessibilityRole="button"
+                accessibilityLabel={t('chat.openCards')}
+              >
+                <FlameMascot
+                  state={speakingMessageId ? 'speaking' : ambientMascotState}
+                  size={CHAT_MASCOT_SIZE}
+                  paletteIndex={mascotPaletteIndex}
+                  specialAnimationActive={showSpecialMascotAnimation}
+                  specialAnimationIndex={specialMascotAnimationIndex}
+                />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+        </View>
 
         {/* 🌟 4. INPUT BAR NUMELYRA */}
         <View style={[styles.bottomBarWrap, { paddingBottom: isKeyboardVisible ? (Platform.OS === 'ios' ? 8 : 4) : Math.max(insets.bottom, 12) }]}>
+          {!inputVal && visibleSuggestedQuestions.length > 0 && (
+            <ScrollView
+              horizontal
+              keyboardShouldPersistTaps="handled"
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.suggestionList}
+            >
+              {visibleSuggestedQuestions.map((question) => (
+                <TouchableOpacity
+                  key={question}
+                  accessibilityRole="button"
+                  activeOpacity={0.78}
+                  onPress={() => setInputVal(question)}
+                  style={styles.suggestionChip}
+                >
+                  <Text numberOfLines={1} style={styles.suggestionText}>{question}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
           <ChatInputBar
             value={inputVal}
             onChangeText={(text) => {
@@ -1838,10 +2128,30 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
             isVoiceListening={isListening}
             isLoading={loading}
             disabled={!isHistoryReady}
-            placeholder="Type a message..."
+            placeholder={dailyInsight?.suggestedQuestions[suggestionOffset] ?? t('chat.placeholder')}
           />
         </View>
       </KeyboardAvoidingView>
+
+      {dailyInsight && (
+        <DailyInsightSheet
+          visible={dailySheetVisible}
+          insight={dailyInsight}
+          onClose={() => setDailySheetVisible(false)}
+          onAsk={(question) => {
+            setInputVal(question);
+            setDailySheetVisible(false);
+          }}
+          onOpenAstrology={() => {
+            setDailySheetVisible(false);
+            onOpenAstrology?.();
+          }}
+          onOpenCalendar={() => {
+            setDailySheetVisible(false);
+            onOpenCalendar?.();
+          }}
+        />
+      )}
 
       <MysticReadingTraceModal
         visible={!!readingTraceMessage || !!liveTarotReading}
@@ -2048,6 +2358,21 @@ export default function ChatScreen({ profile, onOpenSettings, onOpenGameHub }: P
 
       <ChatMoonButton onPress={onOpenGameHub} />
 
+      <LoveCompatibilityFlow
+        visible={!!loveCompatibilityFlow}
+        message={loveCompatibilityFlow?.phase === 'result' ? loveCompatibilityFlow.message : undefined}
+        question={loveCompatibilityFlow?.question || ''}
+        onClose={() => {
+          loveCompatibilityFlowDismissedRef.current = true;
+          setLoveCompatibilityFlow(null);
+        }}
+        onOpenDetail={(message, question) => {
+          if (!onOpenRawReading) return;
+          onOpenRawReading({ ...message, isTypingCompleted: true }, question);
+          void Haptics.selectionAsync();
+        }}
+      />
+
       {/* 24 Numerology Cards Modal */}
       <NumerologyCardsModal
         visible={isCardsModalOpen}
@@ -2161,6 +2486,179 @@ const styles = StyleSheet.create({
   },
   chatScrollContainer: {
     flex: 1,
+  },
+  chatTimeline: {
+    flex: 1,
+    position: 'relative',
+  },
+  sceneActionsOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 8,
+    bottom: 0,
+    left: 8,
+    zIndex: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  sceneActionsCentered: {
+    alignItems: 'center',
+    paddingBottom: 6,
+  },
+  sceneActionsBottom: {
+    alignItems: 'flex-end',
+    paddingBottom: 14,
+  },
+  sceneActionRail: {
+    width: 46,
+    alignItems: 'center',
+    gap: 7,
+  },
+  sceneActionRailRight: {
+    gap: 16,
+  },
+  sceneActionItem: {
+    width: 46,
+    alignItems: 'center',
+  },
+  sceneActionTouch: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.48,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  sceneActionOrb: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    borderWidth: 1,
+  },
+  sceneActionIconHalo: {
+    width: 27,
+    height: 27,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  sceneActionIcon: {
+    width: 27,
+    height: 27,
+  },
+  sceneActionLabelPill: {
+    maxWidth: 54,
+    minHeight: 16,
+    marginTop: -3,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(25, 13, 56, 0.88)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 219, 143, 0.52)',
+  },
+  sceneActionLabel: {
+    color: '#FFF3D2',
+    fontSize: 8,
+    lineHeight: 10,
+    fontWeight: '800',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.65)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  chatTimelineList: {
+    flex: 1,
+  },
+  // The mascot owns this lower area. The list viewport stops above it, so
+  // neither newly received bubbles nor history pages can cover the sprite.
+  chatTimelineListWithMascot: {
+    marginBottom: 218,
+  },
+  chatTimelineContent: {
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 12,
+  },
+  historyPullSpace: {
+    height: 540,
+  },
+  userTimelineRow: {
+    alignItems: 'flex-end',
+    marginBottom: 18,
+  },
+  userTimelineBubble: {
+    maxWidth: '82%',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderRadius: 28,
+  },
+  userTimelineText: {
+    color: '#FFF8FF',
+    fontSize: 16,
+    lineHeight: 23,
+    fontWeight: '500',
+  },
+  assistantBubbleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 18,
+    marginLeft: -16,
+    paddingLeft: 0,
+  },
+  assistantBubble: {
+    flex: 1,
+    maxWidth: '94%',
+    minHeight: 96,
+    justifyContent: 'center',
+    backgroundColor: '#F6DEC4',
+    borderRadius: 28,
+    paddingTop: 19,
+    paddingBottom: 18,
+    paddingLeft: 28,
+    paddingRight: 21,
+  },
+  assistantBubbleText: {
+    color: '#3B2856',
+    fontSize: 17,
+    lineHeight: 25,
+    fontWeight: '600',
+  },
+  assistantTypingCursor: {
+    color: '#7C42A6',
+    fontWeight: '900',
+  },
+  emptyMascotStage: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: 24,
+  },
+  thinkingMascotStage: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 22,
+    alignItems: 'center',
+  },
+  restingMascotStage: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 22,
+    alignItems: 'center',
   },
   chatListContent: { paddingHorizontal: 16, paddingVertical: 20 },
   messageRow: { flexDirection: 'row', marginVertical: 8, maxWidth: '90%' },
@@ -3232,6 +3730,13 @@ const styles = StyleSheet.create({
     minHeight: 54,
     zIndex: 10,
   },
+  numelyraHeaderMinimal: {
+    justifyContent: 'center',
+  },
+  headerSideSpacer: {
+    width: 32,
+    height: 40,
+  },
   headerCircleBtn: {
     width: 32,
     height: 40,
@@ -3471,5 +3976,25 @@ const styles = StyleSheet.create({
   bottomBarWrap: {
     backgroundColor: 'transparent',
     zIndex: 10,
+  },
+  suggestionList: {
+    gap: 7,
+    paddingHorizontal: 13,
+    paddingBottom: 7,
+  },
+  suggestionChip: {
+    maxWidth: 245,
+    minHeight: 34,
+    justifyContent: 'center',
+    paddingHorizontal: 13,
+    borderRadius: 17,
+    backgroundColor: 'rgba(48, 31, 91, 0.94)',
+    borderWidth: 1,
+    borderColor: 'rgba(218, 194, 255, 0.28)',
+  },
+  suggestionText: {
+    color: '#E9E0FA',
+    fontSize: 11,
+    fontWeight: '600',
   },
 });

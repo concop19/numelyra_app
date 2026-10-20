@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { useAuth } from '../store/authContext';
+import { useLocalization } from '../i18n/LocalizationContext';
 
 const MASCOT = require('../../assets/giao_dien/Whimsical Flame Mascot Reading a Grimoire.png');
 
@@ -28,6 +29,8 @@ interface Props {
 
 export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowGuest = true }: Props) {
   const { signIn, signUp, signInWithGoogle, isConfigured } = useAuth();
+  const { locale } = useLocalization();
+  const en = locale === 'en';
   const [isSignUp, setIsSignUp] = useState(false);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -47,7 +50,7 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
       await signInWithGoogle();
       onAuthenticated();
     } catch (authError) {
-      setError(authError instanceof Error ? authError.message : 'Đăng nhập Google thất bại. Vui lòng thử lại.');
+      setError(authError instanceof Error ? authError.message : (en ? 'Google sign-in failed. Please try again.' : 'Đăng nhập Google thất bại. Vui lòng thử lại.'));
     } finally {
       setGoogleLoading(false);
     }
@@ -57,15 +60,15 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const normalizedEmail = email.trim();
     if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
-      setError('Hãy nhập một địa chỉ email hợp lệ.');
+      setError(en ? 'Enter a valid email address.' : 'Hãy nhập một địa chỉ email hợp lệ.');
       return;
     }
     if (password.length < 6) {
-      setError('Mật khẩu cần có ít nhất 6 ký tự.');
+      setError(en ? 'Password must contain at least 6 characters.' : 'Mật khẩu cần có ít nhất 6 ký tự.');
       return;
     }
     if (isSignUp && !fullName.trim()) {
-      setError('Hãy nhập tên của bạn để tạo tài khoản.');
+      setError(en ? 'Enter your name to create an account.' : 'Hãy nhập tên của bạn để tạo tài khoản.');
       return;
     }
 
@@ -76,7 +79,7 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
       if (isSignUp) {
         const result = await signUp(normalizedEmail, password, fullName);
         if (result.needsEmailConfirmation) {
-          setMessage('Tài khoản đã được tạo. Hãy kiểm tra email để xác nhận, rồi đăng nhập lại.');
+          setMessage(en ? 'Your account was created. Confirm your email, then sign in.' : 'Tài khoản đã được tạo. Hãy kiểm tra email để xác nhận, rồi đăng nhập lại.');
           setIsSignUp(false);
           return;
         }
@@ -85,7 +88,7 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
       }
       onAuthenticated();
     } catch (authError) {
-      setError(authError instanceof Error ? authError.message : 'Không thể đăng nhập. Vui lòng thử lại.');
+      setError(authError instanceof Error ? authError.message : (en ? 'Unable to sign in. Please try again.' : 'Không thể đăng nhập. Vui lòng thử lại.'));
     } finally {
       setLoading(false);
     }
@@ -104,7 +107,7 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
             <Text style={styles.eyebrow}>✦ WELCOME TO</Text>
             <Text style={styles.brand}>NUMELYRA</Text>
             <Text style={styles.tagline}>Unlock your magic ♡</Text>
-            <Text style={styles.description}>{isSignUp ? 'Tạo tài khoản để đồng bộ hành trình của bạn.' : 'Đăng nhập để lưu và đồng bộ hành trình của bạn.'}</Text>
+            <Text style={styles.description}>{isSignUp ? (en ? 'Create an account to sync your journey.' : 'Tạo tài khoản để đồng bộ hành trình của bạn.') : (en ? 'Sign in to save and sync your journey.' : 'Đăng nhập để lưu và đồng bộ hành trình của bạn.')}</Text>
 
             {/* NÚT ĐĂNG NHẬP GOOGLE */}
             <TouchableOpacity
@@ -121,14 +124,14 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
                   <View style={styles.googleIconBadge}>
                     <Text style={styles.googleIconG}>G</Text>
                   </View>
-                  <Text style={styles.googleButtonText}>Tiếp tục với Google</Text>
+                  <Text style={styles.googleButtonText}>{en ? 'Continue with Google' : 'Tiếp tục với Google'}</Text>
                 </>
               )}
             </TouchableOpacity>
 
             <View style={styles.dividerRow}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>HOẶC VỚI EMAIL</Text>
+              <Text style={styles.dividerText}>{en ? 'OR WITH EMAIL' : 'HOẶC VỚI EMAIL'}</Text>
               <View style={styles.dividerLine} />
             </View>
 
@@ -136,7 +139,7 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
               <TextInput
                 value={fullName}
                 onChangeText={setFullName}
-                placeholder="Họ và tên"
+                placeholder={en ? 'Full name' : 'Họ và tên'}
                 placeholderTextColor="#B68179"
                 autoCapitalize="words"
                 style={styles.input}
@@ -156,7 +159,7 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
               <TextInput
                 value={password}
                 onChangeText={setPassword}
-                placeholder="Mật khẩu"
+                placeholder={en ? 'Password' : 'Mật khẩu'}
                 placeholderTextColor="#B68179"
                 autoCapitalize="none"
                 autoComplete={isSignUp ? 'new-password' : 'password'}
@@ -164,11 +167,11 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
                 style={styles.passwordInput}
               />
               <TouchableOpacity activeOpacity={0.7} accessibilityRole="button" onPress={() => { void Haptics.selectionAsync(); setShowPassword((value) => !value); }} style={styles.showButton}>
-                <Text style={styles.showButtonText}>{showPassword ? 'ẨN' : 'HIỆN'}</Text>
+                <Text style={styles.showButtonText}>{showPassword ? (en ? 'HIDE' : 'ẨN') : (en ? 'SHOW' : 'HIỆN')}</Text>
               </TouchableOpacity>
             </View>
 
-            {!isConfigured && <Text style={styles.error}>Chưa có cấu hình Supabase cho mobile app. Bạn vẫn có thể dùng chế độ Khách.</Text>}
+            {!isConfigured && <Text style={styles.error}>{en ? 'Supabase is not configured. You can still continue as a guest.' : 'Chưa có cấu hình Supabase cho mobile app. Bạn vẫn có thể dùng chế độ Khách.'}</Text>}
             {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
             {!!message && <Text style={styles.message}>{message}</Text>}
 
@@ -179,15 +182,15 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
               activeOpacity={0.85}
               style={[styles.submit, (!isConfigured || loading || googleLoading) && styles.submitDisabled]}
             >
-              {loading ? <ActivityIndicator color="#FFF9F5" /> : <View style={styles.submitContent}><Text style={styles.submitText}>{isSignUp ? 'TẠO TÀI KHOẢN' : 'ĐĂNG NHẬP'}</Text><Ionicons name="arrow-forward" size={18} color="#FFF9F5" /></View>}
+              {loading ? <ActivityIndicator color="#FFF9F5" /> : <View style={styles.submitContent}><Text style={styles.submitText}>{isSignUp ? (en ? 'CREATE ACCOUNT' : 'TẠO TÀI KHOẢN') : (en ? 'SIGN IN' : 'ĐĂNG NHẬP')}</Text><Ionicons name="arrow-forward" size={18} color="#FFF9F5" /></View>}
             </TouchableOpacity>
 
             <TouchableOpacity activeOpacity={0.7} accessibilityRole="button" onPress={() => { void Haptics.selectionAsync(); setIsSignUp((value) => !value); setError(''); setMessage(''); }} style={styles.modeButton}>
-              <Text style={styles.modeText}>{isSignUp ? 'Đã có tài khoản? ' : 'Chưa có tài khoản? '}<Text style={styles.modeEmphasis}>{isSignUp ? 'Đăng nhập' : 'Tạo tài khoản'}</Text></Text>
+              <Text style={styles.modeText}>{isSignUp ? (en ? 'Already have an account? ' : 'Đã có tài khoản? ') : (en ? 'New to Numelyra? ' : 'Chưa có tài khoản? ')}<Text style={styles.modeEmphasis}>{isSignUp ? (en ? 'Sign in' : 'Đăng nhập') : (en ? 'Create account' : 'Tạo tài khoản')}</Text></Text>
             </TouchableOpacity>
             {allowGuest && (
               <TouchableOpacity activeOpacity={0.7} accessibilityRole="button" onPress={() => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onContinueAsGuest(); }} style={styles.guestButton}>
-                <Text style={styles.guestText}>Tiếp tục với tư cách Khách</Text>
+                <Text style={styles.guestText}>{en ? 'Continue as guest' : 'Tiếp tục với tư cách Khách'}</Text>
               </TouchableOpacity>
             )}
           </View>

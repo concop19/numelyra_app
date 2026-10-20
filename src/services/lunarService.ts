@@ -37,6 +37,87 @@ const TU_HANH_XUNG: Record<string, string> = {
   'Thân': 'Dần', 'Dậu': 'Mão', 'Tuất': 'Thìn', 'Hợi': 'Tỵ'
 };
 
+const positiveMod = (value: number, modulus: number): number => ((value % modulus) + modulus) % modulus;
+
+/** Vị trí sao Thanh Long theo Địa Chi ngày, đối chiếu LunarService.swift. */
+const THANH_LONG_START_HOUR_BY_DAY_CHI: Record<number, number> = {
+  0: 8, 6: 8,   // Tý, Ngọ → Thân
+  1: 10, 7: 10, // Sửu, Mùi → Tuất
+  2: 0, 8: 0,   // Dần, Thân → Tý
+  3: 2, 9: 2,   // Mão, Dậu → Dần
+  4: 4, 10: 4,  // Thìn, Tuất → Thìn
+  5: 6, 11: 6,  // Tỵ, Hợi → Ngọ
+};
+
+const TWELVE_DAY_STARS = [
+  { name: 'Thanh Long', isHoangDao: true },
+  { name: 'Minh Đường', isHoangDao: true },
+  { name: 'Thiên Hình', isHoangDao: false },
+  { name: 'Chu Tước', isHoangDao: false },
+  { name: 'Kim Quỹ', isHoangDao: true },
+  { name: 'Thiên Đức', isHoangDao: true },
+  { name: 'Bạch Hổ', isHoangDao: false },
+  { name: 'Ngọc Đường', isHoangDao: true },
+  { name: 'Thiên Lao', isHoangDao: false },
+  { name: 'Huyền Vũ', isHoangDao: false },
+  { name: 'Tư Mệnh', isHoangDao: true },
+  { name: 'Câu Trận', isHoangDao: false },
+] as const;
+
+const LY_THUAN_PHONG_CUNG = [
+  { name: 'Đại An', isGood: true },
+  { name: 'Lưu Niên', isGood: false },
+  { name: 'Tốc Hỷ', isGood: true },
+  { name: 'Xích Khẩu', isGood: false },
+  { name: 'Tiểu Cát', isGood: true },
+  { name: 'Không Vong', isGood: false },
+] as const;
+
+const HY_THAN_BY_DAY_CAN = [
+  'Đông Bắc', 'Tây Bắc', 'Tây Nam', 'Chính Nam', 'Đông Nam',
+  'Đông Bắc', 'Tây Bắc', 'Tây Nam', 'Chính Nam', 'Đông Nam',
+] as const;
+
+const TAI_THAN_BY_DAY_CAN = [
+  'Đông Nam', 'Đông Nam', 'Chính Đông', 'Chính Đông', 'Chính Bắc',
+  'Chính Nam', 'Tây Nam', 'Tây Nam', 'Chính Tây', 'Tây Bắc',
+] as const;
+
+interface TrucDefinition {
+  name: string;
+  quality: 'Tốt' | 'Bình' | 'Xấu';
+  yi: string[];
+  ji: string[];
+}
+
+const THAP_NHI_KIEN_TRU: TrucDefinition[] = [
+  { name: 'Kiến', quality: 'Tốt', yi: ['Xuất hành', 'Khai trương', 'Nhậm chức', 'Cưới hỏi'], ji: ['Động thổ', 'Đào giếng', 'Mở kho'] },
+  { name: 'Trừ', quality: 'Tốt', yi: ['Cầu an', 'Chữa bệnh', 'Dọn dẹp', 'Cầu phúc'], ji: ['Ký kết lớn', 'Xuất hành xa', 'Cưới hỏi'] },
+  { name: 'Mãn', quality: 'Tốt', yi: ['Cầu tài', 'Khai trương', 'Cúng tế', 'Hội họp'], ji: ['Kiện tụng', 'Động thổ', 'Nhậm chức'] },
+  { name: 'Bình', quality: 'Bình', yi: ['Giao dịch', 'Sửa chữa', 'Hội họp', 'Di chuyển'], ji: ['Động thổ lớn', 'Đào móng', 'Kiện tụng'] },
+  { name: 'Định', quality: 'Tốt', yi: ['Ký kết', 'Giao dịch', 'Cưới hỏi', 'Cầu phúc'], ji: ['Kiện tụng', 'Xuất hành xa', 'Chữa bệnh'] },
+  { name: 'Chấp', quality: 'Bình', yi: ['Xây dựng', 'Sửa chữa', 'Cầu an', 'Lập kế hoạch'], ji: ['Xuất hành xa', 'Dời nhà', 'Mở kho'] },
+  { name: 'Phá', quality: 'Xấu', yi: ['Phá dỡ cũ', 'Chữa bệnh', 'Dọn dẹp'], ji: ['Khai trương', 'Cưới hỏi', 'Ký kết', 'Cầu tài'] },
+  { name: 'Nguy', quality: 'Xấu', yi: ['Cầu an', 'Cúng tế', 'Tĩnh dưỡng'], ji: ['Xuất hành xa', 'Động thổ', 'Mạo hiểm'] },
+  { name: 'Thành', quality: 'Tốt', yi: ['Khai trương', 'Cưới hỏi', 'Ký kết', 'Nhập trạch'], ji: ['Kiện tụng', 'Tranh chấp'] },
+  { name: 'Thu', quality: 'Bình', yi: ['Thu hoạch', 'Tích trữ', 'Nạp tài', 'Giao dịch'], ji: ['Khởi công lớn', 'An táng', 'Xuất hành xa'] },
+  { name: 'Khai', quality: 'Tốt', yi: ['Khai trương', 'Cầu tài', 'Xuất hành', 'Nhập trạch'], ji: ['An táng', 'Kiện tụng', 'Động thổ'] },
+  { name: 'Bế', quality: 'Xấu', yi: ['Tu bổ', 'Tĩnh tâm', 'Lập kế hoạch nội bộ'], ji: ['Khai trương', 'Xuất hành', 'Cưới hỏi', 'Cầu tài'] },
+];
+
+const LUC_THAP_HOA_GIAP_NAP_AM = [
+  ['Hải Trung Kim', 'Kim'], ['Lư Trung Hỏa', 'Hỏa'], ['Đại Lâm Mộc', 'Mộc'],
+  ['Lộ Bàng Thổ', 'Thổ'], ['Kiếm Phong Kim', 'Kim'], ['Sơn Đầu Hỏa', 'Hỏa'],
+  ['Giản Hạ Thủy', 'Thủy'], ['Thành Đầu Thổ', 'Thổ'], ['Bạch Lạp Kim', 'Kim'],
+  ['Dương Liễu Mộc', 'Mộc'], ['Tuyền Trung Thủy', 'Thủy'], ['Ốc Thượng Thổ', 'Thổ'],
+  ['Tích Lịch Hỏa', 'Hỏa'], ['Tùng Bách Mộc', 'Mộc'], ['Trường Lưu Thủy', 'Thủy'],
+  ['Sa Trung Kim', 'Kim'], ['Sơn Hạ Hỏa', 'Hỏa'], ['Bình Địa Mộc', 'Mộc'],
+  ['Bích Thượng Thổ', 'Thổ'], ['Kim Bạch Kim', 'Kim'], ['Phú Đăng Hỏa', 'Hỏa'],
+  ['Thiên Hà Thủy', 'Thủy'], ['Đại Trạch Thổ', 'Thổ'], ['Thoa Xuyến Kim', 'Kim'],
+  ['Tang Đố Mộc', 'Mộc'], ['Đại Khê Thủy', 'Thủy'], ['Sa Trung Thổ', 'Thổ'],
+  ['Thiên Thượng Hỏa', 'Hỏa'], ['Thạch Lựu Mộc', 'Mộc'], ['Đại Hải Thủy', 'Thủy'],
+] as const;
+
 // ============================================================
 // 2. THUẬT TOÁN ÂM LỊCH (Hồ Ngọc Đức)
 // ============================================================
@@ -197,94 +278,122 @@ export function getCanChiDay(dd: number, mm: number, yy: number): string {
   return `${THIEN_CAN[canIdx]} ${DIA_CHI[chiIdx]}`;
 }
 
-function getDayDiaChi(dd: number, mm: number, yy: number): number {
+export function getDayThienCan(dd: number, mm: number, yy: number): number {
   const jd = jdFromDate(dd, mm, yy);
-  return ((jd + 1) % 12 + 12) % 12;
+  return positiveMod(jd + 9, 10);
+}
+
+export function getDayDiaChi(dd: number, mm: number, yy: number): number {
+  const jd = jdFromDate(dd, mm, yy);
+  return positiveMod(jd + 1, 12);
+}
+
+/** Chỉ số trong vòng Lục Thập Hoa Giáp, 0 = Giáp Tý. */
+export function getDaySexagenaryIndex(dd: number, mm: number, yy: number): number {
+  return positiveMod(jdFromDate(dd, mm, yy) + 49, 60);
+}
+
+/** Can Chi giờ theo Ngũ Thử Độn. */
+export function getCanChiHour(hourChiIdx: number, dayCanIdx: number): string {
+  const chiIdx = positiveMod(hourChiIdx, 12);
+  const canStart = positiveMod((positiveMod(dayCanIdx, 10) % 5) * 2, 10);
+  return `${THIEN_CAN[positiveMod(canStart + chiIdx, 10)]} ${DIA_CHI[chiIdx]}`;
+}
+
+/**
+ * Lấy năm sinh âm lịch từ ngày sinh dương lịch. Không dùng `new Date(string)` để
+ * tránh ngày bị dịch do múi giờ trên Android/iOS.
+ */
+export function extractBirthYear(birthDate?: string | null, fallbackYear = 1998): number {
+  const raw = birthDate?.trim();
+  if (!raw) return fallbackYear;
+
+  const isoMatch = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(raw);
+  if (isoMatch) {
+    const [, year, month, day] = isoMatch.map(Number);
+    if (year > 1800 && year < 2200 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      return solarToLunar(day, month, year).year;
+    }
+  }
+
+  const viMatch = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(raw);
+  if (viMatch) {
+    const [, day, month, year] = viMatch.map(Number);
+    if (year > 1800 && year < 2200 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      return solarToLunar(day, month, year).year;
+    }
+  }
+
+  const year = Number(raw.slice(0, 4));
+  return Number.isInteger(year) && year > 1800 && year < 2200 ? year : fallbackYear;
+}
+
+export function getZodiac(birthYear: number): string {
+  return DIA_CHI[positiveMod(birthYear - 4, 12)];
+}
+
+export interface NapAmInfo {
+  name: string;
+  element: 'Kim' | 'Mộc' | 'Thủy' | 'Hỏa' | 'Thổ';
+}
+
+export function getNapAm(birthYear: number): NapAmInfo {
+  const [name, element] = LUC_THAP_HOA_GIAP_NAP_AM[Math.floor(positiveMod(birthYear - 4, 60) / 2)];
+  return { name, element };
+}
+
+export function getNapAmYear(birthYear: number): string {
+  return getNapAm(birthYear).name;
+}
+
+/** Ngũ Hành Nạp Âm của năm sinh, không phải chỉ riêng hành của Thiên Can. */
+export function getNguHanh(birthYear: number): NapAmInfo['element'] {
+  return getNapAm(birthYear).element;
 }
 
 // ============================================================
 // 4. GIỜ HOÀNG ĐẠO / HẮC ĐẠO
 // ============================================================
 
-/**
- * Bảng giờ Hoàng Đạo theo Địa Chi ngày.
- * Mỗi ngày (theo Địa Chi) có 6 giờ Hoàng Đạo cố định.
- * Index 0-11 tương ứng với 12 giờ trong ngày (Tý đến Hợi).
- * true = Hoàng Đạo (tốt), false = Hắc Đạo (xấu).
- * 
- * Quy luật "Tý Ngọ Mão Dậu gia Thanh Long":
- * - Ngày Tý/Ngọ: Hoàng Đạo bắt đầu từ giờ Tý
- * - Ngày Sửu/Mùi: Hoàng Đạo bắt đầu từ giờ Dần
- * - Ngày Dần/Thân: Hoàng Đạo bắt đầu từ giờ Thìn
- * - Ngày Mão/Dậu: Hoàng Đạo bắt đầu từ giờ Ngọ
- * - Ngày Thìn/Tuất: Hoàng Đạo bắt đầu từ giờ Thân
- * - Ngày Tỵ/Hợi: Hoàng Đạo bắt đầu từ giờ Tuất
- * 
- * Pattern lặp: Hoàng Đạo tại offset 0,1,3,6,8,9 (từ vị trí bắt đầu)
- */
-const HOANG_DAO_OFFSETS = [0, 1, 3, 6, 8, 9];
-const HOANG_DAO_START: Record<number, number> = {
-  0: 0,  // Ngày Tý → bắt đầu giờ Tý (index 0)
-  6: 0,  // Ngày Ngọ → bắt đầu giờ Tý
-  1: 2,  // Ngày Sửu → bắt đầu giờ Dần (index 2)
-  7: 2,  // Ngày Mùi → bắt đầu giờ Dần
-  2: 4,  // Ngày Dần → bắt đầu giờ Thìn (index 4)
-  8: 4,  // Ngày Thân → bắt đầu giờ Thìn
-  3: 6,  // Ngày Mão → bắt đầu giờ Ngọ (index 6)
-  9: 6,  // Ngày Dậu → bắt đầu giờ Ngọ
-  4: 8,  // Ngày Thìn → bắt đầu giờ Thân (index 8)
-  10: 8, // Ngày Tuất → bắt đầu giờ Thân
-  5: 10, // Ngày Tỵ → bắt đầu giờ Tuất (index 10)
-  11: 10 // Ngày Hợi → bắt đầu giờ Tuất
-};
-
 export interface HourInfo {
   name: string;       // Tý, Sửu, Dần...
+  canChi: string;     // Giáp Tý, Ất Sửu...
   range: string;      // "23h-01h"
   startHour: number;  // 23, 1, 3...
   isHoangDao: boolean;
   isClash: boolean;   // kỵ tuổi
+  isDayClash: boolean; // Nhật Phá: xung với Địa Chi ngày
   label: string;      // "Thanh Long", "Minh Đường"...
+  lyThuanPhong: string;
+  isLyThuanPhongGood: boolean;
 }
 
-// Tên các giờ Hoàng Đạo theo thứ tự
-const HOANG_DAO_NAMES = ['Thanh Long', 'Minh Đường', 'Kim Quỹ', 'Thiên Đức', 'Ngọc Đường', 'Tư Mệnh'];
-const HAC_DAO_NAMES = ['Thiên Hình', 'Chu Tước', 'Bạch Hổ', 'Thiên Lao', 'Huyền Vũ', 'Câu Trận'];
+export function getLyThuanPhongHour(lunarDay: number, lunarMonth: number, hourChiIdx: number) {
+  return LY_THUAN_PHONG_CUNG[positiveMod(lunarMonth + lunarDay + hourChiIdx - 2, 6)];
+}
 
 export function getHoangDaoHours(dd: number, mm: number, yy: number, zodiac?: string): HourInfo[] {
+  const lunar = solarToLunar(dd, mm, yy);
+  const dayCanIdx = getDayThienCan(dd, mm, yy);
   const dayChiIdx = getDayDiaChi(dd, mm, yy);
-  const startOffset = HOANG_DAO_START[dayChiIdx] ?? 0;
-
-  // Xây set giờ Hoàng Đạo
-  const hoangDaoSet = new Set<number>();
-  for (const offset of HOANG_DAO_OFFSETS) {
-    hoangDaoSet.add((startOffset + offset) % 12);
-  }
-
-  // Giờ kỵ theo tuổi
-  const clashHour = zodiac ? TU_HANH_XUNG[zodiac] : null;
-
-  let hdIdx = 0;
-  let hacIdx = 0;
+  const thanhLongStart = THANH_LONG_START_HOUR_BY_DAY_CHI[dayChiIdx] ?? 0;
+  const userClashHour = zodiac ? TU_HANH_XUNG[zodiac] : undefined;
+  const dayClashHour = TU_HANH_XUNG[DIA_CHI[dayChiIdx]];
 
   return GIO_INFO.map((gio, idx) => {
-    const isHoangDao = hoangDaoSet.has(idx);
-    const isClash = clashHour === gio.name;
-    let label: string;
-    if (isHoangDao) {
-      label = HOANG_DAO_NAMES[hdIdx % HOANG_DAO_NAMES.length];
-      hdIdx++;
-    } else {
-      label = HAC_DAO_NAMES[hacIdx % HAC_DAO_NAMES.length];
-      hacIdx++;
-    }
+    const star = TWELVE_DAY_STARS[positiveMod(idx - thanhLongStart, 12)];
+    const lyThuanPhong = getLyThuanPhongHour(lunar.day, lunar.month, idx);
     return {
       name: gio.name,
+      canChi: getCanChiHour(idx, dayCanIdx),
       range: gio.range,
       startHour: gio.startHour,
-      isHoangDao,
-      isClash,
-      label
+      isHoangDao: star.isHoangDao,
+      isClash: userClashHour === gio.name,
+      isDayClash: dayClashHour === gio.name,
+      label: star.name,
+      lyThuanPhong: lyThuanPhong.name,
+      isLyThuanPhongGood: lyThuanPhong.isGood,
     };
   });
 }
@@ -293,49 +402,52 @@ export function getHoangDaoHours(dd: number, mm: number, yy: number, zodiac?: st
 // 5. GIỜ XUẤT HÀNH ĐẠI CÁT
 // ============================================================
 
-export function getBestDepartureHour(dd: number, mm: number, yy: number, zodiac: string): HourInfo | null {
-  const hours = getHoangDaoHours(dd, mm, yy, zodiac);
-  const currentHour = new Date().getHours();
+export function getBestDepartureHour(
+  dd: number,
+  mm: number,
+  yy: number,
+  zodiac: string,
+  currentHour = new Date().getHours(),
+): HourInfo | null {
+  const chronologicalHours = [...getHoangDaoHours(dd, mm, yy, zodiac)]
+    .sort((a, b) => a.startHour - b.startHour);
+  const candidates = chronologicalHours.filter(hour => hour.isHoangDao && !hour.isClash);
+  if (candidates.length === 0) return null;
 
-  // Ưu tiên: Hoàng Đạo + không kỵ tuổi + chưa qua giờ hiện tại
-  const candidates = hours.filter(h => h.isHoangDao && !h.isClash);
+  const tiers = [
+    candidates.filter(hour => !hour.isDayClash && hour.isLyThuanPhongGood),
+    candidates.filter(hour => !hour.isDayClash),
+    candidates,
+  ];
 
-  // Tìm giờ gần nhất chưa qua
-  const future = candidates.filter(h => h.startHour >= currentHour);
-  if (future.length > 0) return future[0];
-
-  // Nếu không còn giờ tốt trong ngày, trả về giờ tốt đầu tiên
-  return candidates.length > 0 ? candidates[0] : null;
+  for (const tier of tiers) {
+    const upcoming = tier.find(hour => hour.startHour >= currentHour);
+    if (upcoming) return upcoming;
+  }
+  return tiers.find(tier => tier.length > 0)?.[0] ?? candidates[0];
 }
 
 // ============================================================
 // 6. NGÀY TỐT / XẤU — VIỆC NÊN/KIÊNG
 // ============================================================
 
-const VIEC_YI = [
-  ['Cầu tài', 'Khai trương', 'Giao dịch', 'Xuất hành'],
-  ['Cưới hỏi', 'Ăn hỏi', 'Cầu phúc', 'Dời nhà'],
-  ['Động thổ', 'Xây dựng', 'Sửa chữa', 'Cầu an'],
-  ['Khai trương', 'Nhập trạch', 'An táng', 'Xuất hành'],
-  ['Cầu phúc', 'Giao dịch', 'Hội họp', 'Ký kết'],
-  ['Cưới hỏi', 'Cầu tài', 'Xuất hành', 'Khai trương'],
-];
+export interface DayActivities {
+  trucName: string;
+  trucQuality: 'Tốt' | 'Bình' | 'Xấu';
+  yi: string[];
+  ji: string[];
+}
 
-const VIEC_JI = [
-  ['Tranh chấp', 'Kiện tụng'],
-  ['Động thổ', 'Phá tường'],
-  ['Cưới hỏi', 'Khai trương'],
-  ['Tranh chấp', 'Xuất hành xa'],
-  ['Động thổ', 'Phá tường'],
-  ['Kiện tụng', 'An táng'],
-];
-
-export function getDayActivities(dd: number, mm: number, yy: number): { yi: string[], ji: string[] } {
-  const jd = jdFromDate(dd, mm, yy);
-  const idx = ((jd % 6) + 6) % 6;
+export function getDayActivities(dd: number, mm: number, yy: number): DayActivities {
+  const lunar = solarToLunar(dd, mm, yy);
+  const dayChiIdx = getDayDiaChi(dd, mm, yy);
+  const monthChiIdx = positiveMod(lunar.month + 1, 12); // Tháng Giêng = Dần
+  const truc = THAP_NHI_KIEN_TRU[positiveMod(dayChiIdx - monthChiIdx, 12)];
   return {
-    yi: VIEC_YI[idx],
-    ji: VIEC_JI[idx]
+    trucName: truc.name,
+    trucQuality: truc.quality,
+    yi: [...truc.yi],
+    ji: [...truc.ji],
   };
 }
 
@@ -369,21 +481,40 @@ export function getDayWarning(lunarDay: number): string | null {
 // 8. HƯỚNG XUẤT HÀNH
 // ============================================================
 
-const HUONG_XUAT_HANH = [
-  { huong: 'Đông Bắc', than: 'Hỷ Thần' },
-  { huong: 'Tây Bắc', than: 'Tài Thần' },
-  { huong: 'Đông Nam', than: 'Hỷ Thần' },
-  { huong: 'Tây Nam', than: 'Tài Thần' },
-  { huong: 'Chính Đông', than: 'Hỷ Thần' },
-  { huong: 'Chính Tây', than: 'Tài Thần' },
-  { huong: 'Chính Nam', than: 'Hỷ Thần' },
-  { huong: 'Chính Bắc', than: 'Tài Thần' },
-];
+export interface DayDirection {
+  huong: string;
+  than: string;
+  hyThan: string;
+  taiThan: string;
+  hacThan: string | null;
+}
 
-export function getDayDirection(dd: number, mm: number, yy: number): { huong: string, than: string } {
-  const jd = jdFromDate(dd, mm, yy);
-  const idx = ((jd % 8) + 8) % 8;
-  return HUONG_XUAT_HANH[idx];
+/** Hướng Hạc Thần theo chu kỳ 60 ngày; null nghĩa là Hạc Thần tại thiên. */
+export function getHacThanDirection(dd: number, mm: number, yy: number): string | null {
+  const idx = getDaySexagenaryIndex(dd, mm, yy);
+  if (idx >= 29 && idx <= 44) return null;
+  if (idx >= 45 && idx <= 50) return 'Đông Bắc';
+  if (idx >= 51 && idx <= 55) return 'Chính Đông';
+  if (idx >= 56 || idx <= 1) return 'Đông Nam';
+  if (idx >= 2 && idx <= 6) return 'Chính Nam';
+  if (idx >= 7 && idx <= 12) return 'Tây Nam';
+  if (idx >= 13 && idx <= 17) return 'Chính Tây';
+  if (idx >= 18 && idx <= 23) return 'Tây Bắc';
+  if (idx >= 24 && idx <= 28) return 'Chính Bắc';
+  return null;
+}
+
+export function getDayDirection(dd: number, mm: number, yy: number): DayDirection {
+  const dayCanIdx = getDayThienCan(dd, mm, yy);
+  const hyThan = HY_THAN_BY_DAY_CAN[dayCanIdx];
+  const taiThan = TAI_THAN_BY_DAY_CAN[dayCanIdx];
+  return {
+    huong: hyThan === taiThan ? hyThan : `${hyThan} (Hỷ) · ${taiThan} (Tài)`,
+    than: 'Hỷ Thần & Tài Thần',
+    hyThan,
+    taiThan,
+    hacThan: getHacThanDirection(dd, mm, yy),
+  };
 }
 
 // ============================================================
@@ -549,4 +680,81 @@ export function getWeekInfo(currentDate: Date): WeekInfo {
   }
 
   return { weekNumber, days };
+}
+
+/** Dữ liệu lịch đã chuẩn hóa để Calendar và lớp phân tích Astrology dùng chung. */
+export interface LunarDaySnapshot {
+  solarDate: Date;
+  day: number;
+  month: number;
+  year: number;
+  weekdayVi: string;
+  lunarDate: LunarDate;
+  isLunarMonthFull: boolean;
+  canChiDay: string;
+  canChiMonth: string;
+  canChiYear: string;
+  dayHoangDaoStatus: { isHoangDao: boolean; label: string };
+  solarTerm: string;
+  hours: HourInfo[];
+  bestDepartureHour: HourInfo | null;
+  direction: DayDirection;
+  activities: DayActivities;
+  warning: string | null;
+  weekInfo: WeekInfo;
+  userBirthYear: number;
+  userZodiac: string;
+  userNguHanh: NapAmInfo['element'];
+  userNapAm: string;
+}
+
+export interface LunarDaySnapshotOptions {
+  birthDate?: string | null;
+  currentHour?: number;
+  timeZone?: number;
+}
+
+export function makeDaySnapshot(
+  date: Date,
+  options: LunarDaySnapshotOptions = {},
+): LunarDaySnapshot {
+  const day = date.getDate();
+  const month = date.getMonth() + 1;
+  const year = date.getFullYear();
+  const lunarDate = solarToLunar(day, month, year, options.timeZone ?? 7);
+  const userBirthYear = extractBirthYear(options.birthDate);
+  const userZodiac = getZodiac(userBirthYear);
+  const napAm = getNapAm(userBirthYear);
+  const hours = getHoangDaoHours(day, month, year, userZodiac);
+
+  return {
+    solarDate: date,
+    day,
+    month,
+    year,
+    weekdayVi: getDayOfWeekVi(date),
+    lunarDate,
+    isLunarMonthFull: isLunarMonthFull(day, month, year, lunarDate.month, lunarDate.year),
+    canChiDay: getCanChiDay(day, month, year),
+    canChiMonth: getCanChiMonth(lunarDate.month, lunarDate.year),
+    canChiYear: getCanChiYear(lunarDate.year),
+    dayHoangDaoStatus: getDayHoangDaoStatus(day, month, year, lunarDate.month),
+    solarTerm: getSolarTerm(day, month, year),
+    hours,
+    bestDepartureHour: getBestDepartureHour(
+      day,
+      month,
+      year,
+      userZodiac,
+      options.currentHour ?? date.getHours(),
+    ),
+    direction: getDayDirection(day, month, year),
+    activities: getDayActivities(day, month, year),
+    warning: getDayWarning(lunarDate.day),
+    weekInfo: getWeekInfo(date),
+    userBirthYear,
+    userZodiac,
+    userNguHanh: napAm.element,
+    userNapAm: napAm.name,
+  };
 }

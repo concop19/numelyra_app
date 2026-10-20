@@ -47,11 +47,11 @@ const pointInPolygon = (point: Point, polygon: Point[]) => {
   return inside;
 };
 const makePath = (points: Point[]) => {
-  const path = Skia.Path.Make();
+  const path = Skia.PathBuilder.Make();
   path.moveTo(points[0].x, points[0].y);
   points.slice(1).forEach((point) => path.lineTo(point.x, point.y));
   path.close();
-  return path;
+  return path.detach();
 };
 
 function makeGeometry() {

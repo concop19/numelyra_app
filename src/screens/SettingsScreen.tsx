@@ -1,5 +1,17 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, AppState, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  AppState,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,21 +19,48 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect } from '@react-navigation/native';
 
+import FlameMascot from '../components/chat/FlameMascot';
 import { useAuth } from '../store/authContext';
 import { beginCheckout, getBillingStatus, type BillingProvider, type BillingStatus } from '../services/billingService';
-import { canUseNativeNotifications, loadDailyReminderSettings, saveDailyReminderSettings, type DailyReminderSettings } from '../services/dailyNotifications';
+import {
+  canUseNativeNotifications,
+  DEFAULT_DAILY_REMINDER_SETTINGS,
+  loadDailyReminderSettings,
+  saveDailyReminderSettings,
+  type DailyReminderSettings,
+} from '../services/dailyNotifications';
+import type { UserProfile } from '../store/userProfile';
+import { useLocalization } from '../i18n/LocalizationContext';
+import type { LanguagePreference } from '../i18n/translations';
+
+const SKY_BACKGROUND = require('../../assets/giao_dien/giaodien1/setting/background.webp');
+const GROUND_BACKGROUND = require('../../assets/giao_dien/giaodien1/setting/background_ground.webp');
 
 interface Props {
+  profile: UserProfile;
+  onBack: () => void;
   onRequestLogin: () => void;
 }
 
-export default function SettingsScreen({ onRequestLogin }: Props) {
+type SettingItemProps = {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  iconColor: string;
+  iconBackground: string;
+  label: string;
+  detail?: string;
+  onPress?: () => void;
+  trailing?: React.ReactNode;
+  last?: boolean;
+};
+
+export default function SettingsScreen({ profile, onBack, onRequestLogin }: Props) {
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { user, isConfigured, signOut, syncLocalProfiles } = useAuth();
+  const { locale, preference, setPreference, t } = useLocalization();
   const [busy, setBusy] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<BillingProvider>('payos');
   const [billing, setBilling] = useState<BillingStatus | null>(null);
   const [billingError, setBillingError] = useState('');
-  const [dailyReminder, setDailyReminder] = useState<DailyReminderSettings>({ enabled: false, hour: 20, minute: 0 });
+  const [dailyReminder, setDailyReminder] = useState<DailyReminderSettings>({ ...DEFAULT_DAILY_REMINDER_SETTINGS });
 
   const refreshBilling = useCallback(async () => {
     if (!user) {
@@ -32,8 +71,7 @@ export default function SettingsScreen({ onRequestLogin }: Props) {
 
     try {
       setBillingError('');
-      const status = await getBillingStatus();
-      setBilling(status);
+      setBilling(await getBillingStatus());
     } catch (error) {
       setBillingError(error instanceof Error ? error.message : 'Không thể tải trạng thái gói Pro.');
     }
@@ -42,10 +80,11 @@ export default function SettingsScreen({ onRequestLogin }: Props) {
   useFocusEffect(useCallback(() => {
     void refreshBilling();
   }, [refreshBilling]));
-  useFocusEffect(useCallback(() => { void loadDailyReminderSettings().then(setDailyReminder); }, []));
 
-  // Payment is completed in the browser. Reload entitlement whenever the app
-  // returns to the foreground so the Pro badge updates without reopening it.
+  useFocusEffect(useCallback(() => {
+    void loadDailyReminderSettings().then(setDailyReminder);
+  }, []));
+
   useFocusEffect(useCallback(() => {
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') void refreshBilling();
@@ -71,12 +110,14 @@ export default function SettingsScreen({ onRequestLogin }: Props) {
       await syncLocalProfiles();
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert('Đã đồng bộ', 'Hồ sơ trên thiết bị đã được liên kết với tài khoản của bạn.');
+    } catch (error) {
+      Alert.alert('Không thể đồng bộ', error instanceof Error ? error.message : 'Vui lòng thử lại.');
     } finally {
       setBusy(false);
     }
   };
 
-  const upgrade = async () => {
+  const upgrade = async (provider: BillingProvider) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (!user) {
       onRequestLogin();
@@ -86,296 +127,427 @@ export default function SettingsScreen({ onRequestLogin }: Props) {
     setBusy(true);
     setBillingError('');
     try {
-      await beginCheckout(paymentMethod);
-      // Android resolves as soon as Chrome Custom Tabs opens; iOS resolves on
-      // dismissal. Refreshing in either case is harmless and AppState handles
-      // the definitive refresh after the payment page is finished.
+      await beginCheckout(provider);
       await refreshBilling();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Không thể mở trang thanh toán.';
-      if (/sign in|đăng nhập|not_authenticated/i.test(message)) {
-        onRequestLogin();
-      } else {
-        setBillingError(message);
-      }
+      if (/sign in|đăng nhập|not_authenticated/i.test(message)) onRequestLogin();
+      else setBillingError(message);
     } finally {
       setBusy(false);
     }
   };
 
   const updateDailyReminder = async (next: DailyReminderSettings) => {
-    const saved = await saveDailyReminderSettings(next);
+    const saved = await saveDailyReminderSettings(next, { profile, locale });
     setDailyReminder(saved);
-    if (next.enabled && !saved.enabled) Alert.alert('Chưa bật thông báo', 'Bạn có thể bật lại quyền thông báo trong Cài đặt thiết bị bất kỳ lúc nào.');
+    if (next.enabled && !saved.enabled) {
+      Alert.alert('Chưa bật thông báo', 'Bạn có thể bật lại quyền thông báo trong Cài đặt thiết bị bất kỳ lúc nào.');
+    }
   };
 
-  const activeUntil = billing?.subscription?.current_period_end
-    ? new Date(billing.subscription.current_period_end).toLocaleDateString('vi-VN')
-    : null;
   const isPro = billing?.plan === 'pro';
+  const activeUntil = billing?.subscription?.current_period_end
+    ? new Date(billing.subscription.current_period_end).toLocaleDateString(locale === 'en' ? 'en-US' : 'vi-VN')
+    : null;
+  const handle = user?.email ? `@${user.email.split('@')[0]}` : '@numelyra';
+  const planDetail = isPro
+    ? `Premium${activeUntil ? ` đến ${activeUntil}` : ''}`
+    : 'Khám phá gói Premium';
+
+  const openAccountActions = () => {
+    void Haptics.selectionAsync();
+    if (!user) {
+      onRequestLogin();
+      return;
+    }
+    Alert.alert(
+      'Thông tin cá nhân',
+      user.email ?? 'Tài khoản NUMELYRA',
+      [
+        { text: 'Đồng bộ hồ sơ', onPress: () => { void sync(); } },
+        { text: 'Đăng xuất', style: 'destructive', onPress: () => { void handleSignOut(); } },
+        { text: 'Đóng', style: 'cancel' },
+      ],
+    );
+  };
+
+  const openPackageActions = () => {
+    void Haptics.selectionAsync();
+    if (!user) {
+      onRequestLogin();
+      return;
+    }
+    if (isPro) {
+      Alert.alert('Gói Premium', activeUntil ? `Gói của bạn có hiệu lực đến ${activeUntil}.` : 'Gói Premium đang hoạt động.', [
+        { text: 'Cập nhật trạng thái', onPress: () => { void refreshBilling(); } },
+        { text: 'Đóng', style: 'cancel' },
+      ]);
+      return;
+    }
+    Alert.alert('Nâng cấp Premium', 'Chọn phương thức thanh toán', [
+      { text: 'VietQR / PayOS', onPress: () => { void upgrade('payos'); } },
+      { text: 'PayPal', onPress: () => { void upgrade('paypal'); } },
+      { text: 'Để sau', style: 'cancel' },
+    ]);
+  };
+
+  const chooseReminderTime = () => {
+    if (!canUseNativeNotifications) {
+      Alert.alert('Nhắc hằng ngày', 'Tính năng này khả dụng trên bản phát hành cài trên thiết bị.');
+      return;
+    }
+    Alert.alert('Chọn giờ nhắc', 'NUMELYRA sẽ nhẹ nhàng nhắc bạn mỗi ngày.', [8, 20, 21].map((hour) => ({
+      text: `${String(hour).padStart(2, '0')}:00`,
+      onPress: () => { void updateDailyReminder({ ...dailyReminder, hour, minute: 0 }); },
+    })));
+  };
+
+  const chooseLanguage = () => {
+    const apply = (next: LanguagePreference) => { void setPreference(next); };
+    Alert.alert(t('language.title'), undefined, [
+      { text: `${preference === 'system' ? '✓ ' : ''}${t('language.system')}`, onPress: () => apply('system') },
+      { text: `${preference === 'vi' ? '✓ ' : ''}${t('language.vi')}`, onPress: () => apply('vi') },
+      { text: `${preference === 'en' ? '✓ ' : ''}${t('language.en')}`, onPress: () => apply('en') },
+      { text: t('common.cancel'), style: 'cancel' },
+    ]);
+  };
+
+  const contentWidth = Math.min(windowWidth - 36, 504);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="light" />
-      <LinearGradient pointerEvents="none" colors={['#211052', '#11082F', '#0C0625']} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
-      <View pointerEvents="none" style={styles.sky}>
-        <Text style={styles.moon}>☾</Text>
-        <Text style={[styles.star, styles.starOne]}>✦</Text>
-        <Text style={[styles.star, styles.starTwo]}>✧</Text>
-        <Text style={[styles.star, styles.starThree]}>✦</Text>
-        <View style={styles.orbit} />
+    <View style={[styles.root, { width: windowWidth, height: windowHeight }]}>
+      <Image source={SKY_BACKGROUND} resizeMode="cover" style={StyleSheet.absoluteFill} />
+      <LinearGradient
+        pointerEvents="none"
+        colors={['rgba(12, 8, 79, 0.03)', 'rgba(27, 8, 89, 0.20)', 'rgba(16, 5, 66, 0.70)']}
+        style={StyleSheet.absoluteFill}
+      />
+      <View pointerEvents="none" style={styles.groundCrop}>
+        <Image source={GROUND_BACKGROUND} resizeMode="cover" style={styles.groundImage} />
       </View>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-        <View style={styles.heroHeader}>
-          <Text style={styles.title}>Cài đặt</Text>
-          <Text style={styles.subtitle}>Tùy chỉnh hành trình NUMELYRA theo cách của bạn</Text>
-        </View>
 
-        <Text style={styles.groupTitle}>NHẮC NHỞ HẰNG NGÀY</Text>
-        <SettingsCard>
-          <View style={styles.settingRow}>
-            <View style={[styles.settingIcon, styles.reminderIcon]}><Ionicons name="notifications-outline" size={23} color="#FFD26C" /></View>
-            <View style={styles.settingCopy}>
-              <Text style={styles.settingLabel}>Nhắc chơi mỗi ngày</Text>
-              <Text style={styles.settingHint}>{canUseNativeNotifications ? `Lúc ${String(dailyReminder.hour).padStart(2, '0')}:${String(dailyReminder.minute).padStart(2, '0')} theo giờ thiết bị` : 'Khả dụng trên bản phát hành của ứng dụng'}</Text>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+        <StatusBar style="light" />
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Quay lại"
+          activeOpacity={0.75}
+          onPress={onBack}
+          style={styles.backButton}
+        >
+          <Ionicons name="chevron-back" size={29} color="#FFE8F6" />
+        </TouchableOpacity>
+
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[styles.scrollContent, { width: contentWidth }]}
+        >
+          <View style={styles.hero}>
+            <View style={styles.shootingStar} />
+            <Ionicons name="sparkles" size={19} color="#FFE17D" style={styles.heroSparkleLeft} />
+            <Ionicons name="sparkles" size={14} color="#FFF3A8" style={styles.heroSparkleRight} />
+            <View style={styles.heroMoon}>
+              <View style={styles.heroMoonCutout} />
             </View>
-            <Switch
-              disabled={!canUseNativeNotifications}
-              value={dailyReminder.enabled}
-              onValueChange={(enabled) => { void updateDailyReminder({ ...dailyReminder, enabled }); }}
-              trackColor={{ false: '#59437B', true: '#F5BA5B' }}
-              thumbColor="#FFF7E8"
+
+            <View style={styles.mascotHaloOuter}>
+              <LinearGradient colors={['#FFB6D7', '#FFD98B', '#9D6CFF']} style={styles.mascotHaloBorder}>
+                <View style={styles.mascotHaloInner}>
+                  <FlameMascot state="idle" size={112} />
+                </View>
+              </LinearGradient>
+            </View>
+
+            <View pointerEvents="none" style={styles.heroClouds}>
+              <View style={[styles.cloudBubble, styles.cloudOne]} />
+              <View style={[styles.cloudBubble, styles.cloudTwo]} />
+              <View style={[styles.cloudBubble, styles.cloudThree]} />
+              <View style={[styles.cloudBubble, styles.cloudFour]} />
+            </View>
+
+            <Text style={styles.title}>{t('settings.title')}</Text>
+            <Text style={styles.handle}>{handle}</Text>
+          </View>
+
+          <View style={styles.settingsPanel}>
+            <SettingItem
+              icon={user ? 'person' : 'person-add'}
+              iconColor="#5D238B"
+              iconBackground="#FFEADB"
+              label={t('settings.personal')}
+              detail={user?.email ?? (isConfigured ? 'Đăng nhập để đồng bộ hồ sơ' : 'Tài khoản khách')}
+              onPress={openAccountActions}
+            />
+            <SettingItem
+              icon="diamond"
+              iconColor="#9A4B31"
+              iconBackground="#FFE2BB"
+              label={t('settings.plan')}
+              detail={planDetail}
+              onPress={openPackageActions}
+            />
+            <SettingItem
+              icon="globe"
+              iconColor="#5B35D2"
+              iconBackground="#FFD8E6"
+              label={t('language.title')}
+              detail={preference === 'system' ? t('language.system') : t(`language.${preference}`)}
+              onPress={chooseLanguage}
+            />
+            <SettingItem
+              icon="notifications"
+              iconColor="#5930C5"
+              iconBackground="#F7D4E4"
+              label={t('settings.notifications')}
+              trailing={(
+                <Switch
+                  accessibilityLabel="Bật thông báo"
+                  disabled={!canUseNativeNotifications}
+                  value={dailyReminder.enabled}
+                  onValueChange={(enabled) => { void updateDailyReminder({ ...dailyReminder, enabled }); }}
+                  trackColor={{ false: '#C9BCD8', true: '#7442D8' }}
+                  thumbColor="#FFFFFF"
+                  ios_backgroundColor="#C9BCD8"
+                />
+              )}
+            />
+            <SettingItem
+              icon="sunny-outline"
+              iconColor="#F47D16"
+              iconBackground="#FFE7C7"
+              label={t('settings.dailyReminder')}
+              detail={t('settings.everyDay', { time: `${String(dailyReminder.hour).padStart(2, '0')}:${String(dailyReminder.minute).padStart(2, '0')}` })}
+              onPress={chooseReminderTime}
+            />
+            <SettingItem
+              icon="time-outline"
+              iconColor="#E27721"
+              iconBackground="#FFF0CE"
+              label={t('settings.luckyReminder')}
+              detail="07:00–22:00"
+              trailing={(
+                <Switch
+                  accessibilityLabel={t('settings.luckyReminder')}
+                  disabled={!canUseNativeNotifications || !dailyReminder.enabled}
+                  value={dailyReminder.luckyTimeEnabled}
+                  onValueChange={(luckyTimeEnabled) => { void updateDailyReminder({ ...dailyReminder, luckyTimeEnabled }); }}
+                  trackColor={{ false: '#C9BCD8', true: '#E28A36' }}
+                  thumbColor="#FFFFFF"
+                  ios_backgroundColor="#C9BCD8"
+                />
+              )}
+            />
+            <SettingItem
+              icon="stats-chart"
+              iconColor="#6B32B2"
+              iconBackground="#FFDCE4"
+              label={t('settings.activity')}
+              detail="Lịch sử trải bài, lịch sử hỏi AI"
+              onPress={() => Alert.alert('Hoạt động của bạn', '12 lượt xem tarot tháng này\n8 lần xem chiêm tinh\n5 ngày mở lịch liên tiếp')}
+            />
+            <SettingItem
+              icon="lock-closed"
+              iconColor="#5D35C5"
+              iconBackground="#F1DBED"
+              label={t('settings.privacy')}
+              onPress={() => Alert.alert('Quyền riêng tư', 'Dữ liệu cá nhân của bạn được lưu và đồng bộ theo trạng thái tài khoản.')}
+            />
+            <SettingItem
+              icon="help-circle"
+              iconColor="#6D218B"
+              iconBackground="#FBE1E4"
+              label={t('settings.help')}
+              onPress={() => Alert.alert('Trợ giúp', 'Nếu bạn cần hỗ trợ, hãy gửi phản hồi từ trang NUMELYRA.')}
+              last
             />
           </View>
-          <View style={styles.rowDivider} />
-          <View style={styles.settingRow}>
-            <View style={[styles.settingIcon, styles.timeIcon]}><Ionicons name="time-outline" size={24} color="#C7A4FF" /></View>
-            <View style={styles.settingCopy}>
-              <Text style={styles.settingLabel}>Giờ nhắc</Text>
-              <Text style={styles.settingHint}>Chọn thời điểm phù hợp với bạn</Text>
-            </View>
-          </View>
-          <View style={styles.timeRow}>{[18, 20, 21].map((hour) => <TouchableOpacity key={hour} disabled={!canUseNativeNotifications} onPress={() => { void updateDailyReminder({ ...dailyReminder, hour, enabled: dailyReminder.enabled }); }} style={[styles.timeButton, dailyReminder.hour === hour && styles.timeButtonActive, !canUseNativeNotifications && styles.disabled]}><Text style={[styles.timeText, dailyReminder.hour === hour && styles.timeTextActive]}>{String(hour).padStart(2, '0')}:00</Text></TouchableOpacity>)}</View>
-        </SettingsCard>
 
-        <Text style={styles.groupTitle}>TÀI KHOẢN</Text>
-        <SettingsCard>
-          <View style={styles.settingRow}>
-            <View style={[styles.settingIcon, styles.profileIcon]}><Ionicons name={user ? "person-outline" : "person-add-outline"} size={24} color="#F4B8FF" /></View>
-            <View style={styles.settingCopy}>
-              <Text style={styles.settingLabel}>{user ? user.email : 'Tài khoản khách'}</Text>
-              <Text style={styles.settingHint}>{user ? 'Hồ sơ trên thiết bị có thể đồng bộ' : isConfigured ? 'Đăng nhập để lưu hành trình trên mọi thiết bị' : 'Dữ liệu hiện được lưu trên thiết bị này'}</Text>
+          <LinearGradient
+            colors={['rgba(45, 23, 124, 0.96)', 'rgba(52, 23, 137, 0.93)', 'rgba(33, 14, 104, 0.98)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.activityCard}
+          >
+            <Ionicons name="diamond" size={24} color="#F777E5" />
+            <View style={styles.activityCopy}>
+              <Text style={styles.activityTitle}>Hoạt động gần đây</Text>
+              <Text style={styles.activityLine}>•  12 lượt xem tarot tháng này</Text>
+              <Text style={styles.activityLine}>•  8 lần xem chiêm tinh</Text>
+              <Text style={styles.activityLine}>•  5 ngày mở lịch liên tiếp</Text>
             </View>
-          </View>
-          <View style={styles.rowDivider} />
-          {user ? (
-            <View style={styles.accountActions}>
-              <Action label="Đồng bộ hồ sơ" onPress={sync} disabled={busy} />
-              <Action label="Đăng xuất" onPress={handleSignOut} disabled={busy} danger />
+            <Ionicons name="sparkles" size={18} color="#FFE473" style={styles.activitySparkle} />
+            <View pointerEvents="none" style={styles.activityMoon}>
+              <View style={styles.activityMoonCutout} />
             </View>
-          ) : (
-            <TouchableOpacity accessibilityRole="button" activeOpacity={0.75} onPress={onRequestLogin} style={styles.inlineAction}>
-              <Text style={styles.inlineActionText}>{isConfigured ? 'Đăng nhập hoặc tạo tài khoản' : 'Xem hướng dẫn cấu hình'}</Text>
-              <Ionicons name="chevron-forward" size={19} color="#FFD36E" />
-            </TouchableOpacity>
+            <View pointerEvents="none" style={styles.miniClouds}>
+              <View style={[styles.miniCloud, { left: 0, width: 64, height: 31 }]} />
+              <View style={[styles.miniCloud, { left: 47, bottom: -7, width: 78, height: 38 }]} />
+              <View style={[styles.miniCloud, { left: 110, bottom: -12, width: 52, height: 27 }]} />
+            </View>
+          </LinearGradient>
+
+          <TouchableOpacity
+            accessibilityRole="button"
+            activeOpacity={0.86}
+            disabled={busy}
+            onPress={openPackageActions}
+            style={[styles.packageButtonShadow, busy && styles.disabled]}
+          >
+            <LinearGradient
+              colors={['#FF7B85', '#B75BC6', '#7048E1']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.packageButton}
+            >
+              {busy ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <>
+                  <Ionicons name="diamond" size={22} color="#FFF5BE" />
+                  <Text style={styles.packageButtonText}>{isPro ? 'Quản lý gói Premium' : 'Quản lý gói'}</Text>
+                  <Ionicons name="chevron-forward" size={25} color="#FFFFFF" />
+                </>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {!!billing?.checkoutPending && (
+            <Text style={styles.warning}>Bạn có một yêu cầu PayPal chưa hoàn tất. Hãy hoàn tất hoặc hủy yêu cầu trước khi thử lại.</Text>
           )}
-          {busy && <ActivityIndicator color="#F5BA5B" style={styles.loader} />}
-        </SettingsCard>
-
-        <Text style={styles.groupTitle}>NUMELYRA PRO</Text>
-        <SettingsCard pro>
-          <View style={styles.proHeading}>
-            <View style={styles.proHeadingCopy}>
-              <View style={styles.crownIcon}><Text style={styles.crownIconText}>♛</Text></View>
-              <View style={styles.proText}>
-                <Text style={styles.cardTitle}>GÓI THÀNH VIÊN</Text>
-                <Text style={styles.proTitle}>{isPro ? 'Bạn đang dùng Pro ✦' : 'Mở khóa hành trình đầy đủ'}</Text>
-              </View>
-            </View>
-            <View style={[styles.planBadge, isPro && styles.planBadgeActive]}>
-              <Text style={[styles.planBadgeText, isPro && styles.planBadgeTextActive]}>{isPro ? 'PRO' : 'FREE'}</Text>
-            </View>
-          </View>
-
-          {isPro ? (
-            <Text style={styles.helper}>{billing?.subscription?.provider === 'payos' ? 'Pro qua VietQR / PayOS' : 'Pro qua PayPal'}{activeUntil ? ` · hiệu lực đến ${activeUntil}` : ''}</Text>
-          ) : (
-            <>
-              <Text style={styles.helper}>Tăng lượt luận giải AI, tạo nhiều hình nền hơn và mở khóa các trải bài chuyên sâu.</Text>
-
-              <Text style={styles.paymentLabel}>CHỌN PHƯƠNG THỨC THANH TOÁN</Text>
-              <View style={styles.paymentRow}>
-                <PaymentMethod
-                  provider="payos"
-                  selected={paymentMethod === 'payos'}
-                  title="VietQR / PayOS"
-                  detail="79.000đ · 30 ngày"
-                  icon="▣"
-                  onPress={setPaymentMethod}
-                />
-                <PaymentMethod
-                  provider="paypal"
-                  selected={paymentMethod === 'paypal'}
-                  title="PayPal"
-                  detail="$3.99 · mỗi tháng"
-                  icon="P"
-                  onPress={setPaymentMethod}
-                />
-              </View>
-              <View style={[styles.upgradeButtonShadow, busy && styles.disabled]}>
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  disabled={busy}
-                  onPress={upgrade}
-                  activeOpacity={0.85}
-                  style={styles.upgradeButton}
-                >
-                  <LinearGradient colors={['#FFE8AA', '#F5BD55', '#D98B2E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.upgradeButtonGradient}>
-                    {busy ? <ActivityIndicator color="#110F20" /> : <View style={styles.upgradeContent}><Text style={styles.upgradeButtonText}>{user ? (paymentMethod === 'payos' ? 'THANH TOÁN VIETQR' : 'ĐĂNG KÝ QUA PAYPAL') : 'ĐĂNG NHẬP ĐỂ NÂNG CẤP'}</Text><Ionicons name="arrow-forward" size={18} color="#211443" /></View>}
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
-          {!!billing?.checkoutPending && <Text style={styles.warning}>Bạn có một yêu cầu PayPal chưa hoàn tất. Hãy xác nhận hoặc quay lại website để hủy yêu cầu đó trước khi thử lại.</Text>}
           {!!billingError && <Text accessibilityRole="alert" style={styles.error}>{billingError}</Text>}
-          {user && <TouchableOpacity activeOpacity={0.7} disabled={busy} onPress={() => { void Haptics.selectionAsync(); void refreshBilling(); }} style={styles.refreshButton}><Ionicons name="refresh" size={14} color="#C6BDD9" /><Text style={styles.refreshText}>Cập nhật trạng thái Pro</Text></TouchableOpacity>}
-        </SettingsCard>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
-
-function SettingsCard({ children, pro = false }: { children: React.ReactNode; pro?: boolean }) {
-  return (
-    <View style={[styles.cardShadow, pro && styles.proCardShadow]}>
-      <LinearGradient
-        colors={pro ? ['#421777', '#321060', '#230944'] : ['#321060', '#291051', '#210943']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.card, pro && styles.proCard]}
-      >
-        <LinearGradient pointerEvents="none" colors={['rgba(247, 199, 255, 0.12)', 'rgba(33, 12, 76, 0.04)', 'rgba(8, 4, 34, 0.32)']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.cardOverlay} />
-        {children}
-      </LinearGradient>
+        </ScrollView>
+      </SafeAreaView>
     </View>
   );
 }
 
-function Action({ label, onPress, disabled, danger = false }: { label: string; onPress: () => void; disabled?: boolean; danger?: boolean }) {
-  const colors = danger ? ['#5D205E', '#401442', '#281031'] as const : ['#432078', '#31165E', '#211043'] as const;
-  return <View style={[styles.actionShadow, danger && styles.dangerActionShadow, disabled && styles.disabled]}><TouchableOpacity activeOpacity={0.7} disabled={disabled} onPress={onPress} style={styles.action}><LinearGradient colors={colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.actionGradient}><Text style={[styles.actionText, danger && styles.dangerText]}>{label}</Text></LinearGradient></TouchableOpacity></View>;
-}
-
-function PaymentMethod({ provider, selected, title, detail, icon, onPress }: {
-  provider: BillingProvider;
-  selected: boolean;
-  title: string;
-  detail: string;
-  icon: string;
-  onPress: (provider: BillingProvider) => void;
-}) {
-  return (
-    <TouchableOpacity
-      accessibilityRole="radio"
-      accessibilityState={{ checked: selected }}
-      onPress={() => { void Haptics.selectionAsync(); onPress(provider); }}
-      activeOpacity={0.7}
-      style={[styles.paymentMethod, selected && styles.paymentMethodSelected]}
-    >
-      <LinearGradient pointerEvents="none" colors={selected ? ['rgba(255, 226, 154, 0.14)', 'rgba(65, 34, 99, 0.12)', 'rgba(14, 7, 39, 0.34)'] : ['rgba(237, 191, 255, 0.09)', 'rgba(13, 6, 42, 0.28)']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.paymentOverlay} />
-      <View style={styles.paymentTopRow}>
-        <Text style={[styles.paymentIcon, selected && styles.paymentTextSelected]}>{icon}</Text>
-        <View style={[styles.radio, selected && styles.radioSelected]}>{selected && <View style={styles.radioDot} />}</View>
+function SettingItem({
+  icon,
+  iconColor,
+  iconBackground,
+  label,
+  detail,
+  onPress,
+  trailing,
+  last = false,
+}: SettingItemProps) {
+  const content = (
+    <>
+      <View style={[styles.settingIcon, { backgroundColor: iconBackground }]}>
+        <Ionicons name={icon} size={21} color={iconColor} />
       </View>
-      <Text style={[styles.paymentTitle, selected && styles.paymentTextSelected]}>{title}</Text>
-      <Text style={styles.paymentDetail}>{detail}</Text>
-    </TouchableOpacity>
+      <View style={styles.settingCopy}>
+        <Text numberOfLines={1} style={styles.settingLabel}>{label}</Text>
+        {!!detail && <Text numberOfLines={1} style={styles.settingDetail}>{detail}</Text>}
+      </View>
+      {trailing ?? (onPress ? <Ionicons name="chevron-forward" size={21} color="#736684" /> : null)}
+    </>
+  );
+
+  return (
+    <View style={[styles.settingRowWrap, !last && styles.settingDivider]}>
+      {onPress ? (
+        <TouchableOpacity accessibilityRole="button" activeOpacity={0.66} onPress={onPress} style={styles.settingRow}>
+          {content}
+        </TouchableOpacity>
+      ) : (
+        <View style={styles.settingRow}>{content}</View>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0E092B' },
-  sky: { ...StyleSheet.absoluteFill, overflow: 'hidden' },
-  moon: { position: 'absolute', top: 12, right: 22, color: '#FFE7A0', fontSize: 86, lineHeight: 92, transform: [{ rotate: '-18deg' }], opacity: 0.95 },
-  star: { position: 'absolute', color: '#F8B7FF', fontSize: 16 },
-  starOne: { top: 112, left: 26 },
-  starTwo: { top: 76, left: 164, color: '#FFE29A', fontSize: 12 },
-  starThree: { top: 188, right: 52, color: '#FFD779', fontSize: 20 },
-  orbit: { position: 'absolute', top: -105, right: -92, width: 330, height: 250, borderWidth: 1, borderColor: 'rgba(235, 157, 255, 0.32)', borderRadius: 180, transform: [{ rotate: '25deg' }] },
-  content: { paddingHorizontal: 17, paddingTop: 12, paddingBottom: 34 },
-  heroHeader: { alignItems: 'center', paddingHorizontal: 22, paddingTop: 9, paddingBottom: 26 },
-  title: { color: '#FCF5FF', fontSize: 35, lineHeight: 42, fontWeight: '900', letterSpacing: 0.2, textAlign: 'center' },
-  subtitle: { color: '#B8A8D8', fontSize: 14, lineHeight: 21, marginTop: 5, textAlign: 'center' },
-  groupTitle: { color: '#E4D5FF', fontSize: 13, fontWeight: '900', letterSpacing: 1.05, marginLeft: 5, marginBottom: 9 },
-  cardShadow: { borderRadius: 24, marginBottom: 16, shadowColor: '#1A063A', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.94, shadowRadius: 19, elevation: 15 },
-  proCardShadow: { shadowColor: '#25074A', shadowOpacity: 0.98, shadowRadius: 21, elevation: 17 },
-  card: { borderRadius: 24, borderWidth: 1, borderColor: 'rgba(153, 95, 210, 0.62)', padding: 17, overflow: 'hidden' },
-  proCard: { borderColor: 'rgba(184, 111, 226, 0.70)' },
-  cardOverlay: { ...StyleSheet.absoluteFill },
-  settingRow: { flexDirection: 'row', alignItems: 'center', minHeight: 58, gap: 12 },
-  settingIcon: { width: 45, height: 45, borderRadius: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  reminderIcon: { backgroundColor: 'rgba(127, 75, 168, 0.28)', borderColor: 'rgba(255, 209, 109, 0.46)' },
-  timeIcon: { backgroundColor: 'rgba(86, 59, 152, 0.36)', borderColor: 'rgba(182, 137, 241, 0.44)' },
-  profileIcon: { backgroundColor: 'rgba(139, 58, 157, 0.31)', borderColor: 'rgba(237, 160, 255, 0.45)' },
+  root: { flex: 1, overflow: 'hidden', backgroundColor: '#140B57' },
+  safeArea: { flex: 1 },
+  scrollContent: { alignSelf: 'center', paddingBottom: 38 },
+  groundCrop: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 210, overflow: 'hidden', opacity: 0.88 },
+  groundImage: { position: 'absolute', left: '-31%', bottom: -7, width: '162%', height: 340 },
+  backButton: {
+    position: 'absolute', zIndex: 20, top: 8, left: 18, width: 48, height: 48, borderRadius: 24,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(76, 43, 157, 0.90)',
+    borderWidth: 1, borderColor: 'rgba(255, 209, 241, 0.25)', shadowColor: '#100435',
+    shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.40, shadowRadius: 10, elevation: 8,
+  },
+  hero: { height: 276, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 12 },
+  shootingStar: {
+    position: 'absolute', top: 67, left: 78, width: 56, height: 1, backgroundColor: '#FFAFDD',
+    transform: [{ rotate: '-38deg' }], shadowColor: '#FFFFFF', shadowOpacity: 1, shadowRadius: 4,
+  },
+  heroSparkleLeft: { position: 'absolute', top: 75, left: 36 },
+  heroSparkleRight: { position: 'absolute', top: 82, right: 66 },
+  heroMoon: {
+    position: 'absolute', top: 24, right: 31, width: 56, height: 56, borderRadius: 28,
+    backgroundColor: '#FFE88A', shadowColor: '#FFD75D', shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.90, shadowRadius: 13, elevation: 8, transform: [{ rotate: '-17deg' }],
+  },
+  heroMoonCutout: { position: 'absolute', top: -5, left: 15, width: 49, height: 49, borderRadius: 25, backgroundColor: '#321774' },
+  mascotHaloOuter: {
+    position: 'absolute', top: 20, width: 150, height: 150, borderRadius: 75, shadowColor: '#FF9CCB',
+    shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.85, shadowRadius: 16, elevation: 12,
+  },
+  mascotHaloBorder: { flex: 1, borderRadius: 75, padding: 4 },
+  mascotHaloInner: {
+    flex: 1, borderRadius: 71, alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+    backgroundColor: 'rgba(43, 18, 115, 0.84)',
+  },
+  heroClouds: { position: 'absolute', left: -20, right: -20, top: 145, height: 58, overflow: 'hidden', opacity: 0.92 },
+  cloudBubble: {
+    position: 'absolute', bottom: -27, backgroundColor: '#A245C5', shadowColor: '#FF83BE',
+    shadowOffset: { width: 0, height: -7 }, shadowOpacity: 0.60, shadowRadius: 8, elevation: 5,
+  },
+  cloudOne: { left: -10, width: 126, height: 71, borderRadius: 52 },
+  cloudTwo: { left: 82, width: 132, height: 62, borderRadius: 50, backgroundColor: '#7533AF' },
+  cloudThree: { right: 82, width: 132, height: 70, borderRadius: 52, backgroundColor: '#7E3AB7' },
+  cloudFour: { right: -18, width: 126, height: 76, borderRadius: 55, backgroundColor: '#B34DAF' },
+  title: {
+    color: '#FFFFFF', fontSize: 28, lineHeight: 34, fontWeight: '900', textAlign: 'center',
+    textShadowColor: 'rgba(32, 8, 92, 0.80)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 5,
+  },
+  handle: { color: '#E8DFFC', fontSize: 16, lineHeight: 21, fontWeight: '600', marginTop: 2 },
+  settingsPanel: {
+    borderRadius: 23, backgroundColor: '#FFF4E8', paddingHorizontal: 19, paddingVertical: 8,
+    shadowColor: '#130139', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.36, shadowRadius: 18, elevation: 12,
+  },
+  settingRowWrap: { minHeight: 59, justifyContent: 'center' },
+  settingDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(92, 58, 105, 0.18)' },
+  settingRow: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  settingIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   settingCopy: { flex: 1, minWidth: 0 },
-  settingLabel: { color: '#FCF5FF', fontSize: 16, lineHeight: 21, fontWeight: '800' },
-  settingHint: { color: '#BBAED6', fontSize: 12, lineHeight: 17, marginTop: 2 },
-  rowDivider: { height: 1, backgroundColor: 'rgba(182, 133, 231, 0.23)', marginVertical: 14 },
-  sectionHeading: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  accountIcon: { width: 48, height: 48, borderRadius: 24, borderWidth: 1, borderColor: '#C88CF1', backgroundColor: '#282057', alignItems: 'center', justifyContent: 'center' },
-  accountIconText: { color: '#FFD36E', fontSize: 28, lineHeight: 26 },
-  cardTitle: { color: '#FFD16D', fontWeight: '900', fontSize: 15, letterSpacing: 0.8 },
-  proHeading: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  proHeadingCopy: { flexDirection: 'row', flex: 1, minWidth: 0, gap: 12 },
-  proText: { flex: 1, minWidth: 0 },
-  crownIcon: { width: 48, height: 48, borderRadius: 24, borderWidth: 1, borderColor: '#C88CF1', backgroundColor: '#282057', alignItems: 'center', justifyContent: 'center' },
-  crownIconText: { color: '#FFD36E', fontSize: 26 },
-  proTitle: { color: '#FCF5FF', fontSize: 21, lineHeight: 26, fontWeight: '900', marginTop: 6, flexShrink: 1 },
-  planBadge: { backgroundColor: '#27204A', borderWidth: 1, borderColor: '#66518E', paddingHorizontal: 11, paddingVertical: 6, borderRadius: 16 },
-  planBadgeActive: { backgroundColor: '#F5BA5B', borderColor: '#FFD77F' },
-  planBadgeText: { color: '#C7B9E4', fontSize: 11, fontWeight: '900', letterSpacing: 0.6 },
-  planBadgeTextActive: { color: '#110F20' },
-  email: { color: '#FCF5FF', fontSize: 17, fontWeight: '800', marginTop: 13 },
-  helper: { color: '#BBAED6', fontSize: 14, lineHeight: 21, marginTop: 10 },
-  actionShadow: { height: 55, borderRadius: 20, marginTop: 15, shadowColor: '#2A0A57', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.82, shadowRadius: 10, elevation: 8 },
-  dangerActionShadow: { shadowColor: '#4B104E' },
-  action: { flex: 1, borderRadius: 20, overflow: 'hidden' },
-  actionGradient: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12, borderWidth: 1.5, borderColor: 'rgba(255, 213, 115, 0.64)', borderRadius: 20 },
-  actionText: { color: '#FFE08A', fontSize: 16, fontWeight: '900' },
-  dangerText: { color: '#FDA4AF' },
-  accountActions: { marginTop: -2 },
-  inlineAction: { minHeight: 49, paddingHorizontal: 15, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255, 211, 110, 0.52)', backgroundColor: 'rgba(73, 38, 119, 0.68)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', shadowColor: '#190632', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.76, shadowRadius: 9, elevation: 7 },
-  inlineActionText: { color: '#FFE08A', fontSize: 14, fontWeight: '900' },
-  disabled: { opacity: 0.55 },
-  loader: { marginTop: 13 },
-  paymentLabel: { color: '#C6B8E3', fontSize: 13, fontWeight: '900', letterSpacing: 0.7, marginTop: 19, marginBottom: 10 },
-  paymentRow: { flexDirection: 'row', gap: 9 },
-  paymentMethod: { flex: 1, minHeight: 128, padding: 12, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(128, 77, 183, 0.62)', backgroundColor: '#25104A', overflow: 'hidden', shadowColor: '#17052F', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.78, shadowRadius: 9, elevation: 7 },
-  paymentMethodSelected: { borderColor: '#FFD25F', backgroundColor: '#3C1A60', shadowColor: '#2A0B52', shadowOpacity: 0.9 },
-  paymentOverlay: { ...StyleSheet.absoluteFill },
-  paymentTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  paymentIcon: { color: '#B6AFC9', fontSize: 25, fontWeight: '900' },
-  radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#72589B', alignItems: 'center', justifyContent: 'center' },
-  radioSelected: { borderColor: '#FFD25F', backgroundColor: '#FFD25F' },
-  radioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#4D2B60' },
-  paymentTitle: { color: '#F2EAFB', fontSize: 15, fontWeight: '900', marginTop: 14 },
-  paymentDetail: { color: '#ADA2C5', fontSize: 12, marginTop: 5 },
-  paymentTextSelected: { color: '#F5D27B' },
-  upgradeButtonShadow: { height: 56, borderRadius: 20, marginTop: 14, shadowColor: '#E4A039', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.58, shadowRadius: 12, elevation: 10 },
-  upgradeButton: { flex: 1, borderRadius: 20, overflow: 'hidden' },
-  upgradeButtonGradient: { flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#FFF1AA', borderRadius: 20 },
-  upgradeContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  upgradeButtonText: { color: '#211443', fontSize: 14, fontWeight: '900', letterSpacing: 0.2 },
-  warning: { color: '#FCD34D', fontSize: 12, lineHeight: 18, marginTop: 12 },
-  error: { color: '#FDA4AF', fontSize: 12, lineHeight: 18, marginTop: 12 },
-  refreshButton: { alignSelf: 'center', paddingHorizontal: 10, paddingVertical: 12, marginTop: 5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
-  refreshText: { color: '#C6BDD9', fontSize: 12, textDecorationLine: 'underline' },
-  reminderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 },
-  reminderLabel: { color: '#F3EAFE', fontWeight: '700' },
-  timeRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  timeButton: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: '#5A4677' },
-  timeButtonActive: { backgroundColor: '#F5BA5B', borderColor: '#F5BA5B' },
-  timeText: { color: '#D6C9EB', fontWeight: '800' },
-  timeTextActive: { color: '#24133F' },
+  settingLabel: { color: '#2E2052', fontSize: 16, lineHeight: 21, fontWeight: '800' },
+  settingDetail: { color: '#8D7D91', fontSize: 12.5, lineHeight: 17, marginTop: 1 },
+  activityCard: {
+    position: 'relative', minHeight: 142, marginTop: 14, borderRadius: 22, borderWidth: 1.5,
+    borderColor: 'rgba(255, 124, 190, 0.62)', paddingHorizontal: 20, paddingVertical: 16,
+    flexDirection: 'row', alignItems: 'flex-start', gap: 12, overflow: 'hidden', shadowColor: '#180343',
+    shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.36, shadowRadius: 14, elevation: 9,
+  },
+  activityCopy: { flex: 1, zIndex: 2 },
+  activityTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '800', marginBottom: 8 },
+  activityLine: { color: '#F5ECFF', fontSize: 14, lineHeight: 22, fontWeight: '600' },
+  activitySparkle: { position: 'absolute', top: 17, right: 91 },
+  activityMoon: {
+    position: 'absolute', right: 28, top: 24, width: 45, height: 45, borderRadius: 23,
+    backgroundColor: '#FFE56E', transform: [{ rotate: '-18deg' }], shadowColor: '#FFD65F',
+    shadowOpacity: 0.8, shadowRadius: 9,
+  },
+  activityMoonCutout: { position: 'absolute', top: -4, left: 13, width: 40, height: 40, borderRadius: 20, backgroundColor: '#351A87' },
+  miniClouds: { position: 'absolute', right: -9, bottom: 0, width: 170, height: 54, opacity: 0.95 },
+  miniCloud: {
+    position: 'absolute', bottom: -2, borderRadius: 40, backgroundColor: '#A849C3', shadowColor: '#F675C0',
+    shadowOffset: { width: 0, height: -5 }, shadowOpacity: 0.55, shadowRadius: 8,
+  },
+  packageButtonShadow: {
+    height: 64, marginTop: 12, borderRadius: 20, shadowColor: '#E54EAE',
+    shadowOffset: { width: 0, height: 7 }, shadowOpacity: 0.46, shadowRadius: 12, elevation: 10,
+  },
+  packageButton: {
+    flex: 1, borderRadius: 20, borderWidth: 1.5, borderColor: '#FFD6C7', paddingHorizontal: 22,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  },
+  packageButtonText: { flex: 1, color: '#FFFFFF', fontSize: 17, fontWeight: '900', textAlign: 'center' },
+  disabled: { opacity: 0.58 },
+  warning: { color: '#FFE27B', fontSize: 12, lineHeight: 18, marginTop: 10, textAlign: 'center' },
+  error: { color: '#FFD1DC', fontSize: 12, lineHeight: 18, marginTop: 10, textAlign: 'center' },
 });

@@ -82,6 +82,7 @@ const MOCK_IMG4 = require('../../assets/giao_dien/giaodien1/wallpaper_asset/mock
 
 interface Props {
   profile?: UserProfile | null;
+  onBack?: () => void;
 }
 
 type ScreenStep = 'input' | 'generating' | 'result';
@@ -168,7 +169,7 @@ function getRandomAffirmation(lifePath: number, intention: string): string {
   return `${q} (Ý niệm: ${intention})`;
 }
 
-export default function WallpaperStudioScreen({ profile }: Props) {
+export default function WallpaperStudioScreen({ profile, onBack }: Props) {
   // State quản lý luồng màn hình: 'input' -> 'generating' -> 'result'
   const [step, setStep] = useState<ScreenStep>('input');
   const [prompt, setPrompt] = useState<string>('');
@@ -548,10 +549,7 @@ export default function WallpaperStudioScreen({ profile }: Props) {
     } else if (step === 'result') {
       setStep('input');
     } else {
-      // Đang ở input, nếu có wallpaper đã tạo thì cho xem lại kết quả
-      if (history.length > 0) {
-        setStep('result');
-      }
+      onBack?.();
     }
   };
 
@@ -561,11 +559,11 @@ export default function WallpaperStudioScreen({ profile }: Props) {
 
       {/* Ảnh nền phong cảnh vector TOÀN MÀN HÌNH cho Màn hình 1 (không bị cắt cụt) */}
       {step === 'input' && (
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <View style={styles.inputBackgroundLayer} pointerEvents="none">
           <Image
             source={BG_LANDSCAPE}
-            style={StyleSheet.absoluteFill}
-            resizeMode="cover"
+            style={styles.inputBackgroundImage}
+            resizeMode="stretch"
           />
           <FloatingWallpaperCloud />
         </View>
@@ -1226,6 +1224,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#211438',
     position: 'relative',
+  },
+  inputBackgroundLayer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    overflow: 'hidden',
+    backgroundColor: '#211438',
+  },
+  inputBackgroundImage: {
+    width: '100%',
+    height: '100%',
   },
   safeArea: {
     flex: 1,

@@ -13,7 +13,23 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { CalculatedIndicator } from '../services/numerologyEngine';
-import { getIndicatorReading, KnowledgeReadingResult } from '../services/numerologyKnowledge';
+import {
+  getIndicatorReading,
+  getMatrixKnowledgeBundle,
+  KnowledgeReadingResult,
+  MatrixKnowledgeBundle,
+} from '../services/numerologyKnowledge';
+import {
+  getArrowKnowledgeValue,
+  getMatrixKnowledgeValue,
+} from '../services/numerologyKnowledgeContract';
+import {
+  ArrowStatus,
+  getArrowReading,
+  getDigitReading,
+  getFrequencyBand,
+  MatrixKey,
+} from '../services/numerologyMatrixInterpretations';
 
 interface IndicatorDetailModalProps {
   visible: boolean;
@@ -86,7 +102,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
                 <Text style={styles.indicatorNameEn}>{indicator.nameEn}</Text>
 
                 <View style={styles.valueRow}>
-                  <Text style={styles.valueLabel}>Kết quả của bạn:</Text>
+                  <Text style={styles.valueLabel}>{indicator.chartData ? 'Dữ liệu biểu đồ:' : 'Kết quả của bạn:'}</Text>
                   <View style={[styles.valuePill, indicator.isMaster && styles.valuePillMaster]}>
                     <Text style={[styles.valuePillText, indicator.isMaster && styles.valuePillTextMaster]}>
                       {indicator.displayValue}
@@ -103,6 +119,10 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
                 <Text style={styles.cardShortDesc}>{indicator.description}</Text>
               </View>
             </View>
+
+            {indicator.chartData && (
+              <ChartDataSection indicator={indicator} />
+            )}
 
             {/* Tra Cứu Tri Thức Banner */}
             <View style={styles.knowledgeBanner}>
@@ -216,6 +236,166 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
     </Modal>
   );
 };
+
+const MATRIX_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+function ChartDataSection({ indicator }: { indicator: CalculatedIndicator }) {
+  const [selectedDigit, setSelectedDigit] = useState<number | null>(null);
+  const [selectedArrowLabel, setSelectedArrowLabel] = useState<string | null>(null);
+  const [dbReadings, setDbReadings] = useState<MatrixKnowledgeBundle>({});
+  const chartData = indicator.chartData;
+
+  useEffect(() => {
+    let active = true;
+    setDbReadings({});
+    getMatrixKnowledgeBundle(indicator).then((bundle) => {
+      if (active) setDbReadings(bundle);
+    });
+    return () => { active = false; };
+  }, [indicator]);
+
+  if (!chartData) return null;
+
+  const isArrows = indicator.key === 'arrows';
+  const matrixInterpretationKey: MatrixKey = isArrows ? 'birthChart' : indicator.key as MatrixKey;
+  const title = indicator.key === 'nameChart'
+    ? 'Ma trận tần suất theo tên'
+    : indicator.key === 'birthChart' || isArrows
+      ? 'Ma trận ngày sinh 3×3'
+      : 'Ma trận số 3×3';
+  const statusLabels = {
+    strong: 'Đủ bộ',
+    empty: 'Trống',
+    partial: 'Có một phần',
+  } as const;
+  const resolveDigitReading = (number: number, count: number) => {
+    const band = getFrequencyBand(count);
+    const fallback = getDigitReading(matrixInterpretationKey, number, count);
+    const dbReading = dbReadings[getMatrixKnowledgeValue(number, band)];
+    return dbReading ? { ...fallback, ...dbReading } : fallback;
+  };
+  const resolveArrowReading = (label: string, status: ArrowStatus) => {
+    const fallback = getArrowReading(label, status);
+    const dbReading = dbReadings[getArrowKnowledgeValue(label, status)];
+    return dbReading ? { ...fallback, ...dbReading } : fallback;
+  };
+  const selectedDigitReading = selectedDigit === null
+    ? null
+    : resolveDigitReading(selectedDigit, chartData.counts[selectedDigit] || 0);
+
+  return (
+    <View style={styles.chartSection}>
+      <View style={styles.sectionTitleRow}>
+        <Ionicons name="grid-outline" size={17} color="#FCD34D" />
+        <Text style={styles.sectionHeading}>{title}</Text>
+      </View>
+      <Text style={styles.chartHint}>Số lớn là con số trong ma trận; chấm nhỏ thể hiện số lần xuất hiện.</Text>
+      <View style={styles.matrixGrid}>
+        {MATRIX_ORDER.map((number) => {
+          const count = chartData.counts[number] || 0;
+          const reading = resolveDigitReading(number, count);
+          const selected = selectedDigit === number;
+          return (
+            <TouchableOpacity
+              key={number}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={`Số ${number}, ${count} lần, ${reading.bandLabel}`}
+              onPress={() => setSelectedDigit(selected ? null : number)}
+              style={[
+                styles.matrixCell,
+                count > 0 && styles.matrixCellFilled,
+                selected && styles.matrixCellSelected,
+              ]}
+            >
+              <Text style={styles.matrixNumber}>{number}</Text>
+              <View style={styles.matrixDots}>
+                {count > 0 ? Array.from({ length: count }, (_, index) => (
+                  <View key={`${number}-${index}`} style={styles.matrixDot} />
+                )) : <Text style={styles.matrixEmpty}>—</Text>}
+              </View>
+              <Text style={styles.matrixCount}>{count} lần</Text>
+              <Text style={styles.matrixBand}>{reading.bandLabel}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {selectedDigit !== null && selectedDigitReading && (
+        <InterpretationDetails
+          title={`Số ${selectedDigit} · ${selectedDigitReading.theme}`}
+          reading={selectedDigitReading}
+        />
+      )}
+
+      {isArrows && chartData.arrows && (
+        <View style={styles.arrowList}>
+          <Text style={styles.arrowListTitle}>Trạng thái 8 mũi tên</Text>
+          {chartData.arrows.map((arrow) => {
+            const reading = resolveArrowReading(arrow.label, arrow.status as ArrowStatus);
+            const selected = selectedArrowLabel === arrow.label;
+            return (
+              <View key={arrow.label}>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${arrow.label}, ${statusLabels[arrow.status]}, ${arrow.presentCount} trên 3 số`}
+                  onPress={() => setSelectedArrowLabel(selected ? null : arrow.label)}
+                  style={styles.arrowRow}
+                >
+                  <View style={styles.arrowRowCopy}>
+                    <View style={styles.arrowRowHeading}>
+                      <Text style={styles.arrowLabel}>{arrow.label}</Text>
+                      <Text style={[
+                        styles.arrowStatus,
+                        arrow.status === 'strong' && styles.arrowStatusStrong,
+                        arrow.status === 'empty' && styles.arrowStatusEmpty,
+                      ]}>
+                        {statusLabels[arrow.status]} · {arrow.presentCount}/3
+                      </Text>
+                    </View>
+                    <Text style={styles.arrowSummary}>{reading.summary}</Text>
+                  </View>
+                  <Ionicons name={selected ? 'chevron-up' : 'chevron-down'} size={16} color="#ADA2C5" />
+                </TouchableOpacity>
+                {selected && (
+                  <InterpretationDetails
+                    title={reading.theme}
+                    reading={reading}
+                    compact
+                  />
+                )}
+              </View>
+            );
+          })}
+        </View>
+      )}
+    </View>
+  );
+}
+
+function InterpretationDetails({
+  title,
+  reading,
+  compact = false,
+}: {
+  title: string;
+  reading: { summary: string; strength: string; challenge: string; advice: string };
+  compact?: boolean;
+}) {
+  return (
+    <View style={[styles.interpretationDetails, compact && styles.interpretationDetailsCompact]}>
+      <Text style={styles.interpretationTitle}>{title}</Text>
+      <Text style={styles.interpretationSummary}>{reading.summary}</Text>
+      <Text style={styles.interpretationLabel}>Điểm có thể phát huy</Text>
+      <Text style={styles.interpretationBody}>{reading.strength}</Text>
+      <Text style={styles.interpretationLabel}>Thử thách cần lưu ý</Text>
+      <Text style={styles.interpretationBody}>{reading.challenge}</Text>
+      <Text style={styles.interpretationLabel}>Gợi ý phát triển</Text>
+      <Text style={styles.interpretationBody}>{reading.advice}</Text>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   backdrop: {
@@ -378,6 +558,166 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     marginTop: 10,
+  },
+  chartSection: {
+    marginTop: 18,
+    padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(229, 169, 60, 0.22)',
+    borderRadius: 16,
+  },
+  chartHint: {
+    color: 'rgba(255, 255, 255, 0.58)',
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: -4,
+    marginBottom: 12,
+  },
+  matrixGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  matrixCell: {
+    width: '33.3333%',
+    minHeight: 78,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.025)',
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    paddingVertical: 7,
+  },
+  matrixCellFilled: {
+    backgroundColor: 'rgba(229, 169, 60, 0.09)',
+  },
+  matrixCellSelected: {
+    backgroundColor: 'rgba(229, 169, 60, 0.2)',
+    borderColor: 'rgba(252, 211, 77, 0.7)',
+  },
+  matrixNumber: {
+    color: '#FCD34D',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  matrixDots: {
+    minHeight: 9,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 3,
+    marginTop: 3,
+  },
+  matrixDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#E5A93C',
+  },
+  matrixEmpty: {
+    color: 'rgba(255, 255, 255, 0.24)',
+    fontSize: 8,
+    lineHeight: 9,
+  },
+  matrixCount: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 10,
+    marginTop: 2,
+  },
+  matrixBand: {
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: 9,
+    marginTop: 2,
+  },
+  interpretationDetails: {
+    marginTop: 12,
+    padding: 13,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.045)',
+    borderWidth: 1,
+    borderColor: 'rgba(229, 169, 60, 0.18)',
+    gap: 4,
+  },
+  interpretationDetailsCompact: {
+    marginTop: 0,
+    marginBottom: 8,
+    marginLeft: 8,
+  },
+  interpretationTitle: {
+    color: '#FCD34D',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 3,
+  },
+  interpretationSummary: {
+    color: 'rgba(255, 255, 255, 0.82)',
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+  interpretationLabel: {
+    color: '#ADA2C5',
+    fontSize: 10,
+    fontWeight: '700',
+    marginTop: 3,
+  },
+  interpretationBody: {
+    color: 'rgba(255, 255, 255, 0.76)',
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  arrowList: {
+    marginTop: 16,
+  },
+  arrowListTitle: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 7,
+  },
+  arrowRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 6,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.07)',
+  },
+  arrowRowCopy: {
+    flex: 1,
+  },
+  arrowRowHeading: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+  },
+  arrowLabel: {
+    color: 'rgba(255, 255, 255, 0.82)',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  arrowStatus: {
+    color: '#FCD34D',
+    fontSize: 12,
+    textAlign: 'right',
+  },
+  arrowStatusStrong: {
+    color: '#6EE7B7',
+  },
+  arrowStatusEmpty: {
+    color: '#FCA5A5',
+  },
+  arrowSummary: {
+    color: 'rgba(255, 255, 255, 0.62)',
+    fontSize: 10,
+    lineHeight: 15,
+    marginTop: 4,
   },
   knowledgeBanner: {
     flexDirection: 'row',

@@ -6,6 +6,7 @@ import {
   PaintStyle,
   Picture,
   Skia,
+  type SkPathBuilder,
 } from '@shopify/react-native-skia';
 import { SpaceEngine } from '../engine/spaceEngine';
 
@@ -83,40 +84,51 @@ overdriveBorderPaint.setColor(Skia.Color('rgba(0, 229, 255, 0.5)'));
 overdriveBorderPaint.setStyle(PaintStyle.Stroke);
 overdriveBorderPaint.setStrokeWidth(3);
 
+function buildPath(draw: (path: SkPathBuilder) => void) {
+  const path = Skia.PathBuilder.Make();
+  draw(path);
+  return path.detach();
+}
+
 // Pre-allocated static geometry paths (zero allocations per frame)
-const baseBeakPath = Skia.Path.Make();
-baseBeakPath.moveTo(-4, 2);
-baseBeakPath.lineTo(0, 9);
-baseBeakPath.lineTo(4, 2);
-baseBeakPath.close();
+const baseBeakPath = buildPath((path) => {
+  path.moveTo(-4, 2);
+  path.lineTo(0, 9);
+  path.lineTo(4, 2);
+  path.close();
+});
 
-const baseMissilePath = Skia.Path.Make();
-baseMissilePath.moveTo(0, -9);
-baseMissilePath.lineTo(4, 7);
-baseMissilePath.lineTo(-4, 7);
-baseMissilePath.close();
+const baseMissilePath = buildPath((path) => {
+  path.moveTo(0, -9);
+  path.lineTo(4, 7);
+  path.lineTo(-4, 7);
+  path.close();
+});
 
-const baseFlamePath = Skia.Path.Make();
-baseFlamePath.moveTo(-2, 7);
-baseFlamePath.lineTo(0, 15);
-baseFlamePath.lineTo(2, 7);
-baseFlamePath.close();
+const baseFlamePath = buildPath((path) => {
+  path.moveTo(-2, 7);
+  path.lineTo(0, 15);
+  path.lineTo(2, 7);
+  path.close();
+});
 
 const shipR = 18;
-const playerShipPath = Skia.Path.Make();
-playerShipPath.moveTo(0, -shipR);
-playerShipPath.lineTo(shipR * 0.85, shipR * 0.7);
-playerShipPath.lineTo(shipR * 0.4, shipR * 0.4);
-playerShipPath.lineTo(0, shipR * 0.6);
-playerShipPath.lineTo(-shipR * 0.4, shipR * 0.4);
-playerShipPath.lineTo(-shipR * 0.85, shipR * 0.7);
-playerShipPath.close();
+const playerShipPath = buildPath((path) => {
+  path.moveTo(0, -shipR);
+  path.lineTo(shipR * 0.85, shipR * 0.7);
+  path.lineTo(shipR * 0.4, shipR * 0.4);
+  path.lineTo(0, shipR * 0.6);
+  path.lineTo(-shipR * 0.4, shipR * 0.4);
+  path.lineTo(-shipR * 0.85, shipR * 0.7);
+  path.close();
+});
 
-const playerFlamePath = Skia.Path.Make();
-playerFlamePath.moveTo(-6, shipR - 3);
-playerFlamePath.lineTo(0, shipR + 11);
-playerFlamePath.lineTo(6, shipR - 3);
-playerFlamePath.close();
+const playerFlamePath = buildPath((path) => {
+  path.moveTo(-6, shipR - 3);
+  path.lineTo(0, shipR + 11);
+  path.lineTo(6, shipR - 3);
+  path.close();
+});
 
 export const SpaceCombatCanvas = React.memo(function SpaceCombatCanvas({
   engine,

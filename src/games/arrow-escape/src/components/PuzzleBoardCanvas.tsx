@@ -152,9 +152,9 @@ function ExitingArrow({
   const opacity = useSharedValue(1);
 
   const trackPath = useMemo(() => {
-    const path = Skia.Path.Make();
+    const path = Skia.PathBuilder.Make();
     const cells = arrow.fullPath;
-    if (cells.length === 0) return path;
+    if (cells.length === 0) return path.detach();
 
     const first = cells[0]!;
     const start = centerOf(first, cellSize);
@@ -178,7 +178,7 @@ function ExitingArrow({
     };
     path.lineTo(exitEnd.x, exitEnd.y);
 
-    return path;
+    return path.detach();
   }, [arrow, cellSize]);
 
   const { totalLength, arrowLength, contour } = useMemo(() => {
@@ -213,14 +213,14 @@ function ExitingArrow({
   });
 
   const arrowheadPath = useDerivedValue(() => {
-    const path = Skia.Path.Make();
-    if (!contour) return path;
+    const path = Skia.PathBuilder.Make();
+    if (!contour) return path.detach();
 
     const t = animProgress.value;
     const posHead = arrowLength + t * (totalLength - arrowLength);
 
     const posTan = contour.getPosTan(posHead);
-    if (!posTan) return path;
+    if (!posTan) return path.detach();
 
     const [pos, tangent] = posTan;
     const sz = Math.min(arrowHeadSize, cellSize * 0.32);
@@ -236,7 +236,7 @@ function ExitingArrow({
     path.lineTo(pos.x, pos.y);
     path.lineTo(rightX, rightY);
 
-    return path;
+    return path.detach();
   });
 
   const animStyle = useAnimatedStyle(() => ({
@@ -275,10 +275,10 @@ function ExitingArrow({
  * Build a Skia path that traces through all fullPath cells and draws an arrowhead at the tip.
  */
 function makeArrowPath(arrow: ArrowNode, cellSize: number) {
-  const path = Skia.Path.Make();
+  const path = Skia.PathBuilder.Make();
   const cells = arrow.fullPath;
 
-  if (cells.length === 0) return path;
+  if (cells.length === 0) return path.detach();
 
   const first = cells[0]!;
   const start = centerOf(first, cellSize);
@@ -300,7 +300,7 @@ function makeArrowPath(arrow: ArrowNode, cellSize: number) {
   path.lineTo(end.x, end.y);
   path.lineTo(headPoints.right.x, headPoints.right.y);
 
-  return path;
+  return path.detach();
 }
 
 function centerOf(pos: { x: number; y: number }, cellSize: number) {

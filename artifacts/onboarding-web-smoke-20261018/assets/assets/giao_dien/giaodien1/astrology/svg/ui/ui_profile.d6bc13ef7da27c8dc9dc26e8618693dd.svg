@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Profile">
+  <title>Profile</title>
+  <desc>Profile avatar with a celestial four-point accent.</desc>
+<g fill="none" stroke="#E8DFFF" stroke-width="6.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.16"><circle cx="30" cy="23" r="9"/><path d="M12 53 C12 42 19 36 30 36 C41 36 48 42 48 53"/></g><g fill="none" stroke="#E8DFFF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="30" cy="23" r="9"/><path d="M12 53 C12 42 19 36 30 36 C41 36 48 42 48 53"/></g><g fill="none" stroke="#F9B7DD" stroke-width="4.9" stroke-linecap="round" stroke-linejoin="round" opacity="0.16"><path d="M49.00 11.00 L50.63 15.37 L55.00 17.00 L50.63 18.63 L49.00 23.00 L47.37 18.63 L43.00 17.00 L47.37 15.37 Z"/></g><g fill="none" stroke="#F9B7DD" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M49.00 11.00 L50.63 15.37 L55.00 17.00 L50.63 18.63 L49.00 23.00 L47.37 18.63 L43.00 17.00 L47.37 15.37 Z"/></g><g fill="#FFD69B"><circle cx="49" cy="17" r="1.5"/></g>
+</svg>

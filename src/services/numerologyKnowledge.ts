@@ -6,17 +6,35 @@
  * bộ từ điển Archetype & Cycle tích hợp sẵn khi ngoại tuyến.
  */
 
-import { supabase } from './supabaseClient';
+import {
+  fetchNumerologyKnowledgeRows,
+  type NumerologyKnowledgeDbRow,
+} from '../db/numerologyKnowledgeService';
+import { getSpecialIndicatorReading } from './numerologySpecialInterpretations';
+import {
+  getArrowKnowledgeValue,
+  getKnowledgeAtoms,
+  getMatrixKnowledgeValue,
+} from './numerologyKnowledgeContract';
+import { getFrequencyBand, type MatrixReading } from './numerologyMatrixInterpretations';
+import type { CalculatedIndicator } from './numerologyEngine';
+import { getConciseIndicatorReading } from './chatNumerologyContextService';
 
 export interface KnowledgeReadingResult {
   title: string;
-  source: 'supabase-knowledge' | 'offline-archetype';
+  source: 'local-sqlite' | 'offline-archetype';
   overview: string;
   strengths: string[];
   challenges: string[];
   advice: string;
   fullContent?: string;
 }
+
+export interface MatrixKnowledgeReading extends MatrixReading {
+  source: 'local-sqlite';
+}
+
+export type MatrixKnowledgeBundle = Record<string, MatrixKnowledgeReading>;
 
 // Từ điển Archetype 1–9, 11, 22, 33 chuẩn trường phái Pythagoras
 const ARCHETYPE_MAP: Record<number, { title: string; str: string[]; cha: string[]; adv: string; overview: string }> = {
@@ -194,18 +212,20 @@ function parseKnowledgeMarkdown(content: string, titleFallback: string): Knowled
   for (const rawLine of lines) {
     const line = rawLine.trim();
     if (!line) continue;
+    const upperLine = line.toLocaleUpperCase('vi-VN');
+    const isSectionMarker = line.startsWith('#') || line.endsWith(':') || line === upperLine;
 
-    if (line.startsWith('#') || line.includes('BẢN CHẤT') || line.includes('TỔNG QUAN') || line.includes('Ý NGHĨA')) {
-      currentSection = 'overview';
-      continue;
-    } else if (line.includes('ĐIỂM MẠNH') || line.includes('ƯU ĐIỂM') || line.includes('NĂNG LỰC')) {
+    if (isSectionMarker && (upperLine.includes('ĐIỂM MẠNH') || upperLine.includes('ƯU ĐIỂM') || upperLine.includes('NĂNG LỰC'))) {
       currentSection = 'strengths';
       continue;
-    } else if (line.includes('THÁCH THỨC') || line.includes('BÓNG TỐI') || line.includes('CẠM BẪY') || line.includes('ĐIỂM YẾU')) {
+    } else if (isSectionMarker && (upperLine.includes('THÁCH THỨC') || upperLine.includes('BÓNG TỐI') || upperLine.includes('CẠM BẪY') || upperLine.includes('ĐIỂM YẾU'))) {
       currentSection = 'challenges';
       continue;
-    } else if (line.includes('LỜI KHUYÊN') || line.includes('HÀNH ĐỘNG') || line.includes('BÀI HỌC')) {
+    } else if (isSectionMarker && (upperLine.includes('LỜI KHUYÊN') || upperLine.includes('HÀNH ĐỘNG') || upperLine.includes('BÀI HỌC'))) {
       currentSection = 'advice';
+      continue;
+    } else if (isSectionMarker && (upperLine.includes('BẢN CHẤT') || upperLine.includes('TỔNG QUAN') || upperLine.includes('Ý NGHĨA'))) {
+      currentSection = 'overview';
       continue;
     }
 
@@ -226,13 +246,89 @@ function parseKnowledgeMarkdown(content: string, titleFallback: string): Knowled
 
   return {
     title: titleFallback,
-    source: 'supabase-knowledge',
+    source: 'local-sqlite',
     overview: overviewText || content.slice(0, 260) + '...',
     strengths: strengths.slice(0, 3),
     challenges: challenges.slice(0, 2),
     advice: adviceText || 'Phát huy điểm mạnh bẩm sinh và giữ vững sự cân bằng nội tại.',
     fullContent: content
   };
+}
+
+function combineKnowledgeReadings(
+  cardNameVi: string,
+  orderedValues: string[],
+  rows: NumerologyKnowledgeDbRow[]
+): KnowledgeReadingResult | null {
+  const rowsByValue = new Map<string, NumerologyKnowledgeDbRow>();
+  for (const row of rows) {
+    if (!rowsByValue.has(row.number_value)) rowsByValue.set(row.number_value, row);
+  }
+  if (!orderedValues.every((value) => rowsByValue.get(value)?.content)) return null;
+
+  const readings = orderedValues.map((value) => {
+    const row = rowsByValue.get(value)!;
+    return {
+      value,
+      reading: parseKnowledgeMarkdown(row.content, row.title || `${cardNameVi} ${value}`),
+    };
+  });
+
+  if (readings.length === 1) return readings[0].reading;
+
+  return {
+    title: `${cardNameVi}: ${orderedValues.join(', ')}`,
+    source: 'local-sqlite',
+    overview: readings.map(({ value, reading }) => `${value} · ${reading.overview}`).join('\n\n'),
+    strengths: readings.flatMap(({ value, reading }) =>
+      reading.strengths.map((item) => `${value} · ${item}`)
+    ),
+    challenges: readings.flatMap(({ value, reading }) =>
+      reading.challenges.map((item) => `${value} · ${item}`)
+    ),
+    advice: readings.map(({ value, reading }) => `${value}: ${reading.advice}`).join(' '),
+    fullContent: readings
+      .map(({ value, reading }) => `## ${value}\n\n${reading.fullContent || reading.overview}`)
+      .join('\n\n'),
+  };
+}
+
+function toMatrixReading(reading: KnowledgeReadingResult): MatrixKnowledgeReading {
+  return {
+    source: 'local-sqlite',
+    summary: reading.overview,
+    strength: reading.strengths.join(' ') || 'Năng lượng này có thể được phát triển qua quan sát và thực hành.',
+    challenge: reading.challenges.join(' ') || 'Hãy lưu ý cách năng lượng này biểu hiện khi chịu áp lực.',
+    advice: reading.advice,
+  };
+}
+
+export async function getMatrixKnowledgeBundle(
+  indicator: CalculatedIndicator
+): Promise<MatrixKnowledgeBundle> {
+  const chartData = indicator.chartData;
+  if (!chartData) return {};
+
+  const requestedValues = indicator.key === 'arrows'
+    ? (chartData.arrows || []).map((arrow) => getArrowKnowledgeValue(arrow.label, arrow.status))
+    : Object.entries(chartData.counts).map(([digit, count]) =>
+      getMatrixKnowledgeValue(Number(digit), getFrequencyBand(count))
+    );
+
+  try {
+    const rows = await fetchNumerologyKnowledgeRows(indicator.key, requestedValues);
+    const bundle: MatrixKnowledgeBundle = {};
+    for (const row of rows) {
+      if (!row.content) continue;
+      bundle[row.number_value] = toMatrixReading(
+        parseKnowledgeMarkdown(row.content, row.title || `${indicator.nameVi} ${row.number_value}`)
+      );
+    }
+    return bundle;
+  } catch (error) {
+    console.warn('[numerologyKnowledge] SQLite fallback to JSON:', error);
+    return {};
+  }
 }
 
 /**
@@ -246,25 +342,56 @@ export async function getIndicatorReading(
   const valStr = String(indicatorValue).trim();
   const numVal = parseInt(valStr, 10);
 
-  // 1. Tra cứu trực tiếp từ Supabase Database (O(1) search) nếu có mạng
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('numerology_knowledge')
-        .select('*')
-        .eq('indicator_key', indicatorKey)
-        .eq('number_value', valStr)
-        .maybeSingle();
+  // Matrix cell/state readings are loaded separately in one batch. The overview remains local.
+  if (indicatorKey === 'nameChart' || indicatorKey === 'birthChart' || indicatorKey === 'arrows') {
+    const chartTitle = indicatorKey === 'nameChart'
+      ? 'Biểu đồ tên'
+      : indicatorKey === 'birthChart'
+        ? 'Biểu đồ ngày sinh'
+        : '8 mũi tên cá tính';
+    const chartOverview = indicatorKey === 'nameChart'
+      ? 'Ma trận cho biết tần suất các con số được quy đổi từ từng chữ cái trong họ tên. Mỗi hồ sơ có thể có phân bố khác nhau.'
+      : indicatorKey === 'birthChart'
+        ? 'Ma trận cho biết số lần xuất hiện của từng chữ số khác 0 trong ngày, tháng và năm sinh.'
+        : 'Các trạng thái bên dưới được tính từ ma trận ngày sinh: đủ bộ khi có cả ba số, trống khi không có số nào, và có một phần khi chỉ có một hoặc hai số.';
 
-      if (!error && data?.content) {
-        return parseKnowledgeMarkdown(data.content, data.title || `${cardNameVi} ${valStr}`);
-      }
-    } catch (err) {
-      console.warn('[numerologyKnowledge] Supabase query fallback to offline:', err);
-    }
+    return {
+      title: `${cardNameVi}: ${chartTitle}`,
+      source: 'offline-archetype',
+      overview: `${chartOverview} Dữ liệu riêng của hồ sơ: ${valStr}.`,
+      strengths: [],
+      challenges: [],
+      advice: 'Đọc ma trận và tần suất từng số ở phần trên để xem dữ liệu riêng của hồ sơ này.',
+    };
   }
 
-  // 2. Fallback Tức thì Offline: Dành cho Vận hạn Năm cá nhân
+  // 1. Ưu tiên dữ liệu ngắn gọn cho 9 chỉ số Chat Agent (ChatNumerologyContext.v1.json)
+  const chatConciseReading = getConciseIndicatorReading(indicatorKey, indicatorValue, cardNameVi);
+  if (chatConciseReading) {
+    return chatConciseReading;
+  }
+
+  // 2. Ưu tiên SQLite cục bộ cho các chỉ số ngoài 9 chỉ số chat hoặc chỉ số ma trận.
+  try {
+    const atoms = getKnowledgeAtoms(indicatorKey, indicatorValue);
+    const orderedValues = atoms.map((atom) => atom.numberValue);
+    const rows = await fetchNumerologyKnowledgeRows(indicatorKey, orderedValues);
+    const combined = combineKnowledgeReadings(cardNameVi, orderedValues, rows);
+    if (combined) return combined;
+  } catch (err) {
+    console.warn('[numerologyKnowledge] SQLite query fallback to offline:', err);
+  }
+
+  // 2. Fallback offline cho các chỉ số dạng danh sách/chuỗi.
+  const specialReading = getSpecialIndicatorReading(indicatorKey, indicatorValue, cardNameVi);
+  if (specialReading) {
+    return {
+      ...specialReading,
+      source: 'offline-archetype',
+    };
+  }
+
+  // 3. Fallback Tức thì Offline: Dành cho Vận hạn Năm cá nhân
   if (indicatorKey === 'yearIndividual' && !isNaN(numVal) && PERSONAL_YEAR_DATA[numVal]) {
     const yearData = PERSONAL_YEAR_DATA[numVal];
     return {
@@ -278,7 +405,7 @@ export async function getIndicatorReading(
     };
   }
 
-  // 3. Fallback Tức thì Offline: Dành cho các chỉ số con số (1-9, 11, 22, 33)
+  // 4. Fallback Tức thì Offline: Dành cho các chỉ số con số (1-9, 11, 22, 33)
   const targetNum = !isNaN(numVal) ? numVal : 1;
   const arch = ARCHETYPE_MAP[targetNum] || ARCHETYPE_MAP[targetNum % 9 || 9] || ARCHETYPE_MAP[1];
 

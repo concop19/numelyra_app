@@ -3,22 +3,23 @@
  *
  * Flow:
  * 1. Kiểm tra profile → chưa có → OnboardingScreen
- * 2. Có profile → Bottom Tab Navigator (Chat + Lịch)
+ * 2. Có profile → Chat là màn chính, các tính năng mở từ nút nổi trong cảnh chat
  */
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, ActivityIndicator, StyleSheet, Image
+  View, Text, ActivityIndicator, StyleSheet
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Linking from 'expo-linking';
 
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import ChatScreen from './src/screens/ChatScreen';
+import ChatReadingDetailScreen, { type ChatReadingDetailParams } from './src/screens/ChatReadingDetailScreen';
 import CalendarScreen from './src/screens/CalendarScreen';
+import AstrologyScreen from './src/screens/AstrologyScreen';
 import WallpaperStudioScreen from './src/screens/WallpaperStudioScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
@@ -26,20 +27,34 @@ import GameHubScreen from './src/screens/GameHubScreen';
 import { loadProfile, hasProfile, UserProfile } from './src/store/userProfile';
 import { AuthProvider, useAuth } from './src/store/authContext';
 import { getNotifications } from './src/services/dailyNotifications';
+import { refreshDailyInsightNotifications } from './src/services/dailyNotifications';
+import { LocalizationProvider, useLocalization } from './src/i18n/LocalizationContext';
 
-// Bộ icon 4 Mùa / Linh Vật Lửa cho Thanh Điều Hướng Đáy
-const TAB_CHAT_ICON = require('./assets/icons/tab_chat_flame.jpg');
-const TAB_CALENDAR_ICON = require('./assets/icons/tab_calendar_flame.jpg');
-const TAB_WALLPAPER_ICON = require('./assets/icons/tab_wallpaper_flame.jpg');
-const TAB_SETTINGS_ICON = require('./assets/icons/tab_settings_flame.jpg');
+type RootStackParamList = {
+  Main: { dailyDate?: string } | undefined;
+  Calendar: undefined;
+  Astrology: undefined;
+  WallpaperStudio: undefined;
+  Settings: undefined;
+  Games: undefined;
+  ChatReadingDetail: ChatReadingDetailParams;
+};
 
-const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 const notifications = getNotifications();
 
 const linking = {
   prefixes: [Linking.createURL('/'), 'numelyra://'],
-  config: { screens: { Games: 'games/:entry?' } },
+  config: {
+    screens: {
+      Main: 'daily/:dailyDate?',
+      Calendar: 'calendar',
+      Astrology: 'astrology',
+      WallpaperStudio: 'wallpaper',
+      Settings: 'settings',
+      Games: 'games/:entry?',
+    },
+  },
   async getInitialURL() {
     const url = await Linking.getInitialURL();
     if (url) return url;
@@ -60,14 +75,17 @@ const linking = {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <LocalizationProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </LocalizationProvider>
     </SafeAreaProvider>
   );
 }
 
 function AppContent() {
+  const { locale, ready: isLocaleReady, t } = useLocalization();
   const { isReady: isAuthReady, user, syncLocalProfiles } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -96,17 +114,24 @@ function AppContent() {
     checkProfile();
   }, [isAuthReady, user?.id]);
 
+  useEffect(() => {
+    if (!profile || !isLocaleReady) return;
+    void refreshDailyInsightNotifications({ profile, locale }).catch(() => {
+      // Notification refresh must never block the application shell.
+    });
+  }, [isLocaleReady, locale, profile?.birthDate, profile?.birthTime, profile?.fullName]);
+
   let content = null;
 
   // Loading
-  if (isLoading || !isAuthReady) {
+  if (isLoading || !isAuthReady || !isLocaleReady) {
     content = (
       <SafeAreaView style={styles.loadingContainer}>
         <StatusBar style="light" />
         <View style={styles.loadingInner}>
           <Text style={styles.loadingEmoji}>🐱</Text>
           <ActivityIndicator size="large" color="#F5BA5B" style={{ marginTop: 16 }} />
-          <Text style={styles.loadingText}>Tiểu Linh Miêu đang thức dậy...</Text>
+          <Text style={styles.loadingText}>{t('app.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -154,105 +179,85 @@ function AppContent() {
         <StatusBar style="light" />
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Main">
-            {({ navigation: rootNavigation }) => (
-        <Tab.Navigator
-          screenOptions={{
-            headerShown: false,
-            tabBarHideOnKeyboard: true,
-            tabBarStyle: {
-              backgroundColor: '#211052',
-              borderTopColor: '#6E3A9D',
-              borderTopWidth: 1,
-              height: 70,
-              paddingBottom: 9,
-              paddingTop: 6
-            },
-            tabBarActiveTintColor: '#FFD07A',
-            tabBarInactiveTintColor: '#B98BDC',
-            tabBarLabelStyle: {
-              fontSize: 11,
-              fontWeight: '600'
-            }
-          }}
-        >
-          <Tab.Screen
-            name="Chat"
-            options={{
-              tabBarLabel: 'Trò chuyện',
-              tabBarIcon: ({ focused }) => (
-                <View style={[styles.tabIconWrap, focused && styles.tabIconWrapFocused]}>
-                  <Image
-                    source={TAB_CHAT_ICON}
-                    style={[styles.tabIconImage, !focused && styles.tabIconInactive]}
-                    resizeMode="cover"
-                  />
-                </View>
-              )
-            }}
-          >
-            {({ navigation }) => <ChatScreen profile={profile} onOpenSettings={() => navigation.navigate('Settings')} onOpenGameHub={() => rootNavigation.navigate('Games')} />}
-          </Tab.Screen>
-
-          <Tab.Screen
+            {({ navigation, route }) => (
+              <ChatScreen
+                profile={profile}
+                openDailyDate={route.params?.dailyDate}
+                onOpenSettings={() => navigation.navigate('Settings')}
+                onOpenCalendar={() => navigation.navigate('Calendar')}
+                onOpenAstrology={() => navigation.navigate('Astrology')}
+                onOpenWallpaper={() => navigation.navigate('WallpaperStudio')}
+                onOpenGameHub={() => navigation.navigate('Games')}
+                onOpenRawReading={(message, previousQuestion) => navigation.navigate('ChatReadingDetail', { message, previousQuestion })}
+              />
+            )}
+          </Stack.Screen>
+          <Stack.Screen
             name="Calendar"
             options={{
-              tabBarLabel: 'Lịch của tôi',
-              tabBarIcon: ({ focused }) => (
-                <View style={[styles.tabIconWrap, focused && styles.tabIconWrapFocused]}>
-                  <Image
-                    source={TAB_CALENDAR_ICON}
-                    style={[styles.tabIconImage, !focused && styles.tabIconInactive]}
-                    resizeMode="cover"
-                  />
-                </View>
-              )
+              headerShown: false,
             }}
           >
-            {() => <CalendarScreen profile={profile} />}
-          </Tab.Screen>
+            {({ navigation }) => (
+              <CalendarScreen
+                profile={profile}
+                onBack={() => navigation.goBack()}
+                onOpenSettings={() => navigation.navigate('Settings')}
+              />
+            )}
+          </Stack.Screen>
 
-          <Tab.Screen
+          <Stack.Screen
+            name="Astrology"
+            options={{
+              headerShown: false,
+            }}
+          >
+            {({ navigation }) => (
+              <AstrologyScreen
+                profile={profile}
+                onBack={() => navigation.goBack()}
+                onProfileChange={setProfile}
+              />
+            )}
+          </Stack.Screen>
+
+          <Stack.Screen
             name="WallpaperStudio"
             options={{
-              tabBarLabel: 'Hình nền',
-              tabBarIcon: ({ focused }) => (
-                <View style={[styles.tabIconWrap, focused && styles.tabIconWrapFocused]}>
-                  <Image
-                    source={TAB_WALLPAPER_ICON}
-                    style={[styles.tabIconImage, !focused && styles.tabIconInactive]}
-                    resizeMode="cover"
-                  />
-                </View>
-              )
+              headerShown: false,
             }}
           >
-            {() => <WallpaperStudioScreen profile={profile} />}
-          </Tab.Screen>
+            {({ navigation }) => (
+              <WallpaperStudioScreen
+                profile={profile}
+                onBack={() => navigation.goBack()}
+              />
+            )}
+          </Stack.Screen>
 
-          <Tab.Screen
+          <Stack.Screen
             name="Settings"
             options={{
-              tabBarLabel: 'Cài đặt',
-              tabBarIcon: ({ focused }) => (
-                <View style={[styles.tabIconWrap, focused && styles.tabIconWrapFocused]}>
-                  <Image
-                    source={TAB_SETTINGS_ICON}
-                    style={[styles.tabIconImage, !focused && styles.tabIconInactive]}
-                    resizeMode="cover"
-                  />
-                </View>
-              )
+              headerShown: false,
             }}
           >
-            {() => <SettingsScreen onRequestLogin={() => setLoginRequested(true)} />}
-          </Tab.Screen>
-        </Tab.Navigator>
+            {({ navigation }) => (
+              <SettingsScreen
+                profile={profile}
+                onBack={() => navigation.goBack()}
+                onRequestLogin={() => setLoginRequested(true)}
+              />
             )}
           </Stack.Screen>
           <Stack.Screen
             name="Games"
             component={GameHubScreen}
             options={{ orientation: 'all' }}
+          />
+          <Stack.Screen
+            name="ChatReadingDetail"
+            component={ChatReadingDetailScreen}
           />
         </Stack.Navigator>
       </NavigationContainer>
@@ -280,30 +285,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 12,
     fontStyle: 'italic'
-  },
-  tabIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  tabIconWrapFocused: {
-    borderWidth: 1.5,
-    borderColor: '#FFD07A',
-    shadowColor: '#F2A4CF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 7,
-    elevation: 4,
-  },
-  tabIconImage: {
-    width: '100%',
-    height: '100%',
-  },
-  tabIconInactive: {
-    opacity: 0.5,
   },
 });

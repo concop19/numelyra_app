@@ -1,0 +1,87 @@
+{
+  "matrixKey": "nameChart",
+  "title": "Biểu đồ tên",
+  "numbers": {
+    "1": {
+      "theme": "Chủ động và khởi xướng",
+      "states": {
+        "missing": { "summary": "Tên chưa quy đổi ra số 1; năng lượng khởi xướng có thể chưa nổi bật trong cách bạn thể hiện mình.", "strength": "Khoảng trống giúp bạn quan sát lúc nào nên chủ động mà vẫn lắng nghe.", "challenge": "Có thể ngại bắt đầu hoặc khó nói rõ mong muốn cá nhân.", "advice": "Tập nêu một ý kiến hoặc tự khởi động một việc nhỏ mỗi ngày." },
+        "baseline": { "summary": "Một số 1 gợi nét độc lập và mong muốn tự quyết trong cách bạn biểu đạt.", "strength": "Có thể tự bắt đầu và trình bày ý tưởng của mình.", "challenge": "Đôi lúc ngần ngại đứng ra dẫn dắt khi cần.", "advice": "Chủ động nhận một trách nhiệm phù hợp, đồng thời hỏi ý kiến người liên quan." },
+        "highlighted": { "summary": "Hai số 1 làm nét tự chủ và tinh thần khởi xướng rõ hơn trong tên gọi.", "strength": "Dễ thể hiện chính kiến và thúc đẩy ý tưởng thành hành động.", "challenge": "Có thể muốn làm theo cách riêng ngay cả khi hợp tác sẽ hiệu quả hơn.", "advice": "Giữ sự quyết đoán nhưng dành chỗ cho đối thoại và chia sẻ công lao." },
+        "amplified": { "summary": "Từ ba số 1 trở lên nhấn mạnh mạnh mẽ bản sắc độc lập trong cách biểu đạt.", "strength": "Khả năng khởi xướng và khẳng định ý tưởng có thể rất nổi bật.", "challenge": "Năng lượng này đôi lúc thành nóng vội, cứng ý hoặc lấn át người khác.", "advice": "Cân bằng tiếng nói cá nhân bằng lắng nghe chủ động và hợp tác." }
+      }
+    },
+    "2": {
+      "theme": "Hợp tác và tinh tế",
+      "states": {
+        "missing": { "summary": "Tên chưa quy đổi ra số 2; nét mềm mỏng và ngoại giao có thể ít được bộc lộ qua danh xưng.", "strength": "Bạn có cơ hội rèn sự tinh tế theo cách chủ động, không cần chiều lòng tất cả.", "challenge": "Có thể khó nhận ra tín hiệu cảm xúc hoặc điều chỉnh cách giao tiếp với từng người.", "advice": "Luyện lắng nghe, hỏi lại để hiểu đúng và diễn đạt ranh giới rõ ràng." },
+        "baseline": { "summary": "Một số 2 gợi khả năng phối hợp và chú ý đến cảm xúc trong giao tiếp.", "strength": "Có thể tạo sự tin cậy bằng cách lắng nghe và kết nối.", "challenge": "Đôi lúc nhạy cảm với phản hồi hoặc ngại bất đồng.", "advice": "Kết hợp sự cảm thông với việc nói thật nhu cầu của mình." },
+        "highlighted": { "summary": "Hai số 2 làm nét hợp tác và trực giác xã hội nổi bật hơn.", "strength": "Có thể nhận ra sắc thái trong cuộc trò chuyện và hỗ trợ hòa giải.", "challenge": "Dễ ưu tiên hòa khí đến mức trì hoãn quyết định riêng.", "advice": "Đặt giới hạn lành mạnh và phân biệt cảm xúc của mình với người khác." },
+        "amplified": { "summary": "Từ ba số 2 trở lên tăng mạnh độ nhạy và nhu cầu kết nối trong tên gọi.", "strength": "Sự đồng cảm và khả năng làm cầu nối có thể thành thế mạnh rõ rệt.", "challenge": "Quá nhạy với đánh giá hoặc phụ thuộc vào sự đồng thuận có thể làm bạn mệt mỏi.", "advice": "Dành thời gian tĩnh lặng, kiểm chứng cảm nhận và giữ quyết định cá nhân." }
+      }
+    },
+    "3": {
+      "theme": "Sáng tạo và biểu đạt",
+      "states": {
+        "missing": { "summary": "Tên chưa quy đổi ra số 3; sự vui tươi và biểu đạt sáng tạo có thể chưa hiện rõ qua tên.", "strength": "Bạn có thể xây dựng tiếng nói sáng tạo theo cách riêng thay vì theo khuôn mẫu.", "challenge": "Có thể khó chia sẻ ý tưởng hoặc cảm xúc thành lời.", "advice": "Thử viết, kể chuyện, vẽ hoặc trình bày một ý tưởng ngắn thường xuyên." },
+        "baseline": { "summary": "Một số 3 gợi khả năng truyền đạt và nét sáng tạo trong cách thể hiện.", "strength": "Có thể làm ý tưởng dễ hiểu và mang sắc thái lạc quan.", "challenge": "Đôi lúc diễn đạt chưa đều hoặc dễ phân tán giữa nhiều ý tưởng.", "advice": "Chọn một ý tưởng quan trọng và hoàn tất trước khi chuyển sang ý khác." },
+        "highlighted": { "summary": "Hai số 3 nhấn mạnh khả năng biểu đạt, tưởng tượng và giao tiếp.", "strength": "Có thể truyền cảm hứng qua lời nói, hình ảnh hoặc sáng tạo.", "challenge": "Nhiều ý tưởng cùng lúc có thể khiến thông điệp thiếu trọng tâm.", "advice": "Dùng cấu trúc rõ ràng và biến cảm hứng thành sản phẩm cụ thể." },
+        "amplified": { "summary": "Từ ba số 3 trở lên làm năng lượng biểu đạt trở nên rất mạnh.", "strength": "Sáng tạo và giao tiếp có thể là nét dễ nhận thấy trong tên gọi.", "challenge": "Có thể nói nhiều, tìm kiếm sự chú ý hoặc tránh những cảm xúc khó bằng vẻ vui vẻ.", "advice": "Cân bằng chia sẻ với lắng nghe, và dành khoảng lặng cho chiều sâu." }
+      }
+    },
+    "4": {
+      "theme": "Tổ chức và bền bỉ",
+      "states": {
+        "missing": { "summary": "Tên chưa quy đổi ra số 4; tính hệ thống và thực tế có thể chưa phải cách biểu đạt tự nhiên.", "strength": "Bạn có cơ hội chọn cấu trúc phù hợp mà không bị bó buộc bởi thói quen cứng nhắc.", "challenge": "Có thể khó duy trì kế hoạch hoặc theo sát chi tiết.", "advice": "Dùng lịch, danh sách việc và chia mục tiêu thành bước nhỏ." },
+        "baseline": { "summary": "Một số 4 gợi sự thực tế và mong muốn tạo nền tảng đáng tin cậy.", "strength": "Có thể tổ chức công việc và giữ lời hứa.", "challenge": "Đôi khi ngại đổi hướng khi hoàn cảnh thay đổi.", "advice": "Giữ kỷ luật nhưng định kỳ xem lại cách làm có còn phù hợp không." },
+        "highlighted": { "summary": "Hai số 4 làm tính ngăn nắp và bền bỉ nổi bật hơn trong tên.", "strength": "Có thể theo đuổi kế hoạch dài hạn với sự ổn định.", "challenge": "Dễ đặt tiêu chuẩn cao hoặc thiên về quy trình hơn kết quả.", "advice": "Ưu tiên việc quan trọng và để lại khoảng linh hoạt cho thử nghiệm." },
+        "amplified": { "summary": "Từ ba số 4 trở lên nhấn mạnh mạnh tính cấu trúc và kiểm soát.", "strength": "Khả năng tạo quy trình và duy trì cam kết có thể rất rõ.", "challenge": "Sự chắc chắn có thể thành cứng nhắc, cầu toàn hoặc khó nghỉ ngơi.", "advice": "Thực hành ủy quyền, chấp nhận phiên bản đủ tốt và thử cách mới." }
+      }
+    },
+    "5": {
+      "theme": "Linh hoạt và trải nghiệm",
+      "states": {
+        "missing": { "summary": "Tên chưa quy đổi ra số 5; tinh thần thích nghi và đổi mới có thể ít được bộc lộ.", "strength": "Bạn có thể tạo sự ổn định vững vàng mà không cần chạy theo mọi thay đổi.", "challenge": "Có thể khó xoay xở khi kế hoạch hoặc môi trường biến động.", "advice": "Thử thay đổi nhỏ có chủ đích và chuẩn bị phương án dự phòng." },
+        "baseline": { "summary": "Một số 5 gợi sự tò mò, linh hoạt và cởi mở với trải nghiệm mới.", "strength": "Có thể thích nghi và kết nối với nhiều nhóm người.", "challenge": "Đôi lúc thiếu kiên nhẫn với việc lặp lại hoặc cam kết dài hạn.", "advice": "Giữ một vài thói quen neo giữ trước khi mở rộng trải nghiệm." },
+        "highlighted": { "summary": "Hai số 5 làm nét linh hoạt và yêu thích khám phá hiện rõ hơn.", "strength": "Có thể thích nghi nhanh và nhìn thấy nhiều lựa chọn.", "challenge": "Quá nhiều lựa chọn dễ làm mục tiêu thay đổi liên tục.", "advice": "Đặt giới hạn thời gian, nguồn lực và hoàn tất điều đã chọn." },
+        "amplified": { "summary": "Từ ba số 5 trở lên tăng mạnh nhu cầu tự do và đổi mới.", "strength": "Khả năng ứng biến trong môi trường thay đổi có thể nổi bật.", "challenge": "Dễ bốc đồng, phân tán hoặc bỏ dở khi mất hứng thú.", "advice": "Kết hợp khám phá với cam kết cụ thể và nhịp sinh hoạt ổn định." }
+      }
+    },
+    "6": {
+      "theme": "Trách nhiệm và chăm sóc",
+      "states": {
+        "missing": { "summary": "Tên chưa quy đổi ra số 6; nét chăm sóc và trách nhiệm cộng đồng có thể chưa nổi bật.", "strength": "Bạn có thể quan tâm người khác mà vẫn giữ ranh giới cá nhân rõ ràng.", "challenge": "Có thể ít bộc lộ sự quan tâm hoặc ngại nhận trách nhiệm chung.", "advice": "Thể hiện sự quan tâm bằng một hành động nhỏ, phù hợp khả năng." },
+        "baseline": { "summary": "Một số 6 gợi tinh thần quan tâm, trách nhiệm và mong muốn tạo sự hài hòa.", "strength": "Có thể chăm lo công việc chung và hỗ trợ người thân.", "challenge": "Đôi lúc nhận quá nhiều việc hoặc kỳ vọng cao ở mình và người khác.", "advice": "Hỏi rõ người khác cần gì và chỉ nhận phần trách nhiệm có thể duy trì." },
+        "highlighted": { "summary": "Hai số 6 làm nét tận tâm và ý thức trách nhiệm nổi bật hơn.", "strength": "Có thể xây dựng môi trường gắn kết và đáng tin cậy.", "challenge": "Sự chăm sóc có thể chuyển thành kiểm soát hoặc hy sinh quá mức.", "advice": "Chăm sóc bản thân và tôn trọng quyền tự quyết của người được giúp." },
+        "amplified": { "summary": "Từ ba số 6 trở lên nhấn mạnh mạnh nhu cầu phụng sự và gìn giữ hòa khí.", "strength": "Khả năng nâng đỡ và vun đắp tập thể có thể là thế mạnh lớn.", "challenge": "Dễ ôm đồm, cầu toàn hoặc cảm thấy có lỗi khi từ chối.", "advice": "Chia sẻ trách nhiệm, đặt giới hạn và cho phép người khác tự học." }
+      }
+    },
+    "7": {
+      "theme": "Phân tích và chiều sâu",
+      "states": {
+        "missing": { "summary": "Tên chưa quy đổi ra số 7; chiều sâu phân tích có thể ít thể hiện qua cách bạn giới thiệu bản thân.", "strength": "Bạn có thể tập trung vào trải nghiệm trực tiếp và hành động thực tế.", "challenge": "Có thể ít dành thời gian xem xét nguyên nhân hoặc học từ trải nghiệm.", "advice": "Ghi lại điều đã học sau một quyết định hoặc sự kiện quan trọng." },
+        "baseline": { "summary": "Một số 7 gợi sự quan sát, ham hiểu biết và nhu cầu tìm ý nghĩa.", "strength": "Có thể nghiên cứu kỹ và nhận ra chi tiết người khác bỏ qua.", "challenge": "Đôi lúc giữ suy nghĩ cho riêng mình hoặc hoài nghi quá lâu.", "advice": "Chia sẻ kết luận theo cách dễ hiểu và cân bằng suy ngẫm với hành động." },
+        "highlighted": { "summary": "Hai số 7 làm thiên hướng tìm hiểu và phân tích rõ hơn.", "strength": "Có thể đào sâu vấn đề và tự học độc lập.", "challenge": "Dễ khép kín hoặc phân tích quá mức trước khi bắt đầu.", "advice": "Đặt thời hạn cho việc nghiên cứu rồi thử nghiệm một bước nhỏ." },
+        "amplified": { "summary": "Từ ba số 7 trở lên tăng mạnh nhu cầu riêng tư và truy tìm chiều sâu.", "strength": "Khả năng tập trung nghiên cứu có thể rất nổi bật.", "challenge": "Có thể cô lập, hoài nghi hoặc xa rời trao đổi thực tế.", "advice": "Giữ kết nối với người tin cậy và kiểm chứng ý tưởng bằng trải nghiệm." }
+      }
+    },
+    "8": {
+      "theme": "Điều hành và mục tiêu",
+      "states": {
+        "missing": { "summary": "Tên chưa quy đổi ra số 8; năng lực tổ chức mục tiêu và quản lý nguồn lực có thể chưa được nhấn mạnh.", "strength": "Bạn có thể định nghĩa thành công theo giá trị riêng, không chỉ qua địa vị.", "challenge": "Có thể ngại đảm nhận quyền quyết định hoặc quản lý nguồn lực.", "advice": "Thực hành đặt mục tiêu đo được và theo dõi một nguồn lực cụ thể." },
+        "baseline": { "summary": "Một số 8 gợi sự hướng mục tiêu và quan tâm đến kết quả thực tế.", "strength": "Có thể tổ chức nguồn lực để hoàn thành việc quan trọng.", "challenge": "Đôi lúc chú trọng kết quả hơn cảm xúc và quá trình.", "advice": "Đánh giá thành công cả bằng kết quả lẫn tác động lên con người." },
+        "highlighted": { "summary": "Hai số 8 làm năng lực quản lý và tham vọng thành tựu nổi bật hơn.", "strength": "Có thể điều phối công việc và ra quyết định thực dụng.", "challenge": "Dễ xem quyền kiểm soát hoặc thành tích là thước đo duy nhất.", "advice": "Chia sẻ quyền hạn và đặt mục tiêu gắn với lợi ích chung." },
+        "amplified": { "summary": "Từ ba số 8 trở lên nhấn mạnh mạnh khát vọng điều hành và đạt thành tựu.", "strength": "Tư duy tổ chức và định hướng kết quả có thể rất rõ.", "challenge": "Năng lượng này có thể thành áp lực, kiểm soát hoặc quá tập trung vật chất.", "advice": "Cân bằng tham vọng với nghỉ ngơi, đạo đức nghề nghiệp và sự hợp tác." }
+      }
+    },
+    "9": {
+      "theme": "Lý tưởng và lòng trắc ẩn",
+      "states": {
+        "missing": { "summary": "Tên chưa quy đổi ra số 9; lý tưởng rộng và tinh thần cộng đồng có thể ít được thể hiện.", "strength": "Bạn có thể giữ góc nhìn thực tế và tập trung giúp đỡ trong phạm vi cụ thể.", "challenge": "Có thể khó nhìn vấn đề từ bối cảnh rộng hoặc chia sẻ cảm thông.", "advice": "Tìm hiểu trải nghiệm của người khác và tham gia một việc cộng đồng vừa sức." },
+        "baseline": { "summary": "Một số 9 gợi lòng trắc ẩn và mong muốn đóng góp cho điều có ý nghĩa.", "strength": "Có thể đồng cảm và nhìn thấy lợi ích chung.", "challenge": "Đôi lúc lý tưởng hóa người khác hoặc ôm lấy vấn đề ngoài khả năng.", "advice": "Biến lý tưởng thành hành động nhỏ, có giới hạn và có thể duy trì." },
+        "highlighted": { "summary": "Hai số 9 làm lý tưởng và sự bao dung rõ hơn trong cách bạn biểu đạt.", "strength": "Có thể truyền cảm hứng bằng tầm nhìn hướng cộng đồng.", "challenge": "Dễ thất vọng khi thực tế không khớp kỳ vọng cao.", "advice": "Kết hợp tầm nhìn lớn với bước đi thực tế và ranh giới lành mạnh." },
+        "amplified": { "summary": "Từ ba số 9 trở lên nhấn mạnh mạnh lý tưởng và cảm xúc hướng đến cộng đồng.", "strength": "Khả năng truyền cảm hứng và kết nối với mục tiêu nhân văn có thể nổi bật.", "challenge": "Có thể hy sinh quá mức, lý tưởng hóa hoặc khó buông điều đã qua.", "advice": "Giữ sự bao dung nhưng ưu tiên việc trong tầm ảnh hưởng của mình." }
+      }
+    }
+  }
+}

@@ -1,29 +1,45 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Dimensions, Image, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  Animated,
+  Image,
+  Modal,
+  PanResponder,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import {
-  getBestDepartureHour, getCanChiDay, getCanChiMonth, getCanChiYear, getDayActivities,
-  getDayDirection, getDayOfWeekVi, getHoangDaoHours, getSolarTerm, getWeekInfo, solarToLunar,
-} from '../services/lunarService';
-import { getNguHanh, getZodiac, type UserProfile } from '../store/userProfile';
+import { makeDaySnapshot, type HourInfo } from '../services/lunarService';
+import { type UserProfile } from '../store/userProfile';
 import { getDailyCaDao, type CaDaoItem } from '../db/cadaoService';
-import { getDailyCalendarArt, type CalendarArtItem } from '../config/calendarArtConfig';
 import BlocDetailModal, { type ModalType } from '../components/BlocDetailModal';
+import CalendarMascotSprite from '../components/CalendarMascotSprite';
+import FallingCherryPetals from '../components/FallingCherryPetals';
+import HourDirectionSheet from '../components/HourDirectionSheet';
+import { useLocalization } from '../i18n/LocalizationContext';
 
-const HERO = require('../../assets/giao_dien/giaodien1/calender_asset/background/ChatGPT Image Sep 25, 2026, 11_00_36 PM (1).png');
-const TOPIC = require('../../assets/giao_dien/giaodien1/calender_asset/background/ChatGPT Image Sep 25, 2026, 11_00_38 PM (3).png');
+const BG_CALENDAR = require('../../assets/giao_dien/giaodien1/calender_asset/background/calendar_background_v2.png');
 
-const MONTHS = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
+const MONTHS = [
+  'Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
+  'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12',
+];
 const LUNAR_MONTHS = ['Giêng', 'Hai', 'Ba', 'Tư', 'Năm', 'Sáu', 'Bảy', 'Tám', 'Chín', 'Mười', 'Mười một', 'Chạp'];
-// Sheet di chuyển gần 1:1 theo ngón tay, kèm lực cản rất nhẹ.
-const CULTURE_SHEET_PULL_DISTANCE = Dimensions.get('window').height * 0.92;
-const CULTURE_SHEET_SPRING = { useNativeDriver: true, damping: 26, stiffness: 170, mass: 1.05 } as const;
+const HOUR_SHEET_SPRING = { useNativeDriver: true, damping: 26, stiffness: 170, mass: 1.05 } as const;
 
-interface Props { profile: UserProfile; }
+interface Props {
+  profile: UserProfile;
+  onBack?: () => void;
+  onOpenSettings: () => void;
+}
 
 function moveDate(value: Date, amount: number, unit: 'day' | 'month') {
   const result = new Date(value);
@@ -31,6 +47,7 @@ function moveDate(value: Date, amount: number, unit: 'day' | 'month') {
     result.setDate(result.getDate() + amount);
     return result;
   }
+
   const targetMonth = new Date(result.getFullYear(), result.getMonth() + amount, 1);
   const lastDayOfTargetMonth = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0).getDate();
   targetMonth.setDate(Math.min(result.getDate(), lastDayOfTargetMonth));
@@ -38,322 +55,449 @@ function moveDate(value: Date, amount: number, unit: 'day' | 'month') {
   return targetMonth;
 }
 
-export default function CalendarScreen({ profile }: Props) {
+function isSameDay(left: Date, right: Date) {
+  return left.getDate() === right.getDate()
+    && left.getMonth() === right.getMonth()
+    && left.getFullYear() === right.getFullYear();
+}
+
+function formatClock(value: Date) {
+  return new Intl.DateTimeFormat('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(value);
+}
+
+function findCurrentHour(hours: HourInfo[], hour: number) {
+  return hours.find((item) => {
+    if (item.startHour === 23) return hour >= 23 || hour < 1;
+    return hour >= item.startHour && hour < item.startHour + 2;
+  }) ?? null;
+}
+
+export default function CalendarScreen({ profile, onBack, onOpenSettings }: Props) {
+  const { width: winWidth, height: winHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const { locale, t } = useLocalization();
   const [date, setDate] = useState(() => new Date());
+  const [clock, setClock] = useState(() => new Date());
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [pickerDate, setPickerDate] = useState(() => new Date());
   const [caDao, setCaDao] = useState<CaDaoItem | null>(null);
   const [modalType, setModalType] = useState<ModalType>(null);
-  const [cultureSheetVisible, setCultureSheetVisible] = useState(false);
-  const [isCultureSheetDragging, setIsCultureSheetDragging] = useState(false);
-  const cultureSheetProgress = useRef(new Animated.Value(0)).current;
+  const [hourSheetVisible, setHourSheetVisible] = useState(false);
+  const [isHourSheetDragging, setIsHourSheetDragging] = useState(false);
+  const hourSheetProgress = useRef(new Animated.Value(0)).current;
+  const hourSheetPullDistance = winHeight * 0.95;
+
   const day = date.getDate();
   const month = date.getMonth() + 1;
   const year = date.getFullYear();
-  const birthYear = profile?.birthDate ? new Date(profile.birthDate).getFullYear() : 1998;
-  const zodiac = getZodiac(birthYear);
-  const lunar = useMemo(() => solarToLunar(day, month, year), [day, month, year]);
-  const canChiDay = useMemo(() => getCanChiDay(day, month, year), [day, month, year]);
-  const canChiMonth = useMemo(() => getCanChiMonth(lunar.month, lunar.year), [lunar.month, lunar.year]);
-  const canChiYear = useMemo(() => getCanChiYear(lunar.year), [lunar.year]);
-  const hours = useMemo(() => getHoangDaoHours(day, month, year, zodiac), [day, month, year, zodiac]);
-  const bestHour = useMemo(() => getBestDepartureHour(day, month, year, zodiac), [day, month, year, zodiac]);
-  const direction = useMemo(() => getDayDirection(day, month, year), [day, month, year]);
-  const activities = useMemo(() => getDayActivities(day, month, year), [day, month, year]);
-  const art = useMemo(() => getDailyCalendarArt(date), [date]);
-  const week = useMemo(() => getWeekInfo(date), [date]);
+  const compact = winWidth < 375;
+  const snapshot = useMemo(
+    () => makeDaySnapshot(date, { birthDate: profile?.birthDate }),
+    [date, profile?.birthDate],
+  );
+  const {
+    lunarDate: lunar,
+    canChiDay,
+    canChiMonth,
+    canChiYear,
+    hours,
+    bestDepartureHour: bestHour,
+    direction,
+    activities,
+    userZodiac: zodiac,
+  } = snapshot;
   const pickerDays = useMemo(() => {
     const firstDayOffset = (new Date(pickerDate.getFullYear(), pickerDate.getMonth(), 1).getDay() + 6) % 7;
-    return Array.from({ length: 42 }, (_, index) => new Date(pickerDate.getFullYear(), pickerDate.getMonth(), index - firstDayOffset + 1));
+    return Array.from(
+      { length: 42 },
+      (_, index) => new Date(pickerDate.getFullYear(), pickerDate.getMonth(), index - firstDayOffset + 1),
+    );
   }, [pickerDate]);
 
-  useEffect(() => { getDailyCaDao(date).then(setCaDao).catch(() => setCaDao(null)); }, [date]);
+  useEffect(() => {
+    const timer = setInterval(() => setClock(new Date()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    getDailyCaDao(date)
+      .then((item) => { if (active) setCaDao(item); })
+      .catch(() => { if (active) setCaDao(null); });
+    return () => { active = false; };
+  }, [date]);
 
   const today = new Date();
-  const isToday = day === today.getDate() && month === today.getMonth() + 1 && year === today.getFullYear();
-  const topicTitle = caDao?.category || 'Tình yêu đôi lứa';
-  const topicExcerpt = caDao?.content || art.excerpt;
+  const isToday = isSameDay(date, today);
+  const currentHour = findCurrentHour(hours, clock.getHours());
+  const goodHourNames = hours.filter((item) => item.isHoangDao).map((item) => item.name).join(', ');
+  const quote = caDao?.content || 'Uống nước nhớ nguồn';
+  const quoteSource = caDao?.category || 'Ca dao Việt Nam';
+  const displayMonth = locale === 'en'
+    ? new Intl.DateTimeFormat('en-US', { month: 'long' }).format(date)
+    : MONTHS[month - 1];
+  const displayWeekday = locale === 'en'
+    ? new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(date).toUpperCase()
+    : snapshot.weekdayVi.toUpperCase();
+
   const selectDate = (nextDate: Date) => {
     void Haptics.selectionAsync();
     setDate(nextDate);
   };
+
   const openDatePicker = () => {
     setPickerDate(date);
     setDatePickerVisible(true);
   };
-  const openDetail = (type: ModalType) => {
+
+  const openDetail = (type: Exclude<ModalType, null>) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setModalType(type);
   };
-  const closeCultureSheet = () => {
-    setIsCultureSheetDragging(false);
-    Animated.timing(cultureSheetProgress, { toValue: 0, duration: 180, useNativeDriver: true }).start(({ finished }) => {
-      if (finished) setCultureSheetVisible(false);
+
+  const closeHourSheet = () => {
+    setIsHourSheetDragging(false);
+    Animated.timing(hourSheetProgress, {
+      toValue: 0,
+      duration: 180,
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) setHourSheetVisible(false);
     });
   };
-  const openCultureSheet = () => {
-    setIsCultureSheetDragging(false);
-    cultureSheetProgress.stopAnimation();
-    cultureSheetProgress.setValue(0);
-    setCultureSheetVisible(true);
+
+  const openHourSheet = () => {
+    setIsHourSheetDragging(false);
+    hourSheetProgress.stopAnimation();
+    hourSheetProgress.setValue(0);
+    setHourSheetVisible(true);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Animated.spring(cultureSheetProgress, { toValue: 1, ...CULTURE_SHEET_SPRING }).start();
+    Animated.spring(hourSheetProgress, { toValue: 1, ...HOUR_SHEET_SPRING }).start();
   };
-  const beginCultureSheetDrag = () => {
-    cultureSheetProgress.stopAnimation();
-    setIsCultureSheetDragging(true);
-  };
-  const moveCultureSheetDown = (translationY: number) => {
-    cultureSheetProgress.setValue(Math.max(0, 1 - translationY / CULTURE_SHEET_PULL_DISTANCE));
-  };
-  const finishCultureSheetDrag = (translationY: number, velocityY: number) => {
-    setIsCultureSheetDragging(false);
-    if (translationY > CULTURE_SHEET_PULL_DISTANCE * 0.2 || velocityY > 0.55) {
-      closeCultureSheet();
+
+  const finishHourSheetDrag = (translationY: number, velocityY: number) => {
+    setIsHourSheetDragging(false);
+    if (translationY > hourSheetPullDistance * 0.2 || velocityY > 0.55) {
+      closeHourSheet();
       return;
     }
-    Animated.spring(cultureSheetProgress, { toValue: 1, ...CULTURE_SHEET_SPRING }).start();
+    Animated.spring(hourSheetProgress, { toValue: 1, ...HOUR_SHEET_SPRING }).start();
   };
-  const culturePullResponder = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponderCapture: () => true,
-    onStartShouldSetPanResponder: () => true,
+
+  const hourPullResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => false,
+    onMoveShouldSetPanResponder: (_event, gesture) => gesture.dy < -4 && Math.abs(gesture.dy) > Math.abs(gesture.dx),
     onPanResponderGrant: () => {
-      cultureSheetProgress.stopAnimation();
-      cultureSheetProgress.setValue(0);
-      setIsCultureSheetDragging(true);
+      hourSheetProgress.stopAnimation();
+      hourSheetProgress.setValue(0);
+      setIsHourSheetDragging(true);
     },
     onPanResponderMove: (_event, gesture) => {
       if (gesture.dy < 0) {
-        setCultureSheetVisible(true);
-        cultureSheetProgress.setValue(Math.min(1, -gesture.dy / CULTURE_SHEET_PULL_DISTANCE));
+        setHourSheetVisible(true);
+        hourSheetProgress.setValue(Math.min(1, -gesture.dy / hourSheetPullDistance));
       }
     },
     onPanResponderRelease: (_event, gesture) => {
-      setIsCultureSheetDragging(false);
-      const progress = Math.min(1, Math.max(0, -gesture.dy / CULTURE_SHEET_PULL_DISTANCE));
-      if (progress > 0.22 || gesture.vy < -0.55) {
-        setCultureSheetVisible(true);
+      setIsHourSheetDragging(false);
+      const progress = Math.min(1, Math.max(0, -gesture.dy / hourSheetPullDistance));
+      if (progress > 0.18 || gesture.vy < -0.5) {
+        setHourSheetVisible(true);
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        Animated.spring(cultureSheetProgress, { toValue: 1, ...CULTURE_SHEET_SPRING }).start();
+        Animated.spring(hourSheetProgress, { toValue: 1, ...HOUR_SHEET_SPRING }).start();
       } else if (progress > 0) {
-        closeCultureSheet();
+        closeHourSheet();
       }
     },
-    onPanResponderTerminate: () => {
-      setIsCultureSheetDragging(false);
-      closeCultureSheet();
-    },
-  }), [cultureSheetProgress]);
+    onPanResponderTerminate: closeHourSheet,
+  }), [hourSheetProgress, hourSheetPullDistance]);
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
-      <StatusBar style="light" />
-      <ScrollView
-        style={s.scroll}
-        contentContainerStyle={s.scrollContent}
-        showsVerticalScrollIndicator={false}
-        bounces={true}
-      >
-        <View style={s.content}>
-          <View style={s.header}>
-            <TouchableOpacity activeOpacity={0.7} style={s.headerButton} accessibilityLabel="Mở menu"><Ionicons name="menu-outline" size={25} color="#FCEBFF" /></TouchableOpacity>
-            <Text style={s.brand}>Numelyra <Text style={s.gold}>✦</Text></Text>
-            <TouchableOpacity activeOpacity={0.7} style={s.headerButton} accessibilityLabel="Lịch sử"><Ionicons name="time-outline" size={23} color="#F5B8E8" /></TouchableOpacity>
-          </View>
-
-          <View style={s.monthRow}>
-            <View style={s.roundButtonShadow}>
-              <TouchableOpacity activeOpacity={0.7} style={s.roundButton} onPress={() => selectDate(moveDate(date, -1, 'day'))} accessibilityRole="button" accessibilityLabel="Ngày trước">
-                <LinearGradient colors={['#4A2D82', '#30195F', '#1D103F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.roundButtonGradient}>
-                  <Ionicons name="chevron-back" size={22} color="#FFD793" />
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity activeOpacity={0.75} style={s.monthChip} onPress={openDatePicker} accessibilityRole="button" accessibilityLabel="Chọn ngày">
-              <Text style={s.monthText}>{MONTHS[month - 1]} · {year}</Text>
-              <Ionicons name="chevron-down" size={14} color="#FFD793" />
-            </TouchableOpacity>
-            <View style={s.roundButtonShadow}>
-              <TouchableOpacity activeOpacity={0.7} style={s.roundButton} onPress={() => selectDate(moveDate(date, 1, 'day'))} accessibilityRole="button" accessibilityLabel="Ngày sau">
-                <LinearGradient colors={['#4A2D82', '#30195F', '#1D103F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.roundButtonGradient}>
-                  <Ionicons name="chevron-forward" size={22} color="#FFD793" />
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-            <View style={s.todayShadow}>
-              <TouchableOpacity activeOpacity={0.7} style={s.today} onPress={() => selectDate(new Date())} accessibilityRole="button" accessibilityLabel="Hôm nay">
-                <LinearGradient colors={isToday ? ['#FFE8AA', '#F5BD55', '#D98B2E'] : ['#FFE29A', '#F1B14B', '#D8892C']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.todayGradient}>
-                  <Ionicons name="sparkles" size={14} color="#2A1938" /><Text style={s.todayText}>Hôm nay</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={s.heroShadow}>
-            <View style={s.hero}>
-              <Image source={HERO} resizeMode="cover" style={s.heroArt} />
-              <LinearGradient colors={['rgba(15, 7, 53, 0.72)', 'rgba(42, 13, 91, 0.20)', 'rgba(12, 6, 44, 0.18)']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={s.heroShade} />
-              <LinearGradient colors={['rgba(31, 9, 79, 0.04)', 'rgba(10, 5, 39, 0.44)']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={s.heroDepthOverlay} />
-              <View style={s.heroTextWrap}>
-                <Text style={s.weekday}>{getDayOfWeekVi(date)}</Text>
-                <Text style={s.lunar}>{lunar.day} tháng {LUNAR_MONTHS[lunar.month - 1]} · Âm lịch</Text>
-                <Text style={s.day}>{day}</Text>
-                <Text style={s.canChi}>Năm {canChiYear} · Ngày {canChiDay}</Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={s.grid}>
-            <QuickCard icon="sunny-outline" color="#FFD07A" label="Giờ đại cát" value={bestHour ? 'Giờ ' + bestHour.name : 'Đang cập nhật'} detail={bestHour?.range} onPress={() => openDetail('hoang_dao')} />
-            <QuickCard icon="compass-outline" color="#FF88C6" label={direction.than} value="Hướng tốt" detail={direction.huong} onPress={() => openDetail('hoang_dao')} />
-            <QuickCard icon="checkmark" color="#A7E8A0" label="Việc nên làm" value={activities.yi.slice(0, 2).join(', ')} onPress={() => openDetail('hoang_dao')} />
-            <QuickCard icon="remove-outline" color="#FF88C6" label="Việc kiêng cữ" value={activities.ji.slice(0, 2).join(', ')} onPress={() => openDetail('hoang_dao')} />
-          </View>
-
-          <View style={s.topicShadow}>
-            <TouchableOpacity style={s.topic} activeOpacity={0.8} onPress={openCultureSheet} accessibilityRole="button" accessibilityLabel="Mở điển tích và nguyên tác văn học">
-              <Image source={TOPIC} resizeMode="cover" style={s.topicArt} />
-              <LinearGradient colors={['rgba(78, 35, 128, 0.12)', 'rgba(18, 8, 54, 0.46)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.topicOverlay} />
-              <View style={s.topicCopy}>
-                <Text style={s.topicEyebrow}>✦ CHỦ ĐỀ HÔM NAY</Text>
-                <Text style={s.topicTitle} numberOfLines={1}>{topicTitle}</Text>
-                <Text style={s.topicExcerpt} numberOfLines={2}>“{topicExcerpt}”</Text>
-                <View style={s.topicLinkRow}><Text style={s.topicLink}>Đọc toàn văn & ý nghĩa</Text><Ionicons name="chevron-forward" size={14} color="#FFD28A" /></View>
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          <View style={s.weekRailShadow}>
-            <View style={s.weekRail}>
-              <LinearGradient colors={['#3D226F', '#211143']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.weekRailSurface} />
-              <LinearGradient colors={['rgba(229, 180, 255, 0.08)', 'rgba(11, 5, 39, 0.18)']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={s.weekRailOverlay} />
-              <View style={s.weekLabel}><Text style={s.weekLabelText}>Tuần</Text><Text style={s.weekNumber}>{week.weekNumber}</Text></View>
-              {week.days.map((item, index) => (
-                <TouchableOpacity activeOpacity={0.7} key={String(item.dayNumber) + '-' + index} style={[s.weekDay, item.isCurrentDay && s.weekDayActive]} onPress={() => selectDate(new Date(item.date))}>
-                  <Text style={[s.weekName, item.isCurrentDay && s.weekTextActive]}>{item.dayOfWeekShort}</Text>
-                  <Text style={[s.weekDate, item.isCurrentDay && s.weekTextActive]}>{item.dayNumber}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-          <View style={s.pager}>
-            <TouchableOpacity activeOpacity={0.7} style={s.pagerButton} onPress={() => selectDate(moveDate(date, -1, 'day'))}><Ionicons name="chevron-back" size={15} color="#C69CE6" /><Text style={s.pagerText}>Ngày trước</Text></TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.7} style={s.pagerButton} onPress={() => selectDate(moveDate(date, 1, 'day'))}><Text style={s.pagerText}>Ngày sau</Text><Ionicons name="chevron-forward" size={15} color="#C69CE6" /></TouchableOpacity>
-          </View>
-        </View>
-      </ScrollView>
-      <View
-        collapsable={false}
-        style={s.culturePullTrigger}
-        {...culturePullResponder.panHandlers}
-        accessible
-        accessibilityLabel="Kéo lên để mở điển tích và nguyên tác văn học"
-      >
-        <View style={s.culturePullHandle} />
+    <View style={[styles.root, { width: winWidth, height: winHeight }]}>
+      <View style={styles.background} pointerEvents="none">
+        <Image source={BG_CALENDAR} style={styles.backgroundImage} resizeMode="cover" />
+        <LinearGradient
+          colors={['rgba(10, 8, 58, 0.18)', 'rgba(39, 14, 96, 0.08)', 'rgba(12, 7, 55, 0.58)']}
+          locations={[0, 0.5, 1]}
+          style={StyleSheet.absoluteFill}
+        />
       </View>
+      <FallingCherryPetals />
 
-      <Modal visible={datePickerVisible} transparent animationType="fade" onRequestClose={() => setDatePickerVisible(false)}>
-        <View style={s.datePickerBackdrop}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={() => setDatePickerVisible(false)} accessibilityLabel="Đóng bộ chọn ngày" />
-          <View style={s.datePickerCard}>
-            <View style={s.datePickerHeader}>
-              <Text style={s.datePickerTitle}>Chọn ngày</Text>
-              <TouchableOpacity activeOpacity={0.7} onPress={() => setDatePickerVisible(false)} style={s.datePickerClose} accessibilityRole="button" accessibilityLabel="Đóng">
-                <Ionicons name="close" size={20} color="#FCEBFF" />
-              </TouchableOpacity>
-            </View>
-            <View style={s.datePickerMonthRow}>
-              <TouchableOpacity activeOpacity={0.7} style={s.datePickerArrow} onPress={() => setPickerDate((current) => moveDate(current, -1, 'month'))} accessibilityRole="button" accessibilityLabel="Tháng trước">
-                <Ionicons name="chevron-back" size={19} color="#FFD793" />
-              </TouchableOpacity>
-              <Text style={s.datePickerMonth}>{MONTHS[pickerDate.getMonth()]} · {pickerDate.getFullYear()}</Text>
-              <TouchableOpacity activeOpacity={0.7} style={s.datePickerArrow} onPress={() => setPickerDate((current) => moveDate(current, 1, 'month'))} accessibilityRole="button" accessibilityLabel="Tháng sau">
-                <Ionicons name="chevron-forward" size={19} color="#FFD793" />
-              </TouchableOpacity>
-            </View>
-            <View style={s.datePickerWeekdays}>
-              {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((weekday) => <Text key={weekday} style={s.datePickerWeekday}>{weekday}</Text>)}
-            </View>
-            <View style={s.datePickerGrid}>
-              {pickerDays.map((pickerDay) => {
-                const isCurrentMonth = pickerDay.getMonth() === pickerDate.getMonth();
-                const isSelected = pickerDay.toDateString() === date.toDateString();
-                const isCurrentDay = pickerDay.toDateString() === new Date().toDateString();
-                return (
-                  <TouchableOpacity
-                    key={`${pickerDay.getFullYear()}-${pickerDay.getMonth()}-${pickerDay.getDate()}`}
-                    activeOpacity={0.7}
-                    style={[s.datePickerDay, isSelected && s.datePickerDaySelected, !isCurrentMonth && s.datePickerDayOutside]}
-                    onPress={() => {
-                      selectDate(pickerDay);
-                      setDatePickerVisible(false);
-                    }}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${pickerDay.getDate()} tháng ${pickerDay.getMonth() + 1} năm ${pickerDay.getFullYear()}${isCurrentDay ? ', hôm nay' : ''}`}
-                  >
-                    <Text style={[s.datePickerDayText, !isCurrentMonth && s.datePickerDayTextOutside, isSelected && s.datePickerDayTextSelected, isCurrentDay && !isSelected && s.datePickerDayTextToday]}>
-                      {pickerDay.getDate()}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            <TouchableOpacity activeOpacity={0.75} style={s.datePickerToday} onPress={() => { selectDate(new Date()); setDatePickerVisible(false); }} accessibilityRole="button" accessibilityLabel="Chọn hôm nay">
-              <Text style={s.datePickerTodayText}>Hôm nay</Text>
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <StatusBar style="light" />
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom + 54, 70) }]}
+          showsVerticalScrollIndicator={false}
+          bounces
+        >
+          <View style={styles.header}>
+            <TouchableOpacity activeOpacity={0.72} style={styles.headerButton} onPress={onBack} accessibilityRole="button" accessibilityLabel={t('common.back')}>
+              <Ionicons name="arrow-back" size={24} color="#FFF1DA" />
+            </TouchableOpacity>
+            <Text style={styles.brand}>Numelyra<Text style={styles.brandStar}> ✦</Text></Text>
+            <TouchableOpacity activeOpacity={0.72} style={styles.headerButton} onPress={onOpenSettings} accessibilityRole="button" accessibilityLabel="Mở cài đặt">
+              <Ionicons name="settings-outline" size={23} color="#FFF1DA" />
             </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
 
-      <BlocDetailModal visible={modalType !== null} type={modalType} onClose={() => setModalType(null)}
-        hours={hours} bestHour={bestHour} direction={direction} activities={activities} userZodiac={zodiac}
-        artItem={art as CalendarArtItem} caDao={caDao} lunar={lunar} canChiDay={canChiDay}
-        canChiMonth={canChiMonth} canChiYear={canChiYear} solarTerm={getSolarTerm(day, month, year)}
-        warning={null} profile={profile} userNguHanh={getNguHanh(birthYear)} />
-      <BlocDetailModal visible={cultureSheetVisible} type={cultureSheetVisible ? 'art_culture' : null} onClose={closeCultureSheet}
-        sheetProgress={cultureSheetProgress} contentScrollEnabled={!isCultureSheetDragging}
-        onSheetDragStart={beginCultureSheetDrag} onSheetDragMove={moveCultureSheetDown} onSheetDragEnd={finishCultureSheetDrag}
-        artItem={art as CalendarArtItem} caDao={caDao} />
-    </SafeAreaView>
+          <View style={styles.monthRow}>
+            <TouchableOpacity activeOpacity={0.72} style={styles.monthArrow} onPress={() => selectDate(moveDate(date, -1, 'day'))} accessibilityRole="button" accessibilityLabel="Ngày trước">
+              <Ionicons name="chevron-back" size={24} color="#FFF1DA" />
+            </TouchableOpacity>
+            <TouchableOpacity activeOpacity={0.78} style={styles.monthChip} onPress={openDatePicker} accessibilityRole="button" accessibilityLabel="Chọn ngày">
+              <Text style={styles.monthText}>{displayMonth} - {year}</Text>
+              <Ionicons name="chevron-down" size={15} color="#FFF1DA" />
+            </TouchableOpacity>
+            <TouchableOpacity activeOpacity={0.72} style={styles.monthArrow} onPress={() => selectDate(moveDate(date, 1, 'day'))} accessibilityRole="button" accessibilityLabel="Ngày sau">
+              <Ionicons name="chevron-forward" size={24} color="#FFF1DA" />
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity activeOpacity={0.78} style={[styles.todayPill, isToday && styles.todayPillActive]} onPress={() => selectDate(new Date())} accessibilityRole="button" accessibilityLabel="Trở về hôm nay">
+            <Ionicons name="sparkles" size={12} color="#5D287D" />
+            <Text style={styles.todayPillText}>{locale === 'en' ? (isToday ? 'Today' : 'Back to today') : (isToday ? 'Hôm nay' : 'Về hôm nay')}</Text>
+          </TouchableOpacity>
+
+          <View style={styles.dateHero}>
+            <Text style={[styles.dayNumber, compact && styles.dayNumberCompact]}>{day}</Text>
+            <Text style={[styles.weekday, compact && styles.weekdayCompact]}>{displayWeekday}</Text>
+            <View style={styles.dayDivider}>
+              <View style={styles.dayDividerLine} />
+              <Text style={styles.dayDividerStar}>✦</Text>
+              <View style={styles.dayDividerLine} />
+            </View>
+          </View>
+
+          <View style={styles.quoteCard}>
+            <Text style={styles.quoteOrnament}>✦</Text>
+            <Text style={styles.quoteText}>“{quote}”</Text>
+            <Text style={styles.quoteSource}>— {quoteSource} —</Text>
+            <Text style={[styles.quoteOrnament, styles.quoteOrnamentRight]}>✦</Text>
+          </View>
+
+          <View style={styles.mascotScene}>
+            <View style={styles.mascotGlow} />
+            <CalendarMascotSprite size={compact ? 94 : 108} />
+          </View>
+
+          <View style={[styles.infoRow, compact && styles.infoRowCompact]}>
+            <TouchableOpacity activeOpacity={0.82} style={[styles.infoCard, styles.timeCard]} onPress={openHourSheet} accessibilityRole="button" accessibilityLabel="Mở chi tiết giờ hoàng đạo">
+              <View style={styles.cardHeaderRow}>
+                <View style={styles.cardIcon}><Ionicons name="time-outline" size={20} color="#38206F" /></View>
+                <View>
+                  <Text style={styles.cardTitle}>{locale === 'en' ? 'TIME' : 'GIỜ'}</Text>
+                  <Text style={styles.cardSubTitle}>{currentHour ? `${locale === 'en' ? 'Hour' : 'Giờ'} ${currentHour.name}` : (locale === 'en' ? 'Now' : 'Hiện tại')}</Text>
+                </View>
+              </View>
+              <Text style={[styles.clockText, compact && styles.clockTextCompact]}>{formatClock(clock)}</Text>
+              <Text style={styles.goodHoursLabel}>{locale === 'en' ? 'Favorable hours' : 'Giờ Hoàng Đạo'}</Text>
+              <Text style={styles.goodHoursText} numberOfLines={3}>{goodHourNames}</Text>
+            </TouchableOpacity>
+
+            <View style={[styles.infoCard, styles.solarCard]}>
+              <View style={[styles.cardIcon, styles.cardIconCentered]}><Ionicons name="calendar-outline" size={21} color="#542368" /></View>
+              <Text style={[styles.solarDay, compact && styles.solarDayCompact]}>{day}</Text>
+              <Text style={styles.solarMonth}>{locale === 'en' ? displayMonth.toUpperCase() : `THÁNG ${month}`}</Text>
+              <View style={styles.cardRule} />
+              <View style={styles.statusRow}>
+                <View style={[styles.statusDot, { backgroundColor: snapshot.dayHoangDaoStatus.isHoangDao ? '#F5B82E' : '#9B70C9' }]} />
+                <Text style={styles.statusText} numberOfLines={2}>{locale === 'en' ? (snapshot.dayHoangDaoStatus.isHoangDao ? 'Favorable day' : 'Cautious day') : (snapshot.dayHoangDaoStatus.isHoangDao ? 'Ngày Hoàng Đạo' : 'Ngày Hắc Đạo')}</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              activeOpacity={0.82}
+              style={[styles.infoCard, styles.lunarCard]}
+              onPress={() => openDetail('lunar_destiny')}
+              accessibilityRole="button"
+              accessibilityLabel="Mở chi tiết âm lịch và bản mệnh"
+            >
+              <View style={styles.cardHeaderRow}>
+                <View style={[styles.cardIcon, styles.moonIcon]}><Ionicons name="moon" size={18} color="#A73F74" /></View>
+                <Text style={styles.cardTitle}>{locale === 'en' ? 'LUNAR DATE' : 'ÂM LỊCH'}</Text>
+              </View>
+              <View style={styles.lunarCopy}>
+                <Text style={styles.lunarLine} numberOfLines={2}>{locale === 'en' ? 'Year' : 'Năm'} {canChiYear}</Text>
+                <View style={styles.lunarRule} />
+                <Text style={styles.lunarLine} numberOfLines={2}>{locale === 'en' ? 'Month' : 'Tháng'} {canChiMonth}</Text>
+                <View style={styles.lunarRule} />
+                <Text style={[styles.lunarLine, styles.lunarLineStrong]} numberOfLines={2}>{locale === 'en' ? 'Day' : 'Ngày'} {canChiDay}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.lunarDateCaption}>{locale === 'en' ? `Lunar day ${lunar.day}, month ${lunar.month}, ${lunar.year}` : `${lunar.day} tháng ${LUNAR_MONTHS[lunar.month - 1]} năm ${lunar.year} · Âm lịch`}</Text>
+        </ScrollView>
+
+        <TouchableOpacity activeOpacity={0.86} style={[styles.hourPullTrigger, { bottom: Math.max(7, insets.bottom + 3) }]} onPress={openHourSheet} accessibilityRole="button" accessibilityLabel="Kéo lên hoặc chạm để xem giờ hoàng đạo" {...hourPullResponder.panHandlers}>
+          <View style={styles.hourPullHandle} />
+          <Text style={styles.hourPullText}>{locale === 'en' ? 'SWIPE UP FOR FAVORABLE HOURS' : 'KÉO LÊN XEM GIỜ HOÀNG ĐẠO'}</Text>
+          <Ionicons name="chevron-up" size={13} color="#F8DCA0" />
+        </TouchableOpacity>
+
+        <Modal visible={datePickerVisible} transparent animationType="fade" onRequestClose={() => setDatePickerVisible(false)}>
+          <View style={styles.datePickerBackdrop}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={() => setDatePickerVisible(false)} accessibilityLabel="Đóng bộ chọn ngày" />
+            <View style={styles.datePickerCard}>
+              <View style={styles.datePickerHeader}>
+                <Text style={styles.datePickerTitle}>Chọn ngày</Text>
+                <TouchableOpacity activeOpacity={0.7} onPress={() => setDatePickerVisible(false)} style={styles.datePickerClose} accessibilityRole="button" accessibilityLabel="Đóng">
+                  <Ionicons name="close" size={20} color="#FCEBFF" />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.datePickerMonthRow}>
+                <TouchableOpacity activeOpacity={0.7} style={styles.datePickerArrow} onPress={() => setPickerDate((current) => moveDate(current, -1, 'month'))} accessibilityRole="button" accessibilityLabel="Tháng trước">
+                  <Ionicons name="chevron-back" size={19} color="#FFD793" />
+                </TouchableOpacity>
+                <Text style={styles.datePickerMonth}>{MONTHS[pickerDate.getMonth()]} · {pickerDate.getFullYear()}</Text>
+                <TouchableOpacity activeOpacity={0.7} style={styles.datePickerArrow} onPress={() => setPickerDate((current) => moveDate(current, 1, 'month'))} accessibilityRole="button" accessibilityLabel="Tháng sau">
+                  <Ionicons name="chevron-forward" size={19} color="#FFD793" />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.datePickerWeekdays}>
+                {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((weekday) => <Text key={weekday} style={styles.datePickerWeekday}>{weekday}</Text>)}
+              </View>
+              <View style={styles.datePickerGrid}>
+                {pickerDays.map((pickerDay) => {
+                  const isCurrentMonth = pickerDay.getMonth() === pickerDate.getMonth();
+                  const isSelected = isSameDay(pickerDay, date);
+                  const isCurrentDay = isSameDay(pickerDay, new Date());
+                  return (
+                    <TouchableOpacity
+                      key={`${pickerDay.getFullYear()}-${pickerDay.getMonth()}-${pickerDay.getDate()}`}
+                      activeOpacity={0.7}
+                      style={[styles.datePickerDay, isSelected && styles.datePickerDaySelected, !isCurrentMonth && styles.datePickerDayOutside]}
+                      onPress={() => {
+                        const nextDate = new Date(pickerDay);
+                        nextDate.setHours(clock.getHours(), clock.getMinutes(), clock.getSeconds(), clock.getMilliseconds());
+                        selectDate(nextDate);
+                        setDatePickerVisible(false);
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${pickerDay.getDate()} tháng ${pickerDay.getMonth() + 1} năm ${pickerDay.getFullYear()}${isCurrentDay ? ', hôm nay' : ''}`}
+                    >
+                      <Text style={[styles.datePickerDayText, !isCurrentMonth && styles.datePickerDayTextOutside, isSelected && styles.datePickerDayTextSelected, isCurrentDay && !isSelected && styles.datePickerDayTextToday]}>{pickerDay.getDate()}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <TouchableOpacity activeOpacity={0.75} style={styles.datePickerToday} onPress={() => { selectDate(new Date()); setDatePickerVisible(false); }} accessibilityRole="button" accessibilityLabel="Chọn hôm nay">
+                <Text style={styles.datePickerTodayText}>Hôm nay</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        <BlocDetailModal
+          visible={modalType !== null}
+          type={modalType}
+          onClose={() => setModalType(null)}
+          userZodiac={zodiac}
+          canChiDay={canChiDay}
+          canChiMonth={canChiMonth}
+          canChiYear={canChiYear}
+          solarTerm={snapshot.solarTerm}
+          warning={snapshot.warning}
+          profile={profile}
+          userNguHanh={snapshot.userNguHanh}
+          userNapAm={snapshot.userNapAm}
+          dayHoangDaoStatus={snapshot.dayHoangDaoStatus}
+          isLunarMonthFull={snapshot.isLunarMonthFull}
+        />
+        <HourDirectionSheet
+          visible={hourSheetVisible}
+          onClose={closeHourSheet}
+          sheetProgress={hourSheetProgress}
+          contentScrollEnabled={!isHourSheetDragging}
+          onSheetDragStart={() => {
+            hourSheetProgress.stopAnimation();
+            setIsHourSheetDragging(true);
+          }}
+          onSheetDragMove={(translationY) => hourSheetProgress.setValue(Math.max(0, 1 - translationY / hourSheetPullDistance))}
+          onSheetDragEnd={finishHourSheetDrag}
+          hours={hours}
+          bestHour={bestHour}
+          direction={direction}
+          activities={activities}
+          userZodiac={zodiac}
+        />
+      </SafeAreaView>
+    </View>
   );
 }
 
-function QuickCard({ icon, color, label, value, detail, onPress }: { icon: React.ComponentProps<typeof Ionicons>['name']; color: string; label: string; value: string; detail?: string; onPress: () => void }) {
-  return <View style={s.quickShadow}>
-    <TouchableOpacity style={s.quick} activeOpacity={0.7} onPress={onPress}>
-      <LinearGradient colors={['#43236F', '#28144F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.quickSurface} />
-      <LinearGradient colors={['rgba(237, 191, 255, 0.10)', 'rgba(12, 5, 43, 0.20)']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={s.quickOverlay} />
-      <View style={[s.quickIcon, { borderColor: color }]}><Ionicons name={icon} size={21} color={color} /></View>
-      <View style={s.quickCopy}><Text style={s.quickLabel} numberOfLines={1}>{label}</Text><Text style={s.quickValue} numberOfLines={2}>{value}</Text>{detail ? <Text style={s.quickDetail}>{detail}</Text> : null}</View>
-      <Ionicons name="chevron-forward" size={18} color="#FFE6FE" />
-    </TouchableOpacity>
-  </View>;
-}
+const CARD_BACKGROUND = '#FFF2E3';
 
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#171044' },
-  scroll: { flex: 1, backgroundColor: '#171044' },
-  scrollContent: { paddingHorizontal: 14, paddingBottom: 42 },
-  content: { flexGrow: 1, backgroundColor: '#171044' },
-  header: { height: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerButton: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
-  menu: { color: '#FCEBFF', fontSize: 27 }, history: { color: '#F5B8E8', fontSize: 31 }, brand: { color: '#FFF3FF', fontSize: 24, fontWeight: '500', letterSpacing: -0.6 }, gold: { color: '#FFD187', fontSize: 21 },
-  monthRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 7 },
-  roundButtonShadow: { width: 36, height: 36, borderRadius: 18, shadowColor: '#15092F', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.44, shadowRadius: 7, elevation: 5 },
-  roundButton: { flex: 1, borderRadius: 18, overflow: 'hidden' },
-  roundButtonGradient: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  arrow: { color: '#FFD793', fontSize: 39, lineHeight: 39, marginTop: -5 }, monthChip: { flex: 1, height: 37, borderRadius: 19, borderWidth: 1, borderColor: '#9147C6', backgroundColor: '#301464', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 5 }, monthText: { color: '#FFF0FF', fontSize: 14, fontWeight: '600' },
-  todayShadow: { width: 97, height: 35, borderRadius: 18, shadowColor: '#E4A039', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.36, shadowRadius: 8, elevation: 5 },
-  today: { flex: 1, borderRadius: 18, overflow: 'hidden' },
-  todayGradient: { flex: 1, paddingHorizontal: 9, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 3 },
-  todayText: { color: '#2A1938', fontSize: 12, fontWeight: '800' },
-  heroShadow: { height: 202, borderRadius: 24, marginBottom: 10, shadowColor: '#32105E', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.86, shadowRadius: 18, elevation: 14 },
-  hero: { flex: 1, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(181, 112, 223, 0.72)', overflow: 'hidden', justifyContent: 'flex-end', backgroundColor: '#26115D' }, heroArt: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }, heroShade: { ...StyleSheet.absoluteFill }, heroDepthOverlay: { ...StyleSheet.absoluteFill }, heroTextWrap: { width: '72%', paddingHorizontal: 22, paddingVertical: 15 },
-  weekday: { color: '#FFF2FF', fontSize: 21, fontWeight: '800', marginBottom: 2 }, lunar: { color: '#FFD8A5', fontSize: 13, fontWeight: '600' }, day: { color: '#FFF0FF', fontSize: 80, lineHeight: 81, letterSpacing: -5, fontWeight: '900', textShadowColor: '#C071D4', textShadowRadius: 9 }, canChi: { color: '#F1A6E4', fontSize: 13, fontWeight: '600' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 10 }, quickShadow: { flexBasis: '48.2%', maxWidth: '48.2%', flexGrow: 0, flexShrink: 1, minWidth: 0, height: 92, borderRadius: 20, shadowColor: '#2D0B57', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.88, shadowRadius: 15, elevation: 12 }, quick: { flex: 1, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(152, 94, 196, 0.62)', overflow: 'hidden', padding: 10, flexDirection: 'row', alignItems: 'center' }, quickSurface: { ...StyleSheet.absoluteFill }, quickOverlay: { ...StyleSheet.absoluteFill }, quickIcon: { width: 38, height: 38, borderRadius: 19, borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginRight: 7 }, quickIconText: { fontSize: 25, fontWeight: '700' }, quickCopy: { flex: 1, minWidth: 0 }, quickLabel: { color: '#D0A7E8', fontSize: 11, marginBottom: 2 }, quickValue: { color: '#FFF1FF', fontSize: 13, fontWeight: '800', lineHeight: 15 }, quickDetail: { color: '#FFCC8D', fontSize: 11, marginTop: 1, fontWeight: '600' }, chevron: { color: '#FFE6FE', fontSize: 30, fontWeight: '300', marginLeft: 3 },
-  topicShadow: { height: 128, borderRadius: 24, marginBottom: 10, shadowColor: '#32105E', shadowOffset: { width: 0, height: 9 }, shadowOpacity: 0.84, shadowRadius: 17, elevation: 13 }, topic: { flex: 1, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(178, 102, 213, 0.66)', backgroundColor: '#2A1658', overflow: 'hidden', flexDirection: 'row' }, topicArt: { width: '40%', height: '100%' }, topicOverlay: { ...StyleSheet.absoluteFill }, topicCopy: { flex: 1, padding: 11, paddingLeft: 12, justifyContent: 'center' }, topicEyebrow: { color: '#FFC66F', fontSize: 10, fontWeight: '800', marginBottom: 3 }, topicTitle: { color: '#FFF4FF', fontSize: 17, fontWeight: '900', marginBottom: 3 }, topicExcerpt: { color: '#D6A9EE', fontSize: 11, lineHeight: 14, marginBottom: 5 }, topicLinkRow: { flexDirection: 'row', alignItems: 'center', gap: 2 }, topicLink: { color: '#FFD28A', fontSize: 11, fontWeight: '800' },
-  weekRailShadow: { height: 74, borderRadius: 20, marginBottom: 4, shadowColor: '#2D0B57', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.84, shadowRadius: 15, elevation: 11 }, weekRail: { flex: 1, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(164, 96, 205, 0.68)', flexDirection: 'row', overflow: 'hidden' }, weekRailSurface: { ...StyleSheet.absoluteFill }, weekRailOverlay: { ...StyleSheet.absoluteFill }, weekLabel: { width: 52, backgroundColor: 'rgba(75, 38, 125, 0.78)', alignItems: 'center', justifyContent: 'center' }, weekLabelText: { color: '#D9B5E9', fontSize: 11, marginBottom: 2 }, weekNumber: { color: '#FFF1FF', fontSize: 19, fontWeight: '800' }, weekDay: { flex: 1, alignItems: 'center', justifyContent: 'center', borderLeftWidth: 1, borderLeftColor: 'rgba(169, 114, 208, 0.30)' }, weekDayActive: { backgroundColor: 'rgba(164, 55, 127, 0.74)' }, weekName: { color: '#CBA7E7', fontSize: 10, marginBottom: 2 }, weekDate: { color: '#FFF0FF', fontSize: 17, fontWeight: '700' }, weekTextActive: { color: '#FFF5FA' },
-  pager: { marginTop: 4, paddingHorizontal: 8, flexDirection: 'row', justifyContent: 'space-between' }, pagerButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 }, pagerText: { color: '#C69CE6', fontSize: 12, fontWeight: '600' },
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#130A45', overflow: 'hidden' },
+  background: { ...StyleSheet.absoluteFill, overflow: 'hidden' },
+  backgroundImage: { ...StyleSheet.absoluteFill, width: '100%', height: '100%' },
+  safe: { flex: 1, backgroundColor: 'transparent' },
+  scroll: { flex: 1, backgroundColor: 'transparent' },
+  scrollContent: { paddingHorizontal: 16 },
+  header: { height: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerButton: { width: 42, height: 42, borderRadius: 22, borderWidth: 1, borderColor: 'rgba(239, 190, 255, 0.52)', backgroundColor: 'rgba(35, 15, 91, 0.58)', alignItems: 'center', justifyContent: 'center' },
+  brand: { color: '#FFF4E4', fontSize: 25, fontWeight: '600', letterSpacing: -0.7, textShadowColor: 'rgba(32, 9, 73, 0.8)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8 },
+  brandStar: { color: '#FFD48A', fontSize: 18 },
+  monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 7 },
+  monthArrow: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(75, 38, 139, 0.82)', borderWidth: 1, borderColor: 'rgba(222, 139, 255, 0.58)', alignItems: 'center', justifyContent: 'center' },
+  monthChip: { height: 42, minWidth: 190, paddingHorizontal: 24, borderRadius: 22, backgroundColor: 'rgba(76, 37, 139, 0.86)', borderWidth: 1, borderColor: 'rgba(240, 151, 255, 0.65)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, shadowColor: '#10052F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.42, shadowRadius: 10, elevation: 6 },
+  monthText: { color: '#FFF4FF', fontSize: 17, fontWeight: '700' },
+  todayPill: { alignSelf: 'center', marginTop: 7, minHeight: 28, paddingHorizontal: 12, borderRadius: 15, backgroundColor: 'rgba(255, 231, 179, 0.86)', flexDirection: 'row', alignItems: 'center', gap: 5 },
+  todayPillActive: { backgroundColor: '#FFE7B0' },
+  todayPillText: { color: '#5D287D', fontSize: 11, fontWeight: '800' },
+  dateHero: { alignItems: 'center', justifyContent: 'center', minHeight: 222, marginTop: 0 },
+  dayNumber: { color: '#FFF4E4', fontSize: 150, lineHeight: 158, fontWeight: '800', letterSpacing: -9, textShadowColor: '#F5A1FF', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 17 },
+  dayNumberCompact: { fontSize: 134, lineHeight: 143 },
+  weekday: { marginTop: -18, color: '#FFF0DA', fontSize: 33, fontWeight: '800', letterSpacing: 2.5, textShadowColor: '#6A287E', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 9 },
+  weekdayCompact: { fontSize: 29 },
+  dayDivider: { marginTop: 7, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dayDividerLine: { width: 70, height: 1, backgroundColor: 'rgba(255, 230, 179, 0.82)' },
+  dayDividerStar: { color: '#FFD894', fontSize: 16 },
+  quoteCard: { minHeight: 112, marginTop: 8, borderRadius: 24, backgroundColor: 'rgba(255, 242, 227, 0.96)', borderWidth: 2, borderColor: 'rgba(255, 196, 153, 0.86)', paddingHorizontal: 30, paddingVertical: 17, justifyContent: 'center', alignItems: 'center', shadowColor: '#3C0C72', shadowOffset: { width: 0, height: 9 }, shadowOpacity: 0.35, shadowRadius: 16, elevation: 10 },
+  quoteText: { color: '#301868', fontSize: 15, lineHeight: 21, fontWeight: '600', textAlign: 'center' },
+  quoteSource: { color: '#785083', fontSize: 12, fontWeight: '600', marginTop: 7, textAlign: 'center' },
+  quoteOrnament: { position: 'absolute', top: 13, left: 15, color: '#F1A45C', fontSize: 16 },
+  quoteOrnamentRight: { left: undefined, top: undefined, right: 15, bottom: 13 },
+  mascotScene: { height: 116, alignItems: 'flex-start', justifyContent: 'flex-end', paddingLeft: 35, marginTop: 3 },
+  mascotGlow: { position: 'absolute', left: 25, bottom: 2, width: 130, height: 38, borderRadius: 65, backgroundColor: 'rgba(255, 170, 88, 0.34)', shadowColor: '#FFB55F', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.75, shadowRadius: 20, elevation: 4 },
+  infoRow: { minHeight: 170, flexDirection: 'row', gap: 8, alignItems: 'stretch' },
+  infoRowCompact: { gap: 6 },
+  infoCard: { backgroundColor: CARD_BACKGROUND, borderRadius: 22, borderWidth: 1.5, borderColor: 'rgba(255, 193, 152, 0.86)', paddingHorizontal: 11, paddingVertical: 12, overflow: 'hidden', shadowColor: '#21074E', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.34, shadowRadius: 13, elevation: 8 },
+  timeCard: { flex: 1.08 },
+  solarCard: { flex: 0.88, alignItems: 'center' },
+  lunarCard: { flex: 1.12 },
+  cardHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  cardIcon: { width: 34, height: 34, borderRadius: 18, backgroundColor: '#FFDCC5', alignItems: 'center', justifyContent: 'center' },
+  cardIconCentered: { width: 36, height: 36, alignSelf: 'center' },
+  moonIcon: { backgroundColor: '#FFE0D2' },
+  cardTitle: { color: '#321969', fontSize: 13, fontWeight: '900' },
+  cardSubTitle: { color: '#664379', fontSize: 11, fontWeight: '600', marginTop: 1 },
+  clockText: { color: '#32148B', fontSize: 32, lineHeight: 39, fontWeight: '800', letterSpacing: -1, marginTop: 7 },
+  clockTextCompact: { fontSize: 28 },
+  goodHoursLabel: { color: '#A44473', fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
+  goodHoursText: { color: '#77536F', fontSize: 10, lineHeight: 14, marginTop: 3 },
+  solarDay: { color: '#C93D78', fontSize: 62, lineHeight: 68, fontWeight: '700', letterSpacing: -2, marginTop: 1 },
+  solarDayCompact: { fontSize: 56 },
+  solarMonth: { color: '#C33F70', fontSize: 13, fontWeight: '900' },
+  cardRule: { width: '82%', height: 1, marginVertical: 7, backgroundColor: 'rgba(207, 108, 119, 0.34)' },
+  statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
+  statusDot: { width: 9, height: 9, borderRadius: 5 },
+  statusText: { flexShrink: 1, color: '#77536F', fontSize: 9, lineHeight: 12, textAlign: 'center' },
+  lunarCopy: { marginTop: 13 },
+  lunarLine: { color: '#72506D', fontSize: 11, lineHeight: 15, fontWeight: '600' },
+  lunarLineStrong: { color: '#50206C', fontWeight: '800' },
+  lunarRule: { height: 1, marginVertical: 7, backgroundColor: 'rgba(207, 108, 119, 0.28)' },
+  lunarDateCaption: { alignSelf: 'center', marginTop: 10, color: '#FCE4FF', fontSize: 11, fontWeight: '700', textShadowColor: '#1B083F', textShadowRadius: 5 },
+  hourPullTrigger: { position: 'absolute', left: 54, right: 54, minHeight: 39, borderRadius: 20, paddingHorizontal: 13, backgroundColor: 'rgba(48, 23, 105, 0.96)', borderWidth: 1, borderColor: 'rgba(255, 211, 139, 0.62)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, shadowColor: '#07011E', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.52, shadowRadius: 8, elevation: 12 },
+  hourPullHandle: { width: 26, height: 3, borderRadius: 2, backgroundColor: '#F8DCA0' },
+  hourPullText: { color: '#F8DCA0', fontSize: 9, fontWeight: '900', letterSpacing: 0.3 },
   datePickerBackdrop: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 22, backgroundColor: 'rgba(7, 4, 25, 0.78)' },
   datePickerCard: { width: '100%', maxWidth: 360, borderRadius: 22, borderWidth: 1, borderColor: 'rgba(190, 126, 231, 0.7)', backgroundColor: '#211246', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, elevation: 18 },
   datePickerHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 },
@@ -374,7 +518,4 @@ const s = StyleSheet.create({
   datePickerDayTextToday: { color: '#FFD793', fontWeight: '900' },
   datePickerToday: { alignSelf: 'center', marginTop: 10, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 16, backgroundColor: '#F2BC64' },
   datePickerTodayText: { color: '#2A1938', fontSize: 12, fontWeight: '800' },
-  culturePullTrigger: { position: 'absolute', left: 78, right: 78, bottom: 5, height: 31, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(40, 20, 82, 0.95)', borderWidth: 1, borderColor: 'rgba(251, 196, 105, 0.48)', shadowColor: '#09031F', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.34, shadowRadius: 6, elevation: 6 },
-  culturePullHandle: { width: 34, height: 1, borderRadius: 2, backgroundColor: '#FFD98A', marginBottom: 2 },
-  culturePullText: { color: '#F6D590', fontSize: 9, fontWeight: '800', letterSpacing: 0.15 },
 });

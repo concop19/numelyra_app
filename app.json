@@ -22,6 +22,7 @@
       "predictiveBackGestureEnabled": false
     },
     "plugins": [
+      "expo-localization",
       [
         "expo-media-library",
         {
@@ -54,10 +55,16 @@
         {
           "initialOrientation": "DEFAULT"
         }
-      ]
+      ],
+      "expo-image",
+      "@react-native-community/datetimepicker"
     ],
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "locales": {
+      "vi": "./assets/locales/vi.json",
+      "en": "./assets/locales/en.json"
     },
     "extra": {
       "eas": {

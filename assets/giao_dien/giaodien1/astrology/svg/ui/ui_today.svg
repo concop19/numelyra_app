@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Today">
+  <title>Today</title>
+  <desc>Today screen: celestial sunrise over horizon.</desc>
+<g fill="none" stroke="#E8DFFF" stroke-width="6.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.16"><path d="M10 45 H54 M19 45 A13 13 0 0 1 45 45"/></g><g fill="none" stroke="#E8DFFF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 45 H54 M19 45 A13 13 0 0 1 45 45"/></g><g fill="none" stroke="#FFD69B" stroke-width="5.9" stroke-linecap="round" stroke-linejoin="round" opacity="0.16"><path d="M32 13 L32 19"/><path d="M15 23 L20 28"/><path d="M49 23 L44 28"/><path d="M10 35 L16 36"/><path d="M54 35 L48 36"/></g><g fill="none" stroke="#FFD69B" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M32 13 L32 19"/><path d="M15 23 L20 28"/><path d="M49 23 L44 28"/><path d="M10 35 L16 36"/><path d="M54 35 L48 36"/></g><g fill="#FFD69B"><circle cx="51" cy="12" r="2.2"/></g>
+</svg>

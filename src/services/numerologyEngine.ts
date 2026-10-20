@@ -86,6 +86,17 @@ export interface CalculatedIndicator extends NumerologyCardMeta {
   value: string | number;
   displayValue: string;
   isMaster?: boolean;
+  chartData?: {
+    counts: Record<number, number>;
+    arrows?: ArrowResult[];
+  };
+}
+
+export interface ArrowResult {
+  label: string;
+  numbers: [number, number, number];
+  status: 'strong' | 'empty' | 'partial';
+  presentCount: number;
 }
 
 // Parse ngày tháng năm sinh dương lịch an toàn
@@ -144,7 +155,7 @@ export function calculate24Indicators(fullName: string, birthDate: string): Calc
   for (let i = 0; i < dateNumStr.length; i++) {
     lifeSum += parseInt(dateNumStr[i], 10);
   }
-  while (lifeSum >= 10 && lifeSum !== 10 && lifeSum !== 11 && lifeSum !== 22) {
+  while (lifeSum >= 10 && lifeSum !== 10 && lifeSum !== 11 && lifeSum !== 22 && lifeSum !== 33) {
     let tSum = 0;
     const s = String(lifeSum);
     for (let i = 0; i < s.length; i++) tSum += parseInt(s[i], 10);
@@ -261,11 +272,15 @@ export function calculate24Indicators(fullName: string, birthDate: string): Calc
   const rSoul = reduceDigits(soul, false);
   const rPers = reduceDigits(personality, false);
   const rMat = reduceDigits(mature, false);
-  const rPass = typeof passion === 'number' ? reduceDigits(passion, false) : 0;
 
   const bridgeLifeMission = Math.abs(rWalk - rMiss);
   const bridgeSoulPersonality = Math.abs(rSoul - rPers);
-  const bridgeMaturityPassion = Math.abs(rMat - rPass);
+  const bridgeMaturityPassionValues = Array.from(new Set(
+    passionList.map((passionNumber) => Math.abs(rMat - reduceDigits(passionNumber, false)))
+  )).sort((a, b) => a - b);
+  const bridgeMaturityPassion = bridgeMaturityPassionValues.length > 0
+    ? bridgeMaturityPassionValues.join(', ')
+    : String(rMat);
 
   // 14. Cycles (Vận hạn: Năm, Tháng, Ngày cá nhân)
   const rCurYear = reduceDigits(curYear, false);
@@ -305,32 +320,57 @@ export function calculate24Indicators(fullName: string, birthDate: string): Calc
     if (d >= 1 && d <= 9) birthCounts[d] = (birthCounts[d] || 0) + 1;
   }
 
-  const checkArrow = (n1: number, n2: number, n3: number, label: string) => {
-    const hasAll = birthCounts[n1] > 0 && birthCounts[n2] > 0 && birthCounts[n3] > 0;
-    const emptyAll = birthCounts[n1] === 0 && birthCounts[n2] === 0 && birthCounts[n3] === 0;
-    if (hasAll) return `${label} (Mạnh)`;
-    if (emptyAll) return `${label} (Trống)`;
-    return null;
+  const checkArrow = (numbers: [number, number, number], label: string): ArrowResult => {
+    const presentCount = numbers.filter((number) => birthCounts[number] > 0).length;
+    return {
+      label,
+      numbers,
+      presentCount,
+      status: presentCount === 3 ? 'strong' : presentCount === 0 ? 'empty' : 'partial',
+    };
   };
 
-  const detectedArrows = [
-    checkArrow(1, 4, 7, '1-4-7'),
-    checkArrow(2, 5, 8, '2-5-8'),
-    checkArrow(3, 6, 9, '3-6-9'),
-    checkArrow(1, 2, 3, '1-2-3'),
-    checkArrow(4, 5, 6, '4-5-6'),
-    checkArrow(7, 8, 9, '7-8-9'),
-    checkArrow(1, 5, 9, '1-5-9'),
-    checkArrow(3, 5, 7, '3-5-7'),
-  ].filter(Boolean);
-  const arrows = detectedArrows.length > 0 ? detectedArrows.join('; ') : 'Cân bằng tự nhiên';
+  const arrowResults: ArrowResult[] = [
+    checkArrow([1, 4, 7], '1-4-7'),
+    checkArrow([2, 5, 8], '2-5-8'),
+    checkArrow([3, 6, 9], '3-6-9'),
+    checkArrow([1, 2, 3], '1-2-3'),
+    checkArrow([4, 5, 6], '4-5-6'),
+    checkArrow([7, 8, 9], '7-8-9'),
+    checkArrow([1, 5, 9], '1-5-9'),
+    checkArrow([3, 5, 7], '3-5-7'),
+  ];
+  const arrowStatusLabel: Record<ArrowResult['status'], string> = {
+    strong: 'Đủ bộ',
+    empty: 'Trống',
+    partial: 'Có một phần',
+  };
+  const arrows = arrowResults
+    .map((arrow) => `${arrow.label}: ${arrowStatusLabel[arrow.status]} (${arrow.presentCount}/3)`)
+    .join('; ');
 
   // 18. Name Chart & Birth Chart
-  const nameChart = `Tổng ${allLetters.length} chữ cái`;
-  const birthChart = `Tổng ${birthDigits.length} chữ số ngày sinh`;
+  const nameChartCounts: Record<number, number> = {};
+  const birthChartCounts: Record<number, number> = {};
+  for (let number = 1; number <= 9; number++) {
+    nameChartCounts[number] = 0;
+    birthChartCounts[number] = birthCounts[number] || 0;
+  }
+  for (const letter of allLetters) {
+    const number = PYTHAGOREAN_TABLE[letter];
+    if (number) nameChartCounts[number] += 1;
+  }
+  const formatCounts = (counts: Record<number, number>) =>
+    Object.entries(counts).map(([number, count]) => `${number}×${count}`).join(' · ');
+  const nameChart = formatCounts(nameChartCounts);
+  const birthChart = formatCounts(birthChartCounts);
 
   // Gom các giá trị tính được vào map
-  const valueMap: Record<string, { value: string | number; isMaster?: boolean }> = {
+  const valueMap: Record<string, {
+    value: string | number;
+    isMaster?: boolean;
+    chartData?: CalculatedIndicator['chartData'];
+  }> = {
     walksOfLife: { value: walksOfLife, isMaster: walksOfLife === 11 || walksOfLife === 22 || walksOfLife === 33 },
     mission: { value: mission, isMaster: mission === 11 || mission === 22 || mission === 33 },
     soul: { value: soul, isMaster: soul === 11 || soul === 22 || soul === 33 },
@@ -352,9 +392,9 @@ export function calculate24Indicators(fullName: string, birthDate: string): Calc
     dayIndividual: { value: dayIndividual },
     way: { value: way },
     challenges: { value: challenges },
-    arrows: { value: arrows },
-    nameChart: { value: nameChart },
-    birthChart: { value: birthChart },
+    arrows: { value: arrows, chartData: { counts: birthChartCounts, arrows: arrowResults } },
+    nameChart: { value: nameChart, chartData: { counts: nameChartCounts } },
+    birthChart: { value: birthChart, chartData: { counts: birthChartCounts } },
   };
 
   // Ghép nối với danh mục 24 Cards
@@ -363,8 +403,11 @@ export function calculate24Indicators(fullName: string, birthDate: string): Calc
     return {
       ...card,
       value: computed.value,
-      displayValue: String(computed.value),
+      displayValue: computed.chartData
+        ? card.key === 'arrows' ? '8 trạng thái' : 'Ma trận 3×3'
+        : String(computed.value),
       isMaster: computed.isMaster,
+      chartData: computed.chartData,
     };
   });
 }

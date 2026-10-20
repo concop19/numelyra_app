@@ -42,7 +42,7 @@ export function AppSplash({ onFinish }: AppSplashProps) {
 
 const styles = StyleSheet.create({
   root: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: palette.background,
     alignItems: 'center',
     justifyContent: 'center',

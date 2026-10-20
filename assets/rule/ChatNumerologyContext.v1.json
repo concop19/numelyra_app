@@ -1,0 +1,150 @@
+{
+  "version": "chat-numerology-context-v1",
+  "source": "Values 1–9 condensed from matching numerology_knowledge rows. Master values condensed from matching DB rows; soul/personality/mature 33 use NumerologyKnowledgeService fallback archetype because those DB rows are absent.",
+  "usage": "Lookup exact indicator key and calculated value. Master values are included only where the Chat calculator can produce them. Treat as a numerology lens, not a certain fact about the person.",
+  "indicators": {
+    "walksOfLife": {
+      "name": "Đường Đời",
+      "values": {
+        "1": "Hành trình thiên về tự chủ và tiên phong; bài học là dẫn dắt mà vẫn biết hợp tác.",
+        "2": "Hành trình phát triển qua hợp tác, thấu cảm và xây dựng hòa hợp; cần giữ ranh giới cá nhân.",
+        "3": "Con đường mở ra qua sáng tạo, giao tiếp và biểu đạt; cần tập trung để hoàn tất điều đã bắt đầu.",
+        "4": "Bài học chính là xây nền tảng bằng kỷ luật, tổ chức và kiên trì; cần linh hoạt trước thay đổi.",
+        "5": "Hành trình gắn với trải nghiệm, tự do và thích nghi; cần biến ham muốn đổi mới thành lựa chọn có trách nhiệm.",
+        "6": "Trọng tâm là chăm sóc, trách nhiệm và tạo sự hài hòa; cần tránh gánh thay phần việc của người khác.",
+        "7": "Con đường phát triển thiên về nghiên cứu, chiêm nghiệm và tìm hiểu chiều sâu; cần cởi mở với sự hỗ trợ.",
+        "8": "Bài học xoay quanh quản trị, thành tựu và sử dụng nguồn lực; cần cân bằng tham vọng với giá trị sống.",
+        "9": "Hành trình hướng tới lòng trắc ẩn, góc nhìn rộng và sự hoàn tất; cần gắn lý tưởng với việc thực tế.",
+        "11": "Hành trình gắn với trực giác nhạy bén, thức tỉnh nhận thức và truyền cảm hứng; cần giữ cân bằng trước áp lực cảm xúc.",
+        "22": "Có tiềm năng biến tầm nhìn lớn thành công trình thực tế có ích lâu dài; cần chia nhỏ mục tiêu và tránh kiệt sức."
+      }
+    },
+    "mission": {
+      "name": "Sứ Mệnh",
+      "values": {
+        "1": "Có xu hướng đóng góp bằng sáng kiến, sự độc lập và vai trò dẫn dắt; nên chủ động lắng nghe cộng sự.",
+        "2": "Có xu hướng đóng góp bằng ngoại giao, lắng nghe và kết nối; nên giữ chính kiến khi tìm sự đồng thuận.",
+        "3": "Có xu hướng đóng góp qua sáng tạo, ngôn từ và truyền cảm hứng; nên rèn tính nhất quán.",
+        "4": "Có xu hướng đóng góp bằng tổ chức, xây dựng quy trình và thực thi bền bỉ; nên chừa chỗ cho đổi mới.",
+        "5": "Có xu hướng thúc đẩy thay đổi, tự do và khả năng thích nghi; nên theo đuổi ý tưởng đến cùng.",
+        "6": "Có xu hướng đóng góp qua chăm sóc, chữa lành và phục vụ cộng đồng; nên tránh hy sinh quá mức.",
+        "7": "Có xu hướng đóng góp bằng nghiên cứu, phân tích và chia sẻ tri thức sâu; nên kết nối tri thức với con người.",
+        "8": "Có xu hướng đóng góp qua điều hành, chiến lược và quản lý nguồn lực; nên đặt thành tựu trên nền tảng công bằng.",
+        "9": "Có xu hướng đóng góp cho cộng đồng bằng lòng nhân ái và tầm nhìn rộng; nên chuyển lý tưởng thành hành động cụ thể.",
+        "11": "Đóng góp bằng trực giác, khai sáng nhận thức và truyền cảm hứng; cần biến tầm nhìn tinh thần thành hành động cụ thể.",
+        "22": "Sứ mệnh thiên về hiện thực hóa tầm nhìn lớn thành hệ thống hoặc công trình phục vụ cộng đồng; cần bền bỉ và biết phân quyền.",
+        "33": "Sứ mệnh hướng tới tình thương, chữa lành và nâng đỡ người khác; cần phụng sự mà vẫn giữ giới hạn cá nhân."
+      }
+    },
+    "soul": {
+      "name": "Linh Hồn",
+      "values": {
+        "1": "Nội tâm khao khát tự chủ, được tự quyết và ghi nhận bản sắc riêng; cần cân bằng độc lập với sẻ chia.",
+        "2": "Nội tâm cần sự gắn kết, hòa bình và thấu hiểu cảm xúc; cần tránh phụ thuộc vào sự chấp thuận.",
+        "3": "Nội tâm cần được sáng tạo, biểu đạt và lan tỏa niềm vui; cần dành chỗ cho cảm xúc sâu hơn.",
+        "4": "Nội tâm tìm kiếm sự ổn định, trật tự và nền tảng đáng tin; cần chấp nhận rằng kế hoạch có thể đổi.",
+        "5": "Nội tâm khao khát tự do, khám phá và trải nghiệm mới; cần cân bằng mới mẻ với cam kết.",
+        "6": "Nội tâm muốn chăm sóc người thân và tạo mái ấm hài hòa; cần chăm sóc nhu cầu của chính mình.",
+        "7": "Nội tâm khao khát tri thức, chân lý và không gian tĩnh lặng; cần chia sẻ cảm xúc thay vì tự cô lập.",
+        "8": "Nội tâm hướng tới tự chủ, thành tựu và an toàn vật chất; cần tránh đo giá trị bản thân chỉ bằng thành công.",
+        "9": "Nội tâm muốn sống có ý nghĩa và đóng góp cho người khác; cần giữ ranh giới để không kiệt sức.",
+        "11": "Nội tâm khao khát kết nối trực giác sâu sắc, truyền cảm hứng và góp phần chữa lành; cần tránh quá tải cảm xúc.",
+        "22": "Nội tâm muốn biến lý tưởng lớn thành công trình hữu ích, bền vững cho nhiều người; cần cân bằng mơ ước với bước đi thực tế.",
+        "33": "Nội tâm hướng tới tình thương vô điều kiện, chữa lành và nâng đỡ; cần chăm sóc bản thân để không gánh hết cảm xúc của người khác."
+      }
+    },
+    "personality": {
+      "name": "Nhân Cách",
+      "values": {
+        "1": "Thường tạo ấn tượng tự tin, độc lập và quyết đoán; đôi khi có thể bị cảm nhận là quá mạnh hoặc khó nhường.",
+        "2": "Thường tạo ấn tượng dịu dàng, nhã nhặn và biết lắng nghe; đôi khi dễ bị xem là dè dặt.",
+        "3": "Thường tạo ấn tượng hoạt bát, thân thiện và giàu biểu đạt; đôi khi dễ bị xem là thiếu tập trung.",
+        "4": "Thường tạo ấn tượng nghiêm túc, chuẩn mực và đáng tin; đôi khi có thể bị xem là cứng nhắc.",
+        "5": "Thường tạo ấn tượng phóng khoáng, năng động và thích khám phá; đôi khi có vẻ khó đoán.",
+        "6": "Thường tạo ấn tượng ấm áp, chu đáo và có trách nhiệm; đôi khi dễ nhận quá nhiều việc chăm lo.",
+        "7": "Thường tạo ấn tượng trầm tĩnh, kín đáo và sâu sắc; đôi khi có vẻ xa cách lúc mới gặp.",
+        "8": "Thường tạo ấn tượng bản lĩnh, quyết đoán và hướng kết quả; đôi khi có vẻ quá nghiêm hoặc kiểm soát.",
+        "9": "Thường tạo ấn tượng rộng lượng, đĩnh đạc và quan tâm cộng đồng; đôi khi lý tưởng hóa người khác.",
+        "11": "Thường toát lên vẻ tinh tế, nhạy cảm và truyền cảm hứng; đôi khi tạo cảm giác bí ẩn hoặc khó gần.",
+        "22": "Thường tạo ấn tượng bản lĩnh, có tầm nhìn và đáng tin trong việc biến ý tưởng thành kết quả; đôi khi có vẻ áp đảo.",
+        "33": "Có thể toát lên vẻ ấm áp, tận tụy và biết nâng đỡ người khác; cần tránh để sự cho đi lấn át nhu cầu của mình."
+      }
+    },
+    "dateOfBirth": {
+      "name": "Ngày Sinh",
+      "values": {
+        "1": "Tài năng tự nhiên nghiêng về chủ động, khởi xướng và tìm cách làm riêng; nên phối hợp thay vì làm mọi việc một mình.",
+        "2": "Tài năng tự nhiên nghiêng về lắng nghe, hòa giải và nhận biết cảm xúc; nên nói rõ nhu cầu của mình.",
+        "3": "Tài năng tự nhiên nghiêng về ngôn ngữ, sáng tạo và biểu đạt trước mọi người; nên rèn khả năng theo đuổi mục tiêu.",
+        "4": "Tài năng tự nhiên nghiêng về tổ chức, sự tỉ mỉ và công việc thực tiễn; nên tránh cầu toàn quá mức.",
+        "5": "Tài năng tự nhiên nghiêng về thích nghi, giao tiếp và học qua trải nghiệm; nên duy trì nhịp ổn định.",
+        "6": "Tài năng tự nhiên nghiêng về chăm sóc, thẩm mỹ và trách nhiệm; nên tránh ôm đồm việc của người khác.",
+        "7": "Tài năng tự nhiên nghiêng về phân tích, tự học và tìm nguyên nhân sâu; nên kết hợp suy ngẫm với trao đổi.",
+        "8": "Tài năng tự nhiên nghiêng về điều hành, tổ chức và xử lý nguồn lực; nên cân nhắc tác động tới người liên quan.",
+        "9": "Tài năng tự nhiên nghiêng về đồng cảm, tầm nhìn rộng và tinh thần phụng sự; nên gắn lý tưởng với giới hạn thực tế.",
+        "11": "Tài năng thiên bẩm về trực giác, cảm nhận tinh tế và truyền cảm hứng; cần giữ vững cân bằng cảm xúc.",
+        "22": "Tài năng thiên bẩm là kết hợp tầm nhìn lớn với kỷ luật để biến ý tưởng thành kết quả cụ thể; cần tránh ôm đồm."
+      }
+    },
+    "mature": {
+      "name": "Trưởng Thành",
+      "values": {
+        "1": "Theo cách luận giải này, giai đoạn trưởng thành nhấn mạnh tự chủ, khởi xướng và định hình hướng đi riêng.",
+        "2": "Theo cách luận giải này, giai đoạn trưởng thành nhấn mạnh hợp tác, bình an nội tâm và sự thấu cảm.",
+        "3": "Theo cách luận giải này, giai đoạn trưởng thành nhấn mạnh sáng tạo, giao tiếp và chia sẻ niềm vui.",
+        "4": "Theo cách luận giải này, giai đoạn trưởng thành nhấn mạnh xây nền tảng ổn định cho công việc và đời sống.",
+        "5": "Theo cách luận giải này, giai đoạn trưởng thành nhấn mạnh tự do có trách nhiệm và khả năng thích nghi.",
+        "6": "Theo cách luận giải này, giai đoạn trưởng thành nhấn mạnh chăm sóc gia đình, cộng đồng và sự hài hòa.",
+        "7": "Theo cách luận giải này, giai đoạn trưởng thành nhấn mạnh học hỏi sâu, chiêm nghiệm và hiểu biết nội tâm.",
+        "8": "Theo cách luận giải này, giai đoạn trưởng thành nhấn mạnh năng lực điều hành và sử dụng nguồn lực hiệu quả.",
+        "9": "Theo cách luận giải này, giai đoạn trưởng thành nhấn mạnh đóng góp rộng hơn và buông bỏ điều đã hoàn tất.",
+        "11": "Giai đoạn trưởng thành có thể làm nổi bật trực giác, sự thấu cảm và khả năng truyền cảm hứng; cần giữ cân bằng thân tâm.",
+        "22": "Giai đoạn trưởng thành thuận cho việc dẫn dắt và hiện thực hóa dự án lớn; cần dựa vào kinh nghiệm và phân chia trách nhiệm.",
+        "33": "Giai đoạn trưởng thành nhấn mạnh chữa lành, giảng dạy và phụng sự bằng lòng trắc ẩn; cần giữ ranh giới để tránh kiệt sức."
+      }
+    },
+    "rationalThinking": {
+      "name": "Tư Duy Lý Trí",
+      "values": {
+        "1": "Có xu hướng xử lý thông tin nhanh, tập trung mục tiêu và tự quyết; nên kiểm tra dữ kiện trước khi chốt.",
+        "2": "Có xu hướng cân nhắc cảm xúc và góc nhìn của người khác; nên tránh trì hoãn vì muốn làm hài lòng mọi người.",
+        "3": "Có xu hướng liên tưởng nhanh, nhìn ra nhiều ý tưởng và khả năng biểu đạt; nên sắp xếp ưu tiên rõ ràng.",
+        "4": "Có xu hướng phân tích tuần tự, dựa vào dữ kiện và quy trình; nên để ngỏ khả năng ngoài kế hoạch.",
+        "5": "Có xu hướng tiếp nhận nhanh, liên kết nhiều nguồn và thích thử cách mới; nên kiểm chứng trước khi đổi hướng.",
+        "6": "Có xu hướng cân nhắc trách nhiệm, chuẩn mực và ảnh hưởng tới người thân; nên tách sự kiện khỏi cảm xúc.",
+        "7": "Có xu hướng đào sâu, phản biện và tìm bằng chứng gốc; nên đặt giới hạn cho việc phân tích quá lâu.",
+        "8": "Có xu hướng đánh giá theo mục tiêu, nguồn lực và kết quả; nên cân nhắc cả tác động con người.",
+        "9": "Có xu hướng nhìn bức tranh rộng và cân nhắc lợi ích chung; nên kiểm tra các chi tiết thực hiện.",
+        "11": "Tư duy kết hợp phân tích với trực giác nhạy bén; nên kiểm chứng linh cảm bằng dữ kiện trước khi quyết định."
+      }
+    },
+    "yearIndividual": {
+      "name": "Năm Cá Nhân",
+      "values": {
+        "1": "Chu kỳ năm nhấn mạnh khởi đầu, chủ động và gieo nền móng cho hướng đi mới.",
+        "2": "Chu kỳ năm nhấn mạnh hợp tác, kiên nhẫn và nuôi dưỡng các mối quan hệ.",
+        "3": "Chu kỳ năm nhấn mạnh giao tiếp, sáng tạo, học hỏi và mở rộng kết nối.",
+        "4": "Chu kỳ năm nhấn mạnh củng cố nền tảng, tổ chức công việc và duy trì kỷ luật.",
+        "5": "Chu kỳ năm nhấn mạnh thay đổi, thử nghiệm và thích nghi với cơ hội mới.",
+        "6": "Chu kỳ năm nhấn mạnh gia đình, cam kết và trách nhiệm chăm sóc.",
+        "7": "Chu kỳ năm nhấn mạnh học sâu, chiêm nghiệm và rà soát hướng đi.",
+        "8": "Chu kỳ năm nhấn mạnh mục tiêu, quản lý nguồn lực và đánh giá thành quả.",
+        "9": "Chu kỳ năm nhấn mạnh hoàn tất việc cũ, chọn lọc và chuẩn bị cho chu kỳ mới."
+      }
+    },
+    "attitude": {
+      "name": "Thái Độ",
+      "values": {
+        "1": "Phản ứng ban đầu thường chủ động, trực tiếp và muốn nắm quyền xử lý; nên dành chỗ cho ý kiến khác.",
+        "2": "Phản ứng ban đầu thường từ tốn, quan sát và tìm cách phối hợp; nên tránh im lặng khi có nhu cầu.",
+        "3": "Phản ứng ban đầu thường cởi mở, hào hứng và dễ biểu đạt; nên chú ý lắng nghe trọn ý.",
+        "4": "Phản ứng ban đầu thường thận trọng, thực tế và chú ý quy tắc; nên tránh kết luận quá sớm.",
+        "5": "Phản ứng ban đầu thường tò mò, linh hoạt và sẵn sàng thử; nên kiểm tra rủi ro trước khi hành động.",
+        "6": "Phản ứng ban đầu thường ân cần, quan tâm nhu cầu xung quanh và muốn hỗ trợ; nên giữ giới hạn phù hợp.",
+        "7": "Phản ứng ban đầu thường kín đáo, quan sát và phân tích trước khi tham gia; nên chủ động trao đổi khi cần.",
+        "8": "Phản ứng ban đầu thường tự tin, quyết đoán và chú ý kết quả; nên tránh tạo cảm giác áp đặt.",
+        "9": "Phản ứng ban đầu thường rộng lượng, cởi mở và nhìn tới lợi ích chung; nên kiểm tra điều kiện thực tế."
+      }
+    }
+  }
+}

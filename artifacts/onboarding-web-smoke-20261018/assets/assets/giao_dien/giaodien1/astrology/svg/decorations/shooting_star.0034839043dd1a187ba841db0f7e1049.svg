@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Shooting star">
+  <title>Shooting star</title>
+  <desc>Golden meteor star with trailing sky-blue motion lines.</desc>
+<g fill="none" stroke="#99CEFF" stroke-width="5.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.16"><path d="M13 45 C23 39 31 33 41 24 M8 34 C20 31 26 27 33 21 M23 51 C30 43 37 38 46 33"/></g><g fill="none" stroke="#99CEFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 45 C23 39 31 33 41 24 M8 34 C20 31 26 27 33 21 M23 51 C30 43 37 38 46 33"/></g><g fill="none" stroke="#FFD69B" stroke-width="4.9" stroke-linecap="round" stroke-linejoin="round" opacity="0.16"><path d="M47.00 7.50 L49.90 16.10 L58.50 19.00 L49.90 21.90 L47.00 30.50 L44.10 21.90 L35.50 19.00 L44.10 16.10 Z"/></g><g fill="none" stroke="#FFD69B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M47.00 7.50 L49.90 16.10 L58.50 19.00 L49.90 21.90 L47.00 30.50 L44.10 21.90 L35.50 19.00 L44.10 16.10 Z"/></g><g fill="#FFF0CD"><circle cx="47" cy="19" r="2.1"/></g>
+</svg>
