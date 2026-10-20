@@ -57,9 +57,9 @@ function makeArrowBodyPath(
   offsetX: number,
   offsetY: number
 ) {
-  const path = Skia.Path.Make();
+  const path = Skia.PathBuilder.Make();
   const fp = arrow.fullPath;
-  if (!fp || fp.length === 0) return path;
+  if (!fp || fp.length === 0) return path.detach();
 
   const startPt = centerOf(fp[0]!, cellSize, offsetX, offsetY);
   path.moveTo(startPt.x, startPt.y);
@@ -68,7 +68,7 @@ function makeArrowBodyPath(
     const pt = centerOf(fp[i]!, cellSize, offsetX, offsetY);
     path.lineTo(pt.x, pt.y);
   }
-  return path;
+  return path.detach();
 }
 
 function makeArrowHeadPath(
@@ -77,7 +77,7 @@ function makeArrowHeadPath(
   offsetX: number,
   offsetY: number
 ) {
-  const path = Skia.Path.Make();
+  const path = Skia.PathBuilder.Make();
   const head = getArrowHead(arrow);
   const end = centerOf(head, cellSize, offsetX, offsetY);
   const exitDir = getExitDirection(arrow);
@@ -102,7 +102,7 @@ function makeArrowHeadPath(
     end.y + Math.sin(angle - (Math.PI * 3.5) / 4) * headSize
   );
   path.close();
-  return path;
+  return path.detach();
 }
 
 function findArrowAtPoint(

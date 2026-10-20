@@ -27,9 +27,11 @@ import GameHubScreen from './src/screens/GameHubScreen';
 import { loadProfile, hasProfile, UserProfile } from './src/store/userProfile';
 import { AuthProvider, useAuth } from './src/store/authContext';
 import { getNotifications } from './src/services/dailyNotifications';
+import { refreshDailyInsightNotifications } from './src/services/dailyNotifications';
+import { LocalizationProvider, useLocalization } from './src/i18n/LocalizationContext';
 
 type RootStackParamList = {
-  Main: undefined;
+  Main: { dailyDate?: string } | undefined;
   Calendar: undefined;
   Astrology: undefined;
   WallpaperStudio: undefined;
@@ -45,6 +47,7 @@ const linking = {
   prefixes: [Linking.createURL('/'), 'numelyra://'],
   config: {
     screens: {
+      Main: 'daily/:dailyDate?',
       Calendar: 'calendar',
       Astrology: 'astrology',
       WallpaperStudio: 'wallpaper',
@@ -72,14 +75,17 @@ const linking = {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <LocalizationProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </LocalizationProvider>
     </SafeAreaProvider>
   );
 }
 
 function AppContent() {
+  const { locale, ready: isLocaleReady, t } = useLocalization();
   const { isReady: isAuthReady, user, syncLocalProfiles } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -108,17 +114,24 @@ function AppContent() {
     checkProfile();
   }, [isAuthReady, user?.id]);
 
+  useEffect(() => {
+    if (!profile || !isLocaleReady) return;
+    void refreshDailyInsightNotifications({ profile, locale }).catch(() => {
+      // Notification refresh must never block the application shell.
+    });
+  }, [isLocaleReady, locale, profile?.birthDate, profile?.birthTime, profile?.fullName]);
+
   let content = null;
 
   // Loading
-  if (isLoading || !isAuthReady) {
+  if (isLoading || !isAuthReady || !isLocaleReady) {
     content = (
       <SafeAreaView style={styles.loadingContainer}>
         <StatusBar style="light" />
         <View style={styles.loadingInner}>
           <Text style={styles.loadingEmoji}>🐱</Text>
           <ActivityIndicator size="large" color="#F5BA5B" style={{ marginTop: 16 }} />
-          <Text style={styles.loadingText}>Tiểu Linh Miêu đang thức dậy...</Text>
+          <Text style={styles.loadingText}>{t('app.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -166,9 +179,10 @@ function AppContent() {
         <StatusBar style="light" />
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Main">
-            {({ navigation }) => (
+            {({ navigation, route }) => (
               <ChatScreen
                 profile={profile}
+                openDailyDate={route.params?.dailyDate}
                 onOpenSettings={() => navigation.navigate('Settings')}
                 onOpenCalendar={() => navigation.navigate('Calendar')}
                 onOpenAstrology={() => navigation.navigate('Astrology')}
@@ -230,6 +244,7 @@ function AppContent() {
           >
             {({ navigation }) => (
               <SettingsScreen
+                profile={profile}
                 onBack={() => navigation.goBack()}
                 onRequestLogin={() => setLoginRequested(true)}
               />

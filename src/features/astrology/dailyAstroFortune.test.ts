@@ -54,7 +54,7 @@ describe('daily astrology fortune cache', () => {
       .not.toBe(getAstroFortuneStorageKey(date, profile));
   });
 
-  it('uses v6 and invalidates a same-day v5 fortune', async () => {
+  it('uses locale-aware v7 and invalidates a same-day v5 fortune', async () => {
     const v5Key = getAstroFortuneV5StorageKey(date, profile);
     const v2Key = getAstroFortuneV2StorageKey(date, profile);
     const { storage } = createStorage({
@@ -62,7 +62,7 @@ describe('daily astrology fortune cache', () => {
       [v2Key]: JSON.stringify(fortune),
     });
 
-    expect(getAstroFortuneStorageKey(date, profile)).toContain('@astro_fortune_v6_');
+    expect(getAstroFortuneStorageKey(date, profile)).toContain('@astro_fortune_v7_vi_');
     await expect(loadCachedAstroFortune(storage, date, profile)).resolves.toBeNull();
   });
 

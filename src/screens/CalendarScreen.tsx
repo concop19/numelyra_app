@@ -24,6 +24,7 @@ import BlocDetailModal, { type ModalType } from '../components/BlocDetailModal';
 import CalendarMascotSprite from '../components/CalendarMascotSprite';
 import FallingCherryPetals from '../components/FallingCherryPetals';
 import HourDirectionSheet from '../components/HourDirectionSheet';
+import { useLocalization } from '../i18n/LocalizationContext';
 
 const BG_CALENDAR = require('../../assets/giao_dien/giaodien1/calender_asset/background/calendar_background_v2.png');
 
@@ -78,6 +79,7 @@ function findCurrentHour(hours: HourInfo[], hour: number) {
 export default function CalendarScreen({ profile, onBack, onOpenSettings }: Props) {
   const { width: winWidth, height: winHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const { locale, t } = useLocalization();
   const [date, setDate] = useState(() => new Date());
   const [clock, setClock] = useState(() => new Date());
   const [datePickerVisible, setDatePickerVisible] = useState(false);
@@ -135,6 +137,12 @@ export default function CalendarScreen({ profile, onBack, onOpenSettings }: Prop
   const goodHourNames = hours.filter((item) => item.isHoangDao).map((item) => item.name).join(', ');
   const quote = caDao?.content || 'Uống nước nhớ nguồn';
   const quoteSource = caDao?.category || 'Ca dao Việt Nam';
+  const displayMonth = locale === 'en'
+    ? new Intl.DateTimeFormat('en-US', { month: 'long' }).format(date)
+    : MONTHS[month - 1];
+  const displayWeekday = locale === 'en'
+    ? new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(date).toUpperCase()
+    : snapshot.weekdayVi.toUpperCase();
 
   const selectDate = (nextDate: Date) => {
     void Haptics.selectionAsync();
@@ -229,7 +237,7 @@ export default function CalendarScreen({ profile, onBack, onOpenSettings }: Prop
           bounces
         >
           <View style={styles.header}>
-            <TouchableOpacity activeOpacity={0.72} style={styles.headerButton} onPress={onBack} accessibilityRole="button" accessibilityLabel="Quay lại">
+            <TouchableOpacity activeOpacity={0.72} style={styles.headerButton} onPress={onBack} accessibilityRole="button" accessibilityLabel={t('common.back')}>
               <Ionicons name="arrow-back" size={24} color="#FFF1DA" />
             </TouchableOpacity>
             <Text style={styles.brand}>Numelyra<Text style={styles.brandStar}> ✦</Text></Text>
@@ -243,7 +251,7 @@ export default function CalendarScreen({ profile, onBack, onOpenSettings }: Prop
               <Ionicons name="chevron-back" size={24} color="#FFF1DA" />
             </TouchableOpacity>
             <TouchableOpacity activeOpacity={0.78} style={styles.monthChip} onPress={openDatePicker} accessibilityRole="button" accessibilityLabel="Chọn ngày">
-              <Text style={styles.monthText}>{MONTHS[month - 1]} - {year}</Text>
+              <Text style={styles.monthText}>{displayMonth} - {year}</Text>
               <Ionicons name="chevron-down" size={15} color="#FFF1DA" />
             </TouchableOpacity>
             <TouchableOpacity activeOpacity={0.72} style={styles.monthArrow} onPress={() => selectDate(moveDate(date, 1, 'day'))} accessibilityRole="button" accessibilityLabel="Ngày sau">
@@ -253,12 +261,12 @@ export default function CalendarScreen({ profile, onBack, onOpenSettings }: Prop
 
           <TouchableOpacity activeOpacity={0.78} style={[styles.todayPill, isToday && styles.todayPillActive]} onPress={() => selectDate(new Date())} accessibilityRole="button" accessibilityLabel="Trở về hôm nay">
             <Ionicons name="sparkles" size={12} color="#5D287D" />
-            <Text style={styles.todayPillText}>{isToday ? 'Hôm nay' : 'Về hôm nay'}</Text>
+            <Text style={styles.todayPillText}>{locale === 'en' ? (isToday ? 'Today' : 'Back to today') : (isToday ? 'Hôm nay' : 'Về hôm nay')}</Text>
           </TouchableOpacity>
 
           <View style={styles.dateHero}>
             <Text style={[styles.dayNumber, compact && styles.dayNumberCompact]}>{day}</Text>
-            <Text style={[styles.weekday, compact && styles.weekdayCompact]}>{snapshot.weekdayVi.toUpperCase()}</Text>
+            <Text style={[styles.weekday, compact && styles.weekdayCompact]}>{displayWeekday}</Text>
             <View style={styles.dayDivider}>
               <View style={styles.dayDividerLine} />
               <Text style={styles.dayDividerStar}>✦</Text>
@@ -283,23 +291,23 @@ export default function CalendarScreen({ profile, onBack, onOpenSettings }: Prop
               <View style={styles.cardHeaderRow}>
                 <View style={styles.cardIcon}><Ionicons name="time-outline" size={20} color="#38206F" /></View>
                 <View>
-                  <Text style={styles.cardTitle}>GIỜ</Text>
-                  <Text style={styles.cardSubTitle}>{currentHour ? `Giờ ${currentHour.name}` : 'Hiện tại'}</Text>
+                  <Text style={styles.cardTitle}>{locale === 'en' ? 'TIME' : 'GIỜ'}</Text>
+                  <Text style={styles.cardSubTitle}>{currentHour ? `${locale === 'en' ? 'Hour' : 'Giờ'} ${currentHour.name}` : (locale === 'en' ? 'Now' : 'Hiện tại')}</Text>
                 </View>
               </View>
               <Text style={[styles.clockText, compact && styles.clockTextCompact]}>{formatClock(clock)}</Text>
-              <Text style={styles.goodHoursLabel}>Giờ Hoàng Đạo</Text>
+              <Text style={styles.goodHoursLabel}>{locale === 'en' ? 'Favorable hours' : 'Giờ Hoàng Đạo'}</Text>
               <Text style={styles.goodHoursText} numberOfLines={3}>{goodHourNames}</Text>
             </TouchableOpacity>
 
             <View style={[styles.infoCard, styles.solarCard]}>
               <View style={[styles.cardIcon, styles.cardIconCentered]}><Ionicons name="calendar-outline" size={21} color="#542368" /></View>
               <Text style={[styles.solarDay, compact && styles.solarDayCompact]}>{day}</Text>
-              <Text style={styles.solarMonth}>THÁNG {month}</Text>
+              <Text style={styles.solarMonth}>{locale === 'en' ? displayMonth.toUpperCase() : `THÁNG ${month}`}</Text>
               <View style={styles.cardRule} />
               <View style={styles.statusRow}>
                 <View style={[styles.statusDot, { backgroundColor: snapshot.dayHoangDaoStatus.isHoangDao ? '#F5B82E' : '#9B70C9' }]} />
-                <Text style={styles.statusText} numberOfLines={2}>{snapshot.dayHoangDaoStatus.isHoangDao ? 'Ngày Hoàng Đạo' : 'Ngày Hắc Đạo'}</Text>
+                <Text style={styles.statusText} numberOfLines={2}>{locale === 'en' ? (snapshot.dayHoangDaoStatus.isHoangDao ? 'Favorable day' : 'Cautious day') : (snapshot.dayHoangDaoStatus.isHoangDao ? 'Ngày Hoàng Đạo' : 'Ngày Hắc Đạo')}</Text>
               </View>
             </View>
 
@@ -312,24 +320,24 @@ export default function CalendarScreen({ profile, onBack, onOpenSettings }: Prop
             >
               <View style={styles.cardHeaderRow}>
                 <View style={[styles.cardIcon, styles.moonIcon]}><Ionicons name="moon" size={18} color="#A73F74" /></View>
-                <Text style={styles.cardTitle}>ÂM LỊCH</Text>
+                <Text style={styles.cardTitle}>{locale === 'en' ? 'LUNAR DATE' : 'ÂM LỊCH'}</Text>
               </View>
               <View style={styles.lunarCopy}>
-                <Text style={styles.lunarLine} numberOfLines={2}>Năm {canChiYear}</Text>
+                <Text style={styles.lunarLine} numberOfLines={2}>{locale === 'en' ? 'Year' : 'Năm'} {canChiYear}</Text>
                 <View style={styles.lunarRule} />
-                <Text style={styles.lunarLine} numberOfLines={2}>Tháng {canChiMonth}</Text>
+                <Text style={styles.lunarLine} numberOfLines={2}>{locale === 'en' ? 'Month' : 'Tháng'} {canChiMonth}</Text>
                 <View style={styles.lunarRule} />
-                <Text style={[styles.lunarLine, styles.lunarLineStrong]} numberOfLines={2}>Ngày {canChiDay}</Text>
+                <Text style={[styles.lunarLine, styles.lunarLineStrong]} numberOfLines={2}>{locale === 'en' ? 'Day' : 'Ngày'} {canChiDay}</Text>
               </View>
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.lunarDateCaption}>{lunar.day} tháng {LUNAR_MONTHS[lunar.month - 1]} năm {lunar.year} · Âm lịch</Text>
+          <Text style={styles.lunarDateCaption}>{locale === 'en' ? `Lunar day ${lunar.day}, month ${lunar.month}, ${lunar.year}` : `${lunar.day} tháng ${LUNAR_MONTHS[lunar.month - 1]} năm ${lunar.year} · Âm lịch`}</Text>
         </ScrollView>
 
         <TouchableOpacity activeOpacity={0.86} style={[styles.hourPullTrigger, { bottom: Math.max(7, insets.bottom + 3) }]} onPress={openHourSheet} accessibilityRole="button" accessibilityLabel="Kéo lên hoặc chạm để xem giờ hoàng đạo" {...hourPullResponder.panHandlers}>
           <View style={styles.hourPullHandle} />
-          <Text style={styles.hourPullText}>KÉO LÊN XEM GIỜ HOÀNG ĐẠO</Text>
+          <Text style={styles.hourPullText}>{locale === 'en' ? 'SWIPE UP FOR FAVORABLE HOURS' : 'KÉO LÊN XEM GIỜ HOÀNG ĐẠO'}</Text>
           <Ionicons name="chevron-up" size={13} color="#F8DCA0" />
         </TouchableOpacity>
 

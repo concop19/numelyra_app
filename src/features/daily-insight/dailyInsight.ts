@@ -1,0 +1,219 @@
+import type { UserProfile } from '../../store/userProfile';
+import { formatLocalDateKey, getAstrologyProfileFingerprint } from '../astrology/dailyAstroFortune';
+import { generatePureAstroVector, type AstroDominantSignal, type PureAstroFeatureMetadata } from '../../services/astro/astroVectorEngine';
+import { makeDaySnapshot, type HourInfo, type LunarDaySnapshot } from '../../services/lunarService';
+import { ASTRO_ENGINE_VERSION } from '../../services/astro/astroVersion';
+import { translate, type AppLocale } from '../../i18n/translations';
+
+export const DAILY_INSIGHT_ENGINE_VERSION = `daily-insight-v1:${ASTRO_ENGINE_VERSION}`;
+export const DAILY_INSIGHT_QUIET_START = 7;
+export const DAILY_INSIGHT_QUIET_END = 22;
+
+export interface DailyInsightLuckyTime {
+  startHour: number;
+  endHour: number;
+  range: string;
+  canChi: string;
+  label: string;
+}
+
+export interface DailyInsight {
+  dateKey: string;
+  profileKey: string;
+  locale: AppLocale;
+  timeZone: string;
+  personality: string;
+  luckyTime: DailyInsightLuckyTime | null;
+  directions: { joy: string; wealth: string };
+  recommended: string[];
+  avoid: string[];
+  warning: string | null;
+  astroEvidence: string;
+  canChiEvidence: string;
+  canChiDay: string;
+  suggestedQuestions: string[];
+  engineVersion: string;
+}
+
+const EN_DIRECTIONS: Record<string, string> = {
+  'Chính Bắc': 'North', 'Đông Bắc': 'Northeast', 'Chính Đông': 'East', 'Đông Nam': 'Southeast',
+  'Chính Nam': 'South', 'Tây Nam': 'Southwest', 'Chính Tây': 'West', 'Tây Bắc': 'Northwest',
+};
+
+const EN_ACTIVITIES: Record<string, string> = {
+  'Xuất hành': 'Travel or begin a journey', 'Khai trương': 'Launch or open a venture', 'Nhậm chức': 'Begin a new role',
+  'Cưới hỏi': 'Relationship commitments', 'Động thổ': 'Start construction', 'Đào giếng': 'Ground work',
+  'Mở kho': 'Open reserves', 'Cầu an': 'Seek calm and wellbeing', 'Chữa bệnh': 'Focus on recovery',
+  'Dọn dẹp': 'Declutter', 'Cầu phúc': 'Practice gratitude', 'Ký kết lớn': 'Sign major agreements',
+  'Xuất hành xa': 'Long-distance travel', 'Ký kết': 'Sign agreements', 'Giao dịch': 'Make transactions',
+  'Kiện tụng': 'Legal disputes', 'Xây dựng': 'Build or create', 'Sửa chữa': 'Repair and improve',
+  'Lập kế hoạch': 'Make plans', 'Dời nhà': 'Move home', 'Cúng tế': 'Quiet spiritual practice',
+  'Tĩnh dưỡng': 'Rest and recover', 'Mạo hiểm': 'High-risk actions', 'Thu hoạch': 'Complete and collect results',
+  'Tích trữ': 'Build reserves', 'Nạp tài': 'Organize finances', 'Khởi công lớn': 'Start a major project',
+  'An táng': 'Memorial arrangements', 'Cầu tài': 'Pursue financial opportunities', 'Nhập trạch': 'Move into a home',
+  'Tu bổ': 'Maintain and restore', 'Tĩnh tâm': 'Reflect quietly', 'Lập kế hoạch nội bộ': 'Plan internally',
+};
+
+function localizeDirection(value: string, locale: AppLocale): string {
+  return locale === 'en' ? EN_DIRECTIONS[value] ?? value : value;
+}
+
+function localizeActivities(values: string[], locale: AppLocale): string[] {
+  return locale === 'en' ? values.map((value) => EN_ACTIVITIES[value] ?? value) : values;
+}
+
+function formatHourRange(hour: HourInfo, locale: AppLocale): string {
+  if (locale === 'vi') return hour.range.replace('-', '–');
+  const endHour = (hour.startHour + 2) % 24;
+  return `${String(hour.startHour).padStart(2, '0')}:00–${String(endHour).padStart(2, '0')}:00`;
+}
+
+export function chooseLuckyAwakeHour(
+  hours: HourInfo[],
+  quietStart = DAILY_INSIGHT_QUIET_START,
+  quietEnd = DAILY_INSIGHT_QUIET_END,
+): HourInfo | null {
+  const awake = hours.filter((hour) => (
+    hour.startHour >= quietStart
+    && hour.startHour < quietEnd
+    && hour.isHoangDao
+    && !hour.isClash
+  ));
+  if (!awake.length) return null;
+  return [...awake].sort((left, right) => {
+    const leftRank = Number(!left.isDayClash) * 2 + Number(left.isLyThuanPhongGood);
+    const rightRank = Number(!right.isDayClash) * 2 + Number(right.isLyThuanPhongGood);
+    return rightRank - leftRank || left.startHour - right.startHour;
+  })[0];
+}
+
+function personalityFor(signal: AstroDominantSignal, locale: AppLocale): string {
+  return translate(locale, `daily.personality.${signal}`);
+}
+
+function buildAstroEvidence(metadata: PureAstroFeatureMetadata, locale: AppLocale): string {
+  const topTopic = metadata.ruleEvaluation?.topTopics[0];
+  const house = metadata.dailyContext?.activatedHouses[0];
+  if (locale === 'en') {
+    const parts = [`Dominant signal: ${metadata.dominantSignal}`];
+    if (topTopic) parts.push(`Leading theme: ${topTopic.title}`);
+    if (house) parts.push(`House ${house.house} is emphasized today`);
+    return parts.join(' · ');
+  }
+  const parts = [`Tín hiệu chủ đạo: ${metadata.dominantSignal}`];
+  if (topTopic) parts.push(`Chủ đề nổi bật: ${topTopic.title}`);
+  if (house) parts.push(`Nhà ${house.house} (${house.topicVi}) đang được kích hoạt`);
+  return parts.join(' · ');
+}
+
+function buildCanChiEvidence(snapshot: LunarDaySnapshot, locale: AppLocale): string {
+  if (locale === 'en') {
+    return `${snapshot.canChiDay} day · ${snapshot.activities.trucName} officer · ${snapshot.dayHoangDaoStatus.label}`;
+  }
+  return `Ngày ${snapshot.canChiDay} · Trực ${snapshot.activities.trucName} · ${snapshot.dayHoangDaoStatus.label}`;
+}
+
+function suggestions(locale: AppLocale, insight: Pick<DailyInsight, 'luckyTime' | 'directions' | 'avoid'>): string[] {
+  if (locale === 'en') {
+    return [
+      'What should I focus on today?',
+      `How can I use my lucky direction, ${insight.directions.joy}?`,
+      `What should I do during ${insight.luckyTime?.range ?? 'my best time today'}?`,
+      `Why should I avoid ${insight.avoid[0]?.toLowerCase() ?? 'rushed decisions'} today?`,
+      'What does today suggest for love and relationships?',
+      'What is the best career move for me today?',
+    ];
+  }
+  return [
+    'Hôm nay tôi nên tập trung vào điều gì?',
+    `Tôi nên tận dụng hướng ${insight.directions.joy} thế nào?`,
+    `Tôi nên làm gì trong khung ${insight.luckyTime?.range ?? 'giờ tốt hôm nay'}?`,
+    `Vì sao hôm nay tôi nên kiêng ${insight.avoid[0]?.toLowerCase() ?? 'quyết định vội'}?`,
+    'Chuyện tình cảm hôm nay có điều gì đáng chú ý?',
+    'Bước đi công việc nào phù hợp nhất hôm nay?',
+  ];
+}
+
+export function buildDailyInsight(
+  profile: UserProfile,
+  date = new Date(),
+  locale: AppLocale = 'vi',
+): DailyInsight {
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Bangkok';
+  const snapshot = makeDaySnapshot(date, {
+    birthDate: profile.birthDate,
+    currentHour: 0,
+    timeZone: -date.getTimezoneOffset() / 60,
+  });
+  const metadata = generatePureAstroVector({
+    birthDate: profile.birthDate,
+    birthTime: profile.birthTime || undefined,
+    fullName: profile.fullName,
+    birthTimeAccuracy: profile.birthTimeAccuracy,
+    resolvedBirthLocation: profile.birthLocation,
+  }, date).metadata;
+  const bestHour = chooseLuckyAwakeHour(snapshot.hours);
+  const recommended = localizeActivities(snapshot.activities.yi, locale).slice(0, 3);
+  const avoid = localizeActivities(snapshot.activities.ji, locale).slice(0, 3);
+  const base: DailyInsight = {
+    dateKey: formatLocalDateKey(date),
+    profileKey: getAstrologyProfileFingerprint(profile),
+    locale,
+    timeZone,
+    personality: personalityFor(metadata.dominantSignal, locale),
+    luckyTime: bestHour ? {
+      startHour: bestHour.startHour,
+      endHour: (bestHour.startHour + 2) % 24,
+      range: formatHourRange(bestHour, locale),
+      canChi: bestHour.canChi,
+      label: bestHour.label,
+    } : null,
+    directions: {
+      joy: localizeDirection(snapshot.direction.hyThan, locale),
+      wealth: localizeDirection(snapshot.direction.taiThan, locale),
+    },
+    recommended,
+    avoid,
+    warning: snapshot.warning,
+    astroEvidence: buildAstroEvidence(metadata, locale),
+    canChiEvidence: buildCanChiEvidence(snapshot, locale),
+    canChiDay: snapshot.canChiDay,
+    suggestedQuestions: [],
+    engineVersion: DAILY_INSIGHT_ENGINE_VERSION,
+  };
+  return { ...base, suggestedQuestions: suggestions(locale, base) };
+}
+
+export function getDailyInsightCacheKey(insight: Pick<DailyInsight, 'dateKey' | 'profileKey' | 'locale' | 'timeZone'>): string {
+  return `@numelyra:daily-insight:v1:${insight.dateKey}:${insight.profileKey}:${insight.locale}:${insight.timeZone}`;
+}
+
+export interface DailyInsightStorage {
+  getItem(key: string): Promise<string | null>;
+  setItem(key: string, value: string): Promise<void>;
+}
+
+export async function cacheDailyInsight(storage: DailyInsightStorage, insight: DailyInsight): Promise<void> {
+  await storage.setItem(getDailyInsightCacheKey(insight), JSON.stringify(insight));
+}
+
+export async function readCachedDailyInsight(
+  storage: DailyInsightStorage,
+  identity: Pick<DailyInsight, 'dateKey' | 'profileKey' | 'locale' | 'timeZone'>,
+): Promise<DailyInsight | null> {
+  try {
+    const raw = await storage.getItem(getDailyInsightCacheKey(identity));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<DailyInsight>;
+    return parsed.engineVersion === DAILY_INSIGHT_ENGINE_VERSION
+      && parsed.dateKey === identity.dateKey
+      && parsed.profileKey === identity.profileKey
+      && parsed.locale === identity.locale
+      && parsed.timeZone === identity.timeZone
+      ? parsed as DailyInsight
+      : null;
+  } catch {
+    return null;
+  }
+}
+

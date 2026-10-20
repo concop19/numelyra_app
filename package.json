@@ -25,10 +25,11 @@
     "expo-image": "~57.0.5",
     "expo-linear-gradient": "~57.0.2",
     "expo-linking": "~57.0.11",
+    "expo-localization": "~57.0.2",
     "expo-location": "~57.0.20",
     "expo-media-library": "~57.0.5",
     "expo-navigation-bar": "~57.0.3",
-    "expo-notifications": "~57.0.21",
+    "expo-notifications": "~57.0.23",
     "expo-screen-orientation": "~57.0.2",
     "expo-speech": "~57.0.3",
     "expo-sqlite": "^57.0.3",
@@ -70,7 +71,7 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "testRegex": "(src/games/(gameHub|lua-ga/engine|zip/game/(logic|generator)|arrow-escape/src/(levels/levels|space_game/engine/spaceEngine)|sudoku/src/utils/sudokuLogic)|src/services/(chatNumerologyContextService|colorGuidance|chatHistoryStorage|lunarService|numerologyKnowledge|numerologySummaryService|astro/.*)|src/db/numerologyKnowledgeService|src/features/constellation/constellationGeometry|src/features/astrology/dailyAstroFortune)\\.test\\.ts$",
+    "testRegex": "(src/games/(gameHub|lua-ga/engine|zip/game/(logic|generator)|arrow-escape/src/(levels/levels|space_game/engine/spaceEngine)|sudoku/src/utils/sudokuLogic)|src/services/(chatNumerologyContextService|colorGuidance|chatHistoryStorage|dailyNotifications|ttsService|lunarService|numerologyKnowledge|numerologySummaryService|astro/.*)|src/db/numerologyKnowledgeService|src/features/constellation/constellationGeometry|src/features/astrology/dailyAstroFortune|src/features/daily-insight/dailyInsight|src/i18n/LocalizationContext)\\.test\\.ts$",
     "modulePathIgnorePatterns": [
       "<rootDir>/src/games/zip/router-source/"
     ]

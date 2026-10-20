@@ -21,6 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserProfile, ProfileItem, getActiveProfile } from '../store/userProfile';
 import { useAuth } from '../store/authContext';
 import { startVoiceListening, stopVoiceListening, isVoiceSupported } from '../services/voiceService';
@@ -59,6 +60,10 @@ import {
   MAX_STORED_CHAT_MESSAGES,
   saveChatHistory,
 } from '../services/chatHistoryStorage';
+import { useLocalization } from '../i18n/LocalizationContext';
+import { buildDailyInsight, cacheDailyInsight } from '../features/daily-insight/dailyInsight';
+import DailyInsightCard from '../features/daily-insight/DailyInsightCard';
+import DailyInsightSheet from '../features/daily-insight/DailyInsightSheet';
 
 const VIP_ACCOUNT_ICON = require('../../assets/giao_dien/vip.png');
 const AMBIENT_GLOW_IMG = require('../../assets/giao_dien/ambient_glow.png');
@@ -102,6 +107,7 @@ const SPECIAL_MASCOT_IDLE_REST_MS = 3_000;
 
 interface Props {
   profile?: UserProfile;
+  openDailyDate?: string;
   onOpenSettings?: () => void;
   onOpenCalendar?: () => void;
   onOpenAstrology?: () => void;
@@ -170,7 +176,9 @@ const ChatSceneActions: React.FC<ChatSceneActionsProps> = ({
   onOpenAstrology,
   onOpenWallpaper,
   onOpenSettings,
-}) => (
+}) => {
+  const { t } = useLocalization();
+  return (
   <View
     pointerEvents="box-none"
     style={[
@@ -180,8 +188,8 @@ const ChatSceneActions: React.FC<ChatSceneActionsProps> = ({
   >
     <View style={styles.sceneActionRail} pointerEvents="box-none">
       <SceneActionButton
-        label="Chiêm tinh"
-        accessibilityLabel="Mở Chiêm tinh"
+        label={t('chat.astrology')}
+        accessibilityLabel={t('chat.astrology')}
         iconSource={ASTROLOGY_ACTION_ICON}
         accentColor="#D6C2FF"
         onPress={onOpenAstrology}
@@ -190,29 +198,30 @@ const ChatSceneActions: React.FC<ChatSceneActionsProps> = ({
 
     <View style={[styles.sceneActionRail, styles.sceneActionRailRight]} pointerEvents="box-none">
       <SceneActionButton
-        label="Lịch"
-        accessibilityLabel="Mở Lịch của tôi"
+        label={t('chat.calendar')}
+        accessibilityLabel={t('chat.calendar')}
         iconSource={CALENDAR_ACTION_ICON}
         accentColor="#FFD67C"
         onPress={onOpenCalendar}
       />
       <SceneActionButton
-        label="Cài đặt"
-        accessibilityLabel="Mở Cài đặt"
+        label={t('chat.settings')}
+        accessibilityLabel={t('chat.settings')}
         iconSource={SETTINGS_ACTION_ICON}
         accentColor="#AEE8F5"
         onPress={onOpenSettings}
       />
       <SceneActionButton
-        label="Hình nền"
-        accessibilityLabel="Mở Xưởng hình nền"
+        label={t('chat.wallpaper')}
+        accessibilityLabel={t('chat.wallpaper')}
         iconSource={WALLPAPER_ACTION_ICON}
         accentColor="#F6B5DF"
         onPress={onOpenWallpaper}
       />
     </View>
   </View>
-);
+  );
+};
 
 const getLatestConversationCount = (history: MessageItem[]) => {
   if (history.length === 0) return 1;
@@ -574,6 +583,7 @@ const TypewriterMessage: React.FC<TypewriterMessageProps> = ({
 
 export default function ChatScreen({
   profile,
+  openDailyDate,
   onOpenSettings,
   onOpenCalendar,
   onOpenAstrology,
@@ -583,8 +593,21 @@ export default function ChatScreen({
 }: Props) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { locale, t } = useLocalization();
   const chatHistoryOwner = user?.id || 'guest';
   const [isPro, setIsPro] = useState(false);
+  const [dailyClock, setDailyClock] = useState(() => new Date());
+  const [dailySheetVisible, setDailySheetVisible] = useState(false);
+  const [suggestionOffset, setSuggestionOffset] = useState(0);
+
+  const dailyInsight = useMemo(() => {
+    if (!profile) return null;
+    const linkedDate = openDailyDate && /^\d{4}-\d{2}-\d{2}$/.test(openDailyDate)
+      ? new Date(`${openDailyDate}T12:00:00`)
+      : dailyClock;
+    try { return buildDailyInsight(profile, linkedDate, locale); }
+    catch { return null; }
+  }, [dailyClock, locale, openDailyDate, profile]);
 
   const refreshPlan = useCallback(async () => {
     try {
@@ -691,8 +714,39 @@ export default function ChatScreen({
   const skipNextHistoryPersistForOwnerRef = useRef<string | null>(null);
   const isHistoryReady = hydratedHistoryOwner === chatHistoryOwner;
 
+  useEffect(() => {
+    const timer = setInterval(() => setDailyClock(new Date()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!dailyInsight || !isHistoryReady) return;
+    let active = true;
+    void cacheDailyInsight(AsyncStorage, dailyInsight).catch(() => undefined);
+    const seenKey = `@numelyra:daily-insight-seen:${dailyInsight.profileKey}:${dailyInsight.dateKey}`;
+    if (openDailyDate) {
+      setDailySheetVisible(true);
+      void AsyncStorage.setItem(seenKey, '1');
+      return;
+    }
+    AsyncStorage.getItem(seenKey).then((seen) => {
+      if (!active || seen) return;
+      setDailySheetVisible(true);
+      return AsyncStorage.setItem(seenKey, '1');
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [dailyInsight?.dateKey, dailyInsight?.profileKey, isHistoryReady, openDailyDate]);
+
   // Theo dõi trạng thái hiển thị bàn phím để tự động thu gọn Mascot và tối ưu không gian cho ô soạn thảo
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    if (!dailyInsight || inputVal || isKeyboardVisible) return;
+    const timer = setInterval(() => {
+      setSuggestionOffset((current) => (current + 1) % dailyInsight.suggestedQuestions.length);
+    }, 8_000);
+    return () => clearInterval(timer);
+  }, [dailyInsight, inputVal, isKeyboardVisible]);
 
   useEffect(() => {
     const colorTimer = setInterval(() => {
@@ -795,6 +849,7 @@ export default function ChatScreen({
 
   const handleToggleSpeech = useCallback((messageId: string, text: string) => {
     void ttsService.speak(messageId, text, {
+      language: locale === 'en' ? 'en-US' : 'vi-VN',
       onStart: () => setSpeakingMessageId(messageId),
       onDone: () => setSpeakingMessageId((current) => current === messageId ? null : current),
       onStopped: () => setSpeakingMessageId((current) => current === messageId ? null : current),
@@ -803,7 +858,7 @@ export default function ChatScreen({
         Alert.alert('Không thể phát giọng đọc', 'Hãy kiểm tra cài đặt giọng nói tiếng Việt trên thiết bị rồi thử lại.');
       },
     });
-  }, []);
+  }, [locale]);
 
   const handleFlipCard = (messageId: string, cardIndex: number) => {
     const key = `${messageId}_${cardIndex}`;
@@ -978,6 +1033,7 @@ export default function ChatScreen({
     setMascotState('listening');
 
     const stopFn = startVoiceListening({
+      lang: locale === 'en' ? 'en-US' : 'vi-VN',
       onTranscript: (text) => {
         setInputVal(text);
       },
@@ -1232,7 +1288,8 @@ export default function ChatScreen({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: prompt,
-          profiles: selectedProfiles
+          profiles: selectedProfiles,
+          locale,
         })
       });
       const classData = await classRes.json();
@@ -1351,6 +1408,7 @@ export default function ChatScreen({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: prompt,
+          locale,
           decision,
           timeZone: (() => {
             try { return Intl.DateTimeFormat().resolvedOptions().timeZone; }
@@ -1871,6 +1929,13 @@ export default function ChatScreen({
     () => messages.slice(-visibleMessageCount),
     [messages, visibleMessageCount]
   );
+  const visibleSuggestedQuestions = useMemo(() => {
+    if (!dailyInsight) return [];
+    const questions = dailyInsight.suggestedQuestions;
+    return Array.from({ length: Math.min(3, questions.length) }, (_, index) => (
+      questions[(suggestionOffset + index) % questions.length]
+    ));
+  }, [dailyInsight, suggestionOffset]);
   const readingTraceIndex = readingTraceMessageId
     ? messages.findIndex((message) => message.id === readingTraceMessageId)
     : -1;
@@ -1914,7 +1979,7 @@ export default function ChatScreen({
           </View>
           <TouchableOpacity
             accessibilityRole="button"
-            accessibilityLabel={visibleMessageCount === messages.length ? 'Thu gọn lịch sử trò chuyện' : 'Mở toàn bộ lịch sử trò chuyện'}
+            accessibilityLabel={visibleMessageCount === messages.length ? t('chat.collapseHistory') : t('chat.openHistory')}
             onPress={() => {
               const showAll = visibleMessageCount !== messages.length;
               setVisibleMessageCount(showAll ? messages.length : getLatestConversationCount(messages));
@@ -1929,6 +1994,10 @@ export default function ChatScreen({
             </View>
           </TouchableOpacity>
         </View>
+
+        {!isKeyboardVisible && dailyInsight ? (
+          <DailyInsightCard insight={dailyInsight} onPress={() => setDailySheetVisible(true)} />
+        ) : null}
 
         {/* Một luồng chat duy nhất: tin mới nhất ở đầu, kéo xuống để nạp tin cũ. */}
         <View style={styles.chatTimeline}>
@@ -1972,11 +2041,11 @@ export default function ChatScreen({
 
           {isZeroState && !loading && !isKeyboardVisible ? (
             <View style={styles.emptyMascotStage} pointerEvents="box-none">
-              <Text style={styles.welcomeHeading}>Hi, I’m Numelyra</Text>
-              <Text style={styles.welcomeParagraph}>Ask me anything{`\n`}or share how you feel.</Text>
+              <Text style={styles.welcomeHeading}>{t('chat.welcomeHeading')}</Text>
+              <Text style={styles.welcomeParagraph}>{t('chat.welcomeParagraph')}</Text>
               <TouchableOpacity
                 onPress={handleMascotPress}
-                accessibilityLabel="Mở 24 lá bài Thần số học"
+                accessibilityLabel={t('chat.openCards')}
               >
                 <FlameMascot
                   state={ambientMascotState}
@@ -2005,7 +2074,7 @@ export default function ChatScreen({
                 activeOpacity={0.7}
                 onPress={handleMascotPress}
                 accessibilityRole="button"
-                accessibilityLabel="Mở 24 lá bài Thần số học"
+                accessibilityLabel={t('chat.openCards')}
               >
                 <FlameMascot
                   state={speakingMessageId ? 'speaking' : ambientMascotState}
@@ -2021,6 +2090,26 @@ export default function ChatScreen({
 
         {/* 🌟 4. INPUT BAR NUMELYRA */}
         <View style={[styles.bottomBarWrap, { paddingBottom: isKeyboardVisible ? (Platform.OS === 'ios' ? 8 : 4) : Math.max(insets.bottom, 12) }]}>
+          {!inputVal && visibleSuggestedQuestions.length > 0 && (
+            <ScrollView
+              horizontal
+              keyboardShouldPersistTaps="handled"
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.suggestionList}
+            >
+              {visibleSuggestedQuestions.map((question) => (
+                <TouchableOpacity
+                  key={question}
+                  accessibilityRole="button"
+                  activeOpacity={0.78}
+                  onPress={() => setInputVal(question)}
+                  style={styles.suggestionChip}
+                >
+                  <Text numberOfLines={1} style={styles.suggestionText}>{question}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
           <ChatInputBar
             value={inputVal}
             onChangeText={(text) => {
@@ -2039,10 +2128,30 @@ export default function ChatScreen({
             isVoiceListening={isListening}
             isLoading={loading}
             disabled={!isHistoryReady}
-            placeholder="Type a message..."
+            placeholder={dailyInsight?.suggestedQuestions[suggestionOffset] ?? t('chat.placeholder')}
           />
         </View>
       </KeyboardAvoidingView>
+
+      {dailyInsight && (
+        <DailyInsightSheet
+          visible={dailySheetVisible}
+          insight={dailyInsight}
+          onClose={() => setDailySheetVisible(false)}
+          onAsk={(question) => {
+            setInputVal(question);
+            setDailySheetVisible(false);
+          }}
+          onOpenAstrology={() => {
+            setDailySheetVisible(false);
+            onOpenAstrology?.();
+          }}
+          onOpenCalendar={() => {
+            setDailySheetVisible(false);
+            onOpenCalendar?.();
+          }}
+        />
+      )}
 
       <MysticReadingTraceModal
         visible={!!readingTraceMessage || !!liveTarotReading}
@@ -3867,5 +3976,25 @@ const styles = StyleSheet.create({
   bottomBarWrap: {
     backgroundColor: 'transparent',
     zIndex: 10,
+  },
+  suggestionList: {
+    gap: 7,
+    paddingHorizontal: 13,
+    paddingBottom: 7,
+  },
+  suggestionChip: {
+    maxWidth: 245,
+    minHeight: 34,
+    justifyContent: 'center',
+    paddingHorizontal: 13,
+    borderRadius: 17,
+    backgroundColor: 'rgba(48, 31, 91, 0.94)',
+    borderWidth: 1,
+    borderColor: 'rgba(218, 194, 255, 0.28)',
+  },
+  suggestionText: {
+    color: '#E9E0FA',
+    fontSize: 11,
+    fontWeight: '600',
   },
 });

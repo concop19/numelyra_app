@@ -35,6 +35,7 @@ import {
   type AstrologyDetailTarget,
 } from './astrologyPresentation';
 import { ASTROLOGY_BACKGROUNDS, ASTROLOGY_UI_ICONS, PLANET_PNG } from './astrologyArtwork';
+import { useLocalization } from '../../i18n/LocalizationContext';
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -82,13 +83,14 @@ export function AstrologyTodayView({
   onShare,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { locale, t } = useLocalization();
   const { width } = useWindowDimensions();
   const week = useMemo(() => makeWeek(currentDate), [currentDate]);
   const cards = useMemo(() => metadata ? getTodaySummaryCards(metadata) : [], [metadata]);
   const guidanceItems = useMemo(() => metadata ? getPlanetGuidanceItems(metadata) : [], [metadata]);
   const contentWidth = Math.min(720, width) - 24;
   const guidanceCardWidth = Math.max(156, Math.min(222, (contentWidth - 10) / 2));
-  const dateTitle = new Intl.DateTimeFormat('vi-VN', {
+  const dateTitle = new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'vi-VN', {
     weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
   }).format(currentDate);
 
@@ -100,14 +102,14 @@ export function AstrologyTodayView({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[astrologyUiStyles.content, { paddingTop: insets.top + 6, paddingBottom: Math.max(124, insets.bottom + 112) }]}
       >
-        {!profile && <AstrologyHeader title="Chiêm tinh" subtitle="Bầu trời riêng của bạn" onBack={onBack} />}
+        {!profile && <AstrologyHeader title={t('astrology.title')} subtitle={t('astrology.subtitle')} onBack={onBack} />}
         {!profile ? (
           <MysticCard style={styles.missingCard}>
             <Ionicons name="person-circle-outline" size={42} color={ASTRO_COLORS.gold} />
-            <Text style={styles.missingTitle}>Chưa có hồ sơ để dựng lá số</Text>
-            <Text style={astrologyUiStyles.emptyText}>Chọn hoặc tạo một hồ sơ có ngày sinh để bắt đầu.</Text>
+            <Text style={styles.missingTitle}>{t('astrology.missingTitle')}</Text>
+            <Text style={astrologyUiStyles.emptyText}>{t('astrology.missingBody')}</Text>
             <TouchableOpacity style={styles.primaryButton} onPress={onOpenProfile}>
-              <Text style={styles.primaryButtonText}>Chọn hồ sơ</Text>
+              <Text style={styles.primaryButtonText}>{t('astrology.chooseProfile')}</Text>
             </TouchableOpacity>
           </MysticCard>
         ) : (
@@ -140,7 +142,7 @@ export function AstrologyTodayView({
               <LinearGradient colors={[ASTRO_COLORS.paperLight, ASTRO_COLORS.paperDeep]} style={StyleSheet.absoluteFill} />
               <View style={styles.calendarHeader}>
                 <View style={styles.flexCopy}>
-                  <Text style={styles.calendarEyebrow}>HÔM NAY</Text>
+                  <Text style={styles.calendarEyebrow}>{t('astrology.today')}</Text>
                   <Text style={styles.calendarTitle}>{dateTitle}</Text>
                 </View>
                 <Image contentFit="contain" source={ASTROLOGY_UI_ICONS.calendar} style={styles.calendarIcon} />
@@ -151,7 +153,7 @@ export function AstrologyTodayView({
                   return (
                     <View key={date.toISOString()} style={[styles.dayCell, isToday && styles.dayCellActive]}>
                       <Text style={[styles.dayName, isToday && styles.dayNameActive]}>
-                        {new Intl.DateTimeFormat('vi-VN', { weekday: 'short' }).format(date)}
+                        {new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'vi-VN', { weekday: 'short' }).format(date)}
                       </Text>
                       <Text style={[styles.dayNumber, isToday && styles.dayNumberActive]}>{date.getDate()}</Text>
                     </View>
@@ -184,14 +186,14 @@ export function AstrologyTodayView({
               <TouchableOpacity activeOpacity={0.8} onPress={onOpenBirthData} style={styles.precisionCard}>
                 <Ionicons name="compass-outline" size={22} color={ASTRO_COLORS.cyan} />
                 <View style={styles.flexCopy}>
-                  <Text style={styles.precisionTitle}>Hoàn thiện dữ liệu lá số</Text>
+                  <Text style={styles.precisionTitle}>{t('astrology.completeData')}</Text>
                   <Text style={styles.precisionBody}>{getPrecisionMessage(metadata)}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={ASTRO_COLORS.gold} />
               </TouchableOpacity>
             )}
 
-            <SectionHeading title="Dẫn đường hành tinh" eyebrow="Planetary Guidance" action="Lá số" onAction={onOpenNatal} />
+            <SectionHeading title={t('astrology.planetaryGuidance')} eyebrow="Planetary Guidance" action={t('astrology.birthChart')} onAction={onOpenNatal} />
             <FlatList
               accessibilityLabel="Danh sách mười hành tinh"
               contentContainerStyle={styles.guidanceList}
@@ -252,18 +254,18 @@ export function AstrologyTodayView({
               <LinearGradient colors={['#8C58F5', '#5D45CA', '#283B9E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.natalGradient}>
                 <View style={styles.natalIcon}><Text style={styles.natalIconText}>✦</Text></View>
                 <View style={styles.flexCopy}>
-                  <Text style={styles.natalTitle}>Khám phá Natal Chart</Text>
-                  <Text style={styles.natalSubtitle}>12 cung, vị trí hành tinh và các góc bản mệnh</Text>
+                  <Text style={styles.natalTitle}>{t('astrology.exploreNatal')}</Text>
+                  <Text style={styles.natalSubtitle}>{t('astrology.exploreNatalBody')}</Text>
                 </View>
                 <Ionicons name="arrow-forward-circle" size={30} color="#FFF2BD" />
               </LinearGradient>
             </TouchableOpacity>
 
-            <SectionHeading title="Luận giải hôm nay" eyebrow="Today's Interpretation" />
+            <SectionHeading title={t('astrology.todayReading')} eyebrow="Today's Interpretation" />
             <TouchableOpacity activeOpacity={0.82} onPress={onOpenInterpretation} style={styles.interpretationCard}>
               <Ionicons name="sparkles" size={24} color={ASTRO_COLORS.gold} />
               <View style={styles.flexCopy}>
-                <Text style={styles.interpretationTitle}>{fortune?.title ?? 'Bức tranh năng lượng hiện tại'}</Text>
+                <Text style={styles.interpretationTitle}>{fortune?.title ?? t('astrology.currentEnergy')}</Text>
                 <Text numberOfLines={4} style={styles.interpretationBody}>{fortune?.mirror ?? metadata.vibeSummary}</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#D4C5FF" />
@@ -274,7 +276,7 @@ export function AstrologyTodayView({
         {loading && !!metadata && !fortune && (
           <View style={styles.inlineStatus}>
             <ActivityIndicator size="small" color={ASTRO_COLORS.cyan} />
-            <Text style={styles.inlineStatusText}>Đang tải phần luận giải trực tuyến…</Text>
+            <Text style={styles.inlineStatusText}>{t('astrology.loading')}</Text>
           </View>
         )}
 
@@ -282,7 +284,7 @@ export function AstrologyTodayView({
           <MysticCard style={styles.networkError}>
             <Ionicons name="cloud-offline-outline" size={22} color="#FFB0BE" />
             <View style={styles.flexCopy}>
-              <Text style={styles.errorTitle}>Luận giải trực tuyến tạm gián đoạn</Text>
+              <Text style={styles.errorTitle}>{t('astrology.offlineTitle')}</Text>
               <Text style={styles.errorBody}>{error}</Text>
             </View>
             <TouchableOpacity accessibilityRole="button" onPress={onRetry} style={styles.retryButton}>

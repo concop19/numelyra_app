@@ -1,0 +1,11 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "NUMELYRA",
+    "NSPhotoLibraryUsageDescription": "Allow NUMELYRA to access your photo library to save wallpapers.",
+    "NSPhotoLibraryAddUsageDescription": "Allow NUMELYRA to save wallpapers to your photo library.",
+    "NSLocationWhenInUseUsageDescription": "Allow NUMELYRA to use your location while finding suitable places."
+  },
+  "android": {
+    "app_name": "NUMELYRA"
+  }
+}

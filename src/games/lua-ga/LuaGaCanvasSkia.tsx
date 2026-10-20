@@ -8,6 +8,7 @@ import {
   Picture,
   Skia,
   type SkCanvas,
+  type SkPathBuilder,
 } from '@shopify/react-native-skia';
 import type { Chicken, LuaGaWorld, Player } from './types';
 
@@ -98,41 +99,52 @@ const hatPaint = paint('#d8a64f');
 const hatBandPaint = paint('#8a4a2b');
 const smilePaint = paint('#73331e', PaintStyle.Stroke, 1.5);
 
-const flameOuterPath = Skia.Path.Make();
-flameOuterPath.moveTo(0, -31);
-flameOuterPath.cubicTo(7, -25, 15, -22, 12, -12);
-flameOuterPath.cubicTo(20, -9, 18, 5, 8, 10);
-flameOuterPath.cubicTo(1, 14, -10, 10, -14, 3);
-flameOuterPath.cubicTo(-20, -8, -11, -18, -4, -19);
-flameOuterPath.cubicTo(-6, -25, -2, -28, 0, -31);
-flameOuterPath.close();
+function buildPath(draw: (path: SkPathBuilder) => void) {
+  const path = Skia.PathBuilder.Make();
+  draw(path);
+  return path.detach();
+}
 
-const flameMiddlePath = Skia.Path.Make();
-flameMiddlePath.moveTo(2, -23);
-flameMiddlePath.cubicTo(7, -18, 11, -14, 8, -8);
-flameMiddlePath.cubicTo(15, -3, 9, 7, 2, 8);
-flameMiddlePath.cubicTo(-8, 9, -12, 1, -8, -7);
-flameMiddlePath.cubicTo(-3, -12, -3, -18, 2, -23);
-flameMiddlePath.close();
+const flameOuterPath = buildPath((path) => {
+  path.moveTo(0, -31);
+  path.cubicTo(7, -25, 15, -22, 12, -12);
+  path.cubicTo(20, -9, 18, 5, 8, 10);
+  path.cubicTo(1, 14, -10, 10, -14, 3);
+  path.cubicTo(-20, -8, -11, -18, -4, -19);
+  path.cubicTo(-6, -25, -2, -28, 0, -31);
+  path.close();
+});
 
-const flameInnerPath = Skia.Path.Make();
-flameInnerPath.moveTo(2, -14);
-flameInnerPath.cubicTo(8, -7, 7, 2, 1, 6);
-flameInnerPath.cubicTo(-6, 4, -7, -2, -3, -7);
-flameInnerPath.cubicTo(-1, -10, 0, -12, 2, -14);
-flameInnerPath.close();
+const flameMiddlePath = buildPath((path) => {
+  path.moveTo(2, -23);
+  path.cubicTo(7, -18, 11, -14, 8, -8);
+  path.cubicTo(15, -3, 9, 7, 2, 8);
+  path.cubicTo(-8, 9, -12, 1, -8, -7);
+  path.cubicTo(-3, -12, -3, -18, 2, -23);
+  path.close();
+});
 
-const tailPath = Skia.Path.Make();
-tailPath.moveTo(-8, 7);
-tailPath.cubicTo(-22, 3, -22, -9, -13, -13);
-tailPath.cubicTo(-14, -4, -5, -3, -2, 2);
-tailPath.close();
+const flameInnerPath = buildPath((path) => {
+  path.moveTo(2, -14);
+  path.cubicTo(8, -7, 7, 2, 1, 6);
+  path.cubicTo(-6, 4, -7, -2, -3, -7);
+  path.cubicTo(-1, -10, 0, -12, 2, -14);
+  path.close();
+});
 
-const beakPath = Skia.Path.Make();
-beakPath.moveTo(-5, 9);
-beakPath.lineTo(0, 16);
-beakPath.lineTo(5, 9);
-beakPath.close();
+const tailPath = buildPath((path) => {
+  path.moveTo(-8, 7);
+  path.cubicTo(-22, 3, -22, -9, -13, -13);
+  path.cubicTo(-14, -4, -5, -3, -2, 2);
+  path.close();
+});
+
+const beakPath = buildPath((path) => {
+  path.moveTo(-5, 9);
+  path.lineTo(0, 16);
+  path.lineTo(5, 9);
+  path.close();
+});
 
 function drawStaticScene(canvas: SkCanvas, world: LuaGaWorld) {
   const { worldWidth, worldHeight } = world.settings;
@@ -142,12 +154,13 @@ function drawStaticScene(canvas: SkCanvas, world: LuaGaWorld) {
   canvas.drawOval({ x: 120, y: 370, width: 620, height: 260 }, fieldLightPaint);
   canvas.drawOval({ x: 610, y: 335, width: 520, height: 280 }, fieldDarkPaint);
 
-  const lane = Skia.Path.Make();
-  lane.moveTo(180, 650);
-  lane.lineTo(420, 650);
-  lane.lineTo(850, 205);
-  lane.lineTo(815, 198);
-  lane.close();
+  const lane = buildPath((path) => {
+    path.moveTo(180, 650);
+    path.lineTo(420, 650);
+    path.lineTo(850, 205);
+    path.lineTo(815, 198);
+    path.close();
+  });
   canvas.drawPath(lane, pathPaint);
   canvas.drawPath(lane, pathEdgePaint);
   lane.dispose();

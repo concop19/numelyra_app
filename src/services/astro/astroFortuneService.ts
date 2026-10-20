@@ -19,6 +19,7 @@ import type {
 } from './astrologyRuleEvaluator';
 import { longitudeToZodiac } from './astroEngine';
 import { buildAstrologyCaDaoMatchPlan } from './astrologyCaDaoMatcher';
+import type { AppLocale } from '../../i18n/translations';
 
 export interface AstroFortuneSlip {
   title?: string;
@@ -34,6 +35,7 @@ export interface AstroFortuneSlip {
 }
 
 export interface RequestFortuneSlipOptions {
+  locale?: AppLocale;
   astroMetadata?: PureAstroFeatureMetadata;
   userContext?: string;
   recentAdvice?: string[];
@@ -65,6 +67,7 @@ export interface AstroFortuneRequestMetadata {
 }
 
 export interface AstroFortuneRequestPayload {
+  locale: AppLocale;
   caDaoSample: string;
   caDaoCategory: string;
   astroSummary: string;
@@ -170,6 +173,7 @@ export function buildAstroFortuneRequestPayload(
     ? makeAstrologyRuleRequestContext(options.astroMetadata?.ruleEvaluation)
     : undefined;
   return {
+    locale: options.locale ?? 'vi',
     caDaoSample: sampleText,
     caDaoCategory: sampleCategory,
     astroSummary: astroData.summary,

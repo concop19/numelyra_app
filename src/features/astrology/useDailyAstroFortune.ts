@@ -19,6 +19,7 @@ import {
   refreshCachedAstroMetadata,
   saveCachedAstroFortune,
 } from './dailyAstroFortune';
+import { useLocalization } from '../../i18n/LocalizationContext';
 
 export interface DailyAstroFortuneState {
   currentDate: Date;
@@ -42,6 +43,7 @@ function createAstroMetadata(profile: UserProfile, date: Date) {
 }
 
 export function useDailyAstroFortune(profile?: UserProfile | null): DailyAstroFortuneState {
+  const { locale } = useLocalization();
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [fortune, setFortune] = useState<AstroFortuneSlip | null>(null);
   const [loading, setLoading] = useState(true);
@@ -90,12 +92,12 @@ export function useDailyAstroFortune(profile?: UserProfile | null): DailyAstroFo
 
     try {
       if (allowCache) {
-        const cached = await loadCachedAstroFortune(AsyncStorage, currentDate, profile);
+        const cached = await loadCachedAstroFortune(AsyncStorage, currentDate, profile, locale);
         if (cached) {
           const refreshed = refreshCachedAstroMetadata(cached.fortune, metadata);
           if (refreshed.metadataChanged) {
             try {
-              await saveCachedAstroFortune(AsyncStorage, currentDate, profile, refreshed.fortune);
+              await saveCachedAstroFortune(AsyncStorage, currentDate, profile, refreshed.fortune, locale);
             } catch {
               // Cache migration should never prevent a valid fortune from rendering.
             }
@@ -108,16 +110,19 @@ export function useDailyAstroFortune(profile?: UserProfile | null): DailyAstroFo
       const recentAdvice = await loadRecentAstroAdvice(
         AsyncStorage,
         currentDate,
-        profile
+        profile,
+        7,
+        locale,
       );
       const result = await requestAstroFortuneSlip({
+        locale,
         astroMetadata: metadata,
         caDaoMode: 'daily',
         recentAdvice,
       });
       result.astroMetadata = metadata;
       try {
-        await saveCachedAstroFortune(AsyncStorage, currentDate, profile, result);
+        await saveCachedAstroFortune(AsyncStorage, currentDate, profile, result, locale);
       } catch {
         // The freshly loaded result is still useful when local storage is unavailable.
       }
@@ -141,6 +146,7 @@ export function useDailyAstroFortune(profile?: UserProfile | null): DailyAstroFo
   }, [
     currentDate,
     metadata,
+    locale,
     profile?.birthDate,
     profile?.birthLocation?.placeId,
     profile?.birthTime,

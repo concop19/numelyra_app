@@ -24,15 +24,20 @@ import { useAuth } from '../store/authContext';
 import { beginCheckout, getBillingStatus, type BillingProvider, type BillingStatus } from '../services/billingService';
 import {
   canUseNativeNotifications,
+  DEFAULT_DAILY_REMINDER_SETTINGS,
   loadDailyReminderSettings,
   saveDailyReminderSettings,
   type DailyReminderSettings,
 } from '../services/dailyNotifications';
+import type { UserProfile } from '../store/userProfile';
+import { useLocalization } from '../i18n/LocalizationContext';
+import type { LanguagePreference } from '../i18n/translations';
 
 const SKY_BACKGROUND = require('../../assets/giao_dien/giaodien1/setting/background.webp');
 const GROUND_BACKGROUND = require('../../assets/giao_dien/giaodien1/setting/background_ground.webp');
 
 interface Props {
+  profile: UserProfile;
   onBack: () => void;
   onRequestLogin: () => void;
 }
@@ -48,13 +53,14 @@ type SettingItemProps = {
   last?: boolean;
 };
 
-export default function SettingsScreen({ onBack, onRequestLogin }: Props) {
+export default function SettingsScreen({ profile, onBack, onRequestLogin }: Props) {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { user, isConfigured, signOut, syncLocalProfiles } = useAuth();
+  const { locale, preference, setPreference, t } = useLocalization();
   const [busy, setBusy] = useState(false);
   const [billing, setBilling] = useState<BillingStatus | null>(null);
   const [billingError, setBillingError] = useState('');
-  const [dailyReminder, setDailyReminder] = useState<DailyReminderSettings>({ enabled: false, hour: 8, minute: 0 });
+  const [dailyReminder, setDailyReminder] = useState<DailyReminderSettings>({ ...DEFAULT_DAILY_REMINDER_SETTINGS });
 
   const refreshBilling = useCallback(async () => {
     if (!user) {
@@ -133,7 +139,7 @@ export default function SettingsScreen({ onBack, onRequestLogin }: Props) {
   };
 
   const updateDailyReminder = async (next: DailyReminderSettings) => {
-    const saved = await saveDailyReminderSettings(next);
+    const saved = await saveDailyReminderSettings(next, { profile, locale });
     setDailyReminder(saved);
     if (next.enabled && !saved.enabled) {
       Alert.alert('Chưa bật thông báo', 'Bạn có thể bật lại quyền thông báo trong Cài đặt thiết bị bất kỳ lúc nào.');
@@ -142,7 +148,7 @@ export default function SettingsScreen({ onBack, onRequestLogin }: Props) {
 
   const isPro = billing?.plan === 'pro';
   const activeUntil = billing?.subscription?.current_period_end
-    ? new Date(billing.subscription.current_period_end).toLocaleDateString('vi-VN')
+    ? new Date(billing.subscription.current_period_end).toLocaleDateString(locale === 'en' ? 'en-US' : 'vi-VN')
     : null;
   const handle = user?.email ? `@${user.email.split('@')[0]}` : '@numelyra';
   const planDetail = isPro
@@ -195,6 +201,16 @@ export default function SettingsScreen({ onBack, onRequestLogin }: Props) {
       text: `${String(hour).padStart(2, '0')}:00`,
       onPress: () => { void updateDailyReminder({ ...dailyReminder, hour, minute: 0 }); },
     })));
+  };
+
+  const chooseLanguage = () => {
+    const apply = (next: LanguagePreference) => { void setPreference(next); };
+    Alert.alert(t('language.title'), undefined, [
+      { text: `${preference === 'system' ? '✓ ' : ''}${t('language.system')}`, onPress: () => apply('system') },
+      { text: `${preference === 'vi' ? '✓ ' : ''}${t('language.vi')}`, onPress: () => apply('vi') },
+      { text: `${preference === 'en' ? '✓ ' : ''}${t('language.en')}`, onPress: () => apply('en') },
+      { text: t('common.cancel'), style: 'cancel' },
+    ]);
   };
 
   const contentWidth = Math.min(windowWidth - 36, 504);
@@ -250,7 +266,7 @@ export default function SettingsScreen({ onBack, onRequestLogin }: Props) {
               <View style={[styles.cloudBubble, styles.cloudFour]} />
             </View>
 
-            <Text style={styles.title}>Cài đặt tài khoản</Text>
+            <Text style={styles.title}>{t('settings.title')}</Text>
             <Text style={styles.handle}>{handle}</Text>
           </View>
 
@@ -259,7 +275,7 @@ export default function SettingsScreen({ onBack, onRequestLogin }: Props) {
               icon={user ? 'person' : 'person-add'}
               iconColor="#5D238B"
               iconBackground="#FFEADB"
-              label="Thông tin cá nhân"
+              label={t('settings.personal')}
               detail={user?.email ?? (isConfigured ? 'Đăng nhập để đồng bộ hồ sơ' : 'Tài khoản khách')}
               onPress={openAccountActions}
             />
@@ -267,7 +283,7 @@ export default function SettingsScreen({ onBack, onRequestLogin }: Props) {
               icon="diamond"
               iconColor="#9A4B31"
               iconBackground="#FFE2BB"
-              label="Thông tin gói"
+              label={t('settings.plan')}
               detail={planDetail}
               onPress={openPackageActions}
             />
@@ -275,15 +291,15 @@ export default function SettingsScreen({ onBack, onRequestLogin }: Props) {
               icon="globe"
               iconColor="#5B35D2"
               iconBackground="#FFD8E6"
-              label="Ngôn ngữ"
-              detail="Tiếng Việt"
-              onPress={() => Alert.alert('Ngôn ngữ', 'Ứng dụng hiện đang sử dụng Tiếng Việt.')}
+              label={t('language.title')}
+              detail={preference === 'system' ? t('language.system') : t(`language.${preference}`)}
+              onPress={chooseLanguage}
             />
             <SettingItem
               icon="notifications"
               iconColor="#5930C5"
               iconBackground="#F7D4E4"
-              label="Bật thông báo"
+              label={t('settings.notifications')}
               trailing={(
                 <Switch
                   accessibilityLabel="Bật thông báo"
@@ -300,15 +316,33 @@ export default function SettingsScreen({ onBack, onRequestLogin }: Props) {
               icon="sunny-outline"
               iconColor="#F47D16"
               iconBackground="#FFE7C7"
-              label="Nhắc nhở hằng ngày"
-              detail={`${String(dailyReminder.hour).padStart(2, '0')}:${String(dailyReminder.minute).padStart(2, '0')} mỗi ngày`}
+              label={t('settings.dailyReminder')}
+              detail={t('settings.everyDay', { time: `${String(dailyReminder.hour).padStart(2, '0')}:${String(dailyReminder.minute).padStart(2, '0')}` })}
               onPress={chooseReminderTime}
+            />
+            <SettingItem
+              icon="time-outline"
+              iconColor="#E27721"
+              iconBackground="#FFF0CE"
+              label={t('settings.luckyReminder')}
+              detail="07:00–22:00"
+              trailing={(
+                <Switch
+                  accessibilityLabel={t('settings.luckyReminder')}
+                  disabled={!canUseNativeNotifications || !dailyReminder.enabled}
+                  value={dailyReminder.luckyTimeEnabled}
+                  onValueChange={(luckyTimeEnabled) => { void updateDailyReminder({ ...dailyReminder, luckyTimeEnabled }); }}
+                  trackColor={{ false: '#C9BCD8', true: '#E28A36' }}
+                  thumbColor="#FFFFFF"
+                  ios_backgroundColor="#C9BCD8"
+                />
+              )}
             />
             <SettingItem
               icon="stats-chart"
               iconColor="#6B32B2"
               iconBackground="#FFDCE4"
-              label="Hoạt động của bạn"
+              label={t('settings.activity')}
               detail="Lịch sử trải bài, lịch sử hỏi AI"
               onPress={() => Alert.alert('Hoạt động của bạn', '12 lượt xem tarot tháng này\n8 lần xem chiêm tinh\n5 ngày mở lịch liên tiếp')}
             />
@@ -316,14 +350,14 @@ export default function SettingsScreen({ onBack, onRequestLogin }: Props) {
               icon="lock-closed"
               iconColor="#5D35C5"
               iconBackground="#F1DBED"
-              label="Quyền riêng tư"
+              label={t('settings.privacy')}
               onPress={() => Alert.alert('Quyền riêng tư', 'Dữ liệu cá nhân của bạn được lưu và đồng bộ theo trạng thái tài khoản.')}
             />
             <SettingItem
               icon="help-circle"
               iconColor="#6D218B"
               iconBackground="#FBE1E4"
-              label="Trợ giúp"
+              label={t('settings.help')}
               onPress={() => Alert.alert('Trợ giúp', 'Nếu bạn cần hỗ trợ, hãy gửi phản hồi từ trang NUMELYRA.')}
               last
             />

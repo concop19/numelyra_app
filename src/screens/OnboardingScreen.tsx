@@ -37,6 +37,7 @@ import {
   type ResolvedBirthLocation,
   type UserProfile,
 } from '../store/userProfile';
+import { useLocalization } from '../i18n/LocalizationContext';
 
 interface Props {
   onComplete: () => void;
@@ -128,6 +129,15 @@ const FEATURE_SLIDES: FeatureSlide[] = [
     description: 'Khám phá bản đồ sao, tính cách, định hướng và vận hạn theo chiêm tinh học.',
     image: HERO_ASTROLOGY,
   },
+];
+
+const FEATURE_SLIDES_EN: FeatureSlide[] = [
+  { id: 'welcome', title: 'Welcome to your\nAI spiritual guide', description: 'Chat, explore your path, create wallpapers and discover astrology in one app.', image: HERO_MASCOT },
+  { id: 'chat', title: 'Ask AI\nabout anything', description: 'Ask about life, work, learning or the questions on your mind.', image: HERO_CHAT },
+  { id: 'love', title: 'Explore relationships', description: 'Reflect on love, relationships and meaningful connections.', image: HERO_LOVE },
+  { id: 'calendar', title: 'Explore the Can Chi calendar', description: 'View lunar dates, Can Chi, favorable days and traditional guidance.', image: HERO_CALENDAR },
+  { id: 'wallpaper', title: 'Create a personal wallpaper', description: 'Generate wallpapers inspired by feng shui, nature or astrology.', image: HERO_WALLPAPER },
+  { id: 'astrology', title: 'Explore astrology', description: 'Discover your birth chart, personality themes and current transits.', image: HERO_ASTROLOGY },
 ];
 
 const STEP_HEROES: ImageSource[] = [
@@ -451,6 +461,8 @@ function CoinRewardBurst({ runId }: { runId: number }) {
 }
 
 export default function OnboardingScreen({ onComplete }: Props) {
+  const { locale, t } = useLocalization();
+  const en = locale === 'en';
   const { height } = useWindowDimensions();
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
@@ -708,7 +720,8 @@ export default function OnboardingScreen({ onComplete }: Props) {
     );
   }
 
-  const feature = step < FEATURE_SLIDES.length ? FEATURE_SLIDES[step] : null;
+  const featureSlides = en ? FEATURE_SLIDES_EN : FEATURE_SLIDES;
+  const feature = step < featureSlides.length ? featureSlides[step] : null;
 
   return (
     <View style={styles.root}>
@@ -718,7 +731,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <View style={styles.screen}>
           {step > 0 && (
-            <Pressable accessibilityRole="button" accessibilityLabel="Quay lại" onPress={() => goTo(step - 1)} style={styles.backButton}>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('common.back')} onPress={() => goTo(step - 1)} style={styles.backButton}>
               <Ionicons name="arrow-back" size={23} color="#FFF7FF" />
             </Pressable>
           )}
@@ -733,17 +746,17 @@ export default function OnboardingScreen({ onComplete }: Props) {
                 <HeroImage key={feature.id} source={feature.image} imageKey={feature.id} compact={compact} />
                 <View style={styles.featureFooter}>
                   <Pagination active={step} />
-                  <PrimaryButton label="Tiếp theo" onPress={next} />
+                  <PrimaryButton label={en ? 'Next' : 'Tiếp theo'} onPress={next} />
                 </View>
               </View>
             ) : step === 6 ? (
               <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
                 <ScrollView contentContainerStyle={styles.formScroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-                  <Text style={styles.sectionTitle}>Nhập thông tin của bạn</Text>
-                  <Text style={styles.sectionDescription}>Thông tin giúp Numelyra cá nhân hóa thần số học, lịch Can Chi và bản đồ sao.</Text>
+                  <Text style={styles.sectionTitle}>{en ? 'Tell us about yourself' : 'Nhập thông tin của bạn'}</Text>
+                  <Text style={styles.sectionDescription}>{en ? 'This helps Numelyra personalize numerology, Can Chi and your birth chart.' : 'Thông tin giúp Numelyra cá nhân hóa thần số học, lịch Can Chi và bản đồ sao.'}</Text>
                   {!compact && <HeroImage source={HERO_PROFILE} imageKey="profile-form" compact />}
                   <View style={styles.formCard}>
-                    <Field icon="person-outline" label="Họ và tên *" value={draft.fullName} placeholder="Nguyễn Văn A" onChangeText={(fullName) => setDraft((value) => ({ ...value, fullName }))} />
+                    <Field icon="person-outline" label={en ? 'Full name *' : 'Họ và tên *'} value={draft.fullName} placeholder={en ? 'Your name' : 'Nguyễn Văn A'} onChangeText={(fullName) => setDraft((value) => ({ ...value, fullName }))} />
                     {Platform.OS === 'web' ? (
                       <WebDateField
                         value={draft.birthDate}
@@ -752,9 +765,9 @@ export default function OnboardingScreen({ onComplete }: Props) {
                     ) : (
                       <SelectionField
                         icon="calendar-outline"
-                        label="Ngày sinh *"
+                        label={en ? 'Birth date *' : 'Ngày sinh *'}
                         value={draft.birthDate}
-                        placeholder="Chọn ngày/tháng/năm"
+                        placeholder={en ? 'Choose day/month/year' : 'Chọn ngày/tháng/năm'}
                         onPress={() => setShowBirthDatePicker(true)}
                       />
                     )}
@@ -771,7 +784,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
                         />
                         {Platform.OS === 'ios' && (
                           <TouchableOpacity style={styles.datePickerDone} onPress={() => setShowBirthDatePicker(false)}>
-                            <Text style={styles.datePickerDoneText}>Xong</Text>
+                            <Text style={styles.datePickerDoneText}>{en ? 'Done' : 'Xong'}</Text>
                           </TouchableOpacity>
                         )}
                       </View>
@@ -780,16 +793,16 @@ export default function OnboardingScreen({ onComplete }: Props) {
                       {(['female', 'male'] as const).map((gender) => (
                         <TouchableOpacity key={gender} onPress={() => setDraft((value) => ({ ...value, gender }))} style={[styles.genderButton, draft.gender === gender && styles.genderButtonActive]}>
                           <Ionicons name={gender === 'female' ? 'female' : 'male'} size={17} color={draft.gender === gender ? '#41206F' : '#C8BDE8'} />
-                          <Text style={[styles.genderText, draft.gender === gender && styles.genderTextActive]}>{gender === 'female' ? 'Nữ' : 'Nam'}</Text>
+                          <Text style={[styles.genderText, draft.gender === gender && styles.genderTextActive]}>{gender === 'female' ? (en ? 'Female' : 'Nữ') : (en ? 'Male' : 'Nam')}</Text>
                         </TouchableOpacity>
                       ))}
                     </View>
-                    <Field icon="time-outline" label="Giờ sinh" value={draft.birthTime} placeholder="HH:mm (có thể bỏ qua)" keyboardType="numeric" maxLength={5} onChangeText={(birthTime) => setDraft((value) => ({ ...value, birthTime }))} />
+                    <Field icon="time-outline" label={en ? 'Birth time' : 'Giờ sinh'} value={draft.birthTime} placeholder={en ? 'HH:mm (optional)' : 'HH:mm (có thể bỏ qua)'} keyboardType="numeric" maxLength={5} onChangeText={(birthTime) => setDraft((value) => ({ ...value, birthTime }))} />
                     <Field
                       icon="location-outline"
-                      label="Nơi sinh *"
+                      label={en ? 'Birth place *' : 'Nơi sinh *'}
                       value={draft.birthPlace}
-                      placeholder="Nhập tên thành phố, ví dụ: Hà Nội"
+                      placeholder={en ? 'Enter a city, for example London' : 'Nhập tên thành phố, ví dụ: Hà Nội'}
                       onChangeText={(birthPlace) => {
                         setSelectedPlaceSuggestion(null);
                         setDraft((value) => ({ ...value, birthPlace, birthLocation: undefined }));
@@ -800,7 +813,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
                         {searchingPlace && (
                           <View style={styles.placeSearchStatus}>
                             <ActivityIndicator size="small" color="#FF9FC9" />
-                            <Text style={styles.placeSearchStatusText}>Đang tìm địa điểm…</Text>
+                            <Text style={styles.placeSearchStatusText}>{en ? 'Searching places…' : 'Đang tìm địa điểm…'}</Text>
                           </View>
                         )}
                         {!searchingPlace && placeSuggestions.map((suggestion) => (
@@ -830,13 +843,13 @@ export default function OnboardingScreen({ onComplete }: Props) {
                       <View style={styles.resolvedPlaceBadge}>
                         <Ionicons name="checkmark-circle" size={17} color="#8EF0CB" />
                         <Text numberOfLines={2} style={styles.resolvedPlaceText}>
-                          Đã xác định {draft.birthLocation.userLabel} · {draft.birthLocation.timeZoneIdentifier}
+                          {en ? 'Resolved' : 'Đã xác định'} {draft.birthLocation.userLabel} · {draft.birthLocation.timeZoneIdentifier}
                         </Text>
                       </View>
                     )}
                   </View>
                   <PrimaryButton
-                    label={resolvingPlace ? 'Đang xác định nơi sinh…' : 'Hoàn tất thông tin'}
+                    label={resolvingPlace ? (en ? 'Resolving birth place…' : 'Đang xác định nơi sinh…') : (en ? 'Complete profile' : 'Hoàn tất thông tin')}
                     onPress={next}
                     loading={resolvingPlace}
                   />

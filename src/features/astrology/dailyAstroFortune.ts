@@ -1,6 +1,7 @@
 import type { AstroFortuneSlip } from '../../services/astro/astroFortuneService';
 import type { PureAstroFeatureMetadata } from '../../services/astro/astroVectorEngine';
 import { ASTRO_ENGINE_VERSION } from '../../services/astro/astroVersion';
+import type { AppLocale } from '../../i18n/translations';
 
 const LEGACY_V4_ENGINE_VERSION = 'astrology-v2-porphyry-1';
 const LEGACY_V5_ENGINE_VERSION = 'astrology-v3-porphyry-1';
@@ -99,9 +100,10 @@ export function getAstrologyProfileFingerprint(
 
 export function getAstroFortuneStorageKey(
   date: Date,
-  profile?: AstroProfileIdentity | null
+  profile?: AstroProfileIdentity | null,
+  locale: AppLocale = 'vi',
 ): string {
-  return `@astro_fortune_v6_${formatLocalDateKey(date)}_${getAstrologyProfileFingerprint(profile)}`;
+  return `@astro_fortune_v7_${locale}_${formatLocalDateKey(date)}_${getAstrologyProfileFingerprint(profile)}`;
 }
 
 export function getAstroFortuneV5StorageKey(
@@ -145,9 +147,10 @@ function isAstroFortuneSlip(value: unknown): value is AstroFortuneSlip {
 export async function loadCachedAstroFortune(
   storage: KeyValueStorage,
   date: Date,
-  profile?: AstroProfileIdentity | null
+  profile?: AstroProfileIdentity | null,
+  locale: AppLocale = 'vi',
 ): Promise<CachedAstroFortune | null> {
-  const currentKey = getAstroFortuneStorageKey(date, profile);
+  const currentKey = getAstroFortuneStorageKey(date, profile, locale);
   try {
     const stored = await storage.getItem(currentKey);
     if (!stored) return null;
@@ -166,7 +169,8 @@ export async function loadRecentAstroAdvice(
   storage: KeyValueStorage,
   date: Date,
   profile?: AstroProfileIdentity | null,
-  limit = 7
+  limit = 7,
+  locale: AppLocale = 'vi',
 ): Promise<string[]> {
   const recentAdvice: string[] = [];
   const seen = new Set<string>();
@@ -174,7 +178,7 @@ export async function loadRecentAstroAdvice(
   for (let offset = 1; offset <= limit; offset += 1) {
     const previousDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - offset);
     const candidateKeys = [
-      getAstroFortuneStorageKey(previousDate, profile),
+      getAstroFortuneStorageKey(previousDate, profile, locale),
       getAstroFortuneV5StorageKey(previousDate, profile),
       getAstroFortuneV4StorageKey(previousDate, profile),
       getAstroFortuneV3StorageKey(previousDate, profile),
@@ -206,7 +210,8 @@ export async function saveCachedAstroFortune(
   storage: KeyValueStorage,
   date: Date,
   profile: AstroProfileIdentity | null | undefined,
-  fortune: AstroFortuneSlip
+  fortune: AstroFortuneSlip,
+  locale: AppLocale = 'vi',
 ): Promise<void> {
-  await storage.setItem(getAstroFortuneStorageKey(date, profile), JSON.stringify(fortune));
+  await storage.setItem(getAstroFortuneStorageKey(date, profile, locale), JSON.stringify(fortune));
 }
