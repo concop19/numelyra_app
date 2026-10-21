@@ -1,3 +1,5 @@
+import type { AppLocale } from '../i18n/translations';
+
 export const GAME_IDS = [
   'arrow-escape',
   'mind-rules',
@@ -54,11 +56,19 @@ const DAILY_COPY: Record<DailyChallenge['gameId'], Pick<DailyChallenge, 'title' 
   'arrow-escape': { title: 'Arrow Escape Daily', subtitle: 'Thoát khỏi bàn mũi tên của ngày hôm nay.' },
 };
 
-export function getDailyChallenge(date: Date = new Date()): DailyChallenge {
+const DAILY_COPY_EN: typeof DAILY_COPY = {
+  zip: { title: 'Zip Daily', subtitle: 'Connect every cell in one continuous path.' },
+  'mind-rules': { title: 'Mind Rules Daily', subtitle: "Discover today's number rule." },
+  sudoku: { title: 'Sudoku Daily', subtitle: 'A fresh Sudoku board for today.' },
+  'game-2048': { title: '2048 Daily', subtitle: 'Reach tile 128 to complete the challenge.' },
+  'arrow-escape': { title: 'Arrow Escape Daily', subtitle: "Escape today's arrow board." },
+};
+
+export function getDailyChallenge(date: Date = new Date(), locale: AppLocale = 'vi'): DailyChallenge {
   const dateKey = getLocalDateKey(date);
   const ordinal = Math.floor(new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime() / 86_400_000);
   const gameId = DAILY_GAMES[((ordinal % DAILY_GAMES.length) + DAILY_GAMES.length) % DAILY_GAMES.length];
-  return { id: `${gameId}:${dateKey}`, dateKey, gameId, ...DAILY_COPY[gameId] };
+  return { id: `${gameId}:${dateKey}`, dateKey, gameId, ...(locale === 'en' ? DAILY_COPY_EN[gameId] : DAILY_COPY[gameId]) };
 }
 
 export function getYesterdayKey(dateKey: string): string {
@@ -66,3 +76,4 @@ export function getYesterdayKey(dateKey: string): string {
   date.setDate(date.getDate() - 1);
   return getLocalDateKey(date);
 }
+

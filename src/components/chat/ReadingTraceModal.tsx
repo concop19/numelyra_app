@@ -18,6 +18,7 @@ import { getTarotCardImage } from '../../services/tarotAssets';
 import { IndicatorInfo } from '../../services/numerology24Service';
 import { CalculatedIndicator } from '../../services/numerologyEngine';
 import HighlightedAnswerText from './HighlightedAnswerText';
+import { useLocalization } from '../../i18n/LocalizationContext';
 
 const TRACE_BACKGROUND = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/readingTrace/reading_trace_background.png');
 const TRACE_LETTER = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/readingTrace/reading_trace_letter.png');
@@ -43,6 +44,30 @@ interface IndicatorRow {
   profile2?: IndicatorInfo;
 }
 
+const SPREAD_NAMES_EN: Record<string, string> = {
+  single: 'One-Card Reading',
+  'three-card': 'Past · Present · Future',
+  'two-options': 'Two Options: A vs B',
+  relationship: 'Relationship Reading',
+};
+
+const POSITION_NAMES_EN: Record<string, string> = {
+  'single-1': 'Intuitive Message',
+  'pos-1': 'Past (Roots)',
+  'pos-2': 'Present (Current Reality)',
+  'pos-3': 'Near Future (Direction)',
+  'opt-1': 'Starting Point',
+  'opt-2': 'Option A (Path)',
+  'opt-3': 'Option A (Outcome)',
+  'opt-4': 'Option B (Path)',
+  'opt-5': 'Option B (Outcome)',
+  'rel-1': 'Your Energy',
+  'rel-2': 'Their Reflected Energy',
+  'rel-3': 'The Connection',
+  'rel-4': 'What Needs Resolution',
+  'rel-5': 'Growth Potential',
+};
+
 export default function ReadingTraceModal({
   visible,
   message,
@@ -51,6 +76,7 @@ export default function ReadingTraceModal({
   onOpenTarotCard,
   onOpenIndicator,
 }: Props) {
+  const { locale, l } = useLocalization();
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
   const letterMinHeight = Math.max(330, (windowWidth - 32) * 1.2);
@@ -88,11 +114,15 @@ export default function ReadingTraceModal({
   });
 
   const spreadId = typeof decision.spreadId === 'string' ? decision.spreadId : '';
-  const spreadName = TAROT_SPREADS[spreadId]?.nameVi || (drawnCards.length ? 'Trải bài Tarot' : 'Không dùng Tarot');
+  const spreadName = locale === 'en'
+    ? SPREAD_NAMES_EN[spreadId] || (drawnCards.length ? 'Tarot reading' : 'No Tarot used')
+    : TAROT_SPREADS[spreadId]?.nameVi || (drawnCards.length ? 'Trải bài Tarot' : 'Không dùng Tarot');
   const intentName = typeof decision.intent === 'string'
     ? decision.intent.replace(/_/g, ' ')
-    : 'Luận giải tổng hợp';
+    : l('Luận giải tổng hợp', 'Combined reading');
   const tuViBazi = card.tuViBazi || card.baziResult;
+  const baziSummary = locale === 'en' ? tuViBazi?.summaryEn : tuViBazi?.summaryVi;
+  const baziAdvice = locale === 'en' ? tuViBazi?.adviceEn : tuViBazi?.adviceVi;
 
   return (
     <Modal
@@ -114,13 +144,13 @@ export default function ReadingTraceModal({
               style={styles.headerButton}
               activeOpacity={0.75}
               accessibilityRole="button"
-              accessibilityLabel="Quay lại cuộc trò chuyện"
+              accessibilityLabel={l('Quay lại cuộc trò chuyện', 'Back to conversation')}
             >
               <Ionicons name="arrow-back" size={23} color="#FFF8E9" />
             </TouchableOpacity>
             <View style={styles.headerTitleWrap}>
-              <Text style={styles.headerTitle}>AI đã đối chiếu</Text>
-              <Text style={styles.headerSubtitle}>Căn cứ của lời luận giải</Text>
+              <Text style={styles.headerTitle}>{l('AI đã đối chiếu', 'AI cross-check')}</Text>
+              <Text style={styles.headerSubtitle}>{l('Căn cứ của lời luận giải', 'Sources used for this reading')}</Text>
             </View>
             <View style={styles.headerButtonSpacer} />
           </View>
@@ -133,8 +163,8 @@ export default function ReadingTraceModal({
               <View style={styles.section}>
                 <View style={styles.sectionHeadingRow}>
                   <View>
-                    <Text style={styles.sectionTitle}>Thần số học</Text>
-                    <Text style={styles.sectionHint}>Các chỉ số đã được chọn cho câu hỏi này</Text>
+                    <Text style={styles.sectionTitle}>{l('Thần số học', 'Numerology')}</Text>
+                    <Text style={styles.sectionHint}>{l('Các chỉ số đã được chọn cho câu hỏi này', 'Indicators selected for this question')}</Text>
                   </View>
                   <Ionicons name="sparkles" size={20} color="#F8CB7B" />
                 </View>
@@ -149,11 +179,11 @@ export default function ReadingTraceModal({
                         activeOpacity={0.82}
                         onPress={() => onOpenIndicator(makeCalculatedIndicator(meta, selectedIndicator))}
                         accessibilityRole="button"
-                        accessibilityLabel={`${meta.nameVi}, giá trị ${profile1?.value ?? profile2?.value}`}
+                        accessibilityLabel={l(`${meta.nameVi}, giá trị ${profile1?.value ?? profile2?.value}`, `${meta.nameEn}, value ${profile1?.value ?? profile2?.value}`)}
                       >
                         <Image source={meta.image} style={styles.indicatorImage} resizeMode="cover" />
                         <View style={styles.indicatorInfo}>
-                          <Text style={styles.indicatorName} numberOfLines={2}>{meta.nameVi}</Text>
+                          <Text style={styles.indicatorName} numberOfLines={2}>{locale === 'en' ? meta.nameEn : meta.nameVi}</Text>
                           {!!profile1 && (
                             <Text style={styles.indicatorValue} numberOfLines={1}>
                               {profile2 ? `P1 · ${profile1.value}` : profile1.value}
@@ -173,8 +203,8 @@ export default function ReadingTraceModal({
             )}
 
             <View style={styles.questionCard}>
-              <Text style={styles.sectionEyebrow}>CÂU HỎI & CÁCH CHỌN TRẢI BÀI</Text>
-              <Text style={styles.questionText}>{question || 'Không còn lưu câu hỏi gốc cho câu trả lời này.'}</Text>
+              <Text style={styles.sectionEyebrow}>{l('CÂU HỎI & CÁCH CHỌN TRẢI BÀI', 'QUESTION & SPREAD SELECTION')}</Text>
+              <Text style={styles.questionText}>{question || l('Không còn lưu câu hỏi gốc cho câu trả lời này.', 'The original question is no longer available for this answer.')}</Text>
               <View style={styles.decisionMetaRow}>
                 <View style={styles.metaPill}>
                   <Ionicons name="git-branch-outline" size={13} color="#FFE3A3" />
@@ -190,16 +220,16 @@ export default function ReadingTraceModal({
               )}
               {profiles.length > 0 && (
                 <Text style={styles.profileNames}>
-                  Hồ sơ: {profiles.map((item) => item.fullName).filter(Boolean).join(' · ')}
+                  {l('Hồ sơ:', 'Profiles:')} {profiles.map((item) => item.fullName).filter(Boolean).join(' · ')}
                 </Text>
               )}
             </View>
 
-            {!!tuViBazi?.summaryVi && (
+            {!!baziSummary && (
               <View style={styles.baziCard}>
-                <Text style={styles.sectionEyebrow}>TỬ VI & BÁT TỰ</Text>
-                <Text style={styles.baziText}>{tuViBazi.summaryVi}</Text>
-                {!!tuViBazi.adviceVi && <Text style={styles.baziAdvice}>{tuViBazi.adviceVi}</Text>}
+                <Text style={styles.sectionEyebrow}>{l('TỬ VI & BÁT TỰ', 'FOUR PILLARS')}</Text>
+                <Text style={styles.baziText}>{baziSummary}</Text>
+                {!!baziAdvice && <Text style={styles.baziAdvice}>{baziAdvice}</Text>}
               </View>
             )}
 
@@ -207,8 +237,8 @@ export default function ReadingTraceModal({
               <View style={styles.section}>
                 <View style={styles.sectionHeadingRow}>
                   <View>
-                    <Text style={styles.sectionTitle}>Các lá Tarot đã rút</Text>
-                    <Text style={styles.sectionHint}>{spreadName} · Chạm lá để xem ý nghĩa</Text>
+                    <Text style={styles.sectionTitle}>{l('Các lá Tarot đã rút', 'Drawn Tarot Cards')}</Text>
+                    <Text style={styles.sectionHint}>{spreadName} · {l('Chạm lá để xem ý nghĩa', 'Tap a card to view its meaning')}</Text>
                   </View>
                   <Ionicons name="moon-outline" size={20} color="#F8CB7B" />
                 </View>
@@ -220,10 +250,12 @@ export default function ReadingTraceModal({
                       activeOpacity={0.82}
                       onPress={() => onOpenTarotCard(item)}
                       accessibilityRole="button"
-                      accessibilityLabel={`${item.position?.nameVi || `Vị trí ${index + 1}`}: ${item.card.nameVi}, ${item.isReversed ? 'lá ngược' : 'lá xuôi'}`}
+                      accessibilityLabel={locale === 'en'
+                        ? `${POSITION_NAMES_EN[item.position?.id] || `Position ${index + 1}`}: ${item.card.nameEn}, ${item.isReversed ? 'reversed' : 'upright'}`
+                        : `${item.position?.nameVi || `Vị trí ${index + 1}`}: ${item.card.nameVi}, ${item.isReversed ? 'lá ngược' : 'lá xuôi'}`}
                     >
                       <Text style={styles.tarotPosition} numberOfLines={2}>
-                        {index + 1}. {item.position?.nameVi || `Vị trí ${index + 1}`}
+                        {index + 1}. {locale === 'en' ? POSITION_NAMES_EN[item.position?.id] || `Position ${index + 1}` : item.position?.nameVi || `Vị trí ${index + 1}`}
                       </Text>
                       <Image
                         source={getTarotCardImage(item.card.id)}
@@ -231,9 +263,9 @@ export default function ReadingTraceModal({
                         resizeMode="cover"
                       />
                       <View style={styles.tarotCardFooter}>
-                        <Text style={styles.tarotName} numberOfLines={1}>{item.card.nameVi.split('(')[0].trim()}</Text>
+                        <Text style={styles.tarotName} numberOfLines={1}>{locale === 'en' ? item.card.nameEn : item.card.nameVi.split('(')[0].trim()}</Text>
                         <Text style={[styles.tarotOrientation, item.isReversed && styles.tarotOrientationReversed]}>
-                          {item.isReversed ? 'LÁ NGƯỢC ↷' : 'LÁ XUÔI ↾'}
+                          {item.isReversed ? l('LÁ NGƯỢC ↷', 'REVERSED ↷') : l('LÁ XUÔI ↾', 'UPRIGHT ↾')}
                         </Text>
                       </View>
                     </TouchableOpacity>
@@ -253,8 +285,8 @@ export default function ReadingTraceModal({
                 }]}
                 imageStyle={styles.letterImage}
               >
-                <Text style={styles.letterEyebrow}>LUẬN GIẢI HIỆN TẠI</Text>
-                <Text style={styles.letterTitle}>Điểm giao nhau</Text>
+                <Text style={styles.letterEyebrow}>{l('LUẬN GIẢI HIỆN TẠI', 'CURRENT READING')}</Text>
+                <Text style={styles.letterTitle}>{l('Điểm giao nhau', 'Where the signals meet')}</Text>
                 <View style={styles.letterRule} />
                 <HighlightedAnswerText
                   text={message.text}

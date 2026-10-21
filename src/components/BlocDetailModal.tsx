@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { UserProfile, getNguHanhEmoji, getZodiacEmoji } from '../store/userProfile';
+import { useLocalization } from '../i18n/LocalizationContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_HEIGHT = Math.min(SCREEN_HEIGHT * 0.82, 720);
@@ -56,6 +57,7 @@ export default function BlocDetailModal({
   dayHoangDaoStatus,
   isLunarMonthFull,
 }: Props) {
+  const { t, l } = useLocalization();
   if (!visible || type !== 'lunar_destiny') return null;
 
   const closeWithFeedback = () => {
@@ -82,7 +84,7 @@ export default function BlocDetailModal({
                 </LinearGradient>
                 <View style={styles.headerTextStack}>
                   <Text style={styles.headerEyebrow}>NUMELYRA CALENDAR</Text>
-                  <Text style={styles.headerTitle}>CHI TIẾT ÂM DƯƠNG & BẢN MỆNH</Text>
+                  <Text style={styles.headerTitle}>{l('CHI TIẾT ÂM DƯƠNG & BẢN MỆNH', 'LUNAR CALENDAR & DESTINY DETAILS')}</Text>
                 </View>
               </View>
               <TouchableOpacity
@@ -90,7 +92,7 @@ export default function BlocDetailModal({
                 onPress={closeWithFeedback}
                 style={styles.closeBtn}
                 accessibilityRole="button"
-                accessibilityLabel="Đóng chi tiết"
+                accessibilityLabel={t('common.close')}
               >
                 <Ionicons name="close" size={20} color="#FFE4A2" />
               </TouchableOpacity>
@@ -111,60 +113,60 @@ export default function BlocDetailModal({
             ) : null}
 
             <View style={styles.destinyCard}>
-              <Text style={styles.destinyCardTitle}>🗓️ TỔNG QUAN THỜI GIAN ÂM DƯƠNG</Text>
+              <Text style={styles.destinyCardTitle}>🗓️ {l('TỔNG QUAN THỜI GIAN ÂM DƯƠNG', 'LUNAR TIME OVERVIEW')}</Text>
               <View style={styles.destinyRow}>
-                <Text style={styles.destinyLabel}>Ngày Can Chi:</Text>
+                <Text style={styles.destinyLabel}>{l('Ngày Can Chi:', 'Day stem-branch:')}</Text>
                 <Text style={styles.destinyValue}>{canChiDay}</Text>
               </View>
               <View style={styles.destinyRow}>
-                <Text style={styles.destinyLabel}>Tháng Can Chi:</Text>
+                <Text style={styles.destinyLabel}>{l('Tháng Can Chi:', 'Month stem-branch:')}</Text>
                 <Text style={styles.destinyValue}>{canChiMonth}</Text>
               </View>
               <View style={styles.destinyRow}>
-                <Text style={styles.destinyLabel}>Năm Can Chi:</Text>
+                <Text style={styles.destinyLabel}>{l('Năm Can Chi:', 'Year stem-branch:')}</Text>
                 <Text style={styles.destinyValue}>{canChiYear}</Text>
               </View>
               <View style={styles.destinyRow}>
-                <Text style={styles.destinyLabel}>24 Tiết Khí:</Text>
+                <Text style={styles.destinyLabel}>{l('24 Tiết Khí:', 'Solar term:')}</Text>
                 <Text style={[styles.destinyValue, styles.solarTermValue]}>{solarTerm}</Text>
               </View>
               {dayHoangDaoStatus ? (
                 <View style={styles.destinyRow}>
-                  <Text style={styles.destinyLabel}>Cát/Hắc nhật:</Text>
+                  <Text style={styles.destinyLabel}>{l('Cát/Hắc nhật:', 'Day quality:')}</Text>
                   <Text style={styles.destinyValue}>{dayHoangDaoStatus.label}</Text>
                 </View>
               ) : null}
               {typeof isLunarMonthFull === 'boolean' ? (
                 <View style={styles.destinyRow}>
-                  <Text style={styles.destinyLabel}>Tháng âm:</Text>
-                  <Text style={styles.destinyValue}>{isLunarMonthFull ? 'Tháng đủ (30 ngày)' : 'Tháng thiếu (29 ngày)'}</Text>
+                  <Text style={styles.destinyLabel}>{l('Tháng âm:', 'Lunar month:')}</Text>
+                  <Text style={styles.destinyValue}>{isLunarMonthFull ? l('Tháng đủ (30 ngày)', 'Full month (30 days)') : l('Tháng thiếu (29 ngày)', 'Short month (29 days)')}</Text>
                 </View>
               ) : null}
             </View>
 
             {profile ? (
               <View style={[styles.destinyCard, styles.profileCard]}>
-                <Text style={styles.destinyCardTitle}>🔮 TƯƠNG QUAN BẢN MỆNH BẠN</Text>
+                <Text style={styles.destinyCardTitle}>🔮 {l('TƯƠNG QUAN BẢN MỆNH BẠN', 'YOUR DESTINY PROFILE')}</Text>
                 <View style={styles.destinyRow}>
-                  <Text style={styles.destinyLabel}>Họ và tên:</Text>
+                  <Text style={styles.destinyLabel}>{l('Họ và tên:', 'Full name:')}</Text>
                   <Text style={styles.destinyValue}>{profile.fullName}</Text>
                 </View>
                 <View style={styles.destinyRow}>
-                  <Text style={styles.destinyLabel}>Con giáp:</Text>
-                  <Text style={styles.destinyValue}>{getZodiacEmoji(userZodiac)} Tuổi {userZodiac}</Text>
+                  <Text style={styles.destinyLabel}>{l('Con giáp:', 'Zodiac:')}</Text>
+                  <Text style={styles.destinyValue}>{getZodiacEmoji(userZodiac)} {l('Tuổi', 'Sign')} {userZodiac}</Text>
                 </View>
                 <View style={styles.destinyRow}>
-                  <Text style={styles.destinyLabel}>Ngũ Hành:</Text>
-                  <Text style={styles.destinyValue}>{getNguHanhEmoji(userNguHanh)} Mệnh {userNguHanh}</Text>
+                  <Text style={styles.destinyLabel}>{l('Ngũ Hành:', 'Five element:')}</Text>
+                  <Text style={styles.destinyValue}>{getNguHanhEmoji(userNguHanh)} {l('Mệnh', 'Element')} {userNguHanh}</Text>
                 </View>
                 {userNapAm ? (
                   <View style={styles.destinyRow}>
-                    <Text style={styles.destinyLabel}>Nạp Âm:</Text>
+                    <Text style={styles.destinyLabel}>{l('Nạp Âm:', 'Na Yin:')}</Text>
                     <Text style={styles.destinyValue}>{userNapAm}</Text>
                   </View>
                 ) : null}
                 <Text style={styles.destinyAdvice}>
-                  💡 Khởi sự công việc vào các khung giờ Hoàng Đạo và hướng xuất hành phù hợp để thu hút cát khí và tài lộc.
+                  💡 {l('Khởi sự công việc vào các khung giờ Hoàng Đạo và hướng xuất hành phù hợp để thu hút cát khí và tài lộc.', 'Begin important activities during favorable hours and choose a suitable direction to support positive momentum.')}
                 </Text>
               </View>
             ) : null}

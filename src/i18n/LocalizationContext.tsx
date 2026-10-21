@@ -19,6 +19,8 @@ interface LocalizationValue {
   ready: boolean;
   setPreference(preference: LanguagePreference): Promise<void>;
   t(key: TranslationKey, values?: Record<string, string | number>): string;
+  /** Select one-off localized copy without forcing every screen-specific sentence into the shared catalog. */
+  l(vi: string, en: string): string;
   formatDate(date: Date, options?: Intl.DateTimeFormatOptions): string;
   formatTime(date: Date): string;
 }
@@ -58,6 +60,7 @@ export function LocalizationProvider({ children }: React.PropsWithChildren) {
     ready,
     setPreference,
     t,
+    l: (vi, en) => (locale === 'en' ? en : vi),
     formatDate: (date, options) => new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'vi-VN', options).format(date),
     formatTime: (date) => new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'vi-VN', {
       hour: '2-digit', minute: '2-digit', hour12: locale === 'en',

@@ -22,9 +22,11 @@ import { calculate24Indicators, CalculatedIndicator } from '../services/numerolo
 import { IndicatorCategory } from '../config/numerologyCards';
 import { IndicatorDetailModal } from './IndicatorDetailModal';
 import { HistoricalFigureModal } from './HistoricalFigureModal';
+import ThreeDButton from './ThreeDButton';
 import { getRepresentativeByTriple, RepresentativeItem } from '../db/representativeService';
 import { getIndicatorShortSummary } from '../services/numerologySummaryService';
 import { type ProfileItem } from '../store/userProfile';
+import { useLocalization } from '../i18n/LocalizationContext';
 
 // Hình nền Vũ Trụ Thần Số Học của Numelyra
 const BG_NUMELYRA_24 = require('../../assets/background/numelyra_background.png');
@@ -51,14 +53,14 @@ export interface NumerologyCardsModalProps {
   onClose: () => void;
 }
 
-const CATEGORY_TABS: { key: 'all' | IndicatorCategory; label: string }[] = [
-  { key: 'all', label: 'Tất cả' },
-  { key: 'core', label: 'Cốt lõi' },
-  { key: 'potential', label: 'Tiềm năng' },
-  { key: 'karmic', label: 'Nợ nghiệp' },
-  { key: 'bridge', label: 'Cầu nối' },
-  { key: 'cycle', label: 'Vận hạn' },
-  { key: 'chart', label: 'Biểu đồ' },
+const CATEGORY_TABS: { key: 'all' | IndicatorCategory; label: string; labelEn: string }[] = [
+  { key: 'all', label: 'Tất cả', labelEn: 'All' },
+  { key: 'core', label: 'Cốt lõi', labelEn: 'Core' },
+  { key: 'potential', label: 'Tiềm năng', labelEn: 'Potential' },
+  { key: 'karmic', label: 'Nợ nghiệp', labelEn: 'Karma' },
+  { key: 'bridge', label: 'Cầu nối', labelEn: 'Bridges' },
+  { key: 'cycle', label: 'Vận hạn', labelEn: 'Cycles' },
+  { key: 'chart', label: 'Biểu đồ', labelEn: 'Charts' },
 ];
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -74,6 +76,7 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
   profile,
   onClose,
 }) => {
+  const { locale, l } = useLocalization();
   const [selectedCategory, setSelectedCategory] = useState<'all' | IndicatorCategory>('all');
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedIndicatorForDetail, setSelectedIndicatorForDetail] = useState<CalculatedIndicator | null>(null);
@@ -159,10 +162,10 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
   const shortSummary = currentIndicator ? getIndicatorShortSummary(currentIndicator) : '';
   const currentValueLabel = currentIndicator
     ? currentIndicator.chartData
-      ? 'BIỂU ĐỒ CÁ NHÂN'
+      ? l('BIỂU ĐỒ CÁ NHÂN', 'PERSONAL CHART')
       : currentIndicator.key === 'karmicDebts' || currentIndicator.key === 'missingNumbers'
-        ? `KẾT QUẢ ${currentIndicator.displayValue.toUpperCase()}`
-        : `SỐ ${currentIndicator.displayValue}`
+        ? l(`KẾT QUẢ ${currentIndicator.displayValue.toUpperCase()}`, `RESULT ${currentIndicator.displayValue.toUpperCase()}`)
+        : l(`SỐ ${currentIndicator.displayValue}`, `NUMBER ${currentIndicator.displayValue}`)
     : '';
 
   const renderCardItem = ({ item, index }: { item: CalculatedIndicator; index: number }) => {
@@ -197,7 +200,7 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
               style={[styles.cardTarotBannerText, isActive && styles.cardTarotBannerTextActive]}
               numberOfLines={1}
             >
-              {item.nameEn ? item.nameEn.toUpperCase() : item.nameVi.toUpperCase()}
+              {(locale === 'en' ? item.nameEn : item.nameVi).toUpperCase()}
             </Text>
           </View>
         </View>
@@ -227,18 +230,18 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
               onPress={handleFindFigure}
               style={styles.headerFigureQuickBtn}
               accessibilityRole="button"
-              accessibilityLabel="Tìm nhân vật đồng điệu 3 chỉ số"
+              accessibilityLabel={l('Tìm nhân vật đồng điệu 3 chỉ số', 'Find a figure who shares your three core numbers')}
             >
               <Ionicons name="sparkles" size={12} color="#E8BC79" style={{ marginRight: 4 }} />
-              <Text style={styles.headerFigureQuickText}>Tri Kỷ 3 Số</Text>
+              <Text style={styles.headerFigureQuickText}>{l('Tri Kỷ 3 Số', '3-Number Match')}</Text>
             </TouchableOpacity>
 
             <View style={styles.headerCenter}>
               <View style={styles.headerTitleRow}>
                 <Ionicons name="sparkles" size={15} color={PALETTE.accent} style={{ marginRight: 6 }} />
-                <Text style={styles.mainTitle}>Bản Đồ Linh Hồn</Text>
+                <Text style={styles.mainTitle}>{l('Bản Đồ Linh Hồn', 'Soul Map')}</Text>
               </View>
-              <Text style={styles.subTitle}>Khám phá 24 chỉ số của bạn</Text>
+              <Text style={styles.subTitle}>{l('Khám phá 24 chỉ số của bạn', 'Explore your 24 numerology indicators')}</Text>
             </View>
 
             {/* Nút đóng tròn tinh tế ở góc trên bên phải */}
@@ -247,7 +250,7 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
               onPress={onClose}
               style={styles.closeBtn}
               accessibilityRole="button"
-              accessibilityLabel="Đóng"
+              accessibilityLabel={l('Đóng', 'Close')}
             >
               <Ionicons name="close" size={18} color={PALETTE.textPrimary} />
             </TouchableOpacity>
@@ -270,7 +273,7 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
                     style={[styles.tabPill, isActive && styles.tabPillActive]}
                   >
                     <Text style={[styles.tabPillText, isActive && styles.tabPillTextActive]}>
-                      {item.label}
+                      {locale === 'en' ? item.labelEn : item.label}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -313,39 +316,31 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
             <View style={styles.insightPanel}>
               {/* Category Tag + Con số (Điểm nhấn #E8BC79) */}
               <Text style={styles.insightCategoryTag}>
-                {currentIndicator.categoryNameVi.toUpperCase()} · {currentValueLabel}
+                {(locale === 'en' ? currentIndicator.categoryNameEn || 'Numerology' : currentIndicator.categoryNameVi).toUpperCase()} · {currentValueLabel}
               </Text>
 
               {/* Tên chỉ số (Chữ chính #F6F0E8) */}
               <Text style={styles.insightTitle} numberOfLines={1}>
-                {currentIndicator.nameVi}
+                {locale === 'en' ? currentIndicator.nameEn : currentIndicator.nameVi}
               </Text>
 
               {/* Đúc kết nguyên mẫu 1-2 câu sâu sắc (Chữ phụ #ADA2C5) */}
               <Text style={styles.insightSummary} numberOfLines={2}>
-                {shortSummary}
+                {locale === 'en' ? currentIndicator.descriptionEn || `A Pythagorean numerology reading for ${currentIndicator.nameEn}.` : shortSummary}
               </Text>
 
               {/* Cụm nút hành động: Nút Nổi Bật Tìm Người Chung 3 Chỉ Số + Nút Khám phá luận giải */}
               <View style={styles.insightActionsContainer}>
-                <TouchableOpacity
-                  activeOpacity={0.85}
+                <ThreeDButton
+                  accessibilityLabel={l('Tìm nhân vật có cùng 3 chỉ số với bạn', 'Find a notable figure with the same three core numbers')}
+                  label={l('Tìm người chung 3 chỉ số với bạn', 'Find your three-number match')}
+                  leadingIcon={<Ionicons name="sparkles" size={14} color="#3B260D" />}
                   onPress={handleFindFigure}
-                  style={styles.findFigureActionBtn}
-                  accessibilityRole="button"
-                  accessibilityLabel="Tìm nhân vật có cùng 3 chỉ số với bạn"
-                >
-                  <LinearGradient
-                    colors={['#FFE4A0', '#E8BC79', '#D19A4B']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.findFigureActionGradient}
-                  >
-                    <Ionicons name="sparkles" size={14} color="#160E34" style={{ marginRight: 6 }} />
-                    <Text style={styles.findFigureActionText}>Tìm người chung 3 chỉ số với bạn</Text>
-                    <Ionicons name="arrow-forward" size={13} color="#160E34" style={{ marginLeft: 6 }} />
-                  </LinearGradient>
-                </TouchableOpacity>
+                  shape="pill"
+                  size="sm"
+                  trailingIcon={<Ionicons name="arrow-forward" size={14} color="#3B260D" />}
+                  variant="gold"
+                />
 
                 <TouchableOpacity
                   activeOpacity={0.7}
@@ -355,7 +350,7 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
                   }}
                   style={styles.exploreActionBtn}
                 >
-                  <Text style={styles.exploreActionText}>Khám phá luận giải chỉ số này ↗</Text>
+                  <Text style={styles.exploreActionText}>{l('Khám phá luận giải chỉ số này ↗', 'Explore this number ↗')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -649,26 +644,5 @@ const styles = StyleSheet.create({
     width: '100%',
     marginTop: 10,
     gap: 8,
-  },
-  findFigureActionBtn: {
-    borderRadius: 22,
-    overflow: 'hidden',
-    shadowColor: '#E8BC79',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  findFigureActionGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 18,
-  },
-  findFigureActionText: {
-    color: '#160E34',
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.2,
   },
 });

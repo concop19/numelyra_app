@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -16,6 +15,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
+import ThreeDButton from '../components/ThreeDButton';
 import { useAuth } from '../store/authContext';
 import { useLocalization } from '../i18n/LocalizationContext';
 
@@ -104,30 +104,28 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.eyebrow}>✦ WELCOME TO</Text>
+            <Text style={styles.eyebrow}>✦ {en ? 'WELCOME TO' : 'CHÀO MỪNG ĐẾN VỚI'}</Text>
             <Text style={styles.brand}>NUMELYRA</Text>
-            <Text style={styles.tagline}>Unlock your magic ♡</Text>
+            <Text style={styles.tagline}>{en ? 'Unlock your magic ♡' : 'Đánh thức phép màu của bạn ♡'}</Text>
             <Text style={styles.description}>{isSignUp ? (en ? 'Create an account to sync your journey.' : 'Tạo tài khoản để đồng bộ hành trình của bạn.') : (en ? 'Sign in to save and sync your journey.' : 'Đăng nhập để lưu và đồng bộ hành trình của bạn.')}</Text>
 
             {/* NÚT ĐĂNG NHẬP GOOGLE */}
-            <TouchableOpacity
-              accessibilityRole="button"
+            <ThreeDButton
+              accessibilityLabel={en ? 'Continue with Google' : 'Tiếp tục với Google'}
               disabled={loading || googleLoading || !isConfigured}
-              onPress={handleGoogleSignIn}
-              activeOpacity={0.85}
-              style={[styles.googleButton, (!isConfigured || loading || googleLoading) && styles.submitDisabled]}
-            >
-              {googleLoading ? (
-                <ActivityIndicator color="#EA4335" size="small" />
-              ) : (
-                <>
-                  <View style={styles.googleIconBadge}>
-                    <Text style={styles.googleIconG}>G</Text>
-                  </View>
-                  <Text style={styles.googleButtonText}>{en ? 'Continue with Google' : 'Tiếp tục với Google'}</Text>
-                </>
+              fullWidth
+              label={en ? 'Continue with Google' : 'Tiếp tục với Google'}
+              leadingIcon={(
+                <View style={styles.googleIconBadge}>
+                  <Text style={styles.googleIconG}>G</Text>
+                </View>
               )}
-            </TouchableOpacity>
+              loading={googleLoading}
+              onPress={handleGoogleSignIn}
+              style={styles.googleButton3d}
+              textStyle={styles.googleButtonText}
+              variant="light"
+            />
 
             <View style={styles.dividerRow}>
               <View style={styles.dividerLine} />
@@ -175,15 +173,17 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
             {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
             {!!message && <Text style={styles.message}>{message}</Text>}
 
-            <TouchableOpacity
-              accessibilityRole="button"
+            <ThreeDButton
               disabled={loading || googleLoading || !isConfigured}
+              fullWidth
+              label={isSignUp ? (en ? 'CREATE ACCOUNT' : 'TẠO TÀI KHOẢN') : (en ? 'SIGN IN' : 'ĐĂNG NHẬP')}
+              loading={loading}
               onPress={submit}
-              activeOpacity={0.85}
-              style={[styles.submit, (!isConfigured || loading || googleLoading) && styles.submitDisabled]}
-            >
-              {loading ? <ActivityIndicator color="#FFF9F5" /> : <View style={styles.submitContent}><Text style={styles.submitText}>{isSignUp ? (en ? 'CREATE ACCOUNT' : 'TẠO TÀI KHOẢN') : (en ? 'SIGN IN' : 'ĐĂNG NHẬP')}</Text><Ionicons name="arrow-forward" size={18} color="#FFF9F5" /></View>}
-            </TouchableOpacity>
+              size="lg"
+              style={styles.submit3d}
+              trailingIcon={<Ionicons name="arrow-forward" size={18} color="#3F205C" />}
+              variant="brand"
+            />
 
             <TouchableOpacity activeOpacity={0.7} accessibilityRole="button" onPress={() => { void Haptics.selectionAsync(); setIsSignUp((value) => !value); setError(''); setMessage(''); }} style={styles.modeButton}>
               <Text style={styles.modeText}>{isSignUp ? (en ? 'Already have an account? ' : 'Đã có tài khoản? ') : (en ? 'New to Numelyra? ' : 'Chưa có tài khoản? ')}<Text style={styles.modeEmphasis}>{isSignUp ? (en ? 'Sign in' : 'Đăng nhập') : (en ? 'Create account' : 'Tạo tài khoản')}</Text></Text>
@@ -216,10 +216,7 @@ const styles = StyleSheet.create({
   passwordInput: { flex: 1, paddingHorizontal: 14, color: '#5B302B', fontSize: 15 },
   showButton: { paddingHorizontal: 13, paddingVertical: 12 },
   showButtonText: { color: '#D45B3B', fontSize: 11, fontWeight: '800' },
-  submit: { minHeight: 52, marginTop: 16, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F04A38' },
-  submitDisabled: { opacity: 0.55 },
-  submitContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  submitText: { color: '#FFF9F5', fontSize: 14, fontWeight: '900', letterSpacing: 0.4 },
+  submit3d: { marginTop: 16 },
   error: { color: '#A33126', fontSize: 12, lineHeight: 18, marginTop: 12, textAlign: 'center' },
   message: { color: '#3D7A50', fontSize: 12, lineHeight: 18, marginTop: 12, textAlign: 'center' },
   modeButton: { alignItems: 'center', paddingTop: 17, paddingBottom: 8 },
@@ -227,23 +224,7 @@ const styles = StyleSheet.create({
   modeEmphasis: { color: '#EC4938', fontWeight: '800' },
   guestButton: { alignItems: 'center', paddingVertical: 8 },
   guestText: { color: '#A54A3A', fontSize: 12, textDecorationLine: 'underline' },
-  googleButton: {
-    minHeight: 50,
-    borderRadius: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#E8D2CA',
-    marginBottom: 8,
-    shadowColor: '#C65A35',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 2,
-    paddingHorizontal: 16,
-  },
+  googleButton3d: { marginBottom: 8 },
   googleIconBadge: {
     width: 24,
     height: 24,
@@ -251,7 +232,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#EA4335',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
   },
   googleIconG: {
     color: '#FFFFFF',

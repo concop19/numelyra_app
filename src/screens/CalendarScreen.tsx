@@ -79,7 +79,7 @@ function findCurrentHour(hours: HourInfo[], hour: number) {
 export default function CalendarScreen({ profile, onBack, onOpenSettings }: Props) {
   const { width: winWidth, height: winHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const { locale, t } = useLocalization();
+  const { locale, t, l } = useLocalization();
   const [date, setDate] = useState(() => new Date());
   const [clock, setClock] = useState(() => new Date());
   const [datePickerVisible, setDatePickerVisible] = useState(false);
@@ -135,8 +135,8 @@ export default function CalendarScreen({ profile, onBack, onOpenSettings }: Prop
   const isToday = isSameDay(date, today);
   const currentHour = findCurrentHour(hours, clock.getHours());
   const goodHourNames = hours.filter((item) => item.isHoangDao).map((item) => item.name).join(', ');
-  const quote = caDao?.content || 'Uống nước nhớ nguồn';
-  const quoteSource = caDao?.category || 'Ca dao Việt Nam';
+  const quote = caDao?.content || l('Uống nước nhớ nguồn', 'Remember the source when drinking water');
+  const quoteSource = caDao?.category || l('Ca dao Việt Nam', 'Vietnamese proverb');
   const displayMonth = locale === 'en'
     ? new Intl.DateTimeFormat('en-US', { month: 'long' }).format(date)
     : MONTHS[month - 1];
@@ -241,25 +241,25 @@ export default function CalendarScreen({ profile, onBack, onOpenSettings }: Prop
               <Ionicons name="arrow-back" size={24} color="#FFF1DA" />
             </TouchableOpacity>
             <Text style={styles.brand}>Numelyra<Text style={styles.brandStar}> ✦</Text></Text>
-            <TouchableOpacity activeOpacity={0.72} style={styles.headerButton} onPress={onOpenSettings} accessibilityRole="button" accessibilityLabel="Mở cài đặt">
+            <TouchableOpacity activeOpacity={0.72} style={styles.headerButton} onPress={onOpenSettings} accessibilityRole="button" accessibilityLabel={t('chat.settings')}>
               <Ionicons name="settings-outline" size={23} color="#FFF1DA" />
             </TouchableOpacity>
           </View>
 
           <View style={styles.monthRow}>
-            <TouchableOpacity activeOpacity={0.72} style={styles.monthArrow} onPress={() => selectDate(moveDate(date, -1, 'day'))} accessibilityRole="button" accessibilityLabel="Ngày trước">
+            <TouchableOpacity activeOpacity={0.72} style={styles.monthArrow} onPress={() => selectDate(moveDate(date, -1, 'day'))} accessibilityRole="button" accessibilityLabel={l('Ngày trước', 'Previous day')}>
               <Ionicons name="chevron-back" size={24} color="#FFF1DA" />
             </TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.78} style={styles.monthChip} onPress={openDatePicker} accessibilityRole="button" accessibilityLabel="Chọn ngày">
+            <TouchableOpacity activeOpacity={0.78} style={styles.monthChip} onPress={openDatePicker} accessibilityRole="button" accessibilityLabel={l('Chọn ngày', 'Choose date')}>
               <Text style={styles.monthText}>{displayMonth} - {year}</Text>
               <Ionicons name="chevron-down" size={15} color="#FFF1DA" />
             </TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.72} style={styles.monthArrow} onPress={() => selectDate(moveDate(date, 1, 'day'))} accessibilityRole="button" accessibilityLabel="Ngày sau">
+            <TouchableOpacity activeOpacity={0.72} style={styles.monthArrow} onPress={() => selectDate(moveDate(date, 1, 'day'))} accessibilityRole="button" accessibilityLabel={l('Ngày sau', 'Next day')}>
               <Ionicons name="chevron-forward" size={24} color="#FFF1DA" />
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity activeOpacity={0.78} style={[styles.todayPill, isToday && styles.todayPillActive]} onPress={() => selectDate(new Date())} accessibilityRole="button" accessibilityLabel="Trở về hôm nay">
+          <TouchableOpacity activeOpacity={0.78} style={[styles.todayPill, isToday && styles.todayPillActive]} onPress={() => selectDate(new Date())} accessibilityRole="button" accessibilityLabel={l('Trở về hôm nay', 'Return to today')}>
             <Ionicons name="sparkles" size={12} color="#5D287D" />
             <Text style={styles.todayPillText}>{locale === 'en' ? (isToday ? 'Today' : 'Back to today') : (isToday ? 'Hôm nay' : 'Về hôm nay')}</Text>
           </TouchableOpacity>
@@ -287,7 +287,7 @@ export default function CalendarScreen({ profile, onBack, onOpenSettings }: Prop
           </View>
 
           <View style={[styles.infoRow, compact && styles.infoRowCompact]}>
-            <TouchableOpacity activeOpacity={0.82} style={[styles.infoCard, styles.timeCard]} onPress={openHourSheet} accessibilityRole="button" accessibilityLabel="Mở chi tiết giờ hoàng đạo">
+            <TouchableOpacity activeOpacity={0.82} style={[styles.infoCard, styles.timeCard]} onPress={openHourSheet} accessibilityRole="button" accessibilityLabel={l('Mở chi tiết giờ hoàng đạo', 'Open favorable-hour details')}>
               <View style={styles.cardHeaderRow}>
                 <View style={styles.cardIcon}><Ionicons name="time-outline" size={20} color="#38206F" /></View>
                 <View>
@@ -316,7 +316,7 @@ export default function CalendarScreen({ profile, onBack, onOpenSettings }: Prop
               style={[styles.infoCard, styles.lunarCard]}
               onPress={() => openDetail('lunar_destiny')}
               accessibilityRole="button"
-              accessibilityLabel="Mở chi tiết âm lịch và bản mệnh"
+              accessibilityLabel={l('Mở chi tiết âm lịch và bản mệnh', 'Open lunar calendar and destiny details')}
             >
               <View style={styles.cardHeaderRow}>
                 <View style={[styles.cardIcon, styles.moonIcon]}><Ionicons name="moon" size={18} color="#A73F74" /></View>
@@ -335,7 +335,7 @@ export default function CalendarScreen({ profile, onBack, onOpenSettings }: Prop
           <Text style={styles.lunarDateCaption}>{locale === 'en' ? `Lunar day ${lunar.day}, month ${lunar.month}, ${lunar.year}` : `${lunar.day} tháng ${LUNAR_MONTHS[lunar.month - 1]} năm ${lunar.year} · Âm lịch`}</Text>
         </ScrollView>
 
-        <TouchableOpacity activeOpacity={0.86} style={[styles.hourPullTrigger, { bottom: Math.max(7, insets.bottom + 3) }]} onPress={openHourSheet} accessibilityRole="button" accessibilityLabel="Kéo lên hoặc chạm để xem giờ hoàng đạo" {...hourPullResponder.panHandlers}>
+        <TouchableOpacity activeOpacity={0.86} style={[styles.hourPullTrigger, { bottom: Math.max(7, insets.bottom + 3) }]} onPress={openHourSheet} accessibilityRole="button" accessibilityLabel={l('Kéo lên hoặc chạm để xem giờ hoàng đạo', 'Swipe up or tap to view favorable hours')} {...hourPullResponder.panHandlers}>
           <View style={styles.hourPullHandle} />
           <Text style={styles.hourPullText}>{locale === 'en' ? 'SWIPE UP FOR FAVORABLE HOURS' : 'KÉO LÊN XEM GIỜ HOÀNG ĐẠO'}</Text>
           <Ionicons name="chevron-up" size={13} color="#F8DCA0" />
@@ -343,25 +343,25 @@ export default function CalendarScreen({ profile, onBack, onOpenSettings }: Prop
 
         <Modal visible={datePickerVisible} transparent animationType="fade" onRequestClose={() => setDatePickerVisible(false)}>
           <View style={styles.datePickerBackdrop}>
-            <Pressable style={StyleSheet.absoluteFill} onPress={() => setDatePickerVisible(false)} accessibilityLabel="Đóng bộ chọn ngày" />
+            <Pressable style={StyleSheet.absoluteFill} onPress={() => setDatePickerVisible(false)} accessibilityLabel={l('Đóng bộ chọn ngày', 'Close date picker')} />
             <View style={styles.datePickerCard}>
               <View style={styles.datePickerHeader}>
-                <Text style={styles.datePickerTitle}>Chọn ngày</Text>
-                <TouchableOpacity activeOpacity={0.7} onPress={() => setDatePickerVisible(false)} style={styles.datePickerClose} accessibilityRole="button" accessibilityLabel="Đóng">
+                <Text style={styles.datePickerTitle}>{l('Chọn ngày', 'Choose date')}</Text>
+                <TouchableOpacity activeOpacity={0.7} onPress={() => setDatePickerVisible(false)} style={styles.datePickerClose} accessibilityRole="button" accessibilityLabel={t('common.close')}>
                   <Ionicons name="close" size={20} color="#FCEBFF" />
                 </TouchableOpacity>
               </View>
               <View style={styles.datePickerMonthRow}>
-                <TouchableOpacity activeOpacity={0.7} style={styles.datePickerArrow} onPress={() => setPickerDate((current) => moveDate(current, -1, 'month'))} accessibilityRole="button" accessibilityLabel="Tháng trước">
+                <TouchableOpacity activeOpacity={0.7} style={styles.datePickerArrow} onPress={() => setPickerDate((current) => moveDate(current, -1, 'month'))} accessibilityRole="button" accessibilityLabel={l('Tháng trước', 'Previous month')}>
                   <Ionicons name="chevron-back" size={19} color="#FFD793" />
                 </TouchableOpacity>
-                <Text style={styles.datePickerMonth}>{MONTHS[pickerDate.getMonth()]} · {pickerDate.getFullYear()}</Text>
-                <TouchableOpacity activeOpacity={0.7} style={styles.datePickerArrow} onPress={() => setPickerDate((current) => moveDate(current, 1, 'month'))} accessibilityRole="button" accessibilityLabel="Tháng sau">
+                <Text style={styles.datePickerMonth}>{locale === 'en' ? new Intl.DateTimeFormat('en-US', { month: 'long' }).format(pickerDate) : MONTHS[pickerDate.getMonth()]} · {pickerDate.getFullYear()}</Text>
+                <TouchableOpacity activeOpacity={0.7} style={styles.datePickerArrow} onPress={() => setPickerDate((current) => moveDate(current, 1, 'month'))} accessibilityRole="button" accessibilityLabel={l('Tháng sau', 'Next month')}>
                   <Ionicons name="chevron-forward" size={19} color="#FFD793" />
                 </TouchableOpacity>
               </View>
               <View style={styles.datePickerWeekdays}>
-                {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((weekday) => <Text key={weekday} style={styles.datePickerWeekday}>{weekday}</Text>)}
+                {(locale === 'en' ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] : ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']).map((weekday) => <Text key={weekday} style={styles.datePickerWeekday}>{weekday}</Text>)}
               </View>
               <View style={styles.datePickerGrid}>
                 {pickerDays.map((pickerDay) => {
@@ -380,15 +380,15 @@ export default function CalendarScreen({ profile, onBack, onOpenSettings }: Prop
                         setDatePickerVisible(false);
                       }}
                       accessibilityRole="button"
-                      accessibilityLabel={`${pickerDay.getDate()} tháng ${pickerDay.getMonth() + 1} năm ${pickerDay.getFullYear()}${isCurrentDay ? ', hôm nay' : ''}`}
+                      accessibilityLabel={`${new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'vi-VN', { day: 'numeric', month: 'long', year: 'numeric' }).format(pickerDay)}${isCurrentDay ? l(', hôm nay', ', today') : ''}`}
                     >
                       <Text style={[styles.datePickerDayText, !isCurrentMonth && styles.datePickerDayTextOutside, isSelected && styles.datePickerDayTextSelected, isCurrentDay && !isSelected && styles.datePickerDayTextToday]}>{pickerDay.getDate()}</Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
-              <TouchableOpacity activeOpacity={0.75} style={styles.datePickerToday} onPress={() => { selectDate(new Date()); setDatePickerVisible(false); }} accessibilityRole="button" accessibilityLabel="Chọn hôm nay">
-                <Text style={styles.datePickerTodayText}>Hôm nay</Text>
+              <TouchableOpacity activeOpacity={0.75} style={styles.datePickerToday} onPress={() => { selectDate(new Date()); setDatePickerVisible(false); }} accessibilityRole="button" accessibilityLabel={l('Chọn hôm nay', 'Choose today')}>
+                <Text style={styles.datePickerTodayText}>{l('Hôm nay', 'Today')}</Text>
               </TouchableOpacity>
             </View>
           </View>

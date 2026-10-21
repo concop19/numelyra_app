@@ -24,6 +24,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import ThreeDButton from '../components/ThreeDButton';
 import { useBirthPlaceSuggestions } from '../features/astrology/useBirthPlaceSuggestions';
 import {
   resolveBirthLocation,
@@ -215,24 +216,17 @@ function PrimaryButton({
   icon?: keyof typeof Ionicons.glyphMap;
 }) {
   return (
-    <TouchableOpacity
-      accessibilityRole="button"
-      activeOpacity={0.88}
-      disabled={disabled || loading}
+    <ThreeDButton
+      disabled={disabled}
+      fullWidth
+      label={label}
+      loading={loading}
       onPress={onPress}
-      style={[styles.primaryButtonShell, (disabled || loading) && styles.disabled]}
-    >
-      <LinearGradient colors={['#FFB6CD', '#F47BB5']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryButton}>
-        {loading ? (
-          <ActivityIndicator color="#2B1A72" />
-        ) : (
-          <>
-            <Text style={styles.primaryButtonText}>{label}</Text>
-            <Ionicons name={icon} size={18} color="#4A267D" />
-          </>
-        )}
-      </LinearGradient>
-    </TouchableOpacity>
+      shape="pill"
+      size="lg"
+      trailingIcon={<Ionicons name={icon} size={18} color="#4A267D" />}
+      variant="brand"
+    />
   );
 }
 
@@ -267,9 +261,9 @@ function HeroImage({ source, imageKey, compact = false }: { source: ImageSource;
   );
 }
 
-function Pagination({ active }: { active: number }) {
+function Pagination({ active, english = false }: { active: number; english?: boolean }) {
   return (
-    <View style={styles.pagination} accessibilityLabel={`Trang ${active + 1} trên ${FEATURE_SLIDES.length}`}>
+    <View style={styles.pagination} accessibilityLabel={english ? `Page ${active + 1} of ${FEATURE_SLIDES.length}` : `Trang ${active + 1} trên ${FEATURE_SLIDES.length}`}>
       {FEATURE_SLIDES.map((_, index) => (
         <View key={index} style={[styles.dot, index === active && styles.dotActive]} />
       ))}
@@ -347,21 +341,21 @@ function SelectionField({
   );
 }
 
-function WebDateField({ value, onChangeText }: { value: string; onChangeText: (value: string) => void }) {
+function WebDateField({ value, onChangeText, english = false }: { value: string; onChangeText: (value: string) => void; english?: boolean }) {
   const maxDate = toHtmlDateValue(formatBirthDate(new Date()));
 
   return (
     <View style={[styles.field, styles.webDateField]}>
       <View style={styles.fieldIcon}><Ionicons name="calendar-outline" size={18} color="#FF91C5" /></View>
       <View style={styles.fieldBody}>
-        <Text style={styles.fieldLabel}>Ngày sinh *</Text>
+        <Text style={styles.fieldLabel}>{english ? 'Birth date *' : 'Ngày sinh *'}</Text>
         <Text style={[styles.selectionValue, !value && styles.selectionPlaceholder]}>
-          {value || 'Chọn ngày/tháng/năm'}
+          {value || (english ? 'Choose day/month/year' : 'Chọn ngày/tháng/năm')}
         </Text>
       </View>
       <Ionicons name="chevron-down" size={18} color="#C8BDE8" />
       {React.createElement('input', {
-        'aria-label': 'Ngày sinh',
+        'aria-label': english ? 'Birth date' : 'Ngày sinh',
         max: maxDate,
         min: '1920-01-01',
         onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -597,8 +591,8 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const completeProfileStep = async () => {
     if (!parsedProfile) {
       Alert.alert(
-        'Kiểm tra thông tin',
-        'Hãy nhập họ tên, giới tính, chọn ngày sinh và nhập nơi sinh. Giờ sinh dùng định dạng HH:mm hoặc để trống.',
+        en ? 'Check your information' : 'Kiểm tra thông tin',
+        en ? 'Enter your full name and birth place, then choose your gender and birth date. Use HH:mm for birth time or leave it blank.' : 'Hãy nhập họ tên, giới tính, chọn ngày sinh và nhập nơi sinh. Giờ sinh dùng định dạng HH:mm hoặc để trống.',
       );
       return;
     }
@@ -631,10 +625,10 @@ export default function OnboardingScreen({ onComplete }: Props) {
       goTo(step + 1);
     } catch (caught) {
       Alert.alert(
-        'Chưa xác định được nơi sinh',
+        en ? 'Birth place not found' : 'Chưa xác định được nơi sinh',
         caught instanceof Error
           ? caught.message
-          : 'Hãy chọn một địa điểm trong danh sách đề xuất rồi thử lại.',
+          : (en ? 'Choose a place from the suggestions and try again.' : 'Hãy chọn một địa điểm trong danh sách đề xuất rồi thử lại.'),
       );
     } finally {
       setResolvingPlace(false);
@@ -693,7 +687,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onComplete();
     } catch {
-      Alert.alert('Không thể hoàn tất', 'Dữ liệu của bạn chưa được lưu. Vui lòng thử lại.');
+      Alert.alert(en ? 'Unable to finish' : 'Không thể hoàn tất', en ? 'Your data was not saved. Please try again.' : 'Dữ liệu của bạn chưa được lưu. Vui lòng thử lại.');
     } finally {
       setFinishing(false);
     }
@@ -705,7 +699,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
       await beginCheckout('payos');
       goTo(11);
     } catch (error) {
-      Alert.alert('Chưa thể mở thanh toán', error instanceof Error ? error.message : 'Vui lòng thử lại sau.');
+      Alert.alert(en ? 'Unable to open payment' : 'Chưa thể mở thanh toán', error instanceof Error ? error.message : (en ? 'Please try again later.' : 'Vui lòng thử lại sau.'));
     } finally {
       setCheckoutLoading(false);
     }
@@ -745,7 +739,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
                 </View>
                 <HeroImage key={feature.id} source={feature.image} imageKey={feature.id} compact={compact} />
                 <View style={styles.featureFooter}>
-                  <Pagination active={step} />
+                  <Pagination active={step} english={en} />
                   <PrimaryButton label={en ? 'Next' : 'Tiếp theo'} onPress={next} />
                 </View>
               </View>
@@ -759,6 +753,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
                     <Field icon="person-outline" label={en ? 'Full name *' : 'Họ và tên *'} value={draft.fullName} placeholder={en ? 'Your name' : 'Nguyễn Văn A'} onChangeText={(fullName) => setDraft((value) => ({ ...value, fullName }))} />
                     {Platform.OS === 'web' ? (
                       <WebDateField
+                        english={en}
                         value={draft.birthDate}
                         onChangeText={(birthDate) => setDraft((current) => ({ ...current, birthDate }))}
                       />
@@ -856,44 +851,44 @@ export default function OnboardingScreen({ onComplete }: Props) {
                 </ScrollView>
               </KeyboardAvoidingView>
             ) : step === 7 ? (
-              <InfoPage title="Hệ thống xu" description="Sử dụng xu để trải nghiệm các tính năng đặc biệt của ứng dụng." hero={HERO_COINS} compact={compact}>
+              <InfoPage title={en ? 'Coin system' : 'Hệ thống xu'} description={en ? 'Use coins to enjoy special app features.' : 'Sử dụng xu để trải nghiệm các tính năng đặc biệt của ứng dụng.'} hero={HERO_COINS} compact={compact}>
                 <View style={styles.infoCard}>
-                  <InfoRow icon="gift-outline" label="Điểm danh hằng ngày" value="+10 xu" />
-                  <InfoRow icon="chatbubble-ellipses-outline" label="Hỏi đáp thông thường" value="-2 xu" />
-                  <InfoRow icon="heart-outline" label="Hỏi đáp về tình duyên" value="-3 xu" />
-                  <InfoRow icon="sparkles-outline" label="Lịch, hình nền và chiêm tinh" value="Miễn phí" />
+                  <InfoRow icon="gift-outline" label={en ? 'Daily check-in' : 'Điểm danh hằng ngày'} value={en ? '+10 coins' : '+10 xu'} />
+                  <InfoRow icon="chatbubble-ellipses-outline" label={en ? 'General questions' : 'Hỏi đáp thông thường'} value={en ? '-2 coins' : '-2 xu'} />
+                  <InfoRow icon="heart-outline" label={en ? 'Relationship questions' : 'Hỏi đáp về tình duyên'} value={en ? '-3 coins' : '-3 xu'} />
+                  <InfoRow icon="sparkles-outline" label={en ? 'Calendar, wallpaper and astrology' : 'Lịch, hình nền và chiêm tinh'} value={en ? 'Free' : 'Miễn phí'} />
                 </View>
-                <PrimaryButton label="Đã hiểu" onPress={next} />
+                <PrimaryButton label={en ? 'Got it' : 'Đã hiểu'} onPress={next} />
               </InfoPage>
             ) : step === 8 ? (
-              <InfoPage title="Điểm danh mỗi ngày" description="Quay lại mỗi ngày để nhận 10 xu miễn phí!" hero={HERO_REWARD_CALENDAR} compact={compact}>
+              <InfoPage title={en ? 'Daily check-in' : 'Điểm danh mỗi ngày'} description={en ? 'Come back every day to receive 10 free coins!' : 'Quay lại mỗi ngày để nhận 10 xu miễn phí!'} hero={HERO_REWARD_CALENDAR} compact={compact}>
                 <View style={styles.rewardValueWrap}>
                   <CoinRewardBurst runId={rewardAnimationRun} />
-                  <Animated.Text style={[styles.rewardValue, { transform: [{ scale: rewardPulse }] }]}>+10 <Text style={styles.rewardUnit}>xu</Text></Animated.Text>
+                  <Animated.Text style={[styles.rewardValue, { transform: [{ scale: rewardPulse }] }]}>+10 <Text style={styles.rewardUnit}>{en ? 'coins' : 'xu'}</Text></Animated.Text>
                 </View>
                 <View style={styles.streakCard}>
-                  <Text style={styles.streakTitle}>Chuỗi ngày liên tiếp</Text>
+                  <Text style={styles.streakTitle}>{en ? 'Daily streak' : 'Chuỗi ngày liên tiếp'}</Text>
                   <View style={styles.streakDays}>
                     {[1, 2, 3, 4, 5, 6, 7].map((day) => (
                       <View key={day} style={styles.streakDayWrap}>
                         <View style={[styles.streakDay, day === 1 && styles.streakDayActive]}>{day === 1 && <Ionicons name="checkmark" size={15} color="#472064" />}</View>
-                        <Text style={styles.streakDayText}>N{day}</Text>
+                        <Text style={styles.streakDayText}>{en ? 'D' : 'N'}{day}</Text>
                       </View>
                     ))}
                   </View>
                 </View>
-                <PrimaryButton label={rewardClaimed ? 'Tiếp tục' : 'Điểm danh ngay'} icon={rewardClaimed ? 'arrow-forward' : 'checkmark'} onPress={claimDailyReward} />
-                {rewardClaimed && <TouchableOpacity onPress={next} style={styles.inlineLink}><Text style={styles.inlineLinkText}>Tiếp tục</Text></TouchableOpacity>}
+                <PrimaryButton label={rewardClaimed ? (en ? 'Continue' : 'Tiếp tục') : (en ? 'Check in now' : 'Điểm danh ngay')} icon={rewardClaimed ? 'arrow-forward' : 'checkmark'} onPress={claimDailyReward} />
+                {rewardClaimed && <TouchableOpacity onPress={next} style={styles.inlineLink}><Text style={styles.inlineLinkText}>{en ? 'Continue' : 'Tiếp tục'}</Text></TouchableOpacity>}
               </InfoPage>
             ) : step === 9 ? (
-              <InfoPage title="Mua thêm xu" description="Chọn gói phù hợp để trải nghiệm không gián đoạn." hero={HERO_COINS} compact>
-                <View style={styles.tabs}><View style={styles.tabActive}><Text style={styles.tabActiveText}>Gói xu</Text></View><View style={styles.tab}><Text style={styles.tabText}>Gói tháng</Text></View></View>
+              <InfoPage title={en ? 'Get more coins' : 'Mua thêm xu'} description={en ? 'Choose a pack to keep exploring without interruption.' : 'Chọn gói phù hợp để trải nghiệm không gián đoạn.'} hero={HERO_COINS} compact>
+                <View style={styles.tabs}><View style={styles.tabActive}><Text style={styles.tabActiveText}>{en ? 'Coin packs' : 'Gói xu'}</Text></View><View style={styles.tab}><Text style={styles.tabText}>{en ? 'Monthly plan' : 'Gói tháng'}</Text></View></View>
                 <View style={styles.packList}>
                   {[
-                    ['100 xu', '29.000đ'],
-                    ['300 xu', '79.000đ'],
-                    ['700 xu', '179.000đ'],
-                    ['1.500 xu', '349.000đ'],
+                    [en ? '100 coins' : '100 xu', '29.000đ'],
+                    [en ? '300 coins' : '300 xu', '79.000đ'],
+                    [en ? '700 coins' : '700 xu', '179.000đ'],
+                    [en ? '1,500 coins' : '1.500 xu', '349.000đ'],
                   ].map(([amount, price], index) => (
                     <TouchableOpacity key={amount} onPress={() => setSelectedCoinPack(index)} style={[styles.packRow, selectedCoinPack === index && styles.packRowSelected]}>
                       <View style={styles.coinBadge}><Ionicons name="star" size={16} color="#8B4E28" /></View>
@@ -902,27 +897,27 @@ export default function OnboardingScreen({ onComplete }: Props) {
                     </TouchableOpacity>
                   ))}
                 </View>
-                <Text style={styles.note}>Giao dịch xu sẽ được mở khi ví xu được kích hoạt.</Text>
-                <PrimaryButton label="Tiếp tục" onPress={next} />
+                <Text style={styles.note}>{en ? 'Coin purchases will be available when the coin wallet is activated.' : 'Giao dịch xu sẽ được mở khi ví xu được kích hoạt.'}</Text>
+                <PrimaryButton label={en ? 'Continue' : 'Tiếp tục'} onPress={next} />
               </InfoPage>
             ) : step === 10 ? (
-              <InfoPage title="Gói tháng" description="Tiết kiệm hơn và trải nghiệm đầy đủ tính năng với mức giá ưu đãi." hero={HERO_CROWN} compact={compact}>
+              <InfoPage title={en ? 'Monthly plan' : 'Gói tháng'} description={en ? 'Save more and enjoy every feature at a preferred price.' : 'Tiết kiệm hơn và trải nghiệm đầy đủ tính năng với mức giá ưu đãi.'} hero={HERO_CROWN} compact={compact}>
                 <View style={styles.planCard}>
-                  <View><Text style={styles.planLabel}>Gói tháng</Text><Text style={styles.planPrice}>99.000đ<Text style={styles.planUnit}> / tháng</Text></Text></View>
+                  <View><Text style={styles.planLabel}>{en ? 'Monthly plan' : 'Gói tháng'}</Text><Text style={styles.planPrice}>99.000đ<Text style={styles.planUnit}> / {en ? 'month' : 'tháng'}</Text></Text></View>
                   <Ionicons name="diamond" size={25} color="#FFD38F" />
                 </View>
                 <View style={styles.benefitList}>
-                  {['Nhận 1.000 xu mỗi tháng', 'Ưu đãi khi mua thêm xu', 'Trải nghiệm đầy đủ các tính năng', 'Cập nhật tính năng mới sớm nhất'].map((item) => (
+                  {(en ? ['Receive 1,000 coins every month', 'Preferred price on extra coins', 'Access the full feature set', 'Early access to new features'] : ['Nhận 1.000 xu mỗi tháng', 'Ưu đãi khi mua thêm xu', 'Trải nghiệm đầy đủ các tính năng', 'Cập nhật tính năng mới sớm nhất']).map((item) => (
                     <View key={item} style={styles.benefitRow}><Ionicons name="checkmark-circle" size={18} color="#FFB48E" /><Text style={styles.benefitText}>{item}</Text></View>
                   ))}
                 </View>
-                <PrimaryButton label="Đăng ký ngay" onPress={startCheckout} loading={checkoutLoading} icon="sparkles" />
-                <TouchableOpacity onPress={next} style={styles.inlineLink}><Text style={styles.inlineLinkText}>Tiếp tục với gói miễn phí</Text></TouchableOpacity>
+                <PrimaryButton label={en ? 'Subscribe now' : 'Đăng ký ngay'} onPress={startCheckout} loading={checkoutLoading} icon="sparkles" />
+                <TouchableOpacity onPress={next} style={styles.inlineLink}><Text style={styles.inlineLinkText}>{en ? 'Continue with the free plan' : 'Tiếp tục với gói miễn phí'}</Text></TouchableOpacity>
               </InfoPage>
             ) : (
-              <InfoPage title="Sẵn sàng khám phá!" description="Giờ đây bạn có thể trò chuyện, xem tử vi, tạo hình nền và khám phá nhiều tính năng thú vị khác." hero={HERO_MASCOT} compact={compact}>
-                <View style={styles.readyBadge}><Ionicons name="sparkles" size={18} color="#FFD4A2" /><Text style={styles.readyBadgeText}>Hành trình của bạn bắt đầu từ đây</Text></View>
-                <PrimaryButton label="Bắt đầu sử dụng" onPress={() => void finish()} loading={finishing} icon="arrow-forward" />
+              <InfoPage title={en ? 'Ready to explore!' : 'Sẵn sàng khám phá!'} description={en ? 'You can now chat, explore your fortune, create wallpapers and discover many more features.' : 'Giờ đây bạn có thể trò chuyện, xem tử vi, tạo hình nền và khám phá nhiều tính năng thú vị khác.'} hero={HERO_MASCOT} compact={compact}>
+                <View style={styles.readyBadge}><Ionicons name="sparkles" size={18} color="#FFD4A2" /><Text style={styles.readyBadgeText}>{en ? 'Your journey starts here' : 'Hành trình của bạn bắt đầu từ đây'}</Text></View>
+                <PrimaryButton label={en ? 'Get started' : 'Bắt đầu sử dụng'} onPress={() => void finish()} loading={finishing} icon="arrow-forward" />
               </InfoPage>
             )}
           </Animated.View>
@@ -985,9 +980,6 @@ const styles = StyleSheet.create({
   pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
   dot: { width: 9, height: 9, borderRadius: 5, backgroundColor: 'rgba(204,182,242,0.46)' },
   dotActive: { width: 11, height: 11, borderRadius: 6, backgroundColor: '#FFD3B1', shadowColor: '#FF9DC5', shadowOpacity: 0.8, shadowRadius: 8 },
-  primaryButtonShell: { width: '100%', minHeight: 54, borderRadius: 27, overflow: 'hidden', shadowColor: '#FF74B3', shadowOpacity: 0.28, shadowRadius: 16, elevation: 4 },
-  primaryButton: { flex: 1, minHeight: 54, paddingHorizontal: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
-  primaryButtonText: { color: '#3F246E', fontSize: 15, fontWeight: '800' },
   disabled: { opacity: 0.56 },
   formScroll: { flexGrow: 1, paddingTop: 48, paddingHorizontal: 20, paddingBottom: 16 },
   sectionTitle: { color: '#FFF9FE', fontSize: 23, lineHeight: 29, fontWeight: '800', textAlign: 'center', paddingHorizontal: 32 },

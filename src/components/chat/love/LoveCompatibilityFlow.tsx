@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import HighlightedAnswerText from '../HighlightedAnswerText';
+import ThreeDButton from '../../ThreeDButton';
 import type { MessageItem } from '../../../screens/ChatScreen';
 import { getLoveReadingViewModel } from './loveReadingModel';
 
@@ -561,17 +562,16 @@ export default function LoveCompatibilityFlow({
               </View>
             </ScrollView>
 
-            <TouchableOpacity
-              accessibilityRole="button"
+            <ThreeDButton
               accessibilityLabel="Xem nguyên nhân tương hợp chi tiết"
-              activeOpacity={0.86}
               disabled={!message}
+              label="Xem nguyên nhân chi tiết"
               onPress={() => message && onOpenDetail(message, question)}
-              style={[styles.detailButton, !message && styles.detailButtonDisabled]}
-            >
-              <Text style={styles.detailButtonText}>Xem nguyên nhân chi tiết</Text>
-              <Ionicons name="arrow-forward" size={19} color="#FFF8EA" />
-            </TouchableOpacity>
+              shape="pill"
+              style={styles.detailButton3d}
+              trailingIcon={<Ionicons name="arrow-forward" size={19} color="#3F205C" />}
+              variant="brand"
+            />
           </Animated.View>
         )}
       </SafeAreaView>
@@ -919,19 +919,5 @@ const styles = StyleSheet.create({
   },
   answerText: { color: '#423445', fontSize: 14, lineHeight: 20 },
   answerEmphasis: { color: '#992D68', fontWeight: '900' },
-  detailButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 9,
-    marginHorizontal: 20,
-    marginBottom: 10,
-    minHeight: 52,
-    borderRadius: 26,
-    backgroundColor: '#CC3F89',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.42)',
-  },
-  detailButtonDisabled: { opacity: 0.55 },
-  detailButtonText: { color: '#FFF8EA', fontSize: 15, fontWeight: '900' },
+  detailButton3d: { alignSelf: 'stretch', marginHorizontal: 20, marginBottom: 10 },
 });

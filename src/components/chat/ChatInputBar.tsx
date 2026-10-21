@@ -3,14 +3,11 @@ import {
   StyleSheet,
   View,
   TextInput,
-  TouchableOpacity,
-  Text,
   Platform,
-  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import ThreeDButton from '../ThreeDButton';
 
 interface Props {
   value: string;
@@ -45,24 +42,17 @@ export const ChatInputBar: React.FC<Props> = ({
   return (
     <View style={styles.container}>
       {/* Nút hành động nhanh: dấu cộng (+) */}
-      <View style={styles.circlePlusBtnShadow}>
-        <TouchableOpacity
-          activeOpacity={0.75}
-          onPress={onPressPlus}
-          style={styles.circlePlusBtn}
-          accessibilityLabel="Mở menu tính năng nhanh"
-          accessibilityRole="button"
-        >
-          <LinearGradient
-            colors={['#4A2D82', '#30195F', '#1D103F']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.circlePlusGradient}
-          >
-            <Ionicons name="add" size={27} color="#EFE7FF" />
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
+      <ThreeDButton
+        onPress={onPressPlus ?? (() => undefined)}
+        disabled={!onPressPlus}
+        variant="purple"
+        size="md"
+        shape="circle"
+        diameter={50}
+        leadingIcon={<Ionicons name="add" size={28} color="#FFFFFF" />}
+        accessibilityLabel="Mở menu tính năng nhanh"
+        style={styles.circlePlusButton}
+      />
 
       {/* Khung nhập văn bản dạng viên thuốc (pill shape) */}
       <View style={styles.inputWrapper}>
@@ -83,29 +73,18 @@ export const ChatInputBar: React.FC<Props> = ({
           selectionColor="rgba(247, 204, 106, 0.4)"
         />
 
-        <View style={[styles.circleSendBtnShadow, !canSend && styles.circleSendBtnShadowDisabled]}>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={handleSend}
-            disabled={!canSend}
-            style={styles.circleSendBtn}
-            accessibilityLabel="Gửi tin nhắn"
-            accessibilityRole="button"
-          >
-            <LinearGradient
-              colors={['#FFE5A1', '#F5B84E', '#DF962F']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.circleSendGradient}
-            >
-              {isLoading ? (
-                <ActivityIndicator size="small" color="#2A1938" />
-              ) : (
-                <Ionicons name="arrow-up" size={22} color="#2A1938" />
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
+        <ThreeDButton
+          onPress={handleSend}
+          disabled={!canSend && !isLoading}
+          loading={isLoading}
+          variant="gold"
+          size="md"
+          shape="circle"
+          diameter={44}
+          leadingIcon={<Ionicons name="arrow-up" size={22} color="#2A1938" />}
+          accessibilityLabel="Gửi tin nhắn"
+          style={styles.circleSendButton}
+        />
       </View>
     </View>
   );
@@ -120,32 +99,8 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
     backgroundColor: 'transparent',
   },
-  circlePlusBtnShadow: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+  circlePlusButton: {
     marginRight: 8,
-    shadowColor: '#160A33',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.42,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  circlePlusBtn: {
-    flex: 1,
-    borderRadius: 27,
-    overflow: 'hidden',
-  },
-  circlePlusGradient: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  plusIcon: {
-    fontSize: 29,
-    color: 'rgba(240, 228, 255, 0.96)',
-    fontWeight: '200',
-    lineHeight: 31,
   },
   inputWrapper: {
     flex: 1,
@@ -171,36 +126,8 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     paddingVertical: Platform.OS === 'ios' ? 10 : 6,
   },
-  circleSendBtnShadow: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    shadowColor: '#E4A039',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.46,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  circleSendBtnShadowDisabled: {
-    opacity: 0.72,
-    shadowOpacity: 0.20,
-    elevation: 3,
-  },
-  circleSendBtn: {
-    flex: 1,
-    borderRadius: 24,
-    overflow: 'hidden',
-  },
-  circleSendGradient: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sendArrowIcon: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    lineHeight: 24,
+  circleSendButton: {
+    flexShrink: 0,
   },
 });
 

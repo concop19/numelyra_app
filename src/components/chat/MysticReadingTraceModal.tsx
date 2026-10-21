@@ -21,7 +21,9 @@ import HighlightedAnswerText from './HighlightedAnswerText';
 import CandleFlameSprite from '../CandleFlameSprite';
 import FlameCharacterSprite from '../FlameCharacterSprite';
 import BottomFlameSprite from '../BottomFlameSprite';
+import ThreeDButton from '../ThreeDButton';
 import { ttsService } from '../../services/ttsService';
+import { useLocalization } from '../../i18n/LocalizationContext';
 
 const BACKGROUND = require('../../../assets/giao_dien/giaodien1/chat_detail/background/background.png');
 const MAT = require('../../../assets/giao_dien/giaodien1/chat_detail/item/tham.png');
@@ -60,6 +62,14 @@ type Props = {
 
 const REFERENCE_WIDTH = 941;
 const REFERENCE_HEIGHT = 1672;
+
+const POSITION_NAMES_EN: Record<string, string> = {
+  'single-1': 'Intuitive Message', 'pos-1': 'Past', 'pos-2': 'Present', 'pos-3': 'Near Future',
+  'opt-1': 'Starting Point', 'opt-2': 'Option A Path', 'opt-3': 'Option A Outcome',
+  'opt-4': 'Option B Path', 'opt-5': 'Option B Outcome', 'rel-1': 'Your Energy',
+  'rel-2': 'Their Energy', 'rel-3': 'The Connection', 'rel-4': 'What Needs Resolution',
+  'rel-5': 'Growth Potential',
+};
 
 function Decor({ scale, active, showQuill = true }: { scale: number; active: boolean; showQuill?: boolean }) {
   const position = (left: number, top: number, width: number, height: number) => ({
@@ -128,6 +138,7 @@ export default function MysticReadingTraceModal({
   revealedCount = 0,
   onRevealNext,
 }: Props) {
+  const { locale, l } = useLocalization();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [sceneSize, setSceneSize] = useState({ width: 0, height: 0 });
   const viewportWidth = sceneSize.width || windowWidth;
@@ -174,14 +185,14 @@ export default function MysticReadingTraceModal({
     if (autoSpokenReadingId.current === speechId) return;
 
     autoSpokenReadingId.current = speechId;
-    void ttsService.speak(speechId, answerText);
+    void ttsService.speak(speechId, answerText, { language: locale === 'en' ? 'en-US' : 'vi-VN' });
 
     return () => {
       if (ttsService.getCurrentSpeakingId() === speechId) {
         void ttsService.stop();
       }
     };
-  }, [answerText, canShowReading, isLiveDraw, liveReading?.id, visible]);
+  }, [answerText, canShowReading, isLiveDraw, liveReading?.id, locale, visible]);
 
   useEffect(() => {
     setAnswerPreviewChars(0);
@@ -249,7 +260,7 @@ export default function MysticReadingTraceModal({
             onPress={onClose}
             activeOpacity={0.75}
             accessibilityRole="button"
-            accessibilityLabel="Quay lại cuộc trò chuyện"
+            accessibilityLabel={l('Quay lại cuộc trò chuyện', 'Back to conversation')}
             style={[styles.closeButton, {
               left: 44 * scale,
               top: 48 * scale,
@@ -262,13 +273,13 @@ export default function MysticReadingTraceModal({
           </TouchableOpacity>
 
           <View pointerEvents="none" style={[styles.sceneHeading, { top: 38 * scale, left: 210 * scale, width: 520 * scale }]}>
-            <Text style={[styles.sceneTitle, { fontSize: Math.max(15, 27 * scale), lineHeight: Math.max(19, 32 * scale) }]}>{isWritingRitual ? 'Lời giải đang hiện hình' : isLiveDraw ? 'Nghi thức rút bài' : 'AI đã đối chiếu'}</Text>
-            <Text style={[styles.sceneSubtitle, { fontSize: Math.max(8, 13 * scale) }]}>{isWritingRitual ? 'Tiểu Linh Miêu đang chép thông điệp dành riêng cho bạn' : isLiveDraw ? 'Chạm vào bộ bài để mở từng thông điệp' : 'Lời luận giải dành riêng cho bạn'}</Text>
+            <Text style={[styles.sceneTitle, { fontSize: Math.max(15, 27 * scale), lineHeight: Math.max(19, 32 * scale) }]}>{isWritingRitual ? l('Lời giải đang hiện hình', 'Your reading is taking shape') : isLiveDraw ? l('Nghi thức rút bài', 'Tarot Drawing Ritual') : l('AI đã đối chiếu', 'AI Cross-Check')}</Text>
+            <Text style={[styles.sceneSubtitle, { fontSize: Math.max(8, 13 * scale) }]}>{isWritingRitual ? l('Tiểu Linh Miêu đang chép thông điệp dành riêng cho bạn', 'The Little Spirit Cat is writing your personal message') : isLiveDraw ? l('Chạm vào bộ bài để mở từng thông điệp', 'Tap the deck to reveal each message') : l('Lời luận giải dành riêng cho bạn', 'A reading prepared for you')}</Text>
           </View>
 
           {tarotCards.length > 0 ? <>
             <View pointerEvents="none" style={[styles.matSectionHeading, { top: 466 * scale, left: 180 * scale, width: 581 * scale }]}>
-              <Text style={[styles.matSectionHeadingText, { fontSize: Math.max(8, 13 * scale) }]}>TAROT ĐÃ RÚT</Text>
+              <Text style={[styles.matSectionHeadingText, { fontSize: Math.max(8, 13 * scale) }]}>{l('TAROT ĐÃ RÚT', 'DRAWN TAROT CARDS')}</Text>
             </View>
             {isLiveDraw && tarotCards.map((tarot, index) => {
               const card = tarotLayout[index];
@@ -285,15 +296,19 @@ export default function MysticReadingTraceModal({
                 }]}
               >
                 <Text style={[styles.tarotSlotNumber, { fontSize: Math.max(12, 23 * scale) }]}>{index + 1}</Text>
-                <Text numberOfLines={2} style={[styles.tarotSlotLabel, { fontSize: Math.max(7, 10 * scale) }]}>{tarot.position.nameVi}</Text>
+                <Text numberOfLines={2} style={[styles.tarotSlotLabel, { fontSize: Math.max(7, 10 * scale) }]}>{locale === 'en' ? POSITION_NAMES_EN[tarot.position.id] || `Position ${index + 1}` : tarot.position.nameVi}</Text>
               </View>;
             })}
             {(isLiveDraw ? tarotCards.slice(0, safeRevealedCount) : tarotCards).map((tarot, index) => {
               const card = tarotLayout[index];
               const cardInfo = {
-                title: tarot.card.nameVi,
-                subtitle: `${tarot.position?.nameVi || 'Thông điệp Tarot'} · ${tarot.isReversed ? 'Lá ngược' : 'Lá xuôi'}`,
-                detail: tarot.isReversed ? tarot.card.meaningReversed : tarot.card.meaningUpright,
+                title: locale === 'en' ? tarot.card.nameEn : tarot.card.nameVi,
+                subtitle: locale === 'en'
+                  ? `${POSITION_NAMES_EN[tarot.position?.id] || 'Tarot message'} · ${tarot.isReversed ? 'Reversed' : 'Upright'}`
+                  : `${tarot.position?.nameVi || 'Thông điệp Tarot'} · ${tarot.isReversed ? 'Lá ngược' : 'Lá xuôi'}`,
+                detail: locale === 'en'
+                  ? `${tarot.card.nameEn} appears ${tarot.isReversed ? 'reversed, inviting reflection on blocked, delayed, or inwardly expressed energy.' : 'upright, highlighting the card’s constructive and outwardly expressed energy.'}`
+                  : tarot.isReversed ? tarot.card.meaningReversed : tarot.card.meaningUpright,
               };
               return <Pressable
                 key={`${message?.id || 'reading'}-tarot-${index}`}
@@ -303,7 +318,7 @@ export default function MysticReadingTraceModal({
                 onBlur={() => setHoveredCard(null)}
                 onPress={() => setHoveredCard((current) => current?.title === cardInfo.title ? null : cardInfo)}
                 accessibilityRole="button"
-                accessibilityLabel={`Xem thông tin lá ${tarot.card.nameVi}`}
+                accessibilityLabel={l(`Xem thông tin lá ${tarot.card.nameVi}`, `View details for ${tarot.card.nameEn}`)}
                 style={[styles.tarotCard, {
                   left: card.left * scale,
                   top: card.top * scale,
@@ -319,7 +334,7 @@ export default function MysticReadingTraceModal({
                   style={[styles.cardArtwork, tarot.isReversed && styles.tarotReversed]}
                 />
                 <View style={[styles.tarotCaption, { paddingHorizontal: 5 * scale, paddingVertical: 4 * scale }]}>
-                  <Text numberOfLines={1} style={[styles.tarotCaptionText, { fontSize: Math.max(7, 10 * scale) }]}>{tarot.position?.nameVi || tarot.card.nameVi}</Text>
+                  <Text numberOfLines={1} style={[styles.tarotCaptionText, { fontSize: Math.max(7, 10 * scale) }]}>{locale === 'en' ? POSITION_NAMES_EN[tarot.position?.id] || tarot.card.nameEn : tarot.position?.nameVi || tarot.card.nameVi}</Text>
                 </View>
               </Pressable>;
             })}
@@ -352,10 +367,10 @@ export default function MysticReadingTraceModal({
                 }}
                 style={styles.deckTouchTarget}
                 accessibilityRole="button"
-                accessibilityLabel={`Rút lá bài ${safeRevealedCount + 1} trong tổng số ${tarotCards.length}`}
+                accessibilityLabel={l(`Rút lá bài ${safeRevealedCount + 1} trong tổng số ${tarotCards.length}`, `Draw card ${safeRevealedCount + 1} of ${tarotCards.length}`)}
               >
-                <Text style={[styles.deckPrompt, { fontSize: Math.max(11, 15 * scale) }]}>Chạm để rút lá {safeRevealedCount + 1}</Text>
-                <Text style={[styles.deckProgress, { fontSize: Math.max(8, 11 * scale) }]}>Đã rút {safeRevealedCount}/{tarotCards.length} lá</Text>
+                <Text style={[styles.deckPrompt, { fontSize: Math.max(11, 15 * scale) }]}>{l(`Chạm để rút lá ${safeRevealedCount + 1}`, `Tap to draw card ${safeRevealedCount + 1}`)}</Text>
+                <Text style={[styles.deckProgress, { fontSize: Math.max(8, 11 * scale) }]}>{l(`Đã rút ${safeRevealedCount}/${tarotCards.length} lá`, `${safeRevealedCount}/${tarotCards.length} cards drawn`)}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -421,9 +436,9 @@ export default function MysticReadingTraceModal({
             showsVerticalScrollIndicator={false}
             bounces={false}
           >
-            <Text style={styles.kicker}>{isLiveDraw && !hasRevealedAnswerIntro ? 'LỜI GIẢI ĐANG HIỆN HÌNH' : 'LUẬN GIẢI HIỆN TẠI'}</Text>
+            <Text style={styles.kicker}>{isLiveDraw && !hasRevealedAnswerIntro ? l('LỜI GIẢI ĐANG HIỆN HÌNH', 'READING TAKING SHAPE') : l('LUẬN GIẢI HIỆN TẠI', 'CURRENT READING')}</Text>
             {question ? <>
-              <Text style={styles.questionLabel}>Câu hỏi của bạn</Text>
+              <Text style={styles.questionLabel}>{l('Câu hỏi của bạn', 'Your question')}</Text>
               <Text style={styles.question}>{question}</Text>
               <View style={styles.rule} />
             </> : null}
@@ -433,20 +448,20 @@ export default function MysticReadingTraceModal({
               emphasisStyle={styles.answerEmphasis}
             />
             {isLiveDraw && !hasRevealedAnswerIntro ? <Text style={styles.writingCursor}>✦</Text> : null}
-            <TouchableOpacity
-              activeOpacity={0.8}
+            <ThreeDButton
+              accessibilityLabel={l('Đóng luận giải', 'Close reading')}
+              label={l('Đã hiểu · quay lại', 'Got it · go back')}
               onPress={() => { void Haptics.selectionAsync(); onClose(); }}
-              style={styles.doneButton}
-              accessibilityRole="button"
-              accessibilityLabel="Đóng luận giải"
-            >
-              <Text style={styles.doneText}>Đã hiểu · quay lại</Text>
-            </TouchableOpacity>
+              shape="pill"
+              size="sm"
+              style={styles.doneButton3d}
+              variant="gold"
+            />
           </ScrollView> : <View pointerEvents="none" style={[styles.waitingReading, { left: 185 * scale, top: 1280 * scale, width: 570 * scale }]}>
             <Text style={[styles.waitingReadingTitle, { fontSize: Math.max(10, 15 * scale) }]}>
-              {isWritingRitual ? 'Những nét mực đang ghép thành lời giải…' : allCardsRevealed ? 'Các lá đã mở — Tiểu Linh Miêu đang kết nối lời giải…' : 'Hãy rút đủ các lá để mở lời luận giải'}
+              {isWritingRitual ? l('Những nét mực đang ghép thành lời giải…', 'The ink is forming your reading…') : allCardsRevealed ? l('Các lá đã mở — Tiểu Linh Miêu đang kết nối lời giải…', 'The cards are open — the Little Spirit Cat is connecting the message…') : l('Hãy rút đủ các lá để mở lời luận giải', 'Draw every card to unlock the reading')}
             </Text>
-            <Text style={[styles.waitingReadingHint, { fontSize: Math.max(8, 11 * scale) }]}>{isWritingRitual ? 'Nét chữ chỉ là nghi thức — thông điệp thật sẽ hiện ngay khi hoàn tất.' : 'Luận giải sẽ hiện ngay khi bạn và Numelyra cùng hoàn tất.'}</Text>
+            <Text style={[styles.waitingReadingHint, { fontSize: Math.max(8, 11 * scale) }]}>{isWritingRitual ? l('Nét chữ chỉ là nghi thức — thông điệp thật sẽ hiện ngay khi hoàn tất.', 'The writing is part of the ritual — your full message will appear when it is complete.') : l('Luận giải sẽ hiện ngay khi bạn và Numelyra cùng hoàn tất.', 'The reading will appear as soon as you and Numelyra finish the ritual.')}</Text>
           </View>}
         </ImageBackground>
       </View>
@@ -502,6 +517,5 @@ const styles = StyleSheet.create({
   answer: { color: '#503A3B', fontSize: 13, lineHeight: 19.5, fontWeight: '500' },
   answerEmphasis: { color: '#713543', fontWeight: '900' },
   writingCursor: { color: '#713543', fontSize: 14, marginTop: 2, opacity: 0.78 },
-  doneButton: { alignSelf: 'center', borderRadius: 15, backgroundColor: '#7A3E39', paddingHorizontal: 16, paddingVertical: 8, marginTop: 18 },
-  doneText: { color: '#FFF4D6', fontSize: 12, fontWeight: '800' },
+  doneButton3d: { alignSelf: 'center', marginTop: 18 },
 });

@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import * as Haptics from 'expo-haptics';
 import { RepresentativeItem } from '../db/representativeService';
+import ThreeDButton from './ThreeDButton';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -309,20 +310,14 @@ export const HistoricalFigureModal: React.FC<HistoricalFigureModalProps> = ({
               {/* 4. Nút Hành Động Wikipedia & Chevron Chỉ Báo Chuẩn Mẫu */}
               <View style={styles.actionFooter}>
                 {figure.wikipedia_url && (
-                  <TouchableOpacity
-                    activeOpacity={0.8}
+                  <ThreeDButton
+                    label="Khám phá trên Wikipedia"
+                    leadingIcon={<Ionicons name="globe-outline" size={16} color="#FFFFFF" />}
                     onPress={handleOpenWikipedia}
-                    style={styles.wikiActionBtn}
-                  >
-                    <LinearGradient
-                      colors={['#2A2148', '#1D1635']}
-                      style={styles.wikiGradient}
-                    >
-                      <Ionicons name="globe-outline" size={16} color="#E8BC79" style={{ marginRight: 8 }} />
-                      <Text style={styles.wikiActionText}>Khám phá trên Wikipedia</Text>
-                      <Ionicons name="open-outline" size={14} color="#ADA2C5" style={{ marginLeft: 6 }} />
-                    </LinearGradient>
-                  </TouchableOpacity>
+                    shape="pill"
+                    trailingIcon={<Ionicons name="open-outline" size={14} color="#FFFFFF" />}
+                    variant="purple"
+                  />
                 )}
 
                 {/* Biểu tượng Chevron Hồng Tím ở đáy (Giống hệt ảnh mẫu của user) */}
@@ -550,23 +545,6 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     marginTop: 24,
-  },
-  wikiActionBtn: {
-    borderRadius: 22,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(232, 188, 121, 0.35)',
-  },
-  wikiGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 22,
-  },
-  wikiActionText: {
-    color: '#F4ECE0',
-    fontSize: 14,
-    fontWeight: '600',
   },
   bottomChevronWrap: {
     marginTop: 22,

@@ -14,6 +14,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import ThreeDButton from '../../components/ThreeDButton';
 import type { AstroFortuneSlip } from '../../services/astro/astroFortuneService';
 import type { PureAstroFeatureMetadata } from '../../services/astro/astroVectorEngine';
 import type { UserProfile } from '../../store/userProfile';
@@ -83,7 +84,7 @@ export function AstrologyTodayView({
   onShare,
 }: Props) {
   const insets = useSafeAreaInsets();
-  const { locale, t } = useLocalization();
+  const { locale, t, l } = useLocalization();
   const { width } = useWindowDimensions();
   const week = useMemo(() => makeWeek(currentDate), [currentDate]);
   const cards = useMemo(() => metadata ? getTodaySummaryCards(metadata) : [], [metadata]);
@@ -108,9 +109,13 @@ export function AstrologyTodayView({
             <Ionicons name="person-circle-outline" size={42} color={ASTRO_COLORS.gold} />
             <Text style={styles.missingTitle}>{t('astrology.missingTitle')}</Text>
             <Text style={astrologyUiStyles.emptyText}>{t('astrology.missingBody')}</Text>
-            <TouchableOpacity style={styles.primaryButton} onPress={onOpenProfile}>
-              <Text style={styles.primaryButtonText}>{t('astrology.chooseProfile')}</Text>
-            </TouchableOpacity>
+            <ThreeDButton
+              label={t('astrology.chooseProfile')}
+              onPress={onOpenProfile}
+              shape="pill"
+              style={styles.primaryButton3d}
+              variant="gold"
+            />
           </MysticCard>
         ) : (
           <AstrologySkyHero
@@ -130,7 +135,7 @@ export function AstrologyTodayView({
           <MysticCard style={styles.errorCard}>
             <Ionicons name="alert-circle-outline" size={21} color="#FF9EAE" />
             <View style={styles.flexCopy}>
-              <Text style={styles.errorTitle}>Không thể dựng dữ liệu lá số</Text>
+              <Text style={styles.errorTitle}>{l('Không thể dựng dữ liệu lá số', 'Unable to build birth-chart data')}</Text>
               <Text style={styles.errorBody}>{calculationError}</Text>
             </View>
           </MysticCard>
@@ -195,7 +200,7 @@ export function AstrologyTodayView({
 
             <SectionHeading title={t('astrology.planetaryGuidance')} eyebrow="Planetary Guidance" action={t('astrology.birthChart')} onAction={onOpenNatal} />
             <FlatList
-              accessibilityLabel="Danh sách mười hành tinh"
+              accessibilityLabel={l('Danh sách mười hành tinh', 'List of ten planets')}
               contentContainerStyle={styles.guidanceList}
               data={guidanceItems}
               decelerationRate="fast"
@@ -324,8 +329,7 @@ const styles = StyleSheet.create({
   flexCopy: { flex: 1 },
   missingCard: { marginTop: 20, padding: 24, alignItems: 'center', gap: 10 },
   missingTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '800', textAlign: 'center' },
-  primaryButton: { minHeight: 46, marginTop: 8, paddingHorizontal: 22, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: ASTRO_COLORS.gold },
-  primaryButtonText: { color: '#171137', fontWeight: '900' },
+  primaryButton3d: { marginTop: 8 },
   errorCard: { marginTop: 14, padding: 14, flexDirection: 'row', gap: 11, alignItems: 'flex-start', borderColor: 'rgba(255,130,153,0.42)' },
   errorTitle: { color: '#FFE9ED', fontSize: 13, fontWeight: '800' },
   errorBody: { color: '#DDBBC4', fontSize: 11, lineHeight: 16, marginTop: 4 },

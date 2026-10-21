@@ -58,6 +58,8 @@ import { API_ENDPOINTS, authenticatedFetch, resolveApiUrl } from '../services/ap
 import { NumerologyCardsModal } from '../components/NumerologyCardsModal';
 import ProfilePickerModal from '../components/ProfilePickerModal';
 import FloatingWallpaperCloud from '../components/FloatingWallpaperCloud';
+import ThreeDButton from '../components/ThreeDButton';
+import { useLocalization } from '../i18n/LocalizationContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -93,28 +95,33 @@ interface WallpaperItem {
   isUri: boolean;
   title: string;
   affirmation_vi: string;
+  affirmation_en?: string;
   explanation_vi: string;
+  explanation_en?: string;
   luckyColors_vi: string[];
+  luckyColors_en?: string[];
   styleName: string;
+  styleNameEn?: string;
   intentionName: string;
+  intentionNameEn?: string;
 }
 
 const STYLES = [
-  { id: 'sacred_geometry', label: 'Hình học thiêng' },
-  { id: 'luxury_gold_3d', label: '3D ánh hoàng kim' },
-  { id: 'ethereal_minimalist', label: 'Thiền tĩnh huyền bí' },
-  { id: 'cosmic_celestial', label: 'Vũ trụ cung hoàng đạo' },
-  { id: 'watercolor_nature', label: 'Thiên nhiên mộng mơ' },
-  { id: 'minimalist_clean', label: 'Tối giản thuần khiết' },
+  { id: 'sacred_geometry', label: 'Hình học thiêng', labelEn: 'Sacred geometry' },
+  { id: 'luxury_gold_3d', label: '3D ánh hoàng kim', labelEn: 'Golden 3D' },
+  { id: 'ethereal_minimalist', label: 'Thiền tĩnh huyền bí', labelEn: 'Ethereal meditation' },
+  { id: 'cosmic_celestial', label: 'Vũ trụ cung hoàng đạo', labelEn: 'Celestial zodiac' },
+  { id: 'watercolor_nature', label: 'Thiên nhiên mộng mơ', labelEn: 'Dreamy nature' },
+  { id: 'minimalist_clean', label: 'Tối giản thuần khiết', labelEn: 'Pure minimalism' },
 ];
 
 const INTENTIONS = [
-  { id: 'wealth', label: 'Thịnh vượng & Tài lộc' },
-  { id: 'love', label: 'Tình duyên & Bình yên' },
-  { id: 'peace', label: 'An lạc & Chữa lành' },
-  { id: 'career', label: 'Sự nghiệp thăng hoa' },
-  { id: 'protection', label: 'Bảo hộ năng lượng' },
-  { id: 'healing', label: 'Cân bằng thân tâm trí' },
+  { id: 'wealth', label: 'Thịnh vượng & Tài lộc', labelEn: 'Prosperity & abundance' },
+  { id: 'love', label: 'Tình duyên & Bình yên', labelEn: 'Love & peace' },
+  { id: 'peace', label: 'An lạc & Chữa lành', labelEn: 'Peace & healing' },
+  { id: 'career', label: 'Sự nghiệp thăng hoa', labelEn: 'Career growth' },
+  { id: 'protection', label: 'Bảo hộ năng lượng', labelEn: 'Energy protection' },
+  { id: 'healing', label: 'Cân bằng thân tâm trí', labelEn: 'Mind-body balance' },
 ];
 
 function personalDayFor(calculator: NumerologyCalculator): number {
@@ -170,6 +177,7 @@ function getRandomAffirmation(lifePath: number, intention: string): string {
 }
 
 export default function WallpaperStudioScreen({ profile, onBack }: Props) {
+  const { locale, t, l } = useLocalization();
   // State quản lý luồng màn hình: 'input' -> 'generating' -> 'result'
   const [step, setStep] = useState<ScreenStep>('input');
   const [prompt, setPrompt] = useState<string>('');
@@ -182,10 +190,14 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
       isUri: false,
       title: 'Hồ Đêm & Dãy Núi Thiêng',
       affirmation_vi: 'Tôi vững vàng trước mọi thử thách, năng lượng dồi dào luôn bảo bọc.',
+      affirmation_en: 'I remain steady through every challenge, surrounded by abundant and protective energy.',
       explanation_vi: 'Dãy núi sâu thẳm soi bóng mặt nước đại diện cho ý chí kiên định và bình an sâu thẳm.',
+      explanation_en: 'The mountain reflected in still water represents steady resolve and deep inner peace.',
       luckyColors_vi: ['Xanh đêm', 'Tím đậm', 'Vàng kim nhạt'],
       styleName: 'Vũ trụ cung hoàng đạo',
+      styleNameEn: 'Celestial zodiac',
       intentionName: 'Bảo hộ năng lượng',
+      intentionNameEn: 'Energy protection',
     },
     {
       id: 'preset-2',
@@ -193,10 +205,14 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
       isUri: false,
       title: 'Cung Trăng Ánh Hồng',
       affirmation_vi: 'Trái tim rộng mở đón nhận yêu thương và phước lành ngập tràn.',
+      affirmation_en: 'My open heart welcomes love and abundant blessings.',
       explanation_vi: 'Mây hồng và vầng trăng khuyết là biểu tượng của tình cảm dịu dàng, hài hòa.',
+      explanation_en: 'Pink clouds and the crescent moon symbolize gentle affection and harmony.',
       luckyColors_vi: ['Hồng pastel', 'Tím thạch anh', 'Vàng ánh dương'],
       styleName: 'Thiền tĩnh huyền bí',
+      styleNameEn: 'Ethereal meditation',
       intentionName: 'Tình duyên & Bình yên',
+      intentionNameEn: 'Love & peace',
     },
     {
       id: 'preset-center',
@@ -204,10 +220,14 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
       isUri: false,
       title: 'Hồ Hoàng Hôn & Nai Thần',
       affirmation_vi: 'Vũ trụ ban tặng sự bình yên tuyệt đối và may mắn vĩnh cửu.',
+      affirmation_en: 'The universe offers me deep peace and enduring good fortune.',
       explanation_vi: 'Hình tượng vầng trăng khuyết và làn sương hoàng hôn hồ nước kích hoạt trực giác an định.',
+      explanation_en: 'The crescent moon and sunset mist invite calm, grounded intuition.',
       luckyColors_vi: ['Tím hoàng hôn', 'Vàng ánh trăng', 'Hồng dạ yến'],
       styleName: 'Thiên nhiên mộng mơ',
+      styleNameEn: 'Dreamy nature',
       intentionName: 'An lạc & Chữa lành',
+      intentionNameEn: 'Peace & healing',
     },
     {
       id: 'preset-4',
@@ -215,10 +235,14 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
       isUri: false,
       title: 'Chuyến Tàu Đêm Hy Vọng',
       affirmation_vi: 'Hành trình mới khởi sinh tài lộc, đưa tôi đến đúng nơi đúng thời điểm.',
+      affirmation_en: 'A new journey brings abundance and guides me to the right place at the right time.',
       explanation_vi: 'Ánh đèn ấm áp xuyên màn đêm mở lối cho những vận may bất ngờ.',
+      explanation_en: 'Warm lights crossing the night open a path toward unexpected opportunities.',
       luckyColors_vi: ['Vàng hổ phách', 'Tím huyền bí', 'Đen nhung'],
       styleName: '3D ánh hoàng kim',
+      styleNameEn: 'Golden 3D',
       intentionName: 'Thịnh vượng & Tài lộc',
+      intentionNameEn: 'Prosperity & abundance',
     },
     {
       id: 'preset-5',
@@ -226,10 +250,14 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
       isUri: false,
       title: 'Hồ Đêm Huyền Bí',
       affirmation_vi: 'Nguồn cảm hứng vô tận tuôn trào, niềm vui lan tỏa muôn nơi.',
+      affirmation_en: 'Inspiration flows freely through me, spreading joy wherever I go.',
       explanation_vi: 'Không gian tĩnh mịch kích hoạt trực giác và mở lối cho vận may.',
+      explanation_en: 'The quiet atmosphere awakens intuition and opens a path for good fortune.',
       luckyColors_vi: ['Tím thạch anh', 'Vàng hoàng kim'],
       styleName: 'Hình học thiêng',
+      styleNameEn: 'Sacred geometry',
       intentionName: 'Thịnh vượng & Tài lộc',
+      intentionNameEn: 'Prosperity & abundance',
     },
   ]);
 
@@ -427,7 +455,7 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
   const handleGenerate = async () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Keyboard.dismiss();
-    const effectivePrompt = prompt.trim() || 'Falling asleep...';
+    const effectivePrompt = prompt.trim() || l('Một giấc ngủ bình yên...', 'Falling asleep...');
 
     // 1. Chuyển sang màn hình 2: Đang tạo (Creating / Loading)
     setStep('generating');
@@ -457,6 +485,7 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
           styleId: randomStyle.id,
           deviceType: 'mobile',
           customWish: effectivePrompt,
+          locale,
           count: 4,
         }),
       });
@@ -475,22 +504,29 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
             id: `ai-${Date.now()}-${idx}`,
             source: { uri: fullImageUrl },
             isUri: true,
-            title: `${effectivePrompt} • Bản #${idx + 1}`,
+            title: `${effectivePrompt} • ${l('Bản', 'Version')} #${idx + 1}`,
             affirmation_vi: data.affirmation_vi || getRandomAffirmation(numbers.lifePathNumber, randomIntention.label),
+            affirmation_en: data.affirmation_en || `I welcome ${randomIntention.labelEn.toLowerCase()} with calm confidence.`,
             explanation_vi: data.explanation_vi || `Hội tụ năng lượng số ${numbers.lifePathNumber} với phong cách ${randomStyle.label}.`,
+            explanation_en: data.explanation_en || `Life Path ${numbers.lifePathNumber} energy is expressed through the ${randomStyle.labelEn.toLowerCase()} style.`,
             luckyColors_vi: Array.isArray(data.luckyColors_vi) && data.luckyColors_vi.length > 0
               ? data.luckyColors_vi
               : ['Vàng hoàng kim', 'Tím huyền bí'],
+            luckyColors_en: Array.isArray(data.luckyColors_en) && data.luckyColors_en.length > 0
+              ? data.luckyColors_en
+              : ['Golden yellow', 'Mystic purple'],
             styleName: data.style?.name_vi || randomStyle.label,
+            styleNameEn: data.style?.name_en || randomStyle.labelEn,
             intentionName: data.intention?.name_vi || randomIntention.label,
+            intentionNameEn: data.intention?.name_en || randomIntention.labelEn,
           };
         });
       } else {
-        errorMessage = data.error || `Máy chủ phản hồi mã ${res.status}`;
+        errorMessage = data.error || l(`Máy chủ phản hồi mã ${res.status}`, `The server responded with status ${res.status}`);
       }
     } catch (err) {
       console.error('[LuckyWallpaper] Request error:', err);
-      errorMessage = err instanceof Error ? err.message : 'Không thể kết nối máy chủ';
+      errorMessage = err instanceof Error ? err.message : l('Không thể kết nối máy chủ', 'Unable to connect to the server');
     }
 
     await minWaitPromise;
@@ -504,11 +540,11 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
       setActiveCarouselIndex(0);
       setStep('result');
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      showToast(`✨ Đã tạo xong ${newItems.length} phiên bản hình nền may mắn!`);
+      showToast(l(`✨ Đã tạo xong ${newItems.length} phiên bản hình nền may mắn!`, `✨ Created ${newItems.length} lucky wallpaper versions!`));
     } else {
       // Thông báo lỗi cụ thể cho người dùng, KHÔNG âm thầm thay bằng ảnh mock
       setStep('input');
-      showToast(`⚠️ Không thể tạo hình nền: ${errorMessage || 'Vui lòng thử lại'}`);
+      showToast(`${l('⚠️ Không thể tạo hình nền:', '⚠️ Unable to create wallpaper:')} ${errorMessage || l('Vui lòng thử lại', 'Please try again')}`);
     }
   };
 
@@ -523,10 +559,10 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
       if (res.success) {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-      showToast(res.message);
+      showToast(res.success ? l('Đã lưu hình nền.', 'Wallpaper saved.') : res.message);
     } catch (error) {
       console.error('[LuckyWallpaper] Save error:', error);
-      showToast('Không thể lưu hình nền. Vui lòng thử lại.');
+      showToast(l('Không thể lưu hình nền. Vui lòng thử lại.', 'Unable to save the wallpaper. Please try again.'));
     } finally {
       setIsSavingWallpaper(false);
     }
@@ -587,7 +623,7 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
               activeOpacity={0.7}
               onPress={() => setIsProfilePickerOpen(true)}
               style={styles.headerIconButton}
-              accessibilityLabel="Chọn hồ sơ"
+              accessibilityLabel={l('Chọn hồ sơ', 'Choose profile')}
             >
               <Ionicons name="search-outline" size={23} color="#F7CC6A" />
             </TouchableOpacity>
@@ -630,10 +666,10 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
                 <View style={[styles.inputTopSection, isKeyboardVisible && styles.inputTopSectionKeyboard]}>
                   <View style={styles.inputTitleWrapper}>
                     <Text style={[styles.inputMainTitle, isKeyboardVisible && styles.inputMainTitleKeyboard]}>
-                      Create your{'\n'}lucky wallpaper
+                      {l('Tạo hình nền may mắn', 'Create your lucky wallpaper')}
                     </Text>
                     <Text style={[styles.inputSubtitle, isKeyboardVisible && styles.inputSubtitleKeyboard]}>
-                      Describe your vibe, mood or what{'\n'}you need right now.
+                      {l('Mô tả cảm xúc, tâm trạng hoặc điều bạn đang cần.', 'Describe your vibe, mood or what you need right now.')}
                     </Text>
                   </View>
 
@@ -695,7 +731,7 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
                       activeOpacity={0.7}
                       onPress={() => setIsProfilePickerOpen(true)}
                       style={styles.searchIcon}
-                      accessibilityLabel="Chọn hồ sơ"
+                      accessibilityLabel={l('Chọn hồ sơ', 'Choose profile')}
                     >
                       <Ionicons name="search-outline" size={21} color="#C8B9E4" />
                     </TouchableOpacity>
@@ -705,7 +741,7 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
                       ref={textInputRef}
                       value={prompt}
                       onChangeText={setPrompt}
-                      placeholder="Falling asleep..."
+                      placeholder={l('Một giấc ngủ bình yên...', 'Falling asleep...')}
                       placeholderTextColor="#9F8EC0"
                       style={styles.textInputField}
                       returnKeyType="go"
@@ -724,7 +760,7 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
                         onPress={handleGenerate}
                         style={styles.submitCircleButton}
                         accessibilityRole="button"
-                        accessibilityLabel="Tạo hình nền"
+                        accessibilityLabel={l('Tạo hình nền', 'Create wallpaper')}
                       >
                         <LinearGradient
                           colors={['#FFE5A1', '#F5B84E', '#DF962F']}
@@ -751,10 +787,10 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
           {/* Tiêu đề loading */}
           <View style={styles.loadingTopSection}>
             <Text style={styles.loadingMainTitle}>
-              Creating your{'\n'}lucky wallpaper...
+              {l('Đang tạo hình nền may mắn...', 'Creating your lucky wallpaper...')}
             </Text>
             <Text style={styles.loadingSubtitle}>
-              Turning your words into a scene ✨
+              {l('Biến lời bạn thành một khung cảnh ✨', 'Turning your words into a scene ✨')}
             </Text>
           </View>
 
@@ -855,7 +891,7 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
           <View style={styles.loadingPillContainer}>
             <View style={styles.loadingPill}>
               <ActivityIndicator size="small" color="#F7CC6A" />
-              <Text style={styles.loadingPillText}>Painting your scene...</Text>
+              <Text style={styles.loadingPillText}>{l('Đang vẽ khung cảnh của bạn...', 'Painting your scene...')}</Text>
             </View>
           </View>
         </View>
@@ -869,10 +905,10 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
           {/* Tiêu đề kết quả căn giữa */}
           <View style={styles.resultTopSection}>
             <Text style={styles.resultMainTitle}>
-              Here’s your{'\n'}lucky wallpaper ✨
+              {l('Hình nền may mắn của bạn ✨', 'Here’s your lucky wallpaper ✨')}
             </Text>
             <Text style={styles.resultSubtitle}>
-              Swipe to explore all 4 variations ✨{'\n'}or tap any card to view fullscreen.
+              {l('Vuốt để xem 4 phiên bản ✨ hoặc chạm vào ảnh để xem toàn màn hình.', 'Swipe to explore all 4 variations ✨ or tap any card to view fullscreen.')}
             </Text>
           </View>
 
@@ -985,49 +1021,31 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
           {/* Bộ nút đôi dưới đáy: "Try another" & "Save wallpaper" */}
           <View style={styles.resultActionsRow}>
             {/* Nút Try another */}
-            <View style={styles.tryAnotherButtonShadow}>
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => {
-                  setPrompt('');
-                  setStep('input');
-                }}
-                style={styles.tryAnotherButton}
-              >
-                <LinearGradient
-                  colors={['#4A2D82', '#30195F', '#1D103F']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.tryAnotherGradient}
-                >
-                  <Ionicons name="refresh" size={19} color="#F7CC6A" />
-                  <Text style={styles.tryAnotherText}>Try another</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
+            <ThreeDButton
+              label={l('Thử mẫu khác', 'Try another')}
+              leadingIcon={<Ionicons name="refresh" size={19} color="#FFFFFF" />}
+              onPress={() => {
+                setPrompt('');
+                setStep('input');
+              }}
+              shape="pill"
+              style={styles.tryAnotherButton3d}
+              variant="purple"
+            />
 
             {/* Nút Save wallpaper */}
-            <View style={[styles.saveWallpaperButtonShadow, isSavingWallpaper && styles.saveWallpaperButtonDisabled]}>
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={() => {
-                  const cur = history[activeCarouselIndex] || history[0];
-                  if (cur) void handleSaveWallpaper(cur);
-                }}
-                disabled={isSavingWallpaper}
-                style={styles.saveWallpaperButton}
-              >
-                <LinearGradient
-                  colors={['#FFE5A1', '#F5B84E', '#DF962F']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.saveWallpaperGradient}
-                >
-                  <Ionicons name="download-outline" size={20} color="#211438" />
-                  <Text style={styles.saveWallpaperText}>{isSavingWallpaper ? 'Saving...' : 'Save wallpaper'}</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
+            <ThreeDButton
+              label={isSavingWallpaper ? l('Đang lưu...', 'Saving...') : l('Lưu hình nền', 'Save wallpaper')}
+              leadingIcon={<Ionicons name="download-outline" size={20} color="#3B260D" />}
+              loading={isSavingWallpaper}
+              onPress={() => {
+                const cur = history[activeCarouselIndex] || history[0];
+                if (cur) void handleSaveWallpaper(cur);
+              }}
+              shape="pill"
+              style={styles.saveWallpaperButton3d}
+              variant="gold"
+            />
           </View>
         </View>
       )}
@@ -1060,18 +1078,18 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
                 style={styles.fullscreenCloseBtn}
               >
                 <Ionicons name="close" size={19} color="#F7CC6A" />
-                <Text style={styles.fullscreenCloseText}>Đóng</Text>
+                <Text style={styles.fullscreenCloseText}>{t('common.close')}</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                activeOpacity={0.7}
+              <ThreeDButton
+                label={isSavingWallpaper ? l('Đang lưu...', 'Saving...') : l('Lưu ảnh', 'Save image')}
+                leadingIcon={<Ionicons name="download-outline" size={17} color="#3B260D" />}
+                loading={isSavingWallpaper}
                 onPress={() => fullscreenItem && void handleSaveWallpaper(fullscreenItem)}
-                disabled={isSavingWallpaper}
-                style={[styles.fullscreenShareBtn, isSavingWallpaper && styles.saveWallpaperButtonDisabled]}
-              >
-                <Ionicons name="download-outline" size={18} color="#211438" />
-                <Text style={styles.fullscreenShareText}>{isSavingWallpaper ? 'Đang lưu...' : 'Lưu ảnh'}</Text>
-              </TouchableOpacity>
+                shape="pill"
+                size="sm"
+                variant="gold"
+              />
             </View>
 
             {/* Ảnh lớn */}
@@ -1089,17 +1107,17 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
             {fullscreenItem && (
               <View style={styles.fullscreenCardInfo}>
                 <Text style={styles.fullscreenAffirmation}>
-                  “{fullscreenItem.affirmation_vi}”
+                  “{locale === 'en' ? (fullscreenItem.affirmation_en || fullscreenItem.affirmation_vi) : fullscreenItem.affirmation_vi}”
                 </Text>
                 <Text style={styles.fullscreenExplanation}>
-                  {fullscreenItem.explanation_vi}
+                  {locale === 'en' ? (fullscreenItem.explanation_en || fullscreenItem.explanation_vi) : fullscreenItem.explanation_vi}
                 </Text>
                 <View style={styles.fullscreenTagRow}>
                   <Text style={styles.fullscreenTag}>
-                    ✦ {fullscreenItem.styleName}
+                    ✦ {locale === 'en' ? (fullscreenItem.styleNameEn || fullscreenItem.styleName) : fullscreenItem.styleName}
                   </Text>
                   <Text style={styles.fullscreenTag}>
-                    • {fullscreenItem.intentionName}
+                    • {locale === 'en' ? (fullscreenItem.intentionNameEn || fullscreenItem.intentionName) : fullscreenItem.intentionName}
                   </Text>
                 </View>
               </View>
@@ -1125,8 +1143,8 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
           />
           <View style={styles.menuSheet}>
             <View style={styles.menuSheetHeader}>
-              <Text style={styles.menuSheetTitle}>Xưởng Hình Nền May Mắn</Text>
-              <Text style={styles.menuSheetSub}>Số chủ đạo {numbers.lifePathNumber} • Ngày cá nhân {numbers.personalDay}</Text>
+              <Text style={styles.menuSheetTitle}>{l('Xưởng Hình Nền May Mắn', 'Lucky Wallpaper Studio')}</Text>
+              <Text style={styles.menuSheetSub}>{l('Số chủ đạo', 'Life Path')} {numbers.lifePathNumber} • {l('Ngày cá nhân', 'Personal Day')} {numbers.personalDay}</Text>
             </View>
 
             <TouchableOpacity
@@ -1139,8 +1157,8 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
             >
               <Ionicons name="layers-outline" size={22} color="#F7CC6A" style={styles.menuItemIcon} />
               <View style={styles.menuItemTextWrap}>
-                <Text style={styles.menuItemTitle}>Xem 24 Lá Bài Bản Mệnh</Text>
-                <Text style={styles.menuItemDesc}>Bản đồ năng lượng linh số Pythagoras</Text>
+                <Text style={styles.menuItemTitle}>{l('Xem 24 Lá Bài Bản Mệnh', 'View 24 Numerology Cards')}</Text>
+                <Text style={styles.menuItemDesc}>{l('Bản đồ năng lượng linh số Pythagoras', 'Your Pythagorean numerology energy map')}</Text>
               </View>
               <Ionicons name="chevron-forward" size={19} color="#C9B3E9" />
             </TouchableOpacity>
@@ -1155,8 +1173,8 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
             >
               <Ionicons name="images-outline" size={22} color="#F7CC6A" style={styles.menuItemIcon} />
               <View style={styles.menuItemTextWrap}>
-                <Text style={styles.menuItemTitle}>Thư viện hình nền đã tạo</Text>
-                <Text style={styles.menuItemDesc}>Xem lại {history.length} tác phẩm đã hoàn thành</Text>
+                <Text style={styles.menuItemTitle}>{l('Thư viện hình nền đã tạo', 'Created wallpaper library')}</Text>
+                <Text style={styles.menuItemDesc}>{l('Xem lại', 'Review')} {history.length} {l('tác phẩm đã hoàn thành', 'completed creations')}</Text>
               </View>
               <Ionicons name="chevron-forward" size={19} color="#C9B3E9" />
             </TouchableOpacity>
@@ -1172,8 +1190,8 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
             >
               <Ionicons name="sparkles" size={22} color="#F7CC6A" style={styles.menuItemIcon} />
               <View style={styles.menuItemTextWrap}>
-                <Text style={styles.menuItemTitle}>Tạo hình nền may mắn mới</Text>
-                <Text style={styles.menuItemDesc}>Nhập mong muốn và hòa vào năng lượng vũ trụ</Text>
+                <Text style={styles.menuItemTitle}>{l('Tạo hình nền may mắn mới', 'Create a new lucky wallpaper')}</Text>
+                <Text style={styles.menuItemDesc}>{l('Nhập mong muốn và hòa vào năng lượng vũ trụ', 'Describe your wish and tune into a celestial mood')}</Text>
               </View>
               <Ionicons name="chevron-forward" size={19} color="#C9B3E9" />
             </TouchableOpacity>
@@ -1183,7 +1201,7 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
               style={styles.menuCloseBtn}
               onPress={() => setShowMenuModal(false)}
             >
-              <Text style={styles.menuCloseBtnText}>Đóng</Text>
+              <Text style={styles.menuCloseBtnText}>{t('common.close')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1716,73 +1734,8 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     gap: 12,
   },
-  tryAnotherButtonShadow: {
-    flex: 1,
-    height: 54,
-    borderRadius: 27,
-    shadowColor: '#160A33',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.32,
-    shadowRadius: 9,
-    elevation: 4,
-  },
-  tryAnotherButton: {
-    flex: 1,
-    borderRadius: 27,
-    overflow: 'hidden',
-  },
-  tryAnotherGradient: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-  },
-  tryAnotherIcon: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  tryAnotherText: {
-    color: '#FFFFFF',
-    fontSize: 14.5,
-    fontWeight: '600',
-  },
-  saveWallpaperButtonShadow: {
-    flex: 1.2,
-    height: 54,
-    borderRadius: 27,
-    shadowColor: '#E4A039',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.46,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  saveWallpaperButton: {
-    flex: 1,
-    borderRadius: 27,
-    overflow: 'hidden',
-  },
-  saveWallpaperGradient: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-  },
-  saveWallpaperButtonDisabled: {
-    opacity: 0.6,
-  },
-  saveWallpaperIcon: {
-    color: '#211438',
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  saveWallpaperText: {
-    color: '#211438',
-    fontSize: 15,
-    fontWeight: '700',
-  },
+  tryAnotherButton3d: { flex: 1 },
+  saveWallpaperButton3d: { flex: 1.2 },
 
   // ================= TOAST =================
   toastContainer: {
@@ -1835,21 +1788,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '600',
-  },
-  fullscreenShareBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: '#F7CC6A',
-    borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-  },
-  fullscreenShareText: {
-    color: '#211438',
-    fontSize: 13,
-    fontWeight: '700',
   },
   fullscreenImageWrap: {
     flex: 1,

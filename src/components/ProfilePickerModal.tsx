@@ -9,12 +9,14 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import ThreeDButton from './ThreeDButton';
 import {
   ProfileItem, loadAllProfiles, addProfile, deleteProfile,
   setActiveProfileId, updateProfile, getZodiac, getZodiacEmoji, getNguHanh, getNguHanhEmoji,
   type ProfileGender,
 } from '../store/userProfile';
 import { extractBirthYear } from '../services/lunarService';
+import { useLocalization } from '../i18n/LocalizationContext';
 
 interface Props {
   visible: boolean;
@@ -33,6 +35,7 @@ export default function ProfilePickerModal({
   promptNotice,
   allowCoupleMode = true
 }: Props) {
+  const { t, l } = useLocalization();
   const [profiles, setProfiles] = useState<ProfileItem[]>([]);
   const [isCoupleMode, setIsCoupleMode] = useState<boolean>(selectedProfiles.length >= 2);
   const [tempSelectedIds, setTempSelectedIds] = useState<string[]>(
@@ -93,7 +96,7 @@ export default function ProfilePickerModal({
   const handleSelectProfile = async (item: ProfileItem) => {
     void Haptics.selectionAsync();
     if (!item.gender) {
-      startEditingProfile(item, 'Hồ sơ này chưa có giới tính. Vui lòng chọn Nam hoặc Nữ trước khi sử dụng.');
+      startEditingProfile(item, l('Hồ sơ này chưa có giới tính. Vui lòng chọn Nam hoặc Nữ trước khi sử dụng.', 'This profile has no gender selected. Choose Female or Male before continuing.'));
       return;
     }
     if (!allowCoupleMode || !isCoupleMode) {
@@ -132,14 +135,14 @@ export default function ProfilePickerModal({
 
     const chosen = profiles.filter(p => tempSelectedIds.includes(p.id));
     if (chosen.length < 2) {
-      Alert.alert('Thông báo', 'Vui lòng chọn đủ 2 hồ sơ để xem mức độ tương hợp tình duyên!');
+      Alert.alert(l('Thông báo', 'Notice'), l('Vui lòng chọn đủ 2 hồ sơ để xem mức độ tương hợp tình duyên!', 'Choose two profiles to view relationship compatibility.'));
       return;
     }
     const missingGenderProfile = chosen.find((profile) => !profile.gender);
     if (missingGenderProfile) {
       startEditingProfile(
         missingGenderProfile,
-        'Hồ sơ này chưa có giới tính. Vui lòng cập nhật trước khi ghép đôi.',
+        l('Hồ sơ này chưa có giới tính. Vui lòng cập nhật trước khi ghép đôi.', 'This profile has no gender selected. Update it before compatibility matching.'),
       );
       return;
     }
@@ -159,16 +162,16 @@ export default function ProfilePickerModal({
     };
 
     if (Platform.OS === 'web') {
-      if (window.confirm(`Bạn có chắc muốn xóa hồ sơ "${name}" không?`)) {
+      if (window.confirm(l(`Bạn có chắc muốn xóa hồ sơ "${name}" không?`, `Are you sure you want to delete the profile "${name}"?`))) {
         await doDelete();
       }
     } else {
       Alert.alert(
-        'Xác nhận xóa',
-        `Bạn có chắc muốn xóa hồ sơ "${name}" không?`,
+        l('Xác nhận xóa', 'Confirm deletion'),
+        l(`Bạn có chắc muốn xóa hồ sơ "${name}" không?`, `Are you sure you want to delete the profile "${name}"?`),
         [
-          { text: 'Hủy', style: 'cancel' },
-          { text: 'Xóa', style: 'destructive', onPress: doDelete }
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: l('Xóa', 'Delete'), style: 'destructive', onPress: doDelete }
         ]
       );
     }
@@ -179,7 +182,7 @@ export default function ProfilePickerModal({
     const trimmedDate = newBirthDate.trim();
 
     if (!trimmedName) {
-      setFormError('Vui lòng nhập Họ và tên.');
+      setFormError(l('Vui lòng nhập Họ và tên.', 'Enter a full name.'));
       return;
     }
 
@@ -190,12 +193,12 @@ export default function ProfilePickerModal({
     }
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(formattedDate)) {
-      setFormError('Ngày sinh cần đúng định dạng YYYY-MM-DD hoặc DD/MM/YYYY (ví dụ: 1998-10-20 hoặc 20/10/1998).');
+      setFormError(l('Ngày sinh cần đúng định dạng YYYY-MM-DD hoặc DD/MM/YYYY (ví dụ: 1998-10-20 hoặc 20/10/1998).', 'Birth date must use YYYY-MM-DD or DD/MM/YYYY format, for example 1998-10-20 or 20/10/1998.'));
       return;
     }
 
     if (!newGender) {
-      setFormError('Vui lòng chọn giới tính Nam hoặc Nữ. Thông tin này ảnh hưởng trực tiếp đến kết quả luận giải.');
+      setFormError(l('Vui lòng chọn giới tính Nam hoặc Nữ. Thông tin này ảnh hưởng trực tiếp đến kết quả luận giải.', 'Choose Female or Male. This information directly affects the reading.'));
       return;
     }
 
@@ -237,7 +240,7 @@ export default function ProfilePickerModal({
         onClose();
       }
     } catch {
-      setFormError('Không thể tạo hồ sơ. Vui lòng thử lại.');
+      setFormError(l('Không thể tạo hồ sơ. Vui lòng thử lại.', 'Unable to create the profile. Please try again.'));
     }
   };
 
@@ -254,7 +257,7 @@ export default function ProfilePickerModal({
           <View style={styles.modalHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="sparkles" size={16} color="#F5BA5B" style={styles.headerIcon} />
-              <Text style={styles.headerTitle}>Chọn Hồ Sơ Luận Giải</Text>
+              <Text style={styles.headerTitle}>{l('Chọn Hồ Sơ Luận Giải', 'Choose a Reading Profile')}</Text>
             </View>
             <TouchableOpacity activeOpacity={0.7} onPress={onClose} style={styles.closeBtn}>
               <Ionicons name="close" size={20} color="#94A3B8" />
@@ -275,7 +278,7 @@ export default function ProfilePickerModal({
                   }
                 }}
               >
-                <View style={styles.modeTabLabel}><Ionicons name="person-outline" size={15} color={!isCoupleMode ? '#F5BA5B' : '#94A3B8'} /><Text style={[styles.modeTabText, !isCoupleMode && styles.modeTabTextActive]}>Cá Nhân (1 Người)</Text></View>
+                <View style={styles.modeTabLabel}><Ionicons name="person-outline" size={15} color={!isCoupleMode ? '#F5BA5B' : '#94A3B8'} /><Text style={[styles.modeTabText, !isCoupleMode && styles.modeTabTextActive]}>{l('Cá Nhân (1 Người)', 'Individual (1 person)')}</Text></View>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -289,7 +292,7 @@ export default function ProfilePickerModal({
                   }
                 }}
               >
-                <View style={styles.modeTabLabel}><Ionicons name="heart-outline" size={15} color={isCoupleMode ? '#F472B6' : '#94A3B8'} /><Text style={[styles.modeTabText, isCoupleMode && styles.modeTabTextActiveCouple]}>Tình Duyên (2 Người)</Text></View>
+                <View style={styles.modeTabLabel}><Ionicons name="heart-outline" size={15} color={isCoupleMode ? '#F472B6' : '#94A3B8'} /><Text style={[styles.modeTabText, isCoupleMode && styles.modeTabTextActiveCouple]}>{l('Tình Duyên (2 Người)', 'Compatibility (2 people)')}</Text></View>
               </TouchableOpacity>
             </View>
           )}
@@ -302,8 +305,8 @@ export default function ProfilePickerModal({
           ) : (
             <Text style={styles.headerSubtitle}>
               {isCoupleMode
-                ? 'Tích chọn 2 người (Bạn & Người ấy) để Agent phân tích Bát Tự hòa hợp và trải bài tình duyên.'
-                : 'Chọn 1 hồ sơ để Tiểu Linh Miêu giải mã vận mệnh, công danh và năng lượng cá nhân.'}
+                ? l('Tích chọn 2 người (Bạn & Người ấy) để Agent phân tích Bát Tự hòa hợp và trải bài tình duyên.', 'Choose two people so the agent can analyze Bazi compatibility and a relationship spread.')
+                : l('Chọn 1 hồ sơ để Tiểu Linh Miêu giải mã vận mệnh, công danh và năng lượng cá nhân.', 'Choose one profile for a personal destiny, career and energy reading.')}
             </Text>
           )}
 
@@ -340,14 +343,14 @@ export default function ProfilePickerModal({
                           {isSelected && (
                             <View style={[styles.activeBadge, isCoupleMode && styles.activeBadgeCouple]}>
                               <Text style={styles.activeBadgeText}>
-                                {isCoupleMode ? `Người ${order}` : 'Đang chọn'}
+                                {isCoupleMode ? `${l('Người', 'Person')} ${order}` : l('Đang chọn', 'Selected')}
                               </Text>
                             </View>
                           )}
                         </View>
                         <Text style={[styles.profileDetails, !p.gender && styles.profileDetailsWarning]}>
                           📅 {p.birthDate} · {nguHanhEmoji} {nguHanh} · {zodiac} · {' '}
-                          {p.gender === 'male' ? '👨 Nam' : p.gender === 'female' ? '👩 Nữ' : '⚠️ Chưa chọn giới tính'}
+                          {p.gender === 'male' ? l('👨 Nam', '👨 Male') : p.gender === 'female' ? l('👩 Nữ', '👩 Female') : l('⚠️ Chưa chọn giới tính', '⚠️ Gender not selected')}
                         </Text>
                       </View>
                     </View>
@@ -355,7 +358,7 @@ export default function ProfilePickerModal({
                     <View style={styles.profileRight}>
                       <TouchableOpacity
                         accessibilityRole="button"
-                        accessibilityLabel={`Chỉnh sửa hồ sơ ${p.fullName}`}
+                        accessibilityLabel={`${l('Chỉnh sửa hồ sơ', 'Edit profile')} ${p.fullName}`}
                         activeOpacity={0.7}
                         style={styles.editBtn}
                         onPress={(event) => {
@@ -385,7 +388,7 @@ export default function ProfilePickerModal({
 
               {profiles.length === 0 && (
                 <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>Chưa có hồ sơ nào. Hãy thêm hồ sơ để bắt đầu!</Text>
+                  <Text style={styles.emptyText}>{l('Chưa có hồ sơ nào. Hãy thêm hồ sơ để bắt đầu!', 'No profiles yet. Add one to get started.')}</Text>
                 </View>
               )}
             </View>
@@ -400,31 +403,31 @@ export default function ProfilePickerModal({
                     color="#F5BA5B"
                   />
                   <Text style={styles.formTitle}>
-                    {editingProfileId ? 'Chỉnh Sửa Hồ Sơ' : 'Thêm Hồ Sơ Mới'}
+                    {editingProfileId ? l('Chỉnh Sửa Hồ Sơ', 'Edit Profile') : l('Thêm Hồ Sơ Mới', 'Add New Profile')}
                   </Text>
                 </View>
                 
                 {formError ? <Text style={styles.formError}>{formError}</Text> : null}
 
-                <Text style={styles.label}>Họ và tên</Text>
+                <Text style={styles.label}>{l('Họ và tên', 'Full name')}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Ví dụ: Nguyễn Văn An"
+                  placeholder={l('Ví dụ: Nguyễn Văn An', 'For example: Alex Morgan')}
                   placeholderTextColor="#64748B"
                   value={newName}
                   onChangeText={setNewName}
                 />
 
-                <Text style={styles.label}>Ngày sinh (Dương lịch)</Text>
+                <Text style={styles.label}>{l('Ngày sinh (Dương lịch)', 'Birth date (Gregorian)')}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Ví dụ: 1998-10-20 hoặc 20/10/1998"
+                  placeholder={l('Ví dụ: 1998-10-20 hoặc 20/10/1998', 'For example: 1998-10-20 or 20/10/1998')}
                   placeholderTextColor="#64748B"
                   value={newBirthDate}
                   onChangeText={setNewBirthDate}
                 />
 
-                <Text style={styles.label}>Giới tính</Text>
+                <Text style={styles.label}>{l('Giới tính', 'Gender')}</Text>
                 <View style={styles.genderRow}>
                   <TouchableOpacity
                     activeOpacity={0.7}
@@ -432,7 +435,7 @@ export default function ProfilePickerModal({
                     onPress={() => { void Haptics.selectionAsync(); setNewGender('female'); }}
                   >
                     <Text style={[styles.genderBtnText, newGender === 'female' && styles.genderBtnTextActive]}>
-                      👩 Nữ
+                      {l('👩 Nữ', '👩 Female')}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -441,27 +444,27 @@ export default function ProfilePickerModal({
                     onPress={() => { void Haptics.selectionAsync(); setNewGender('male'); }}
                   >
                     <Text style={[styles.genderBtnText, newGender === 'male' && styles.genderBtnTextActive]}>
-                      👨 Nam
+                      {l('👨 Nam', '👨 Male')}
                     </Text>
                   </TouchableOpacity>
                 </View>
 
                 <View style={styles.formActions}>
-                  <TouchableOpacity
-                    activeOpacity={0.7}
-                    style={styles.cancelBtn}
+                  <ThreeDButton
+                    label={t('common.cancel')}
                     onPress={() => {
                       setIsAdding(false);
                       resetProfileForm();
                     }}
-                  >
-                    <Text style={styles.cancelBtnText}>Hủy</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity activeOpacity={0.7} style={styles.submitBtn} onPress={handleSaveProfile}>
-                    <Text style={styles.submitBtnText}>
-                      {editingProfileId ? 'Cập Nhật' : 'Lưu Hồ Sơ'}
-                    </Text>
-                  </TouchableOpacity>
+                    size="sm"
+                    variant="light"
+                  />
+                  <ThreeDButton
+                    label={editingProfileId ? l('Cập Nhật', 'Update') : l('Lưu Hồ Sơ', 'Save Profile')}
+                    onPress={handleSaveProfile}
+                    size="sm"
+                    variant="gold"
+                  />
                 </View>
               </View>
             ) : (
@@ -474,26 +477,21 @@ export default function ProfilePickerModal({
                 activeOpacity={0.7}
               >
                 <Ionicons name="add-circle-outline" size={16} color="#F5BA5B" style={styles.addTriggerIcon} />
-                <Text style={styles.addTriggerText}>Thêm hồ sơ người thân / bạn bè</Text>
+                <Text style={styles.addTriggerText}>{l('Thêm hồ sơ người thân / bạn bè', 'Add a family or friend profile')}</Text>
               </TouchableOpacity>
             )}
           </ScrollView>
 
           {/* Confirm Button for Couple Mode */}
           {isCoupleMode && (
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={[
-                styles.confirmCoupleBtn,
-                tempSelectedIds.length < 2 && styles.confirmCoupleBtnDisabled
-              ]}
-              onPress={handleConfirmCouple}
+            <ThreeDButton
               disabled={tempSelectedIds.length < 2}
-            >
-              <Text style={styles.confirmCoupleBtnText}>
-                💖 Áp Dụng Ghép Đôi ({tempSelectedIds.length}/2)
-              </Text>
-            </TouchableOpacity>
+              fullWidth
+              label={`💖 ${l('Áp Dụng Ghép Đôi', 'Apply Compatibility')} (${tempSelectedIds.length}/2)`}
+              onPress={handleConfirmCouple}
+              style={styles.confirmCoupleBtn3d}
+              variant="brand"
+            />
           )}
         </View>
       </View>
@@ -784,46 +782,10 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 12
   },
-  cancelBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    backgroundColor: '#231E38'
-  },
-  cancelBtnText: {
-    color: '#94A3B8',
-    fontSize: 12,
-    fontWeight: '600'
-  },
-  submitBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: '#F5BA5B'
-  },
-  submitBtnText: {
-    color: '#000',
-    fontSize: 12,
-    fontWeight: '700'
-  },
   formError: {
     color: '#EF4444',
     fontSize: 11,
     marginBottom: 6
   },
-  confirmCoupleBtn: {
-    marginTop: 12,
-    backgroundColor: '#F472B6',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center'
-  },
-  confirmCoupleBtnDisabled: {
-    opacity: 0.5
-  },
-  confirmCoupleBtnText: {
-    color: '#000',
-    fontSize: 13,
-    fontWeight: '700'
-  }
+  confirmCoupleBtn3d: { marginTop: 12 }
 });

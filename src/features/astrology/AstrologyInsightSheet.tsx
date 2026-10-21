@@ -18,6 +18,7 @@ import {
   buildTodayInterpretation,
   getAstrologyRuleTopicSummaries,
 } from './astrologyPresentation';
+import { useLocalization } from '../../i18n/LocalizationContext';
 
 const ZODIAC_VI: Record<string, string> = {
   Aries: 'Bạch Dương ♈',
@@ -71,7 +72,10 @@ function ScoreBar({ label, value, color }: { label: string; value: number; color
 
 export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: Props) {
   const insets = useSafeAreaInsets();
+  const { locale, t, l } = useLocalization();
   const ruleTopics = getAstrologyRuleTopicSummaries(metadata);
+  const zodiacName = (value: string) => locale === 'en' ? value : (ZODIAC_VI[value] || value);
+  const planetName = (value: string) => locale === 'en' ? value : (PLANET_VI[value] || value);
 
   return (
     <Modal
@@ -85,7 +89,7 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
         <TouchableOpacity
           style={StyleSheet.absoluteFill}
           activeOpacity={1}
-          accessibilityLabel="Đóng giải mã"
+          accessibilityLabel={l('Đóng giải mã', 'Close astrology reading')}
           onPress={onClose}
         />
         <LinearGradient
@@ -95,12 +99,12 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
           <View style={styles.handle} />
           <View style={styles.sheetHeader}>
             <View>
-              <Text style={styles.eyebrow}>GIẢI MÃ CHIÊM TINH</Text>
-              <Text style={styles.sheetTitle}>{fortune?.title || 'Quẻ hôm nay'}</Text>
+              <Text style={styles.eyebrow}>{l('GIẢI MÃ CHIÊM TINH', 'ASTROLOGY READING')}</Text>
+              <Text style={styles.sheetTitle}>{fortune?.title || l('Quẻ hôm nay', "Today's reading")}</Text>
             </View>
             <TouchableOpacity
               accessibilityRole="button"
-              accessibilityLabel="Đóng"
+              accessibilityLabel={t('common.close')}
               style={styles.closeButton}
               onPress={onClose}
             >
@@ -116,7 +120,7 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
               <View style={styles.interpretationCard}>
                 <View style={styles.sectionTitleRow}>
                   <Ionicons name="sparkles" size={18} color="#FBBF24" />
-                  <Text style={styles.sectionTitle}>Luận giải hôm nay</Text>
+                  <Text style={styles.sectionTitle}>{l('Luận giải hôm nay', "Today's interpretation")}</Text>
                 </View>
                 <Text style={styles.bodyText}>{buildTodayInterpretation(metadata)}</Text>
               </View>
@@ -127,7 +131,7 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
                 <View style={styles.fortuneVerseCard}>
                   <View style={styles.sectionTitleRow}>
                     <Ionicons name="sparkles-outline" size={18} color="#FBBF24" />
-                    <Text style={styles.sectionTitle}>Bài thơ quẻ hôm nay</Text>
+                    <Text style={styles.sectionTitle}>{l('Bài thơ quẻ hôm nay', "Today's verse")}</Text>
                   </View>
                   <Text style={styles.fortuneVerse}>{fortune.verse}</Text>
                 </View>
@@ -136,7 +140,7 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
                   <View style={styles.verseCard}>
                     <View style={styles.sectionTitleRow}>
                       <Ionicons name="musical-notes-outline" size={17} color="#71E7FF" />
-                      <Text style={styles.sectionTitle}>Ca dao gieo nhịp</Text>
+                      <Text style={styles.sectionTitle}>{l('Ca dao gieo nhịp', 'Traditional verse')}</Text>
                     </View>
                     <Text style={styles.anchorVerse}>“{fortune.anchorCaDao.content}”</Text>
                     {!!fortune.anchorCaDao.category && (
@@ -151,7 +155,7 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
                 <View style={styles.insightCard}>
                   <View style={styles.sectionTitleRow}>
                     <Ionicons name="eye-outline" size={18} color="#A78BFA" />
-                    <Text style={styles.sectionTitle}>Gương soi tâm trí</Text>
+                    <Text style={styles.sectionTitle}>{l('Gương soi tâm trí', 'Reflection')}</Text>
                   </View>
                   <Text style={styles.bodyText}>{fortune.mirror}</Text>
                 </View>
@@ -159,7 +163,7 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
                 <View style={styles.insightCard}>
                   <View style={styles.sectionTitleRow}>
                     <Ionicons name="flash-outline" size={18} color="#5EEAD4" />
-                    <Text style={styles.sectionTitle}>Kế sách bỏ túi</Text>
+                    <Text style={styles.sectionTitle}>{l('Kế sách bỏ túi', 'Practical guidance')}</Text>
                   </View>
                   <Text style={styles.bodyText}>{fortune.advice}</Text>
                 </View>
@@ -170,7 +174,7 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
               <View style={styles.ruleSection}>
                 <View style={styles.sectionTitleRow}>
                   <Ionicons name="git-branch-outline" size={18} color="#7CEBFF" />
-                  <Text style={styles.sectionTitle}>Căn cứ luận giải</Text>
+                  <Text style={styles.sectionTitle}>{l('Căn cứ luận giải', 'Reading basis')}</Text>
                 </View>
                 <Text style={styles.ruleIntro}>
                   Các chủ đề nổi bật được chọn từ dữ liệu lá số và bầu trời hôm nay.
@@ -191,7 +195,7 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
             {metadata && (
               <>
                 <View style={styles.divider} />
-                <Text style={styles.groupTitle}>Lá số bản mệnh</Text>
+                <Text style={styles.groupTitle}>{l('Lá số bản mệnh', 'Natal chart')}</Text>
                 <Text style={styles.groupDescription}>
                   Dựa trên ngày sinh {metadata.birthDate}
                   {metadata.birthTime ? ` lúc ${metadata.birthTime}` : ' với giờ sinh ước lượng'}
@@ -202,19 +206,19 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
 
                 <View style={styles.dataGrid}>
                   <View style={styles.dataCard}>
-                    <Text style={styles.dataLabel}>Mặt Trời bản mệnh</Text>
+                    <Text style={styles.dataLabel}>{l('Mặt Trời bản mệnh', 'Natal Sun')}</Text>
                     <Text style={styles.dataValue}>
-                      {ZODIAC_VI[metadata.natalSunSign] || metadata.natalSunSign}
+                      {zodiacName(metadata.natalSunSign)}
                     </Text>
                   </View>
                   <View style={styles.dataCard}>
-                    <Text style={styles.dataLabel}>Mặt Trăng bản mệnh</Text>
+                    <Text style={styles.dataLabel}>{l('Mặt Trăng bản mệnh', 'Natal Moon')}</Text>
                     <Text style={styles.dataValue}>
-                      {ZODIAC_VI[metadata.natalMoonSign] || metadata.natalMoonSign}
+                      {zodiacName(metadata.natalMoonSign)}
                     </Text>
                   </View>
                   <View style={styles.dataCardWide}>
-                    <Text style={styles.dataLabel}>Khí chất nổi trội</Text>
+                    <Text style={styles.dataLabel}>{l('Khí chất nổi trội', 'Dominant temperament')}</Text>
                     <Text style={styles.dataValue}>
                       {metadata.temperament.dominantElement} · {metadata.temperament.dominantModality}
                     </Text>
@@ -225,19 +229,19 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
                   <View style={styles.houseCard}>
                     <View style={styles.houseHeader}>
                       <Ionicons name="compass-outline" size={18} color="#7CEBFF" />
-                      <Text style={styles.houseTitle}>Trục lá số · Porphyry</Text>
+                      <Text style={styles.houseTitle}>{l('Trục lá số', 'Chart axis')} · Porphyry</Text>
                     </View>
                     <View style={styles.axisRow}>
                       <View style={styles.axisItem}>
-                        <Text style={styles.dataLabel}>Cung Mọc (ASC)</Text>
+                        <Text style={styles.dataLabel}>{l('Cung Mọc', 'Ascendant')} (ASC)</Text>
                         <Text style={styles.dataValue}>
-                          {ZODIAC_VI[longitudeToZodiac(metadata.natalContext.angles.ascendant).sign]}
+                          {zodiacName(longitudeToZodiac(metadata.natalContext.angles.ascendant).sign)}
                         </Text>
                       </View>
                       <View style={styles.axisItem}>
-                        <Text style={styles.dataLabel}>Thiên Đỉnh (MC)</Text>
+                        <Text style={styles.dataLabel}>{l('Thiên Đỉnh', 'Midheaven')} (MC)</Text>
                         <Text style={styles.dataValue}>
-                          {ZODIAC_VI[longitudeToZodiac(metadata.natalContext.angles.midheaven).sign]}
+                          {zodiacName(longitudeToZodiac(metadata.natalContext.angles.midheaven).sign)}
                         </Text>
                       </View>
                     </View>
@@ -245,8 +249,8 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
                       <View style={styles.activatedRow}>
                         {metadata.dailyContext.activatedHouses.map((house) => (
                           <View key={house.house} style={styles.housePill}>
-                            <Text style={styles.housePillNumber}>Nhà {house.house}</Text>
-                            <Text style={styles.housePillTopic}>{house.topicVi}</Text>
+                            <Text style={styles.housePillNumber}>{l('Nhà', 'House')} {house.house}</Text>
+                            {locale === 'vi' && <Text style={styles.housePillTopic}>{house.topicVi}</Text>}
                           </View>
                         ))}
                       </View>
@@ -255,23 +259,23 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
                 )}
 
                 <View style={styles.divider} />
-                <Text style={styles.groupTitle}>Bầu trời hôm nay</Text>
+                <Text style={styles.groupTitle}>{l('Bầu trời hôm nay', "Today's sky")}</Text>
                 <Text style={styles.groupDescription}>{metadata.vibeSummary}</Text>
 
                 <View style={styles.transitCard}>
-                  <Text style={styles.dataLabel}>Mặt Trăng quá cảnh</Text>
+                  <Text style={styles.dataLabel}>{l('Mặt Trăng quá cảnh', 'Transit Moon')}</Text>
                   <Text style={styles.dataValue}>
-                    {ZODIAC_VI[metadata.transitMoonSign] || metadata.transitMoonSign}
+                    {zodiacName(metadata.transitMoonSign)}
                   </Text>
                 </View>
 
                 {metadata.topAspect && (
                   <View style={styles.aspectCard}>
-                    <Text style={styles.aspectLabel}>Góc chiếu nổi bật</Text>
+                    <Text style={styles.aspectLabel}>{l('Góc chiếu nổi bật', 'Leading aspect')}</Text>
                     <Text style={styles.aspectFormula}>
-                      {PLANET_VI[metadata.topAspect.transitPlanet] || metadata.topAspect.transitPlanet}
-                      {' · '}{metadata.topAspect.nameVi}{' · '}
-                      {PLANET_VI[metadata.topAspect.natalPlanet] || metadata.topAspect.natalPlanet}
+                      {planetName(metadata.topAspect.transitPlanet)}
+                      {' · '}{locale === 'en' ? metadata.topAspect.type : metadata.topAspect.nameVi}{' · '}
+                      {planetName(metadata.topAspect.natalPlanet)}
                     </Text>
                     <Text style={styles.aspectMeta}>
                       Góc {metadata.topAspect.actualAngle.toFixed(0)}° · Sai số {metadata.topAspect.orb.toFixed(1)}°
@@ -280,9 +284,9 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
                 )}
 
                 <View style={styles.scoresCard}>
-                  <ScoreBar label="Hài hòa" value={metadata.scores.harmony} color="#5EEAD4" />
-                  <ScoreBar label="Thử thách" value={metadata.scores.tension} color="#FB7185" />
-                  <ScoreBar label="Hội tụ" value={metadata.scores.conjunction} color="#FBBF24" />
+                  <ScoreBar label={l('Hài hòa', 'Harmony')} value={metadata.scores.harmony} color="#5EEAD4" />
+                  <ScoreBar label={l('Thử thách', 'Tension')} value={metadata.scores.tension} color="#FB7185" />
+                  <ScoreBar label={l('Hội tụ', 'Conjunction')} value={metadata.scores.conjunction} color="#FBBF24" />
                 </View>
               </>
             )}

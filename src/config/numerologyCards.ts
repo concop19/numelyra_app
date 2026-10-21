@@ -10,8 +10,10 @@ export interface NumerologyCardMeta {
   nameEn: string;
   category: IndicatorCategory;
   categoryNameVi: string;
+  categoryNameEn?: string;
   image: ImageSourcePropType;
   description: string;
+  descriptionEn?: string;
 }
 
 export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
@@ -23,8 +25,10 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: 'Life Path',
     category: 'core',
     categoryNameVi: 'Cốt Lõi',
+    categoryNameEn: 'Core Numbers',
     image: require('../../assets/cards/card_01_walksOfLife.jpg'),
     description: 'Chỉ số quan trọng nhất, định hình quỹ đạo cuộc đời, tính cách bẩm sinh và bài học chính bạn cần trải nghiệm.',
+    descriptionEn: 'Your central number, describing your life direction, natural character, and the lessons you are here to experience.',
   },
   {
     id: 'card_02_mission',
@@ -34,8 +38,10 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: 'Mission / Destiny',
     category: 'core',
     categoryNameVi: 'Cốt Lõi',
+    categoryNameEn: 'Core Numbers',
     image: require('../../assets/cards/card_02_mission.jpg'),
     description: 'Mục đích tối thượng và dấu ấn di sản mà bạn được sinh ra để cống hiến cho cuộc đời này.',
+    descriptionEn: 'The purpose, contribution, and lasting imprint you are called to bring into this life.',
   },
   {
     id: 'card_03_soul',
@@ -45,8 +51,10 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: 'Soul Urge',
     category: 'core',
     categoryNameVi: 'Cốt Lõi',
+    categoryNameEn: 'Core Numbers',
     image: require('../../assets/cards/card_03_soul.jpg'),
     description: 'Khát khao sâu kín nhất trong tâm hồn, động lực nội tại thúc đẩy mọi cảm xúc và lựa chọn cá nhân.',
+    descriptionEn: 'Your deepest inner desires and the private motivation behind your feelings and personal choices.',
   },
   {
     id: 'card_04_personality',
@@ -56,8 +64,10 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: 'Personality',
     category: 'core',
     categoryNameVi: 'Cốt Lõi',
+    categoryNameEn: 'Core Numbers',
     image: require('../../assets/cards/card_04_personality.jpg'),
     description: 'Chiếc áo phong cách bên ngoài, ấn tượng đầu tiên mà người xung quanh cảm nhận về khí chất của bạn.',
+    descriptionEn: 'The outward style and first impression through which other people experience your presence.',
   },
   {
     id: 'card_05_dateOfBirth',
@@ -67,8 +77,10 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: 'Birthday Number',
     category: 'core',
     categoryNameVi: 'Cốt Lõi',
+    categoryNameEn: 'Core Numbers',
     image: require('../../assets/cards/card_05_dateOfBirth.jpg'),
     description: 'Tài năng thiên bẩm và món quà đặc biệt được vũ trụ ban tặng ngay khi bạn cất tiếng khóc chào đời.',
+    descriptionEn: 'An inborn talent and distinctive gift associated with the day on which you were born.',
   },
   {
     id: 'card_06_mature',
@@ -78,8 +90,10 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: 'Maturity Number',
     category: 'potential',
     categoryNameVi: 'Tiềm Năng',
+    categoryNameEn: 'Potential',
     image: require('../../assets/cards/card_06_mature.jpg'),
     description: 'Sức mạnh hợp nhất giữa Đường đời và Sứ mệnh, thăng hoa rực rỡ nhất ở giai đoạn trung niên.',
+    descriptionEn: 'The combined potential of Life Path and Destiny, often becoming clearer and stronger in midlife.',
   },
   {
     id: 'card_07_balance',
@@ -89,8 +103,10 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: 'Balance Number',
     category: 'potential',
     categoryNameVi: 'Tiềm Năng',
+    categoryNameEn: 'Potential',
     image: require('../../assets/cards/card_07_balance.jpg'),
     description: 'Điểm tựa tinh thần và phản xạ ứng xử giúp bạn lấy lại bình tĩnh trước những thử thách bất ngờ.',
+    descriptionEn: 'The inner response that helps you regain balance when unexpected pressure or conflict appears.',
   },
   {
     id: 'card_08_rationalThinking',
@@ -100,8 +116,10 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: 'Rational Thought',
     category: 'potential',
     categoryNameVi: 'Tiềm Năng',
+    categoryNameEn: 'Potential',
     image: require('../../assets/cards/card_08_rationalThinking.jpg'),
     description: 'Phương thức não bộ phân tích thông tin, tư duy logic và đưa ra các quyết định quan trọng.',
+    descriptionEn: 'How your mind analyzes information, organizes logic, and approaches important decisions.',
   },
   {
     id: 'card_09_subconsciousPower',
@@ -111,8 +129,10 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: 'Subconscious Power',
     category: 'potential',
     categoryNameVi: 'Tiềm Năng',
+    categoryNameEn: 'Potential',
     image: require('../../assets/cards/card_09_subconsciousPower.jpg'),
     description: 'Độ nhạy bén trực giác và khả năng bảo vệ bản thân khi đối mặt với khủng hoảng sinh tồn.',
+    descriptionEn: 'Your instinctive resilience and ability to draw on inner resources during difficult situations.',
   },
   {
     id: 'card_10_passion',
@@ -122,8 +142,10 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: 'Hidden Passion',
     category: 'potential',
     categoryNameVi: 'Tiềm Năng',
+    categoryNameEn: 'Potential',
     image: require('../../assets/cards/card_10_passion.jpg'),
     description: 'Sở thích cháy bỏng và ngọn lửa nội tâm mang lại cho bạn niềm vui thuần khiết không toan tính.',
+    descriptionEn: 'A recurring inner passion that brings energy, absorption, and uncomplicated personal joy.',
   },
   {
     id: 'card_11_attitude',
@@ -133,8 +155,10 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: 'Attitude / Approach',
     category: 'potential',
     categoryNameVi: 'Tiềm Năng',
+    categoryNameEn: 'Potential',
     image: require('../../assets/cards/card_11_attitude.jpg'),
     description: 'Cách bạn phản ứng tức thời với những trải nghiệm mới mẻ và tình huống hàng ngày.',
+    descriptionEn: 'Your immediate style of responding to new experiences and ordinary day-to-day situations.',
   },
   {
     id: 'card_12_karmicDebts',
@@ -144,8 +168,10 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: 'Karmic Debts',
     category: 'karmic',
     categoryNameVi: 'Nghiệp & Cầu Nối',
+    categoryNameEn: 'Karma & Bridges',
     image: require('../../assets/cards/card_12_karmicDebts.jpg'),
     description: 'Những bài học thử thách nghiệp báo (13/4, 14/5, 16/7, 19/1) bạn cần hóa giải để tiến hóa tâm thức.',
+    descriptionEn: 'The demanding lessons linked to 13/4, 14/5, 16/7, or 19/1 and the growth they may invite.',
   },
   {
     id: 'card_13_missingNumbers',
@@ -155,8 +181,10 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: 'Karmic Lessons',
     category: 'karmic',
     categoryNameVi: 'Nghiệp & Cầu Nối',
+    categoryNameEn: 'Karma & Bridges',
     image: require('../../assets/cards/card_13_missingNumbers.jpg'),
     description: 'Những phẩm chất năng lượng còn khuyết trong tên họ, là bài tập rèn luyện nâng cấp bản thân.',
+    descriptionEn: 'Qualities underrepresented in your name, viewed as themes to practice and consciously develop.',
   },
   {
     id: 'card_14_bridgeLifeMission',
@@ -166,8 +194,10 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: 'Bridge Life Path - Mission',
     category: 'bridge',
     categoryNameVi: 'Nghiệp & Cầu Nối',
+    categoryNameEn: 'Karma & Bridges',
     image: require('../../assets/cards/card_14_bridgeLifeMission.jpg'),
     description: 'Nhịp cầu hòa giải khoảng cách giữa con người thực tế và lý tưởng cuộc đời của bạn.',
+    descriptionEn: 'The quality that can help reconcile your lived direction with your sense of purpose.',
   },
   {
     id: 'card_15_bridgeSoulPersonality',
@@ -177,8 +207,10 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: 'Bridge Soul - Personality',
     category: 'bridge',
     categoryNameVi: 'Nghiệp & Cầu Nối',
+    categoryNameEn: 'Karma & Bridges',
     image: require('../../assets/cards/card_15_bridgeSoulPersonality.jpg'),
     description: 'Sự tương thích giữa nội tâm sâu kín bên trong và diện mạo ứng xử bộc lộ ra ngoài.',
+    descriptionEn: 'The relationship between your private inner needs and the personality you show to others.',
   },
   {
     id: 'card_16_bridgeMaturityPassion',
@@ -188,8 +220,10 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: 'Bridge Maturity - Passion',
     category: 'bridge',
     categoryNameVi: 'Nghiệp & Cầu Nối',
+    categoryNameEn: 'Karma & Bridges',
     image: require('../../assets/cards/card_16_bridgeMaturityPassion.jpg'),
     description: 'Chìa khóa chuyển hóa sở thích cá nhân thành thành tựu lớn khi bước vào độ chín của đời người.',
+    descriptionEn: 'A bridge for turning personal enthusiasm into mature, purposeful achievement over time.',
   },
   {
     id: 'card_17_yearIndividual',
@@ -199,8 +233,10 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: 'Personal Year',
     category: 'cycle',
     categoryNameVi: 'Vận Hạn Chu Kỳ',
+    categoryNameEn: 'Personal Cycles',
     image: require('../../assets/cards/card_17_yearIndividual.jpg'),
     description: 'Dòng chảy năng lượng chủ đạo trong năm hiện tại, báo hiệu cơ hội thuận lợi và điều nên kiêng kỵ.',
+    descriptionEn: 'The broad theme of your current year, highlighting its likely priorities, openings, and cautions.',
   },
   {
     id: 'card_18_monthIndividual',
@@ -210,8 +246,10 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: 'Personal Month',
     category: 'cycle',
     categoryNameVi: 'Vận Hạn Chu Kỳ',
+    categoryNameEn: 'Personal Cycles',
     image: require('../../assets/cards/card_18_monthIndividual.jpg'),
     description: 'Nhịp điệu biến chuyển năng lượng trong từng tháng giúp bạn lập kế hoạch ngắn hạn chính xác.',
+    descriptionEn: 'A month-level rhythm that can help you time near-term priorities and decisions more consciously.',
   },
   {
     id: 'card_19_dayIndividual',
@@ -221,8 +259,10 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: 'Personal Day',
     category: 'cycle',
     categoryNameVi: 'Vận Hạn Chu Kỳ',
+    categoryNameEn: 'Personal Cycles',
     image: require('../../assets/cards/card_19_dayIndividual.jpg'),
     description: 'Năng lượng vi mô của ngày hôm nay, chỉ dẫn hành vi và tâm thái thích hợp nhất.',
+    descriptionEn: 'The short-term tone of today, offering a prompt for your most constructive attitude and action.',
   },
   {
     id: 'card_20_way',
@@ -232,8 +272,10 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: '4 Pinnacles',
     category: 'cycle',
     categoryNameVi: 'Vận Hạn Chu Kỳ',
+    categoryNameEn: 'Personal Cycles',
     image: require('../../assets/cards/card_20_way.jpg'),
     description: '4 giai đoạn trưởng thành lớn và những đỉnh cao thành tựu tương ứng theo từng chu kỳ 9 năm.',
+    descriptionEn: 'Four major phases of growth and the opportunities associated with each long-term cycle.',
   },
   {
     id: 'card_21_challenges',
@@ -243,8 +285,10 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: '4 Challenges',
     category: 'cycle',
     categoryNameVi: 'Vận Hạn Chu Kỳ',
+    categoryNameEn: 'Personal Cycles',
     image: require('../../assets/cards/card_21_challenges.jpg'),
     description: '4 bài học chướng ngại đi kèm với 4 đỉnh cao, rèn luyện bạn trở thành phiên bản kiên cường.',
+    descriptionEn: 'Four recurring challenges that accompany the Pinnacles and encourage resilience and self-mastery.',
   },
   {
     id: 'card_22_arrows',
@@ -254,8 +298,10 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: 'Arrows of Individuality',
     category: 'chart',
     categoryNameVi: 'Biểu Đồ Ma Trận',
+    categoryNameEn: 'Numerology Charts',
     image: require('../../assets/cards/card_22_arrows.jpg'),
     description: 'Các trục sức mạnh hoặc mũi tên trống thể hiện ưu thế và điểm yếu cốt tử trong biểu đồ ngày sinh.',
+    descriptionEn: 'Complete or empty lines in the birth chart, interpreted as concentrated strengths or growth areas.',
   },
   {
     id: 'card_23_nameChart',
@@ -265,8 +311,10 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: 'Name Chart Matrix',
     category: 'chart',
     categoryNameVi: 'Biểu Đồ Ma Trận',
+    categoryNameEn: 'Numerology Charts',
     image: require('../../assets/cards/card_23_nameChart.jpg'),
     description: 'Ma trận phân bổ chữ cái của tên họ, chỉ ra năng lượng dồi dào hoặc bài học còn thiếu.',
+    descriptionEn: 'A matrix of the numbers in your name, showing repeated energies and qualities that may need attention.',
   },
   {
     id: 'card_24_birthChart',
@@ -276,7 +324,9 @@ export const NUMEROLOGY_CARDS: NumerologyCardMeta[] = [
     nameEn: 'Birth Chart Matrix',
     category: 'chart',
     categoryNameVi: 'Biểu Đồ Ma Trận',
+    categoryNameEn: 'Numerology Charts',
     image: require('../../assets/cards/card_24_birthChart.jpg'),
     description: 'Bản đồ căn nguyên Pythagoras thể hiện 3 tầng: Thể chất (1-4-7), Cảm xúc (2-5-8), và Trí tuệ (3-6-9).',
+    descriptionEn: 'A Pythagorean birth map across the physical (1-4-7), emotional (2-5-8), and mental (3-6-9) planes.',
   },
 ];

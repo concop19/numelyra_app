@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import ThreeDButton from './ThreeDButton';
 import { CalculatedIndicator } from '../services/numerologyEngine';
 import {
   getIndicatorReading,
@@ -25,11 +26,13 @@ import {
 } from '../services/numerologyKnowledgeContract';
 import {
   ArrowStatus,
+  DigitReading,
   getArrowReading,
   getDigitReading,
   getFrequencyBand,
   MatrixKey,
 } from '../services/numerologyMatrixInterpretations';
+import { useLocalization } from '../i18n/LocalizationContext';
 
 interface IndicatorDetailModalProps {
   visible: boolean;
@@ -37,11 +40,74 @@ interface IndicatorDetailModalProps {
   onClose: () => void;
 }
 
+export function getEnglishIndicatorReading(indicator: CalculatedIndicator): KnowledgeReadingResult {
+  const subject = indicator.nameEn;
+  const value = indicator.displayValue;
+  return {
+    title: `${subject} reading`,
+    source: 'offline-archetype',
+    overview: `${subject} is ${value}. In Pythagorean numerology, this result describes a pattern to observe in your natural tendencies, choices, and current stage of growth.`,
+    strengths: [
+      `Use the constructive qualities of ${subject} deliberately instead of waiting for them to appear under pressure.`,
+      'Notice the situations in which this pattern helps you act with clarity, confidence, or consistency.',
+    ],
+    challenges: [
+      'An overused strength can become rigid, while an ignored quality may feel underdeveloped.',
+      'Treat this reading as a reflection tool and compare it with your real experience.',
+    ],
+    advice: `Choose one small action this week that expresses the balanced side of ${subject}. Review the result with curiosity rather than judgment.`,
+    fullContent: '',
+  };
+}
+
+const ENGLISH_BAND_LABELS: Record<ReturnType<typeof getFrequencyBand>, string> = {
+  missing: 'Missing',
+  baseline: 'Foundation',
+  highlighted: 'Prominent',
+  amplified: 'Strong repetition',
+};
+
+function getEnglishDigitReading(number: number, count: number, reading: DigitReading): DigitReading {
+  const frequency = count === 1 ? 'once' : `${count} times`;
+  const presence = count === 0 ? 'does not appear' : `appears ${frequency}`;
+  return {
+    ...reading,
+    theme: `Number ${number} energy`,
+    bandLabel: ENGLISH_BAND_LABELS[reading.band],
+    summary: `Number ${number} ${presence} in this chart. Its frequency suggests how available or emphasized this quality may feel.`,
+    strength: count === 0
+      ? 'Awareness creates room to develop this quality through intentional practice.'
+      : 'This quality can become a dependable resource when it is used with balance.',
+    challenge: count >= 3
+      ? 'Strong repetition may make this tendency intense or difficult to moderate.'
+      : count === 0
+        ? 'The quality may require more conscious effort before it feels natural.'
+        : 'Relying on this quality automatically can narrow your range of responses.',
+    advice: 'Observe this pattern in daily life and practice one small behavior that brings it into better balance.',
+  };
+}
+
+function getEnglishArrowReading(status: ArrowStatus) {
+  const statusText = status === 'strong' ? 'complete' : status === 'empty' ? 'empty' : 'partially present';
+  return {
+    theme: 'Arrow pattern',
+    summary: `This three-number line is ${statusText} in your birth chart.`,
+    strength: status === 'strong'
+      ? 'A complete line can indicate a concentrated and readily available pattern.'
+      : 'The numbers that are present provide a practical starting point for development.',
+    challenge: status === 'empty'
+      ? 'An empty line is traditionally treated as a theme that benefits from conscious practice.'
+      : 'The pattern can become uneven when one quality carries too much of the load.',
+    advice: 'Use the pattern as a prompt for self-observation, then choose a concrete habit that supports balance.',
+  };
+}
+
 export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
   visible,
   indicator,
   onClose,
 }) => {
+  const { locale, l } = useLocalization();
   const [loading, setLoading] = useState(true);
   const [reading, setReading] = useState<KnowledgeReadingResult | null>(null);
   const [showFullArticle, setShowFullArticle] = useState(false);
@@ -66,6 +132,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
   }, [visible, indicator]);
 
   if (!indicator) return null;
+  const visibleReading = locale === 'en' ? getEnglishIndicatorReading(indicator) : reading;
 
   return (
     <Modal
@@ -82,7 +149,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
               <View style={styles.numberBadge}>
                 <Text style={styles.numberBadgeText}>#{indicator.number}</Text>
               </View>
-              <Text style={styles.headerCategory}>{indicator.categoryNameVi}</Text>
+              <Text style={styles.headerCategory}>{locale === 'en' ? indicator.categoryNameEn || 'Numerology' : indicator.categoryNameVi}</Text>
             </View>
             <TouchableOpacity activeOpacity={0.7} onPress={onClose} style={styles.closeBtn}>
               <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.8)" />
@@ -98,11 +165,11 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
               </View>
 
               <View style={styles.titleInfo}>
-                <Text style={styles.indicatorName}>{indicator.nameVi}</Text>
-                <Text style={styles.indicatorNameEn}>{indicator.nameEn}</Text>
+                <Text style={styles.indicatorName}>{locale === 'en' ? indicator.nameEn : indicator.nameVi}</Text>
+                {locale !== 'en' && <Text style={styles.indicatorNameEn}>{indicator.nameEn}</Text>}
 
                 <View style={styles.valueRow}>
-                  <Text style={styles.valueLabel}>{indicator.chartData ? 'Dữ liệu biểu đồ:' : 'Kết quả của bạn:'}</Text>
+                  <Text style={styles.valueLabel}>{indicator.chartData ? l('Dữ liệu biểu đồ:', 'Chart data:') : l('Kết quả của bạn:', 'Your result:')}</Text>
                   <View style={[styles.valuePill, indicator.isMaster && styles.valuePillMaster]}>
                     <Text style={[styles.valuePillText, indicator.isMaster && styles.valuePillTextMaster]}>
                       {indicator.displayValue}
@@ -116,7 +183,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
                 </View>
 
                 {/* Subtitle Description */}
-                <Text style={styles.cardShortDesc}>{indicator.description}</Text>
+                <Text style={styles.cardShortDesc}>{locale === 'en' ? indicator.descriptionEn || `A Pythagorean numerology reading for ${indicator.nameEn}.` : indicator.description}</Text>
               </View>
             </View>
 
@@ -128,7 +195,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
             <View style={styles.knowledgeBanner}>
               <Ionicons name="book-outline" size={16} color="#FCD34D" />
               <Text style={styles.knowledgeBannerText}>
-                Luận giải tri thức chuẩn Pythagoras • Tức thì & Không qua AI
+                {l('Luận giải tri thức chuẩn Pythagoras • Tức thì & Không qua AI', 'Pythagorean reference reading • Instant & generated without AI')}
               </Text>
             </View>
 
@@ -136,30 +203,30 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
             {loading && (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#E5A93C" />
-                <Text style={styles.loadingText}>Đang tra cứu kho tri thức bản mệnh...</Text>
+                <Text style={styles.loadingText}>{l('Đang tra cứu kho tri thức bản mệnh...', 'Loading your numerology reference...')}</Text>
               </View>
             )}
 
             {/* Reading Content */}
-            {!loading && reading && (
+            {!loading && visibleReading && (
               <View style={styles.readingContainer}>
                 {/* 1. Bản Chất Cốt Lõi */}
                 <View style={styles.sectionBlock}>
                   <View style={styles.sectionTitleRow}>
                     <Ionicons name="sparkles" size={17} color="#FCD34D" />
-                    <Text style={styles.sectionHeading}>Bản Chất Cốt Lõi & Năng Lượng</Text>
+                    <Text style={styles.sectionHeading}>{l('Bản Chất Cốt Lõi & Năng Lượng', 'Core Nature & Energy')}</Text>
                   </View>
-                  <Text style={styles.sectionBodyText}>{reading.overview}</Text>
+                  <Text style={styles.sectionBodyText}>{visibleReading.overview}</Text>
                 </View>
 
                 {/* 2. Điểm Mạnh */}
-                {reading.strengths.length > 0 && (
+                {visibleReading.strengths.length > 0 && (
                   <View style={styles.sectionBlock}>
                     <View style={styles.sectionTitleRow}>
                       <Ionicons name="diamond-outline" size={17} color="#7DD3FC" />
-                      <Text style={styles.sectionHeading}>Điểm Mạnh Tự Nhiên</Text>
+                      <Text style={styles.sectionHeading}>{l('Điểm Mạnh Tự Nhiên', 'Natural Strengths')}</Text>
                     </View>
-                    {reading.strengths.map((s, idx) => (
+                    {visibleReading.strengths.map((s, idx) => (
                       <View key={`str-${idx}`} style={styles.bulletItem}>
                         <Ionicons name="sparkles" size={12} color="#34D399" style={styles.bulletDot} />
                         <Text style={styles.bulletText}>{s}</Text>
@@ -169,13 +236,13 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
                 )}
 
                 {/* 3. Thách Thức */}
-                {reading.challenges.length > 0 && (
+                {visibleReading.challenges.length > 0 && (
                   <View style={styles.sectionBlock}>
                     <View style={styles.sectionTitleRow}>
                       <Ionicons name="moon-outline" size={17} color="#C4B5FD" />
-                      <Text style={styles.sectionHeading}>Vùng Bóng Tối Cần Lưu Ý</Text>
+                      <Text style={styles.sectionHeading}>{l('Vùng Bóng Tối Cần Lưu Ý', 'Potential Blind Spots')}</Text>
                     </View>
-                    {reading.challenges.map((c, idx) => (
+                    {visibleReading.challenges.map((c, idx) => (
                       <View key={`cha-${idx}`} style={styles.bulletItem}>
                         <Ionicons name="sparkles" size={12} color="#F87171" style={styles.bulletDot} />
                         <Text style={styles.bulletText}>{c}</Text>
@@ -185,20 +252,20 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
                 )}
 
                 {/* 4. Lời Khuyên */}
-                {reading.advice ? (
+                {visibleReading.advice ? (
                   <View style={[styles.sectionBlock, styles.adviceBlock]}>
                     <View style={styles.sectionTitleRow}>
                       <Ionicons name="leaf-outline" size={17} color="#A7F3D0" />
                       <Text style={[styles.sectionHeading, { color: '#FCD34D' }]}>
-                        Lời Khuyên & Bước Chuyển Hóa
+                        {l('Lời Khuyên & Bước Chuyển Hóa', 'Guidance & Next Step')}
                       </Text>
                     </View>
-                    <Text style={styles.adviceText}>{reading.advice}</Text>
+                    <Text style={styles.adviceText}>{visibleReading.advice}</Text>
                   </View>
                 ) : null}
 
                 {/* 5. Toàn Văn Chi Tiết Sách Gốc (Tùy chọn mở rộng) */}
-                {reading.fullContent && reading.fullContent.length > 300 && (
+                {visibleReading.fullContent && visibleReading.fullContent.length > 300 && (
                   <View style={styles.fullArticleContainer}>
                     <TouchableOpacity
                       activeOpacity={0.8}
@@ -209,12 +276,12 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
                       style={styles.expandArticleBtn}
                     >
                       <Ionicons name={showFullArticle ? "chevron-up" : "chevron-down"} size={15} color="#93C5FD" />
-                      <Text style={styles.expandArticleText}>{showFullArticle ? 'Thu gọn bài luận giải' : 'Đọc toàn văn tư liệu gốc'}</Text>
+                      <Text style={styles.expandArticleText}>{showFullArticle ? l('Thu gọn bài luận giải', 'Collapse full reading') : l('Đọc toàn văn tư liệu gốc', 'Read the full source text')}</Text>
                     </TouchableOpacity>
 
                     {showFullArticle && (
                       <View style={styles.fullArticleBox}>
-                        <Text style={styles.fullArticleContent}>{reading.fullContent}</Text>
+                        <Text style={styles.fullArticleContent}>{visibleReading.fullContent}</Text>
                       </View>
                     )}
                   </View>
@@ -227,9 +294,13 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
 
           {/* Footer Close Button */}
           <View style={styles.footerRow}>
-            <TouchableOpacity activeOpacity={0.7} onPress={() => { void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); onClose(); }} style={styles.footerConfirmBtn}>
-              <Text style={styles.footerConfirmText}>Đã Hiểu • Quay Lại 24 Lá Bài</Text>
-            </TouchableOpacity>
+            <ThreeDButton
+              fullWidth
+              label={l('Đã Hiểu • Quay Lại 24 Lá Bài', 'Got It • Back to 24 Cards')}
+              onPress={() => { void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); onClose(); }}
+              shape="pill"
+              variant="gold"
+            />
           </View>
         </View>
       </View>
@@ -240,6 +311,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
 const MATRIX_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 function ChartDataSection({ indicator }: { indicator: CalculatedIndicator }) {
+  const { locale, l } = useLocalization();
   const [selectedDigit, setSelectedDigit] = useState<number | null>(null);
   const [selectedArrowLabel, setSelectedArrowLabel] = useState<string | null>(null);
   const [dbReadings, setDbReadings] = useState<MatrixKnowledgeBundle>({});
@@ -259,25 +331,27 @@ function ChartDataSection({ indicator }: { indicator: CalculatedIndicator }) {
   const isArrows = indicator.key === 'arrows';
   const matrixInterpretationKey: MatrixKey = isArrows ? 'birthChart' : indicator.key as MatrixKey;
   const title = indicator.key === 'nameChart'
-    ? 'Ma trận tần suất theo tên'
+    ? l('Ma trận tần suất theo tên', 'Name Frequency Matrix')
     : indicator.key === 'birthChart' || isArrows
-      ? 'Ma trận ngày sinh 3×3'
-      : 'Ma trận số 3×3';
+      ? l('Ma trận ngày sinh 3×3', '3×3 Birth Matrix')
+      : l('Ma trận số 3×3', '3×3 Number Matrix');
   const statusLabels = {
-    strong: 'Đủ bộ',
-    empty: 'Trống',
-    partial: 'Có một phần',
+    strong: l('Đủ bộ', 'Complete'),
+    empty: l('Trống', 'Empty'),
+    partial: l('Có một phần', 'Partial'),
   } as const;
   const resolveDigitReading = (number: number, count: number) => {
     const band = getFrequencyBand(count);
     const fallback = getDigitReading(matrixInterpretationKey, number, count);
     const dbReading = dbReadings[getMatrixKnowledgeValue(number, band)];
-    return dbReading ? { ...fallback, ...dbReading } : fallback;
+    const merged = dbReading ? { ...fallback, ...dbReading } : fallback;
+    return locale === 'en' ? getEnglishDigitReading(number, count, merged) : merged;
   };
   const resolveArrowReading = (label: string, status: ArrowStatus) => {
     const fallback = getArrowReading(label, status);
     const dbReading = dbReadings[getArrowKnowledgeValue(label, status)];
-    return dbReading ? { ...fallback, ...dbReading } : fallback;
+    const merged = dbReading ? { ...fallback, ...dbReading } : fallback;
+    return locale === 'en' ? { ...merged, ...getEnglishArrowReading(status) } : merged;
   };
   const selectedDigitReading = selectedDigit === null
     ? null
@@ -289,7 +363,7 @@ function ChartDataSection({ indicator }: { indicator: CalculatedIndicator }) {
         <Ionicons name="grid-outline" size={17} color="#FCD34D" />
         <Text style={styles.sectionHeading}>{title}</Text>
       </View>
-      <Text style={styles.chartHint}>Số lớn là con số trong ma trận; chấm nhỏ thể hiện số lần xuất hiện.</Text>
+      <Text style={styles.chartHint}>{l('Số lớn là con số trong ma trận; chấm nhỏ thể hiện số lần xuất hiện.', 'The large digit identifies the matrix number; dots show how often it appears.')}</Text>
       <View style={styles.matrixGrid}>
         {MATRIX_ORDER.map((number) => {
           const count = chartData.counts[number] || 0;
@@ -300,7 +374,7 @@ function ChartDataSection({ indicator }: { indicator: CalculatedIndicator }) {
               key={number}
               activeOpacity={0.8}
               accessibilityRole="button"
-              accessibilityLabel={`Số ${number}, ${count} lần, ${reading.bandLabel}`}
+              accessibilityLabel={l(`Số ${number}, ${count} lần, ${reading.bandLabel}`, `Number ${number}, ${count} occurrences, ${reading.bandLabel}`)}
               onPress={() => setSelectedDigit(selected ? null : number)}
               style={[
                 styles.matrixCell,
@@ -314,7 +388,7 @@ function ChartDataSection({ indicator }: { indicator: CalculatedIndicator }) {
                   <View key={`${number}-${index}`} style={styles.matrixDot} />
                 )) : <Text style={styles.matrixEmpty}>—</Text>}
               </View>
-              <Text style={styles.matrixCount}>{count} lần</Text>
+              <Text style={styles.matrixCount}>{l(`${count} lần`, `${count}×`)}</Text>
               <Text style={styles.matrixBand}>{reading.bandLabel}</Text>
             </TouchableOpacity>
           );
@@ -323,14 +397,14 @@ function ChartDataSection({ indicator }: { indicator: CalculatedIndicator }) {
 
       {selectedDigit !== null && selectedDigitReading && (
         <InterpretationDetails
-          title={`Số ${selectedDigit} · ${selectedDigitReading.theme}`}
+          title={l(`Số ${selectedDigit} · ${selectedDigitReading.theme}`, `Number ${selectedDigit} · ${selectedDigitReading.theme}`)}
           reading={selectedDigitReading}
         />
       )}
 
       {isArrows && chartData.arrows && (
         <View style={styles.arrowList}>
-          <Text style={styles.arrowListTitle}>Trạng thái 8 mũi tên</Text>
+          <Text style={styles.arrowListTitle}>{l('Trạng thái 8 mũi tên', 'Eight Arrow Patterns')}</Text>
           {chartData.arrows.map((arrow) => {
             const reading = resolveArrowReading(arrow.label, arrow.status as ArrowStatus);
             const selected = selectedArrowLabel === arrow.label;
@@ -339,13 +413,15 @@ function ChartDataSection({ indicator }: { indicator: CalculatedIndicator }) {
                 <TouchableOpacity
                   activeOpacity={0.8}
                   accessibilityRole="button"
-                  accessibilityLabel={`${arrow.label}, ${statusLabels[arrow.status]}, ${arrow.presentCount} trên 3 số`}
+                  accessibilityLabel={locale === 'en'
+                    ? `Arrow ${arrow.numbers.join('-')}, ${statusLabels[arrow.status]}, ${arrow.presentCount} of 3 numbers`
+                    : `${arrow.label}, ${statusLabels[arrow.status]}, ${arrow.presentCount} trên 3 số`}
                   onPress={() => setSelectedArrowLabel(selected ? null : arrow.label)}
                   style={styles.arrowRow}
                 >
                   <View style={styles.arrowRowCopy}>
                     <View style={styles.arrowRowHeading}>
-                      <Text style={styles.arrowLabel}>{arrow.label}</Text>
+                      <Text style={styles.arrowLabel}>{locale === 'en' ? `Arrow ${arrow.numbers.join('-')}` : arrow.label}</Text>
                       <Text style={[
                         styles.arrowStatus,
                         arrow.status === 'strong' && styles.arrowStatusStrong,
@@ -383,15 +459,16 @@ function InterpretationDetails({
   reading: { summary: string; strength: string; challenge: string; advice: string };
   compact?: boolean;
 }) {
+  const { l } = useLocalization();
   return (
     <View style={[styles.interpretationDetails, compact && styles.interpretationDetailsCompact]}>
       <Text style={styles.interpretationTitle}>{title}</Text>
       <Text style={styles.interpretationSummary}>{reading.summary}</Text>
-      <Text style={styles.interpretationLabel}>Điểm có thể phát huy</Text>
+      <Text style={styles.interpretationLabel}>{l('Điểm có thể phát huy', 'Strength to develop')}</Text>
       <Text style={styles.interpretationBody}>{reading.strength}</Text>
-      <Text style={styles.interpretationLabel}>Thử thách cần lưu ý</Text>
+      <Text style={styles.interpretationLabel}>{l('Thử thách cần lưu ý', 'Challenge to notice')}</Text>
       <Text style={styles.interpretationBody}>{reading.challenge}</Text>
-      <Text style={styles.interpretationLabel}>Gợi ý phát triển</Text>
+      <Text style={styles.interpretationLabel}>{l('Gợi ý phát triển', 'Growth suggestion')}</Text>
       <Text style={styles.interpretationBody}>{reading.advice}</Text>
     </View>
   );
@@ -841,23 +918,5 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  footerConfirmBtn: {
-    backgroundColor: '#E5A93C',
-    borderRadius: 16,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#E5A93C',
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  footerConfirmText: {
-    color: '#0A0E1A',
-    fontSize: 14.5,
-    fontWeight: '700',
-    letterSpacing: 0.5,
   },
 });

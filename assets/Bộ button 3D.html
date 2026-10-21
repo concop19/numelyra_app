@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bộ button 3D</title>
+<style>
+:root{--bg:#f4f1fb;--card:#ffffff;--fg:#1d1633;--muted:#6b6485;--line:#e4def2;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f0b1c;--card:#191330;--fg:#f1ecff;--muted:#a79fc4;--line:#2c2450}}
+:root[data-theme="dark"]{--bg:#0f0b1c;--card:#191330;--fg:#f1ecff;--muted:#a79fc4;--line:#2c2450}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.5}
+main{max-width:480px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:24px;margin:8px 0 4px;font-weight:800}
+.sub{margin:0 0 20px;color:var(--muted);font-size:14px}
+section{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px 16px 22px;margin-bottom:16px}
+h2{font-size:14px;margin:0 0 16px;font-weight:700;color:var(--muted)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px 14px}
+.row{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end}
+.col{display:grid;gap:18px}
+.b3d{--d:6px;--face:#ffd23d;--base:#c9a000;--ink:#3b2a00;--r:18px;--py:15px;--px:24px;--fs:16px;position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;font:inherit;font-weight:700;font-size:var(--fs);letter-spacing:.2px;color:var(--ink);background:var(--face);padding:var(--py) var(--px);border-radius:var(--r);cursor:pointer;margin-bottom:var(--d);box-shadow:0 var(--d) 0 var(--base),0 calc(var(--d)*2) 16px rgba(0,0,0,.22);transition:transform .08s,box-shadow .08s,filter .15s;-webkit-tap-highlight-color:transparent;user-select:none}
+.b3d::before{content:"";position:absolute;left:10%;right:10%;top:3px;height:32%;border-radius:999px;background:linear-gradient(rgba(255,255,255,.45),rgba(255,255,255,0));pointer-events:none}
+.b3d:hover{filter:brightness(1.06)}
+.b3d:active:not(:disabled){transform:translateY(var(--d));box-shadow:0 0 0 var(--base),0 3px 6px rgba(0,0,0,.25)}
+.b3d:focus-visible{outline:3px solid #8b5cf6;outline-offset:4px}
+.b3d svg{width:1.15em;height:1.15em;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.w{width:100%}
+.yellow{}
+.pink{--face:#ff5c8a;--base:#c2335d;--ink:#fff}
+.green{--face:#34d399;--base:#0f9b6c;--ink:#06382a}
+.blue{--face:#4f8cff;--base:#2a5bd1;--ink:#fff}
+.purple{--face:#9b6bff;--base:#6a3fd6;--ink:#fff}
+.red{--face:#ff5a4f;--base:#bf2e25;--ink:#fff}
+.white{--face:#f4f2fb;--base:#c3bddb;--ink:#2a2347}
+.dark{--face:#3a3358;--base:#1d1833;--ink:#fff}
+.sm{--d:4px;--py:9px;--px:16px;--fs:14px;--r:13px}
+.lg{--d:8px;--py:19px;--px:34px;--fs:19px;--r:22px}
+.pill{--r:999px}
+.sq{--r:8px}
+.round{--r:50%;--px:0;--py:0;width:58px;height:58px}
+.round.sm{width:44px;height:44px}
+.round.lg{width:72px;height:72px}
+.b3d:disabled{--face:#d7d3e3;--base:#b3aec6;--ink:#8d87a5;cursor:not-allowed;box-shadow:0 var(--d) 0 var(--base)}
+.b3d:disabled::before{display:none}
+.b3d.loading{pointer-events:none;filter:brightness(.95)}
+.spin{width:1.1em;height:1.1em;border-radius:50%;border:3px solid currentColor;border-right-color:transparent;animation:r .7s linear infinite;flex:none}
+@keyframes r{to{transform:rotate(360deg)}}
+.dlg{border:1px solid var(--line);border-radius:20px;padding:18px;background:var(--bg)}
+.dlg b{display:block;font-size:17px;margin-bottom:4px}
+.dlg p{margin:0 0 16px;color:var(--muted);font-size:14px}
+.dlg .row{flex-wrap:nowrap}
+.dlg .b3d{flex:1}
+.like.on{--face:#ff5c8a;--base:#c2335d;--ink:#fff}
+.like.on svg{fill:currentColor}
+#log{margin-top:6px;font-size:13px;color:var(--muted);min-height:20px}
+@media (prefers-reduced-motion:reduce){.spin{animation-duration:2s}}
+</style>
+</head>
+<body>
+<main>
+<h1>Bộ button 3D</h1>
+<p class="sub">Bấm và giữ để thấy nút lún xuống. Mọi nút đều dùng chung một công thức: mặt nút + thân nút đậm hơn.</p>
+
+<section>
+<h2>Màu sắc</h2>
+<div class="grid">
+<button class="b3d yellow">Vàng</button>
+<button class="b3d pink">Hồng</button>
+<button class="b3d green">Xanh lá</button>
+<button class="b3d blue">Xanh dương</button>
+<button class="b3d purple">Tím</button>
+<button class="b3d red">Đỏ</button>
+<button class="b3d white">Trắng</button>
+<button class="b3d dark">Tối</button>
+</div>
+</section>
+
+<section>
+<h2>Kích cỡ</h2>
+<div class="row">
+<button class="b3d blue sm">Nhỏ</button>
+<button class="b3d blue">Vừa</button>
+<button class="b3d blue lg">Lớn</button>
+</div>
+</section>
+
+<section>
+<h2>Hình dạng</h2>
+<div class="row">
+<button class="b3d green sq">Vuông</button>
+<button class="b3d green">Bo góc</button>
+<button class="b3d green pill">Viên thuốc</button>
+</div>
+<div class="row" style="margin-top:18px">
+<button class="b3d pink round sm" aria-label="Thêm"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+<button class="b3d purple round" aria-label="Phát"><svg viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></svg></button>
+<button class="b3d yellow round lg" aria-label="Sao"><svg viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg></button>
+</div>
+</section>
+
+<section>
+<h2>Có biểu tượng</h2>
+<div class="col">
+<button class="b3d blue w lg"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Tiếp tục</button>
+<div class="row">
+<button class="b3d green"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>Hoàn thành</button>
+<button class="b3d white"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Tải về</button>
+<button class="b3d dark like" id="like"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.6-7 10-7 10z"/></svg>Thích</button>
+</div>
+</div>
+</section>
+
+<section>
+<h2>Trạng thái</h2>
+<div class="row">
+<button class="b3d purple" id="load">Gửi đi</button>
+<button class="b3d purple" disabled>Không bấm được</button>
+</div>
+<div id="log">Bấm "Gửi đi" để xem trạng thái đang tải.</div>
+</section>
+
+<section>
+<h2>Ví dụ dùng thật</h2>
+<div class="dlg">
+<b>Xóa dự án này?</b>
+<p>Bạn sẽ không khôi phục lại được sau khi xóa.</p>
+<div class="row">
+<button class="b3d white">Giữ lại</button>
+<button class="b3d red">Xóa dự án</button>
+</div>
+</div>
+</section>
+</main>
+<script>
+var load=document.getElementById('load'),log=document.getElementById('log');
+load.addEventListener('click',function(){
+load.classList.add('loading');load.innerHTML='<span class="spin"></span>Đang gửi';log.textContent='Đang xử lý…';
+setTimeout(function(){load.classList.remove('loading');load.textContent='Gửi đi';log.textContent='Đã gửi xong.'},1800);
+});
+document.getElementById('like').addEventListener('click',function(e){e.currentTarget.classList.toggle('on')});
+</script>
+</body>
+</html>
