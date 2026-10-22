@@ -29,16 +29,20 @@ import {
 } from './AstrologyUi';
 import {
   PLANET_INFO,
+  ZODIAC_INFO,
   getPlanetGuidanceItems,
   getPrecisionMessage,
   getTodaySummaryCards,
+  isZodiacId,
   planetLabel,
   type AstrologyDetailTarget,
 } from './astrologyPresentation';
-import { ASTROLOGY_BACKGROUNDS, ASTROLOGY_UI_ICONS, PLANET_PNG } from './astrologyArtwork';
+import {
+  ASTROLOGY_BACKGROUNDS,
+  ASTROLOGY_TODAY_ARTWORK,
+  PLANET_PNG,
+} from './astrologyArtwork';
 import { useLocalization } from '../../i18n/LocalizationContext';
-
-type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
 interface Props {
   profile: UserProfile | null;
@@ -49,6 +53,7 @@ interface Props {
   error: string | null;
   calculationError: string | null;
   onBack(): void;
+  onOpenCalendar?(): void;
   onOpenProfile(): void;
   onOpenBirthData(): void;
   onOpenNatal(): void;
@@ -58,12 +63,50 @@ interface Props {
   onShare(): void;
 }
 
-function makeWeek(date: Date): Date[] {
+interface WeekDayItem {
+  date: Date;
+  label: string;
+  isToday: boolean;
+}
+
+function makeWeek(date: Date): WeekDayItem[] {
+  const day = date.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const monday = new Date(date);
+  monday.setDate(date.getDate() + diffToMonday);
+
+  const labels = ['TH 2', 'TH 3', 'TH 4', 'TH 5', 'TH 6', 'TH 7', 'CN'];
+
   return Array.from({ length: 7 }, (_, index) => {
-    const value = new Date(date);
-    value.setDate(date.getDate() + index - 3);
-    return value;
+    const val = new Date(monday);
+    val.setDate(monday.getDate() + index);
+    const isToday =
+      val.getDate() === date.getDate() &&
+      val.getMonth() === date.getMonth() &&
+      val.getFullYear() === date.getFullYear();
+    return {
+      date: val,
+      label: labels[index],
+      isToday,
+    };
   });
+}
+
+function formatDateTitle(date: Date, locale: string): string {
+  if (locale === 'en') {
+    return new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    }).format(date);
+  }
+  const weekdayNames = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+  const weekday = weekdayNames[date.getDay()];
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = date.getMonth() + 1;
+  const year = date.getFullYear();
+  return `${weekday}, ${day} Tháng ${month}, ${year}`;
 }
 
 export function AstrologyTodayView({
@@ -75,6 +118,7 @@ export function AstrologyTodayView({
   error,
   calculationError,
   onBack,
+  onOpenCalendar,
   onOpenProfile,
   onOpenBirthData,
   onOpenNatal,
@@ -91,9 +135,38 @@ export function AstrologyTodayView({
   const guidanceItems = useMemo(() => metadata ? getPlanetGuidanceItems(metadata) : [], [metadata]);
   const contentWidth = Math.min(720, width) - 24;
   const guidanceCardWidth = Math.max(156, Math.min(222, (contentWidth - 10) / 2));
-  const dateTitle = new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'vi-VN', {
-    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
-  }).format(currentDate);
+  const dateTitle = useMemo(() => formatDateTitle(currentDate, locale), [currentDate, locale]);
+
+  const energyCard = useMemo(() => cards.find((c) => c.id === 'energy'), [cards]);
+  const emotionCard = useMemo(() => cards.find((c) => c.id === 'emotion'), [cards]);
+  const relationCard = useMemo(() => cards.find((c) => c.id === 'relationships'), [cards]);
+  const actionCard = useMemo(() => cards.find((c) => c.id === 'actions'), [cards]);
+
+  const fastActivityPercent = useMemo(() => {
+    if (!metadata) return 51;
+    return Math.round(metadata.scores.fastPlanetActivity * 100);
+  }, [metadata]);
+
+  const moonSignInfo = useMemo(() => {
+    if (!metadata?.transitMoonSign || !isZodiacId(metadata.transitMoonSign)) return null;
+    return ZODIAC_INFO[metadata.transitMoonSign];
+  }, [metadata?.transitMoonSign]);
+
+  const moonSignName = moonSignInfo?.nameVi ?? (metadata?.transitMoonSign ?? 'Song Ngư');
+  const moonSignSymbol = moonSignInfo?.symbol ?? '♓';
+
+  const actionDetailText = useMemo(() => {
+    if (metadata?.dominantSignal === 'tension') {
+      return l('Các góc ma sát đang trội hơn, phù hợp với việc rà soát lại kế hoạch.', 'Friction aspects prevail, ideal for reviewing plans.');
+    }
+    if (metadata?.dominantSignal === 'harmony') {
+      return l('Các góc hỗ trợ đang chiếm ưu thế, thuận lợi cho việc triển khai dự định.', 'Harmonious aspects dominate, favorable for execution.');
+    }
+    if (metadata?.dominantSignal === 'conjunction') {
+      return l('Các nguồn lực đang hội tụ mạnh mẽ, tập trung vào trọng tâm cần đẩy nhanh.', 'Resources converge strongly, focus on priorities.');
+    }
+    return actionCard?.detail ?? l('Nhịp hành động cân bằng, phù hợp để duy trì tiến độ ổn định.', 'Balanced action pace, suitable for steady progress.');
+  }, [metadata?.dominantSignal, actionCard?.detail, l]);
 
   return (
     <AstrologyBackground variant="today">
@@ -143,49 +216,193 @@ export function AstrologyTodayView({
 
         {!!metadata && (
           <>
+            {/* Top Calendar Card */}
             <MysticCard style={styles.calendarCard}>
               <LinearGradient colors={[ASTRO_COLORS.paperLight, ASTRO_COLORS.paperDeep]} style={StyleSheet.absoluteFill} />
-              <View style={styles.calendarHeader}>
-                <View style={styles.flexCopy}>
-                  <Text style={styles.calendarEyebrow}>{t('astrology.today')}</Text>
-                  <Text style={styles.calendarTitle}>{dateTitle}</Text>
+              <View style={styles.calendarHeaderRow}>
+                <View style={styles.todayPill}>
+                  <Text style={styles.todayPillSparkle}>✦</Text>
+                  <Text style={styles.todayPillText}>{t('astrology.today')}</Text>
                 </View>
-                <Image contentFit="contain" source={ASTROLOGY_UI_ICONS.calendar} style={styles.calendarIcon} />
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  activeOpacity={0.75}
+                  onPress={onOpenCalendar}
+                  style={styles.calendarLinkBtn}
+                >
+                  <Ionicons name="calendar-outline" size={13} color="#5E487C" />
+                  <Text style={styles.calendarLinkText}>{l('Xem lịch', 'View calendar')}</Text>
+                  <Ionicons name="chevron-forward" size={12} color="#5E487C" />
+                </TouchableOpacity>
               </View>
+
+              <Text style={styles.calendarBigTitle}>{dateTitle}</Text>
+
               <View style={styles.weekRow}>
-                {week.map((date, index) => {
-                  const isToday = index === 3;
-                  return (
-                    <View key={date.toISOString()} style={[styles.dayCell, isToday && styles.dayCellActive]}>
-                      <Text style={[styles.dayName, isToday && styles.dayNameActive]}>
-                        {new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'vi-VN', { weekday: 'short' }).format(date)}
-                      </Text>
-                      <Text style={[styles.dayNumber, isToday && styles.dayNumberActive]}>{date.getDate()}</Text>
-                    </View>
-                  );
-                })}
-              </View>
-              <View style={styles.summaryGrid}>
-                {cards.map((card) => (
-                  <TouchableOpacity
-                    key={card.id}
-                    accessibilityRole={card.target ? 'button' : undefined}
-                    activeOpacity={card.target ? 0.78 : 1}
-                    onPress={() => card.target && onOpenDetail(card.target)}
-                    style={styles.summaryCard}
+                {week.map((item) => (
+                  <View
+                    key={item.date.toISOString()}
+                    style={[styles.dayCell, item.isToday && styles.dayCellActive]}
                   >
-                    <View style={[styles.summaryIcon, { backgroundColor: `${card.color}22` }]}>
-                      <Ionicons name={card.icon as IoniconName} size={17} color={card.color} />
-                    </View>
-                    <View style={styles.flexCopy}>
-                      <Text style={styles.summaryTitle}>{card.title}</Text>
-                      <Text numberOfLines={1} style={styles.summaryValue}>{card.value}</Text>
-                      <Text numberOfLines={2} style={styles.summaryDetail}>{card.detail}</Text>
-                    </View>
-                  </TouchableOpacity>
+                    {item.isToday ? (
+                      <LinearGradient
+                        colors={['#CF3B78', '#EB578C']}
+                        style={styles.activeDayGradient}
+                      >
+                        <Text style={styles.dayNameActive}>{item.label}</Text>
+                        <Text style={styles.dayNumberActive}>{item.date.getDate()}</Text>
+                        <View style={styles.activeDayDot} />
+                      </LinearGradient>
+                    ) : (
+                      <View style={styles.inactiveDayInner}>
+                        <Text style={styles.dayName}>{item.label}</Text>
+                        <Text style={styles.dayNumber}>{item.date.getDate()}</Text>
+                      </View>
+                    )}
+                  </View>
                 ))}
               </View>
             </MysticCard>
+
+            {/* Energy Card (Full width) */}
+            <TouchableOpacity
+              accessibilityRole="button"
+              activeOpacity={0.88}
+              onPress={() => onOpenDetail({ kind: 'planet', id: 'Sun' })}
+              style={styles.energyCard}
+            >
+              <LinearGradient colors={['#FFFBF5', '#FDF3E7']} style={StyleSheet.absoluteFill} />
+              <View style={styles.energyLeftCol}>
+                <View style={styles.cardHeaderRow}>
+                  <View style={[styles.badgeCircle, { backgroundColor: '#9585EA' }]}>
+                    <Text style={styles.badgeSparkle}>✦</Text>
+                  </View>
+                  <Text style={styles.cardCategoryTitle}>{l('Năng lượng hôm nay', "Today's Energy")}</Text>
+                </View>
+
+                <Text style={styles.energyMainValue}>{energyCard?.value ?? 'Vừa'}</Text>
+
+                <View style={styles.progressBarRow}>
+                  <View style={styles.progressBarTrack}>
+                    <LinearGradient
+                      colors={['#7A75D8', '#E36A9F']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={[styles.progressBarFill, { width: `${fastActivityPercent}%` }]}
+                    />
+                  </View>
+                  <Text style={styles.progressPercentText}>{fastActivityPercent}%</Text>
+                </View>
+
+                <Text style={styles.cardDetailText}>
+                  {l('Nhịp hành tinh nhanh, phù hợp để duy trì sự cân bằng.', 'Fast planetary rhythm, suitable for maintaining balance.')}
+                </Text>
+              </View>
+
+              <Image
+                accessibilityElementsHidden
+                source={ASTROLOGY_TODAY_ARTWORK.catSleeping}
+                style={styles.catArtwork}
+                contentFit="contain"
+              />
+            </TouchableOpacity>
+
+            {/* 2-column row: Emotion & Relationships */}
+            <View style={styles.twoCardsRow}>
+              {/* Emotion Card */}
+              <TouchableOpacity
+                accessibilityRole="button"
+                activeOpacity={0.85}
+                onPress={() => onOpenDetail({ kind: 'planet', id: 'Moon' })}
+                style={styles.halfCard}
+              >
+                <LinearGradient colors={['#FFFBF5', '#FDF3E7']} style={StyleSheet.absoluteFill} />
+                <View style={styles.cardHeaderRow}>
+                  <View style={[styles.badgeCircle, { backgroundColor: '#A2E2FE' }]}>
+                    <Ionicons name="moon" size={14} color="#0E98D9" />
+                  </View>
+                  <Text style={styles.cardCategoryTitle}>{l('Cảm xúc', 'Emotion')}</Text>
+                </View>
+
+                <View style={styles.zodiacValueRow}>
+                  <Text style={styles.halfCardMainValue}>{moonSignName}</Text>
+                  <View style={styles.zodiacSymbolBadge}>
+                    <Text style={styles.zodiacSymbolText}>{moonSignSymbol}</Text>
+                  </View>
+                </View>
+
+                <Text numberOfLines={3} style={styles.halfCardDetailText}>
+                  {emotionCard?.detail ?? l('Không có góc Mặt Trăng chính nổi bật.', 'No notable major Moon aspects.')}
+                </Text>
+
+                <Image
+                  accessibilityElementsHidden
+                  source={ASTROLOGY_TODAY_ARTWORK.wavesWatercolor}
+                  style={styles.waveArtwork}
+                  contentFit="contain"
+                />
+              </TouchableOpacity>
+
+              {/* Relationship Card */}
+              <TouchableOpacity
+                accessibilityRole="button"
+                activeOpacity={0.85}
+                onPress={() => onOpenDetail({ kind: 'planet', id: 'Venus' })}
+                style={styles.halfCard}
+              >
+                <LinearGradient colors={['#FFFBF5', '#FDF3E7']} style={StyleSheet.absoluteFill} />
+                <View style={styles.cardHeaderRow}>
+                  <View style={[styles.badgeCircle, { backgroundColor: '#FFD4E6' }]}>
+                    <Ionicons name="heart" size={14} color="#E6437D" />
+                  </View>
+                  <Text style={styles.cardCategoryTitle}>{l('Quan hệ', 'Relationship')}</Text>
+                </View>
+
+                <Text style={styles.halfCardMainValue}>{relationCard?.value ?? 'Nhịp ổn định'}</Text>
+
+                <Text numberOfLines={3} style={styles.halfCardDetailText}>
+                  {relationCard?.detail ?? l('Không có góc Sao Kim chính nổi bật.', 'No notable major Venus aspects.')}
+                </Text>
+
+                <Image
+                  accessibilityElementsHidden
+                  source={ASTROLOGY_TODAY_ARTWORK.heartFlower}
+                  style={styles.heartArtwork}
+                  contentFit="contain"
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Action Card (Full width) */}
+            <TouchableOpacity
+              accessibilityRole="button"
+              activeOpacity={0.88}
+              onPress={() => actionCard?.target && onOpenDetail(actionCard.target)}
+              style={styles.actionCard}
+            >
+              <LinearGradient colors={['#FFFBF5', '#FDF3E7']} style={StyleSheet.absoluteFill} />
+              <View style={styles.actionLeftCol}>
+                <View style={styles.cardHeaderRow}>
+                  <View style={[styles.badgeCircle, { backgroundColor: '#FFE6CC' }]}>
+                    <Ionicons name="paper-plane" size={14} color="#EE7B30" />
+                  </View>
+                  <Text style={styles.cardCategoryTitle}>{l('Hành động', 'Action')}</Text>
+                </View>
+
+                <Text style={styles.actionMainValue}>{actionCard?.value ?? 'Cần điều chỉnh'}</Text>
+
+                <Text numberOfLines={3} style={styles.cardDetailText}>
+                  {actionDetailText}
+                </Text>
+              </View>
+
+              <Image
+                accessibilityElementsHidden
+                source={ASTROLOGY_TODAY_ARTWORK.compassMap}
+                style={styles.compassArtwork}
+                contentFit="contain"
+              />
+            </TouchableOpacity>
 
             {metadata.birthDataPrecision !== 'complete' && (
               <TouchableOpacity activeOpacity={0.8} onPress={onOpenBirthData} style={styles.precisionCard}>
@@ -303,24 +520,325 @@ const styles = StyleSheet.create({
   errorCard: { marginTop: 14, padding: 14, flexDirection: 'row', gap: 11, alignItems: 'flex-start', borderColor: 'rgba(255,130,153,0.42)' },
   errorTitle: { color: '#FFE9ED', fontSize: 13, fontWeight: '800' },
   errorBody: { color: '#DDBBC4', fontSize: 11, lineHeight: 16, marginTop: 4 },
-  calendarCard: { marginTop: -48, padding: 16, borderRadius: 26, backgroundColor: ASTRO_COLORS.paper, borderColor: 'rgba(255,214,155,0.82)', zIndex: 30, shadowColor: '#090522', shadowOpacity: 0.34, shadowRadius: 22, elevation: 10 },
-  calendarHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  calendarIcon: { width: 23, height: 23 },
-  calendarEyebrow: { color: '#7555A4', fontSize: 10, fontWeight: '900', letterSpacing: 1.3 },
-  calendarTitle: { color: '#17174A', fontSize: 18, lineHeight: 23, fontFamily: 'serif', fontWeight: '900', marginTop: 2, textTransform: 'capitalize' },
-  weekRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 4, paddingBottom: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(65,47,104,0.18)' },
-  dayCell: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 15 },
-  dayCellActive: { backgroundColor: '#8657ED', shadowColor: '#7F47FF', shadowOpacity: 0.35, shadowRadius: 8, elevation: 3 },
-  dayName: { color: '#6B6288', fontSize: 9, textTransform: 'uppercase' },
-  dayNameActive: { color: '#F8ECFF' },
-  dayNumber: { color: '#20194B', fontSize: 15, fontWeight: '900', marginTop: 3 },
-  dayNumberActive: { color: '#FFFFFF' },
-  summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 11 },
-  summaryCard: { width: '48.8%', minHeight: 86, flexDirection: 'row', alignItems: 'flex-start', padding: 10, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.62)', borderWidth: 1, borderColor: 'rgba(77,55,121,0.12)' },
-  summaryIcon: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', marginRight: 7 },
-  summaryTitle: { color: '#65557A', fontSize: 8.5, fontWeight: '900', textTransform: 'uppercase' },
-  summaryValue: { color: '#1D174D', fontSize: 12.5, fontWeight: '900', marginTop: 2 },
-  summaryDetail: { color: '#5F5477', fontSize: 9, lineHeight: 12.5, marginTop: 3 },
+  calendarCard: {
+    marginTop: -48,
+    padding: 16,
+    borderRadius: 26,
+    backgroundColor: ASTRO_COLORS.paper,
+    borderColor: 'rgba(255,214,155,0.85)',
+    borderWidth: 1,
+    zIndex: 30,
+    shadowColor: '#090522',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.40,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  calendarHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  todayPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  todayPillSparkle: {
+    color: '#D24D7A',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  todayPillText: {
+    color: '#D24D7A',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  calendarLinkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4.5,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(94, 72, 124, 0.22)',
+    backgroundColor: 'rgba(255, 255, 255, 0.42)',
+  },
+  calendarLinkText: {
+    color: '#5E487C',
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  calendarBigTitle: {
+    color: '#17174A',
+    fontSize: 21,
+    lineHeight: 27,
+    fontFamily: 'serif',
+    fontWeight: '900',
+    marginTop: 2,
+    marginBottom: 12,
+    textTransform: 'capitalize',
+  },
+  weekRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 2,
+  },
+  dayCell: {
+    flex: 1,
+    minHeight: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayCellActive: {
+    borderRadius: 20,
+    shadowColor: '#CF3B78',
+    shadowOpacity: 0.38,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  activeDayGradient: {
+    width: '100%',
+    minHeight: 58,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+  },
+  activeDayDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#FFFFFF',
+    marginTop: 3,
+  },
+  inactiveDayInner: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+  },
+  dayName: {
+    color: '#7E7398',
+    fontSize: 9.5,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  dayNameActive: {
+    color: '#FFFFFF',
+    fontSize: 9.5,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  dayNumber: {
+    color: '#1E184C',
+    fontSize: 15,
+    fontWeight: '900',
+    marginTop: 3,
+  },
+  dayNumberActive: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '900',
+    marginTop: 1,
+  },
+
+  // Energy Card
+  energyCard: {
+    marginTop: 11,
+    minHeight: 152,
+    borderRadius: 24,
+    overflow: 'hidden',
+    padding: 16,
+    backgroundColor: ASTRO_COLORS.paper,
+    borderWidth: 1,
+    borderColor: 'rgba(255,214,155,0.85)',
+    shadowColor: '#090522',
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  energyLeftCol: {
+    flex: 1,
+    paddingRight: 134,
+    zIndex: 2,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  badgeCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeSparkle: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  cardCategoryTitle: {
+    color: '#5A4A6C',
+    fontSize: 13,
+    fontWeight: '700',
+    marginLeft: 8,
+  },
+  energyMainValue: {
+    color: '#1C194D',
+    fontSize: 24,
+    fontFamily: 'serif',
+    fontWeight: '900',
+    marginTop: 6,
+  },
+  progressBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    width: '100%',
+  },
+  progressBarTrack: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EFE2D3',
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressPercentText: {
+    color: '#20194E',
+    fontSize: 13,
+    fontWeight: '800',
+    marginLeft: 10,
+  },
+  cardDetailText: {
+    color: '#605270',
+    fontSize: 11.5,
+    lineHeight: 16.5,
+    marginTop: 8,
+    width: '100%',
+  },
+  catArtwork: {
+    width: 136,
+    height: 106,
+    position: 'absolute',
+    right: 5,
+    bottom: 6,
+  },
+
+  // Two Cards Row
+  twoCardsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 11,
+  },
+  halfCard: {
+    flex: 1,
+    minHeight: 154,
+    borderRadius: 22,
+    overflow: 'hidden',
+    padding: 14,
+    backgroundColor: ASTRO_COLORS.paper,
+    borderWidth: 1,
+    borderColor: 'rgba(255,214,155,0.85)',
+    shadowColor: '#090522',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.32,
+    shadowRadius: 14,
+    elevation: 7,
+  },
+  zodiacValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  halfCardMainValue: {
+    color: '#1C194D',
+    fontSize: 18,
+    fontFamily: 'serif',
+    fontWeight: '900',
+  },
+  zodiacSymbolBadge: {
+    backgroundColor: '#E85B92',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    marginLeft: 6,
+  },
+  zodiacSymbolText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  halfCardDetailText: {
+    color: '#655776',
+    fontSize: 10.5,
+    lineHeight: 15,
+    marginTop: 6,
+    zIndex: 2,
+    paddingRight: 40,
+  },
+  waveArtwork: {
+    width: 82,
+    height: 56,
+    position: 'absolute',
+    right: 2,
+    bottom: 2,
+  },
+  heartArtwork: {
+    width: 62,
+    height: 62,
+    position: 'absolute',
+    right: 4,
+    bottom: 4,
+  },
+
+  // Action Card
+  actionCard: {
+    marginTop: 11,
+    minHeight: 140,
+    borderRadius: 24,
+    overflow: 'hidden',
+    padding: 16,
+    backgroundColor: ASTRO_COLORS.paper,
+    borderWidth: 1,
+    borderColor: 'rgba(255,214,155,0.85)',
+    shadowColor: '#090522',
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionLeftCol: {
+    flex: 1,
+    paddingRight: 136,
+    zIndex: 2,
+  },
+  actionMainValue: {
+    color: '#1C194D',
+    fontSize: 21,
+    fontFamily: 'serif',
+    fontWeight: '900',
+    marginTop: 6,
+  },
+  compassArtwork: {
+    width: 140,
+    height: 105,
+    position: 'absolute',
+    right: 4,
+    bottom: 4,
+  },
   precisionCard: { minHeight: 66, marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 9, padding: 11, borderRadius: 17, backgroundColor: 'rgba(20,42,91,0.88)', borderWidth: 1, borderColor: 'rgba(116,232,255,0.32)' },
   precisionTitle: { color: '#E9FBFF', fontSize: 13, fontWeight: '800' },
   precisionBody: { color: '#AFC5D9', fontSize: 10, lineHeight: 15, marginTop: 4 },

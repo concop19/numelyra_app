@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import type { DrawnCardResult } from '../services/tarotService';
-import { getTarotCardImage } from '../services/tarotAssets';
+import { getTarotCardImage, TAROT_AMBIENT_AUDIO } from '../services/tarotAssets';
 import HighlightedAnswerText from '../components/chat/HighlightedAnswerText';
 import LoveCompatibilityDetail from '../components/chat/love/LoveCompatibilityDetail';
 import { getLoveReadingViewModel } from '../components/chat/love/loveReadingModel';
@@ -37,6 +38,27 @@ const getDrawnCards = (card: unknown): DrawnCardResult[] => {
 
 export default function ChatReadingDetailScreen({ navigation, route }: Props) {
   const { message, previousQuestion } = route.params;
+  const ambientPlayer = useAudioPlayer(TAROT_AMBIENT_AUDIO, { keepAudioSessionActive: true });
+
+  useEffect(() => {
+    try {
+      void setAudioModeAsync({
+        playsInSilentMode: true,
+        interruptionMode: 'mixWithOthers',
+      }).catch(() => undefined);
+      ambientPlayer.loop = true;
+      ambientPlayer.volume = 0.09;
+      void ambientPlayer.seekTo(0).catch(() => undefined);
+      ambientPlayer.play();
+    } catch {}
+
+    return () => {
+      try {
+        ambientPlayer.pause();
+      } catch {}
+    };
+  }, [ambientPlayer]);
+
   const cards = useMemo(() => getDrawnCards(message.card), [message.card]);
   const loveReading = useMemo(
     () => getLoveReadingViewModel(message.card, message.text, previousQuestion),

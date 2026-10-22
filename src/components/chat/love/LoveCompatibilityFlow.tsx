@@ -13,9 +13,11 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import HighlightedAnswerText from '../HighlightedAnswerText';
 import ThreeDButton from '../../ThreeDButton';
 import type { MessageItem } from '../../../screens/ChatScreen';
+import { TAROT_AMBIENT_AUDIO } from '../../../services/tarotAssets';
 import { getLoveReadingViewModel } from './loveReadingModel';
 
 const LOADING_BACKGROUND = require('../../../../assets/giao_dien/giaodien1/chat_detail/love/background/loading.png');
@@ -63,6 +65,33 @@ export default function LoveCompatibilityFlow({
   onClose,
   onOpenDetail,
 }: Props) {
+  const ambientPlayer = useAudioPlayer(TAROT_AMBIENT_AUDIO, { keepAudioSessionActive: true });
+
+  useEffect(() => {
+    if (visible) {
+      try {
+        void setAudioModeAsync({
+          playsInSilentMode: true,
+          interruptionMode: 'mixWithOthers',
+        }).catch(() => undefined);
+        ambientPlayer.loop = true;
+        ambientPlayer.volume = 0.09;
+        void ambientPlayer.seekTo(0).catch(() => undefined);
+        ambientPlayer.play();
+      } catch {}
+    } else {
+      try {
+        ambientPlayer.pause();
+      } catch {}
+    }
+
+    return () => {
+      try {
+        ambientPlayer.pause();
+      } catch {}
+    };
+  }, [visible, ambientPlayer]);
+
   const model = useMemo(
     () => message ? getLoveReadingViewModel(message.card, message.text, question) : null,
     [message, question],

@@ -196,14 +196,31 @@ function PlanetDetailView({
               <View style={styles.planetCopyContent}>
                 <Text style={styles.planetConstellationCaption}>{mode === 'natal' ? 'VỊ TRÍ BẢN MỆNH' : 'VỊ TRÍ HIỆN TẠI'}</Text>
                 <Text style={styles.planetTitle}>{locale === 'en' ? info.id : info.nameVi}</Text>
-                <Text style={styles.planetSign}>{zodiacLabel(constellationSign)}</Text>
-                <View style={styles.themeRow}>{info.themes.map((theme) => <Text key={theme} style={styles.themePill}>{theme}</Text>)}</View>
+                <Text style={styles.planetSign}>
+                  {zodiacLabel(constellationSign)}{' '}
+                  <Text style={styles.planetSignSymbol}>
+                    {getCelestialInfo({ kind: 'sign', id: constellationSign }).symbol}
+                  </Text>
+                </Text>
+                <View style={styles.themeRow}>
+                  {info.themes.map((theme, index) => (
+                    <View key={theme} style={styles.themePill}>
+                      <Ionicons
+                        name={index === 0 ? 'heart-outline' : index === 1 ? 'git-branch-outline' : 'shield-checkmark-outline'}
+                        size={12}
+                        color="#D9CAFF"
+                      />
+                      <Text style={styles.themePillText}>{theme}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
             </View>
           </View>
 
           <View style={styles.singlePlacementPanel}>
             <Image contentFit="contain" source={PLANET_SVG[planetId]} style={styles.placementIcon} />
+            <View style={styles.placementDivider} />
             <View style={styles.flexCopy}>
               <Text style={styles.placementLabel}>{mode === 'natal' ? 'BẢN MỆNH · LÚC SINH' : 'HIỆN TẠI · QUÁ CẢNH'}</Text>
               <Text style={styles.placementValue}>
@@ -381,24 +398,27 @@ const styles = StyleSheet.create({
   modeLabelActive: { color: '#FFFFFF' },
   modeCaption: { color: '#777593', fontSize: 9, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginTop: 3 },
   modeCaptionActive: { color: '#FCE2AB' },
-  planetHero: { paddingHorizontal: 12, paddingTop: 14, paddingBottom: 14, borderRadius: 28, borderWidth: 1, borderColor: 'rgba(201,167,255,0.58)', overflow: 'hidden', shadowColor: '#B77CFF', shadowOpacity: 0.34, shadowRadius: 22, elevation: 7 },
-  planetHeroRow: { width: '100%', minHeight: 230, flexDirection: 'row', alignItems: 'center', zIndex: 2 },
-  planetArtStage: { width: '41%', minHeight: 208, alignItems: 'center', justifyContent: 'center' },
+  planetHero: { paddingHorizontal: 8, paddingTop: 10, paddingBottom: 8, borderRadius: 28, borderWidth: 1, borderColor: 'rgba(201,167,255,0.58)', overflow: 'hidden', shadowColor: '#B77CFF', shadowOpacity: 0.34, shadowRadius: 22, elevation: 7 },
+  planetHeroRow: { width: '100%', minHeight: 290, flexDirection: 'row', alignItems: 'center', zIndex: 2 },
+  planetArtStage: { width: '55%', minHeight: 290, alignItems: 'center', justifyContent: 'center' },
   planetAura: { position: 'absolute', width: 124, height: 124, borderRadius: 62, backgroundColor: 'rgba(167,111,255,0.2)', shadowColor: '#FFD69B', shadowOpacity: 0.74, shadowRadius: 28, elevation: 10 },
-  planetEmblemWrap: { width: '100%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', shadowColor: '#F8C98C', shadowOpacity: 0.72, shadowRadius: 22, elevation: 12 },
+  planetEmblemWrap: { width: '140%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', shadowColor: '#F8C98C', shadowOpacity: 0.72, shadowRadius: 22, elevation: 12 },
   planetEmblem: { width: '94%', height: '94%' },
-  planetCopy: { width: '59%', minHeight: 230, alignItems: 'center', justifyContent: 'center', position: 'relative', paddingHorizontal: 3 },
-  planetConstellationHalo: { position: 'absolute', width: 150, height: 150, top: -1, alignSelf: 'center', opacity: 0.48 },
-  planetCopyContent: { width: '100%', alignItems: 'center', zIndex: 2, paddingTop: 40, paddingBottom: 8 },
+  planetCopy: { width: '45%', minHeight: 290, alignItems: 'center', justifyContent: 'center', position: 'relative', paddingHorizontal: 3 },
+  planetConstellationHalo: { position: 'absolute', width: 146, height: 146, top: 8, alignSelf: 'center', opacity: 0.48 },
+  planetCopyContent: { width: '100%', alignItems: 'center', zIndex: 2, paddingTop: 62, paddingBottom: 8 },
   planetConstellationCaption: { color: ASTRO_COLORS.cyan, fontSize: 8, lineHeight: 12, fontWeight: '900', letterSpacing: 0.9, textAlign: 'center', marginBottom: 4 },
-  planetTitle: { color: ASTRO_COLORS.text, fontSize: 25, lineHeight: 30, textAlign: 'center', fontFamily: 'serif', fontWeight: '900', textShadowColor: '#1B0D45', textShadowRadius: 8 },
+  planetTitle: { color: ASTRO_COLORS.text, fontSize: 29, lineHeight: 34, textAlign: 'center', fontFamily: 'serif', fontWeight: '900', textShadowColor: '#1B0D45', textShadowRadius: 8 },
   planetSign: { color: '#F9DBA4', fontSize: 12, lineHeight: 18, textAlign: 'center', fontWeight: '800', marginTop: 4 },
-  themeRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 9 },
-  themePill: { color: '#FFF2FB', fontSize: 8.5, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.7, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 12, backgroundColor: 'rgba(17,10,55,0.48)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)' },
-  singlePlacementPanel: { width: '100%', minHeight: 76, flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 18, backgroundColor: 'rgba(8,12,67,0.78)', borderWidth: 1, borderColor: 'rgba(255,220,178,0.32)', zIndex: 2 },
-  placementIcon: { width: 36, height: 36, marginRight: 10 },
-  placementLabel: { color: ASTRO_COLORS.cyan, fontSize: 9, fontWeight: '900', letterSpacing: 1.1 },
-  placementValue: { color: ASTRO_COLORS.text, fontSize: 12, lineHeight: 17, fontWeight: '900', marginTop: 4 },
+  planetSignSymbol: { color: '#D9B4FF', fontSize: 14 },
+  themeRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 12 },
+  themePill: { minHeight: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 16, backgroundColor: 'rgba(17,10,55,0.58)', borderWidth: 1, borderColor: 'rgba(201,167,255,0.38)' },
+  themePillText: { color: '#FFF2FB', fontSize: 8, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.6 },
+  singlePlacementPanel: { width: '100%', minHeight: 88, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderRadius: 22, backgroundColor: 'rgba(8,12,67,0.82)', borderWidth: 1, borderColor: 'rgba(201,167,255,0.4)', zIndex: 2 },
+  placementIcon: { width: 50, height: 50, marginRight: 10 },
+  placementDivider: { width: 1, alignSelf: 'stretch', marginRight: 14, backgroundColor: 'rgba(201,167,255,0.32)' },
+  placementLabel: { color: '#A99BFF', fontSize: 9, fontWeight: '900', letterSpacing: 1.25 },
+  placementValue: { color: ASTRO_COLORS.text, fontSize: 14, lineHeight: 19, fontWeight: '900', marginTop: 4 },
   placementHouseNote: { color: '#BAB5D3', fontSize: 9.5, lineHeight: 14, marginTop: 3 },
   precisionCard: { minHeight: 78, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, marginTop: 14, borderRadius: 18, backgroundColor: 'rgba(13,31,75,0.9)', borderWidth: 1, borderColor: 'rgba(116,232,255,0.28)' },
   precisionTitle: { color: '#EFFBFF', fontSize: 12, fontWeight: '900' },

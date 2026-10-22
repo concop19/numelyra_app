@@ -55,6 +55,7 @@ interface Props {
   profile?: UserProfile | null;
   onBack?: () => void;
   onProfileChange?: (profile: UserProfile) => void;
+  onOpenCalendar?: () => void;
 }
 
 function profileItemToUserProfile(item: ProfileItem): UserProfile {
@@ -69,7 +70,7 @@ function profileItemToUserProfile(item: ProfileItem): UserProfile {
   };
 }
 
-export default function AstrologyScreen({ profile, onBack, onProfileChange }: Props) {
+export default function AstrologyScreen({ profile, onBack, onProfileChange, onOpenCalendar }: Props) {
   const [activeProfile, setActiveProfile] = useState<UserProfile | null>(profile ?? null);
   const [selectedProfiles, setSelectedProfiles] = useState<ProfileItem[]>([]);
   const [profilePickerVisible, setProfilePickerVisible] = useState(false);
@@ -144,6 +145,7 @@ export default function AstrologyScreen({ profile, onBack, onProfileChange }: Pr
               error={error}
               calculationError={calculationError}
               onBack={() => onBack?.()}
+              onOpenCalendar={onOpenCalendar}
               onOpenProfile={() => afterWebFocusReleased(() => setProfilePickerVisible(true))}
               onOpenBirthData={() => afterWebFocusReleased(() => { if (activeProfile) setBirthDataVisible(true); })}
               onOpenNatal={() => afterWebFocusReleased(() => navigation.navigate('NatalChart'))}

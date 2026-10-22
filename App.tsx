@@ -217,6 +217,7 @@ function AppContent() {
               <AstrologyScreen
                 profile={profile}
                 onBack={() => navigation.goBack()}
+                onOpenCalendar={() => navigation.navigate('Calendar')}
                 onProfileChange={setProfile}
               />
             )}

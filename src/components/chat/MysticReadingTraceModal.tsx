@@ -15,8 +15,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { DrawnCardResult } from '../../services/tarotService';
-import { getTarotCardImage, TAROT_CARD_BACK } from '../../services/tarotAssets';
+import { getTarotCardImage, TAROT_AMBIENT_AUDIO, TAROT_CARD_BACK } from '../../services/tarotAssets';
 import HighlightedAnswerText from './HighlightedAnswerText';
 import CandleFlameSprite from '../CandleFlameSprite';
 import FlameCharacterSprite from '../FlameCharacterSprite';
@@ -149,6 +150,33 @@ export default function MysticReadingTraceModal({
   const quillMotion = useRef(new Animated.Value(0)).current;
   const autoSpokenReadingId = useRef<string | null>(null);
   const payload = message?.card as ReadingCardPayload | undefined;
+
+  const ambientPlayer = useAudioPlayer(TAROT_AMBIENT_AUDIO, { keepAudioSessionActive: true });
+
+  useEffect(() => {
+    if (visible) {
+      try {
+        void setAudioModeAsync({
+          playsInSilentMode: true,
+          interruptionMode: 'mixWithOthers',
+        }).catch(() => undefined);
+        ambientPlayer.loop = true;
+        ambientPlayer.volume = 0.09;
+        void ambientPlayer.seekTo(0).catch(() => undefined);
+        ambientPlayer.play();
+      } catch {}
+    } else {
+      try {
+        ambientPlayer.pause();
+      } catch {}
+    }
+
+    return () => {
+      try {
+        ambientPlayer.pause();
+      } catch {}
+    };
+  }, [visible, ambientPlayer]);
 
   useEffect(() => {
     if (!visible) setHoveredCard(null);
