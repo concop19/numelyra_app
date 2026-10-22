@@ -18,7 +18,6 @@ import {
 } from './numerologyKnowledgeContract';
 import { getFrequencyBand, type MatrixReading } from './numerologyMatrixInterpretations';
 import type { CalculatedIndicator } from './numerologyEngine';
-import { getConciseIndicatorReading } from './chatNumerologyContextService';
 
 export interface KnowledgeReadingResult {
   title: string;
@@ -201,6 +200,65 @@ const PERSONAL_YEAR_DATA: Record<number, { title: string; overview: string; str:
 /**
  * Tách nội dung markdown từ Supabase thành các phần có cấu trúc
  */
+interface MarkdownSection {
+  heading: string;
+  body: string;
+}
+
+function stripMarkdown(value: string): string {
+  return value
+    .replace(/\r/g, '')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/__(.*?)__/g, '$1')
+    .replace(/^\s*[-*•]\s+/gm, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function extractMarkdownSections(content: string): MarkdownSection[] {
+  const sections: MarkdownSection[] = [];
+  let heading = '';
+  let bodyLines: string[] = [];
+
+  const flush = () => {
+    const body = bodyLines.join('\n').trim();
+    if (body) sections.push({ heading, body });
+  };
+
+  for (const rawLine of content.replace(/\r/g, '').split('\n')) {
+    const headingMatch = rawLine.trim().match(/^#{1,6}\s+(.+)$/);
+    if (headingMatch) {
+      flush();
+      heading = headingMatch[1].trim();
+      bodyLines = [];
+    } else {
+      bodyLines.push(rawLine);
+    }
+  }
+  flush();
+
+  return sections;
+}
+
+function headingContains(heading: string, keywords: string[]): boolean {
+  const normalized = heading.toLocaleUpperCase('vi-VN');
+  return keywords.some((keyword) => normalized.includes(keyword));
+}
+
+function sectionItems(section: MarkdownSection): string[] {
+  const listItems = section.body
+    .replace(/\r/g, '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => /^(?:[-*•]|\d+\.)\s+/.test(line))
+    .map((line) => stripMarkdown(line.replace(/^(?:[-*•]|\d+\.)\s+/, '')))
+    .filter(Boolean);
+
+  return listItems.length > 0 ? listItems : [stripMarkdown(section.body)].filter(Boolean);
+}
+
 function parseKnowledgeMarkdown(content: string, titleFallback: string): KnowledgeReadingResult {
   const lines = content.split('\n');
   const strengths: string[] = [];
@@ -244,13 +302,53 @@ function parseKnowledgeMarkdown(content: string, titleFallback: string): Knowled
     }
   }
 
+  // The bundled library contains long-form articles whose headings are tailored
+  // to each indicator instead of using one fixed template. Recover their semantic
+  // sections so the detailed UI does not discard content that is present in SQLite.
+  const sections = extractMarkdownSections(content);
+  const referenceKeywords = ['CÂU HỎI TRA CỨU', 'SEMANTIC Q&A', 'HỎI ĐÁP'];
+  const strengthKeywords = ['ĐIỂM MẠNH', 'ƯU ĐIỂM', 'NĂNG LỰC', 'SỨC MẠNH', 'TIỀM NĂNG', 'MỎ NEO', 'TẦM ẢNH HƯỞNG', 'CƠ HỘI'];
+  const challengeKeywords = ['THÁCH THỨC', 'BÓNG TỐI', 'CẠM BẪY', 'ĐIỂM YẾU', 'KHỦNG HOẢNG', 'TIÊU CỰC', 'CẦN TRÁNH', 'RỦI RO', 'TRỞ NGẠI', 'STRESS'];
+  const adviceKeywords = ['LỜI KHUYÊN', 'HÀNH ĐỘNG', 'BÀI HỌC', 'CHIẾN LƯỢC', 'KỸ THUẬT', 'GIẢI PHÁP', 'ĐỊNH TÂM', 'CHUẨN BỊ', 'PHÁT TRIỂN'];
+  const semanticSections = sections.filter((section) => !headingContains(section.heading, referenceKeywords));
+
+  // Long-form rows consistently lead with their primary interpretation, even
+  // when that heading contains words such as "khủng hoảng" for context.
+  const overviewSection = semanticSections[0];
+  const sectionOverview = overviewSection ? stripMarkdown(overviewSection.body) : '';
+  if (sectionOverview.length > stripMarkdown(overviewText).length) {
+    overviewText = sectionOverview;
+  }
+
+  if (strengths.length === 0) {
+    strengths.push(...semanticSections
+      .filter((section) => headingContains(section.heading, strengthKeywords))
+      .flatMap(sectionItems)
+      .slice(0, 3));
+  }
+
+  if (challenges.length === 0) {
+    challenges.push(...semanticSections
+      .filter((section) => headingContains(section.heading, challengeKeywords))
+      .flatMap(sectionItems)
+      .slice(0, 2));
+  }
+
+  const adviceSections = semanticSections.filter((section) => headingContains(section.heading, adviceKeywords));
+  const preferredAdvice = adviceSections.find((section) => headingContains(section.heading, ['LỜI KHUYÊN']))
+    || adviceSections[adviceSections.length - 1];
+  const sectionAdvice = preferredAdvice ? stripMarkdown(preferredAdvice.body) : '';
+  if (sectionAdvice.length > stripMarkdown(adviceText).length) {
+    adviceText = sectionAdvice;
+  }
+
   return {
     title: titleFallback,
     source: 'local-sqlite',
-    overview: overviewText || content.slice(0, 260) + '...',
-    strengths: strengths.slice(0, 3),
-    challenges: challenges.slice(0, 2),
-    advice: adviceText || 'Phát huy điểm mạnh bẩm sinh và giữ vững sự cân bằng nội tại.',
+    overview: stripMarkdown(overviewText) || `${stripMarkdown(content).slice(0, 260)}...`,
+    strengths: strengths.map(stripMarkdown).filter(Boolean).slice(0, 3),
+    challenges: challenges.map(stripMarkdown).filter(Boolean).slice(0, 2),
+    advice: stripMarkdown(adviceText) || 'Phát huy điểm mạnh bẩm sinh và giữ vững sự cân bằng nội tại.',
     fullContent: content
   };
 }
@@ -365,13 +463,8 @@ export async function getIndicatorReading(
     };
   }
 
-  // 1. Ưu tiên dữ liệu ngắn gọn cho 9 chỉ số Chat Agent (ChatNumerologyContext.v1.json)
-  const chatConciseReading = getConciseIndicatorReading(indicatorKey, indicatorValue, cardNameVi);
-  if (chatConciseReading) {
-    return chatConciseReading;
-  }
-
-  // 2. Ưu tiên SQLite cục bộ cho các chỉ số ngoài 9 chỉ số chat hoặc chỉ số ma trận.
+  // Luồng UI chi tiết luôn ưu tiên kho bài đầy đủ trong SQLite. Bộ dữ liệu
+  // ChatNumerologyContext chỉ dành cho context ngắn gửi tới chat/backend.
   try {
     const atoms = getKnowledgeAtoms(indicatorKey, indicatorValue);
     const orderedValues = atoms.map((atom) => atom.numberValue);

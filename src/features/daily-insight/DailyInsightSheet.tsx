@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ThreeDButton from '../../components/ThreeDButton';
+import type { AstroFortuneSlip } from '../../services/astro/astroFortuneService';
 import type { DailyInsight } from './dailyInsight';
 import { useLocalization } from '../../i18n/LocalizationContext';
 
@@ -25,6 +26,7 @@ const AVOID_DECORATION = require('../../../assets/giao_dien/daily-insight/avoid-
 interface Props {
   visible: boolean;
   insight: DailyInsight;
+  fortune?: AstroFortuneSlip | null;
   onClose(): void;
   onAsk(question: string): void;
 }
@@ -53,7 +55,7 @@ function EvidenceRow({ title, value }: { title: string; value: string }) {
   );
 }
 
-export default function DailyInsightSheet({ visible, insight, onClose, onAsk }: Props) {
+export default function DailyInsightSheet({ visible, insight, fortune, onClose, onAsk }: Props) {
   const { t, formatDate, locale } = useLocalization();
   const { height, width } = useWindowDimensions();
   const date = new Date(`${insight.dateKey}T12:00:00`);
@@ -129,8 +131,14 @@ export default function DailyInsightSheet({ visible, insight, onClose, onAsk }: 
                   <Ionicons name="sparkles" size={20} color="#FFE39A" />
                 </View>
                 <View style={styles.flex}>
-                  <Text style={styles.sectionEyebrow}>{t('daily.personality')}</Text>
-                  <Text style={styles.personality}>{insight.personality}</Text>
+                  <Text style={styles.sectionEyebrow}>{t('daily.verse')}</Text>
+                  <Text style={styles.verse}>{fortune?.verse || insight.personality}</Text>
+                  {!!fortune?.mirror && (
+                    <>
+                      <Text style={[styles.sectionEyebrow, styles.mirrorEyebrow]}>{t('daily.mirror')}</Text>
+                      <Text style={styles.personality}>{fortune.mirror}</Text>
+                    </>
+                  )}
                 </View>
               </View>
 
@@ -305,6 +313,8 @@ const styles = StyleSheet.create({
   },
   flex: { flex: 1 },
   sectionEyebrow: { color: '#FFD878', fontSize: 10, fontWeight: '900', letterSpacing: 0.4, textTransform: 'uppercase' },
+  mirrorEyebrow: { marginTop: 13 },
+  verse: { color: '#FFF5D6', fontFamily: 'serif', fontSize: 14, lineHeight: 21, fontWeight: '700', marginTop: 5 },
   personality: { color: '#FFFFFF', fontSize: 13, lineHeight: 20, fontWeight: '600', marginTop: 4 },
   stats: { flexDirection: 'row', gap: 7 },
   stat: {

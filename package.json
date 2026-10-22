@@ -65,6 +65,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "jest --runInBand",
+    "audit:daily-insight-30d": "jest --runInBand --testRegex=dailyInsightThirtyDayAudit\\.test\\.ts$ --cacheDirectory=.jest-cache",
     "test:numerology-db": "python scripts/auditNumerologyKnowledgeSqlite.py",
     "sync:numerology-db": "python scripts/syncNumerologyKnowledgeToCadao.py",
     "typecheck": "tsc --noEmit"

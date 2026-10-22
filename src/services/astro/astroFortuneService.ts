@@ -27,6 +27,7 @@ export interface AstroFortuneSlip {
   mirror: string;
   advice: string;
   anchorCaDao: {
+    id?: number;
     content: string;
     category?: string;
     matchReason?: string;
@@ -39,6 +40,7 @@ export interface RequestFortuneSlipOptions {
   astroMetadata?: PureAstroFeatureMetadata;
   userContext?: string;
   recentAdvice?: string[];
+  recentCaDao?: Array<{ id?: number; content: string }>;
   caDaoMode?: 'daily' | 'random';
   customCaDao?: CaDaoItem;
 }
@@ -227,7 +229,13 @@ export async function requestAstroFortuneSlip(
     } else {
       const today = new Date();
       const matchPlan = buildAstrologyCaDaoMatchPlan(options.astroMetadata);
-      caDao = await getContextualDailyCaDao(today, matchPlan);
+      caDao = await getContextualDailyCaDao(today, {
+        ...matchPlan,
+        excludeIds: options.recentCaDao
+          ?.map((item) => item.id)
+          .filter((id): id is number => typeof id === 'number'),
+        excludeContents: options.recentCaDao?.map((item) => item.content),
+      });
       if (caDao) caDaoMatchReason = matchPlan.reason;
       else caDao = await getDailyCaDao(today);
     }
@@ -283,6 +291,7 @@ export async function requestAstroFortuneSlip(
     mirror: result.fortune.mirror,
     advice: result.fortune.advice,
     anchorCaDao: {
+      id: caDao?.id,
       content: sampleText,
       category: sampleCategory,
       matchReason: caDaoMatchReason,

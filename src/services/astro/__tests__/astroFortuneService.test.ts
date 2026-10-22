@@ -126,11 +126,23 @@ describe('astro fortune rule-aware request', () => {
     });
     fetchMock.mockResolvedValueOnce(response(200, fortuneResponse));
 
-    const result = await requestAstroFortuneSlip({ astroMetadata: metadata() });
+    const result = await requestAstroFortuneSlip({
+      astroMetadata: metadata(),
+      recentCaDao: [
+        { id: 91, content: 'Câu đã dùng gần đây' },
+        { content: 'Câu cache cũ không có ID' },
+      ],
+    });
 
     expect(contextualCaDaoMock).toHaveBeenCalledTimes(1);
     expect(contextualCaDaoMock.mock.calls[0][1].categories.length).toBeGreaterThan(0);
+    expect(contextualCaDaoMock.mock.calls[0][1].excludeIds).toEqual([91]);
+    expect(contextualCaDaoMock.mock.calls[0][1].excludeContents).toEqual([
+      'Câu đã dùng gần đây',
+      'Câu cache cũ không có ID',
+    ]);
     expect(result.anchorCaDao.content).toContain('Có công mài sắt');
+    expect(result.anchorCaDao.id).toBe(2);
     expect(result.anchorCaDao.matchReason).toMatch(/^Chọn theo /);
     expect(result.anchorCaDao.matchReason).not.toMatch(/rule|aspect\.|house_/i);
   });

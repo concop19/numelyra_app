@@ -1,11 +1,11 @@
 import type { UserProfile } from '../../store/userProfile';
 import { formatLocalDateKey, getAstrologyProfileFingerprint } from '../astrology/dailyAstroFortune';
-import { generatePureAstroVector, type AstroDominantSignal, type PureAstroFeatureMetadata } from '../../services/astro/astroVectorEngine';
+import { generatePureAstroVector, type PureAstroFeatureMetadata } from '../../services/astro/astroVectorEngine';
 import { makeDaySnapshot, type HourInfo, type LunarDaySnapshot } from '../../services/lunarService';
 import { ASTRO_ENGINE_VERSION } from '../../services/astro/astroVersion';
 import { translate, type AppLocale } from '../../i18n/translations';
 
-export const DAILY_INSIGHT_ENGINE_VERSION = `daily-insight-v1:${ASTRO_ENGINE_VERSION}`;
+export const DAILY_INSIGHT_ENGINE_VERSION = `daily-insight-v2:${ASTRO_ENGINE_VERSION}`;
 export const DAILY_INSIGHT_QUIET_START = 7;
 export const DAILY_INSIGHT_QUIET_END = 22;
 
@@ -87,8 +87,81 @@ export function chooseLuckyAwakeHour(
   })[0];
 }
 
-function personalityFor(signal: AstroDominantSignal, locale: AppLocale): string {
-  return translate(locale, `daily.personality.${signal}`);
+type LocalizedDailyCopy = Record<AppLocale, string>;
+
+const TRANSIT_MOON_TONES: Record<string, LocalizedDailyCopy> = {
+  Aries: {
+    vi: 'Cảm xúc nghiêng về hành động trực tiếp và quyết đoán.',
+    en: 'Your emotions lean toward direct, decisive action.',
+  },
+  Taurus: {
+    vi: 'Bạn cần một nhịp ổn định và cảm giác an toàn để phát huy tốt nhất.',
+    en: 'A steady pace and a sense of security help you work at your best.',
+  },
+  Gemini: {
+    vi: 'Tâm trí muốn trao đổi, đặt câu hỏi và cập nhật điều mới.',
+    en: 'Your mind wants conversation, questions, and fresh information.',
+  },
+  Cancer: {
+    vi: 'Cảm xúc cần sự gần gũi và một không gian đủ an toàn để mở lòng.',
+    en: 'Your feelings need closeness and a safe space in which to open up.',
+  },
+  Leo: {
+    vi: 'Bạn dễ tỏa sáng khi được thể hiện điều mình thật sự trân trọng.',
+    en: 'You shine more easily when expressing what you genuinely value.',
+  },
+  Virgo: {
+    vi: 'Sự rõ ràng đến từ việc sắp xếp lại chi tiết và nhịp sinh hoạt.',
+    en: 'Clarity comes from organizing details and restoring your routine.',
+  },
+  Libra: {
+    vi: 'Bạn nhạy hơn với sự công bằng, cách đối thoại và chất lượng kết nối.',
+    en: 'You are more sensitive to fairness, dialogue, and the quality of connection.',
+  },
+  Scorpio: {
+    vi: 'Cảm xúc có chiều sâu; thành thật với điều cốt lõi sẽ giúp bạn nhẹ hơn.',
+    en: 'Feelings run deep; honesty about what matters most can bring relief.',
+  },
+  Sagittarius: {
+    vi: 'Bạn cần một góc nhìn rộng hơn, chút dịch chuyển hoặc cảm hứng mới.',
+    en: 'You need a wider perspective, some movement, or a fresh source of inspiration.',
+  },
+  Capricorn: {
+    vi: 'Năng lượng hợp với việc xác định mục tiêu và tiến từng bước có cấu trúc.',
+    en: 'Your energy favors clear goals and structured, deliberate progress.',
+  },
+  Aquarius: {
+    vi: 'Ý tưởng khác biệt và kết nối cộng đồng có thể mở ra hướng đi mới.',
+    en: 'Unconventional ideas and community connections can reveal a new direction.',
+  },
+  Pisces: {
+    vi: 'Trực giác đang nhạy; khoảng lặng sẽ giúp bạn nghe rõ tín hiệu bên trong.',
+    en: 'Your intuition is heightened; quiet moments help you hear your inner signals.',
+  },
+};
+
+const ACTIVATED_HOUSE_FOCUS: Record<number, LocalizedDailyCopy> = {
+  1: { vi: 'Ưu tiên cách bạn hiện diện và chủ động bắt đầu.', en: 'Prioritize how you show up and take initiative.' },
+  2: { vi: 'Ưu tiên giá trị cá nhân và cách bạn quản lý nguồn lực.', en: 'Prioritize personal values and how you manage resources.' },
+  3: { vi: 'Ưu tiên giao tiếp rõ ràng, học hỏi và các kết nối gần.', en: 'Prioritize clear communication, learning, and nearby connections.' },
+  4: { vi: 'Ưu tiên gia đình, nền tảng cảm xúc và cảm giác thuộc về.', en: 'Prioritize family, emotional foundations, and a sense of belonging.' },
+  5: { vi: 'Ưu tiên sáng tạo, niềm vui và cách bạn bày tỏ tình cảm.', en: 'Prioritize creativity, joy, and how you express affection.' },
+  6: { vi: 'Ưu tiên thói quen, sức bền và những việc nhỏ cần hoàn thiện.', en: 'Prioritize routines, stamina, and small tasks that need completion.' },
+  7: { vi: 'Ưu tiên sự cân bằng trong quan hệ và những cam kết đôi bên.', en: 'Prioritize balance in relationships and mutual commitments.' },
+  8: { vi: 'Ưu tiên ranh giới, nguồn lực chung và điều cần chuyển hóa.', en: 'Prioritize boundaries, shared resources, and what needs transformation.' },
+  9: { vi: 'Ưu tiên học hỏi, khám phá và mở rộng góc nhìn.', en: 'Prioritize learning, exploration, and a broader perspective.' },
+  10: { vi: 'Ưu tiên mục tiêu dài hạn, trách nhiệm và hướng phát triển sự nghiệp.', en: 'Prioritize long-term goals, responsibility, and career direction.' },
+  11: { vi: 'Ưu tiên bạn bè, cộng đồng và kế hoạch cho tương lai.', en: 'Prioritize friends, community, and plans for the future.' },
+  12: { vi: 'Ưu tiên nghỉ ngơi, khép lại việc cũ và lắng nghe nội tâm.', en: 'Prioritize rest, closure, and listening inward.' },
+};
+
+function personalityFor(metadata: PureAstroFeatureMetadata, locale: AppLocale): string {
+  const base = translate(locale, `daily.personality.${metadata.dominantSignal}`);
+  const moonTone = TRANSIT_MOON_TONES[metadata.transitMoonSign]?.[locale];
+  const activeHouse = metadata.dailyContext?.activatedHouses[0]?.house;
+  const houseFocus = activeHouse ? ACTIVATED_HOUSE_FOCUS[activeHouse]?.[locale] : undefined;
+  // Put the fast-moving Moon tone first so compact one-line cards also feel current.
+  return [moonTone, houseFocus, base].filter(Boolean).join(' ');
 }
 
 function buildAstroEvidence(metadata: PureAstroFeatureMetadata, locale: AppLocale): string {
@@ -160,7 +233,7 @@ export function buildDailyInsight(
     profileKey: getAstrologyProfileFingerprint(profile),
     locale,
     timeZone,
-    personality: personalityFor(metadata.dominantSignal, locale),
+    personality: personalityFor(metadata, locale),
     luckyTime: bestHour ? {
       startHour: bestHour.startHour,
       endHour: (bestHour.startHour + 2) % 24,
@@ -185,7 +258,7 @@ export function buildDailyInsight(
 }
 
 export function getDailyInsightCacheKey(insight: Pick<DailyInsight, 'dateKey' | 'profileKey' | 'locale' | 'timeZone'>): string {
-  return `@numelyra:daily-insight:v1:${insight.dateKey}:${insight.profileKey}:${insight.locale}:${insight.timeZone}`;
+  return `@numelyra:daily-insight:v2:${insight.dateKey}:${insight.profileKey}:${insight.locale}:${insight.timeZone}`;
 }
 
 export interface DailyInsightStorage {

@@ -65,6 +65,8 @@ import { useLocalization } from '../i18n/LocalizationContext';
 import { buildDailyInsight, cacheDailyInsight } from '../features/daily-insight/dailyInsight';
 import DailyInsightCard from '../features/daily-insight/DailyInsightCard';
 import DailyInsightSheet from '../features/daily-insight/DailyInsightSheet';
+import { formatLocalDateKey } from '../features/astrology/dailyAstroFortune';
+import { useDailyAstroFortune } from '../features/astrology/useDailyAstroFortune';
 
 const VIP_ACCOUNT_ICON = require('../../assets/giao_dien/vip.png');
 const AMBIENT_GLOW_IMG = require('../../assets/giao_dien/ambient_glow.png');
@@ -603,15 +605,6 @@ export default function ChatScreen({
   const [dailySheetVisible, setDailySheetVisible] = useState(false);
   const [suggestionOffset, setSuggestionOffset] = useState(0);
 
-  const dailyInsight = useMemo(() => {
-    if (!profile) return null;
-    const linkedDate = openDailyDate && /^\d{4}-\d{2}-\d{2}$/.test(openDailyDate)
-      ? new Date(`${openDailyDate}T12:00:00`)
-      : dailyClock;
-    try { return buildDailyInsight(profile, linkedDate, locale); }
-    catch { return null; }
-  }, [dailyClock, locale, openDailyDate, profile]);
-
   const refreshPlan = useCallback(async () => {
     try {
       const billing = await getBillingStatus();
@@ -640,18 +633,46 @@ export default function ChatScreen({
   const [isPlaceContextModalOpen, setIsPlaceContextModalOpen] = useState(false);
   const placeContextResolverRef = useRef<((context: PlaceSearchContext | null) => void) | null>(null);
 
-  const activeTargetProfile: ProfileItem | { fullName: string; birthDate: string } | null = useMemo(() => {
+  const activeTargetProfile: ProfileItem | UserProfile | null = useMemo(() => {
     if (selectedProfiles && selectedProfiles.length > 0) return selectedProfiles[0];
-    if (profile && profile.fullName) {
-      return {
-        id: 'default-profile',
-        fullName: profile.fullName,
-        birthDate: profile.birthDate,
-        gender: profile.gender,
-      };
-    }
+    if (profile && profile.fullName) return profile;
     return null;
   }, [selectedProfiles, profile]);
+
+  const dailyProfile = useMemo<UserProfile | null>(() => {
+    const selected = selectedProfiles[0];
+    if (!selected) return profile ?? null;
+    return {
+      fullName: selected.fullName,
+      birthDate: selected.birthDate,
+      gender: selected.gender ?? profile?.gender ?? 'female',
+      birthTime: selected.birthTime,
+      birthPlace: selected.birthPlace,
+      birthLocation: selected.birthLocation,
+      birthTimeAccuracy: selected.birthTimeAccuracy,
+    };
+  }, [profile, selectedProfiles]);
+
+  const dailyInsight = useMemo(() => {
+    if (!dailyProfile) return null;
+    const linkedDate = openDailyDate && /^\d{4}-\d{2}-\d{2}$/.test(openDailyDate)
+      ? new Date(`${openDailyDate}T12:00:00`)
+      : dailyClock;
+    try { return buildDailyInsight(dailyProfile, linkedDate, locale); }
+    catch { return null; }
+  }, [dailyClock, dailyProfile, locale, openDailyDate]);
+
+  const {
+    currentDate: dailyFortuneDate,
+    fortune: dailyFortune,
+  } = useDailyAstroFortune(dailyProfile);
+  const fortuneForDailyInsight = useMemo(() => {
+    if (!dailyInsight || !dailyFortune) return null;
+    if (formatLocalDateKey(dailyFortuneDate) !== dailyInsight.dateKey) return null;
+    if (dailyFortune.astroMetadata?.birthDate
+      && dailyFortune.astroMetadata.birthDate !== dailyProfile?.birthDate) return null;
+    return dailyFortune;
+  }, [dailyFortune, dailyFortuneDate, dailyInsight, dailyProfile?.birthDate]);
 
   const handleMascotPress = () => {
     if (!activeTargetProfile || !activeTargetProfile.fullName || !activeTargetProfile.birthDate) {
@@ -2000,7 +2021,11 @@ export default function ChatScreen({
         </View>
 
         {!isKeyboardVisible && dailyInsight ? (
-          <DailyInsightCard insight={dailyInsight} onPress={() => setDailySheetVisible(true)} />
+          <DailyInsightCard
+            insight={dailyInsight}
+            fortune={fortuneForDailyInsight}
+            onPress={() => setDailySheetVisible(true)}
+          />
         ) : null}
 
         {/* Một luồng chat duy nhất: tin mới nhất ở đầu, kéo xuống để nạp tin cũ. */}
@@ -2141,6 +2166,7 @@ export default function ChatScreen({
         <DailyInsightSheet
           visible={dailySheetVisible}
           insight={dailyInsight}
+          fortune={fortuneForDailyInsight}
           onClose={() => setDailySheetVisible(false)}
           onAsk={(question) => {
             setInputVal(question);

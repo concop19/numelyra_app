@@ -55,6 +55,8 @@ export function buildAstrologyCaDaoMatchPlan(
   const keywordScores = new Map<string, number>();
   const conceptScores = new Map<string, number>();
   const topics = metadata?.ruleEvaluation?.topTopics.slice(0, 3) ?? [];
+  const dailyTopics = topics.filter((topic) => topic.topicId.startsWith('transit'));
+  const natalTopics = topics.filter((topic) => !topic.topicId.startsWith('transit'));
   const dailySignals = [
     metadata?.topAspect?.transitPlanet,
     metadata?.topAspect?.natalPlanet,
@@ -62,11 +64,16 @@ export function buildAstrologyCaDaoMatchPlan(
     metadata?.transitMoonSign ? `sign_${metadata.transitMoonSign.toLowerCase()}` : '',
     ...(metadata?.dailyContext?.activatedHouses.map((item) => `house_${item.house}`) ?? []),
   ];
-  const topicText = [...topics.map((topic) => [
+  const serializeTopics = (items: typeof topics) => items.map((topic) => [
     topic.topicId,
     topic.title,
     ...topic.supportingThemes,
-  ].join(' ')), ...dailySignals].join(' ').toLocaleLowerCase('vi-VN');
+  ].join(' '));
+  const dailyText = [
+    ...serializeTopics(dailyTopics),
+    ...dailySignals,
+  ].join(' ').toLocaleLowerCase('vi-VN');
+  const natalText = serializeTopics(natalTopics).join(' ').toLocaleLowerCase('vi-VN');
 
   const addConcept = (category: string, weight: number, keywords: string[]) => {
     addScore(categoryScores, category, weight);
@@ -86,38 +93,56 @@ export function buildAstrologyCaDaoMatchPlan(
     addConcept('Quan hệ thiên nhiên', 2, ['trăng', 'gió', 'nước', 'mây']);
   }
 
-  if (includesAny(topicText, ['venus', 'house_5', 'house_7', 'libra', 'taurus'])) {
+  if (includesAny(dailyText, ['venus', 'house_5', 'house_7', 'libra', 'taurus'])) {
     addConcept('Tình yêu đôi lứa', 5, ['tình', 'duyên', 'thương', 'nhớ', 'lòng']);
   }
-  if (includesAny(topicText, ['moon', 'house_4', 'cancer'])) {
+  if (includesAny(dailyText, ['natal_moon', 'house_4', 'sign_cancer'])) {
     addConcept('Tình cảm gia đình, bạn bè', 5, ['mẹ', 'cha', 'con', 'nhà', 'ru']);
   }
-  if (includesAny(topicText, ['mercury', 'house_3', 'gemini', 'virgo'])) {
+  if (includesAny(dailyText, ['mercury', 'house_3', 'gemini', 'virgo'])) {
     addConcept('Vũ trụ, con người và xã hội', 4, ['lời', 'nói', 'học', 'khôn', 'người']);
   }
-  if (includesAny(topicText, ['mars', 'saturn', 'house_6', 'house_10', 'aries', 'capricorn'])) {
+  if (includesAny(dailyText, ['mars', 'saturn', 'house_6', 'house_10', 'aries', 'capricorn'])) {
     addConcept('Lao động sản xuất', 4, ['công', 'việc', 'làm', 'khó', 'bền']);
   }
-  if (includesAny(topicText, ['jupiter', 'house_9', 'sagittarius'])) {
+  if (includesAny(dailyText, ['jupiter', 'house_9', 'sagittarius'])) {
     addConcept('Quê hương đất nước', 3, ['đi', 'đường', 'học', 'quê', 'trời']);
   }
-  if (includesAny(topicText, ['uranus', 'house_11', 'aquarius'])) {
+  if (includesAny(dailyText, ['uranus', 'house_11', 'aquarius'])) {
     addConcept('Vũ trụ, con người và xã hội', 3, ['bạn', 'người', 'đời', 'mới']);
   }
-  if (includesAny(topicText, ['neptune', 'pisces', 'house_12'])) {
+  if (includesAny(dailyText, ['neptune', 'pisces', 'house_12'])) {
     addConcept('Quan hệ thiên nhiên', 4, ['trăng', 'nước', 'mây', 'mơ', 'đêm']);
   }
-  if (includesAny(topicText, ['pluto', 'scorpio', 'house_8'])) {
+  if (includesAny(dailyText, ['pluto', 'scorpio', 'house_8'])) {
     addConcept('Đấu tranh, phản kháng', 3, ['lòng', 'sâu', 'khó', 'đổi']);
   }
-  if (includesAny(topicText, ['element_', 'temperament.', 'earth', 'air', 'fire', 'water'])) {
+  if (includesAny(dailyText, ['element_', 'temperament.', 'earth', 'air', 'fire', 'water'])) {
     addConcept('Quan hệ thiên nhiên', 3, ['đất', 'nước', 'gió', 'lửa', 'trời']);
   }
-  if (includesAny(topicText, ['aspect_square', 'aspect_opposition'])) {
+  if (includesAny(dailyText, ['aspect_square', 'aspect_opposition'])) {
     addConcept('Trào phúng, phê phán đả kích', 3, ['cười', 'lo', 'khó', 'đời']);
   }
-  if (includesAny(topicText, ['aspect_trine', 'aspect_sextile'])) {
+  if (includesAny(dailyText, ['aspect_trine', 'aspect_sextile'])) {
     addConcept('Tình cảm gia đình, bạn bè', 2, ['thương', 'bạn', 'lòng', 'vui']);
+  }
+
+  // Natal topics provide a gentle background only. Their static houses must not
+  // dominate a daily ca dao choice for weeks at a time.
+  if (includesAny(natalText, ['planet.venus', 'planet_venus'])) {
+    addConcept('Tình yêu đôi lứa', 2, ['tình', 'duyên', 'thương']);
+  }
+  if (includesAny(natalText, ['planet.moon', 'planet_moon'])) {
+    addConcept('Tình cảm gia đình, bạn bè', 2, ['nhà', 'lòng', 'mẹ']);
+  }
+  if (includesAny(natalText, ['planet.mercury', 'planet_mercury'])) {
+    addConcept('Vũ trụ, con người và xã hội', 1, ['lời', 'học', 'người']);
+  }
+  if (includesAny(natalText, ['planet.mars', 'planet.saturn', 'planet_mars', 'planet_saturn'])) {
+    addConcept('Lao động sản xuất', 1, ['làm', 'bền', 'khó']);
+  }
+  if (includesAny(natalText, ['planet.jupiter', 'planet_jupiter'])) {
+    addConcept('Quê hương đất nước', 1, ['đi', 'học', 'trời']);
   }
 
   const categories = Array.from(categoryScores.entries())

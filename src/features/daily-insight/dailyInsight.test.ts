@@ -27,4 +27,21 @@ describe('dailyInsight', () => {
     expect(en.directions.joy).not.toBe(vi.directions.joy);
     expect(en.suggestedQuestions[0]).toContain('today');
   });
+
+  test('keeps one day deterministic while varying the energy rhythm across a month', () => {
+    const profile = { fullName: 'Test User', birthDate: '1998-06-15', gender: 'female' as const };
+    const dates = Array.from({ length: 31 }, (_, index) => new Date(2026, 9, index + 1, 12));
+    const rhythms = dates.map((date) => buildDailyInsight(profile, date, 'vi').personality);
+
+    expect(buildDailyInsight(profile, dates[0], 'vi').personality).toBe(rhythms[0]);
+    expect(new Set(rhythms).size).toBeGreaterThanOrEqual(10);
+
+    let longestRepeatedRun = 1;
+    let currentRun = 1;
+    for (let index = 1; index < rhythms.length; index += 1) {
+      currentRun = rhythms[index] === rhythms[index - 1] ? currentRun + 1 : 1;
+      longestRepeatedRun = Math.max(longestRepeatedRun, currentRun);
+    }
+    expect(longestRepeatedRun).toBeLessThanOrEqual(3);
+  });
 });

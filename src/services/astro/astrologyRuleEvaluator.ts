@@ -1,5 +1,6 @@
 import {
   MAJOR_ASPECTS,
+  TRANSIT_ACTIVITY_WEIGHTS,
   type DetectedAspect,
 } from './aspectCalculator';
 import {
@@ -131,7 +132,8 @@ export class AstrologyRuleEvaluator {
             matches.push({
               ruleIds: [rule.ruleId, modifier.ruleId],
               themes: uniqueSorted([...rule.themes, ...modifier.themes]),
-              score: Math.max(0, aspect.weight),
+              score: Number((Math.max(0, aspect.weight)
+                * (TRANSIT_ACTIVITY_WEIGHTS[transit] ?? 0.25)).toFixed(4)),
               payload,
             });
           }
@@ -146,7 +148,12 @@ export class AstrologyRuleEvaluator {
             && facts.transitHouses[planet] === house
             ? this.render(rule, rule.templateBindings)
             : null;
-          if (payload) matches.push({ ruleIds: [rule.ruleId], themes: rule.themes, score: 1, payload });
+          if (payload && planet) matches.push({
+            ruleIds: [rule.ruleId],
+            themes: rule.themes,
+            score: TRANSIT_ACTIVITY_WEIGHTS[planet] ?? 0.25,
+            payload,
+          });
           break;
         }
       }
@@ -210,7 +217,7 @@ export class AstrologyRuleEvaluator {
         if (!content) return null;
         result = result.split(`{${placeholder}}`).join(content);
       }
-      return result;
+      return this.normalizeRenderedText(result);
     };
     const experience = expand(template.experience);
     const challenge = expand(template.challenge);
@@ -231,7 +238,7 @@ export class AstrologyRuleEvaluator {
       grouped.set(identity.id, current);
     }
 
-    return [...grouped.entries()].map(([topicId, value]) => {
+    const rankedTopics = [...grouped.entries()].map(([topicId, value]) => {
       const payloads = value.matches.map((match) => match.payload);
       return {
         topicId,
@@ -251,7 +258,23 @@ export class AstrologyRuleEvaluator {
       right.score - left.score
       || right.supportingSignalCount - left.supportingSignalCount
       || left.topicId.localeCompare(right.topicId)
-    )).slice(0, maximumCount);
+    ));
+
+    // A daily reading needs daily signals. Reserve one slot for the strongest
+    // transit-to-natal aspect, one for an active transit house, and one for the
+    // strongest stable/natal context before filling any remaining capacity.
+    const preferred = [
+      rankedTopics.find((topic) => topic.topicId.startsWith('transit_natal.')),
+      rankedTopics.find((topic) => topic.topicId.startsWith('transit.planet.')),
+      rankedTopics.find((topic) => !topic.topicId.startsWith('transit')),
+    ];
+    const selected: AstrologyRuleTopic[] = [];
+    for (const topic of [...preferred, ...rankedTopics]) {
+      if (!topic || selected.some((item) => item.topicId === topic.topicId)) continue;
+      selected.push(topic);
+      if (selected.length >= maximumCount) break;
+    }
+    return selected;
   }
 
   private topicIdentity(rule: AstrologyRuleRecord): { id: string; title: string } {
@@ -306,7 +329,32 @@ export class AstrologyRuleEvaluator {
   }
 
   private joinUnique(values: string[]): string {
-    return [...new Set(values)].join(' ');
+    const unique = [...new Set(values.map((value) => this.normalizeRenderedText(value)))];
+    if (unique.length < 2) return unique.join(' ');
+
+    const leadingClause = unique[0].split(';')[0].trim();
+    return unique.map((value, index) => {
+      if (index === 0 || !leadingClause || !value.startsWith(leadingClause)) return value;
+      const remainder = value.slice(leadingClause.length).trimStart();
+      if (!remainder) return '';
+      return `Chức năng này ${remainder}`;
+    }).filter(Boolean).join(' ');
+  }
+
+  private normalizeRenderedText(value: string): string {
+    const cleaned = value
+      .replace(/\bcó thể\s+có thể\b/giu, 'có thể')
+      .replace(/\s+([,.;:!?])/gu, '$1')
+      .replace(/\s+/gu, ' ')
+      .trim();
+    const withoutMirroredFunction = cleaned.replace(
+      /^(.+?) đang tạo góc (.+?) với \1; hai chức năng này có thể cùng được chú ý\.$/u,
+      '$1 đang được nhấn mạnh qua góc $2; chủ đề này có thể đáng chú ý hơn.'
+    );
+    return withoutMirroredFunction.replace(
+      /(^|[.!?]\s+)(\p{Ll})/gu,
+      (_match, prefix: string, letter: string) => `${prefix}${letter.toLocaleUpperCase('vi-VN')}`
+    );
   }
 }
 

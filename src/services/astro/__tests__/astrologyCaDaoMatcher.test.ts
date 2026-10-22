@@ -70,4 +70,15 @@ describe('astrology ca dao matcher', () => {
     expect(first.categories).toContain('Tình cảm gia đình, bạn bè');
     expect(second.categories).toContain('Lao động sản xuất');
   });
+
+  it('does not let a static natal relationship house overpower daily work signals', () => {
+    const plan = buildAstrologyCaDaoMatchPlan({
+      ...context('natal.planet.Mars', ['planet_mars', 'house_7'], 'tension'),
+      topAspect: { transitPlanet: 'Mars', natalPlanet: 'Saturn', type: 'square' },
+      dailyContext: { activatedHouses: [{ house: 10 }] },
+    });
+
+    expect(plan.categories[0]).toBe('Lao động sản xuất');
+    expect(plan.categories.indexOf('Tình yêu đôi lứa')).toBe(-1);
+  });
 });
