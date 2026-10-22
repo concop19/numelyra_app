@@ -96,8 +96,8 @@ export default function CalendarScreen({ profile, onBack, onOpenSettings }: Prop
   const year = date.getFullYear();
   const compact = winWidth < 375;
   const snapshot = useMemo(
-    () => makeDaySnapshot(date, { birthDate: profile?.birthDate }),
-    [date, profile?.birthDate],
+    () => makeDaySnapshot(date, { birthDate: profile?.birthDate, locale }),
+    [date, profile?.birthDate, locale],
   );
   const {
     lunarDate: lunar,

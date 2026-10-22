@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-22T02:50:00.173Z",
+  "generatedAt": "2026-10-22T03:39:26.318Z",
   "purpose": "Đánh giá chất lượng và độ đa dạng của thông điệp năng lượng trong 30 ngày liên tiếp.",
   "profile": {
     "fullName": "Daily Insight Audit User",
@@ -28,14 +28,17 @@
         "wealth": "Chính Nam"
       },
       "recommended": [
-        "Cầu an",
-        "Cúng tế",
-        "Tĩnh dưỡng"
+        "Học tập, thi cử",
+        "Họp hành, bàn việc",
+        "Sáng tác, ra mắt tác phẩm",
+        "Thu tài, nhận tiền",
+        "Tích lũy, tiết kiệm"
       ],
       "avoid": [
-        "Xuất hành xa",
-        "Động thổ",
-        "Mạo hiểm"
+        "Động thổ, khởi công",
+        "Cưới hỏi, hôn lễ",
+        "Khai trương, ra mắt",
+        "Nhập trạch, về nhà mới"
       ],
       "warning": "⚠️ Ngày Tam Nương — không nên cưới hỏi, khai trương",
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Kim · Hải Vương",
@@ -59,13 +62,17 @@
         "wealth": "Tây Nam"
       },
       "recommended": [
-        "Khai trương",
-        "Cưới hỏi",
-        "Ký kết"
+        "Giảng dạy, truyền nghề",
+        "Hẹn hò, gặp gỡ thân nhân",
+        "Học tập, thi cử",
+        "Tập luyện thể thao",
+        "Di chuyển, du lịch"
       ],
       "avoid": [
-        "Kiện tụng",
-        "Tranh chấp"
+        "Động thổ, khởi công",
+        "Mua bán, giao dịch",
+        "Thu tài, nhận tiền",
+        "Cưới hỏi, hôn lễ"
       ],
       "warning": "⚠️ Ngày Nguyệt Kỵ — nên hạn chế khởi sự việc lớn",
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Kim · Hải Vương",
@@ -89,14 +96,17 @@
         "wealth": "Tây Nam"
       },
       "recommended": [
-        "Thu hoạch",
-        "Tích trữ",
-        "Nạp tài"
+        "Lập kế hoạch, nghiên cứu",
+        "Sửa chữa nhà cửa",
+        "Tích lũy, tiết kiệm",
+        "Di chuyển, du lịch",
+        "Họp hành, bàn việc"
       ],
       "avoid": [
-        "Khởi công lớn",
-        "An táng",
-        "Xuất hành xa"
+        "An táng, tang lễ",
+        "Cưới hỏi, hôn lễ",
+        "Nhập trạch, về nhà mới",
+        "Tranh tụng, kiện cáo"
       ],
       "warning": null,
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Kim · Sao Thổ",
@@ -120,14 +130,17 @@
         "wealth": "Chính Tây"
       },
       "recommended": [
-        "Khai trương",
-        "Cầu tài",
-        "Xuất hành"
+        "Học tập, thi cử",
+        "Họp hành, bàn việc",
+        "Sáng tác, ra mắt tác phẩm",
+        "Di chuyển, du lịch",
+        "Tập luyện thể thao"
       ],
       "avoid": [
-        "An táng",
-        "Kiện tụng",
-        "Động thổ"
+        "Tranh tụng, kiện cáo",
+        "An táng, tang lễ",
+        "Động thổ, khởi công",
+        "Mua bán, giao dịch"
       ],
       "warning": null,
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trời · Hải Vương",
@@ -151,14 +164,16 @@
         "wealth": "Tây Bắc"
       },
       "recommended": [
-        "Tu bổ",
-        "Tĩnh tâm",
-        "Lập kế hoạch nội bộ"
+        "Học tập, thi cử",
+        "Họp hành, bàn việc",
+        "Sáng tác, ra mắt tác phẩm",
+        "An táng, tang lễ",
+        "Cầu an, tĩnh dưỡng"
       ],
       "avoid": [
-        "Khai trương",
-        "Xuất hành",
-        "Cưới hỏi"
+        "Thu tài, nhận tiền",
+        "Công tác, xuất hành xa",
+        "Di chuyển, du lịch"
       ],
       "warning": null,
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Hải Vương",
@@ -182,14 +197,17 @@
         "wealth": "Đông Nam"
       },
       "recommended": [
-        "Xuất hành",
-        "Khai trương",
-        "Nhậm chức"
+        "Hẹn hò, gặp gỡ thân nhân",
+        "Sáng tác, ra mắt tác phẩm",
+        "Di chuyển, du lịch",
+        "Họp hành, bàn việc",
+        "Tập luyện thể thao"
       ],
       "avoid": [
-        "Động thổ",
-        "Đào giếng",
-        "Mở kho"
+        "Động thổ, khởi công",
+        "Khai trương, ra mắt",
+        "Nhận chức, bổ nhiệm",
+        "An táng, tang lễ"
       ],
       "warning": "⚠️ Ngày Tam Nương — không nên cưới hỏi, khai trương",
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Sao Kim",
@@ -213,15 +231,13 @@
         "wealth": "Đông Nam"
       },
       "recommended": [
-        "Cầu an",
-        "Chữa bệnh",
-        "Dọn dẹp"
+        "Giải quyết mâu thuẫn",
+        "Cầu an, tĩnh dưỡng",
+        "Khám chữa bệnh, phẫu thuật",
+        "Dọn dẹp, vứt đồ cũ",
+        "Học tập, thi cử"
       ],
-      "avoid": [
-        "Ký kết lớn",
-        "Xuất hành xa",
-        "Cưới hỏi"
-      ],
+      "avoid": [],
       "warning": null,
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Hải Vương",
       "canChiEvidence": "Ngày Ất Hợi · Trực Trừ · Ngày Hoàng đạo (Ngọc Đường)",
@@ -244,14 +260,17 @@
         "wealth": "Chính Đông"
       },
       "recommended": [
-        "Cầu tài",
-        "Khai trương",
-        "Cúng tế"
+        "Hẹn hò, gặp gỡ thân nhân",
+        "Học tập, thi cử",
+        "Họp hành, bàn việc",
+        "Sáng tác, ra mắt tác phẩm",
+        "Tập luyện thể thao"
       ],
       "avoid": [
-        "Kiện tụng",
-        "Động thổ",
-        "Nhậm chức"
+        "Nhận chức, bổ nhiệm",
+        "Động thổ, khởi công",
+        "Tranh tụng, kiện cáo",
+        "Đầu tư, mở rộng"
       ],
       "warning": null,
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Thủy · Sao Kim",
@@ -275,14 +294,16 @@
         "wealth": "Chính Đông"
       },
       "recommended": [
-        "Giao dịch",
-        "Sửa chữa",
-        "Hội họp"
+        "Giảng dạy, truyền nghề",
+        "Hẹn hò, gặp gỡ thân nhân",
+        "Giải quyết mâu thuẫn",
+        "Học tập, thi cử",
+        "Họp hành, bàn việc"
       ],
       "avoid": [
-        "Động thổ lớn",
-        "Đào móng",
-        "Kiện tụng"
+        "Động thổ, khởi công",
+        "Đầu tư, mở rộng",
+        "Thu tài, nhận tiền"
       ],
       "warning": null,
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Sao Thủy",
@@ -306,14 +327,17 @@
         "wealth": "Chính Bắc"
       },
       "recommended": [
-        "Ký kết",
-        "Giao dịch",
-        "Cưới hỏi"
+        "Học tập, thi cử",
+        "Họp hành, bàn việc",
+        "Ký kết hợp đồng",
+        "Mua bán, giao dịch",
+        "Đầu tư, mở rộng"
       ],
       "avoid": [
-        "Kiện tụng",
-        "Xuất hành xa",
-        "Chữa bệnh"
+        "Động thổ, khởi công",
+        "Khám chữa bệnh, phẫu thuật",
+        "Khai trương, ra mắt",
+        "Nhận chức, bổ nhiệm"
       ],
       "warning": "⚠️ Ngày Tam Nương — không nên cưới hỏi, khai trương",
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Hỏa · Sao Kim",
@@ -337,14 +361,17 @@
         "wealth": "Chính Nam"
       },
       "recommended": [
-        "Xây dựng",
-        "Sửa chữa",
-        "Cầu an"
+        "Tích lũy, tiết kiệm",
+        "Cầu an, tĩnh dưỡng",
+        "Khám chữa bệnh, phẫu thuật",
+        "Lập kế hoạch, nghiên cứu",
+        "Sửa chữa nhà cửa"
       ],
       "avoid": [
-        "Xuất hành xa",
-        "Dời nhà",
-        "Mở kho"
+        "Cưới hỏi, hôn lễ",
+        "Khai trương, ra mắt",
+        "Ký kết hợp đồng",
+        "Nhận chức, bổ nhiệm"
       ],
       "warning": "⚠️ Ngày Nguyệt Kỵ — nên hạn chế khởi sự việc lớn",
       "astroEvidence": "Tín hiệu chủ đạo: tension · Chủ đề nổi bật: Mặt Trăng · Sao Thổ",
@@ -368,14 +395,17 @@
         "wealth": "Tây Nam"
       },
       "recommended": [
-        "Phá dỡ cũ",
-        "Chữa bệnh",
-        "Dọn dẹp"
+        "Họp hành, bàn việc",
+        "Học tập, thi cử",
+        "Sáng tác, ra mắt tác phẩm",
+        "An táng, tang lễ",
+        "Di chuyển, du lịch"
       ],
       "avoid": [
-        "Khai trương",
-        "Cưới hỏi",
-        "Ký kết"
+        "Khám chữa bệnh, phẫu thuật",
+        "Mua bán, giao dịch",
+        "Thu tài, nhận tiền",
+        "Công tác, xuất hành xa"
       ],
       "warning": null,
       "astroEvidence": "Tín hiệu chủ đạo: tension · Chủ đề nổi bật: Sao Hỏa · Sao Kim",
@@ -399,14 +429,17 @@
         "wealth": "Tây Nam"
       },
       "recommended": [
-        "Cầu an",
-        "Cúng tế",
-        "Tĩnh dưỡng"
+        "Họp hành, bàn việc",
+        "Nhận chức, bổ nhiệm",
+        "Học tập, thi cử",
+        "Sáng tác, ra mắt tác phẩm",
+        "An táng, tang lễ"
       ],
       "avoid": [
-        "Xuất hành xa",
-        "Động thổ",
-        "Mạo hiểm"
+        "Di chuyển, du lịch",
+        "Động thổ, khởi công",
+        "Mua bán, giao dịch",
+        "Công tác, xuất hành xa"
       ],
       "warning": null,
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Mặt Trăng",
@@ -430,13 +463,17 @@
         "wealth": "Chính Tây"
       },
       "recommended": [
-        "Khai trương",
-        "Cưới hỏi",
-        "Ký kết"
+        "Tập luyện thể thao",
+        "Giảng dạy, truyền nghề",
+        "Hẹn hò, gặp gỡ thân nhân",
+        "Học tập, thi cử",
+        "Họp hành, bàn việc"
       ],
       "avoid": [
-        "Kiện tụng",
-        "Tranh chấp"
+        "Tranh tụng, kiện cáo",
+        "An táng, tang lễ",
+        "Động thổ, khởi công",
+        "Mua bán, giao dịch"
       ],
       "warning": null,
       "astroEvidence": "Tín hiệu chủ đạo: tension · Chủ đề nổi bật: Sao Thủy · Thiên Vương",
@@ -460,14 +497,17 @@
         "wealth": "Tây Bắc"
       },
       "recommended": [
-        "Thu hoạch",
-        "Tích trữ",
-        "Nạp tài"
+        "Sửa chữa nhà cửa",
+        "Cầu an, tĩnh dưỡng",
+        "Khám chữa bệnh, phẫu thuật",
+        "Di chuyển, du lịch",
+        "Lập kế hoạch, nghiên cứu"
       ],
       "avoid": [
-        "Khởi công lớn",
-        "An táng",
-        "Xuất hành xa"
+        "Cưới hỏi, hôn lễ",
+        "Khai trương, ra mắt",
+        "Nhận chức, bổ nhiệm",
+        "Nhập trạch, về nhà mới"
       ],
       "warning": "⚠️ Ngày Tam Nương — không nên cưới hỏi, khai trương",
       "astroEvidence": "Tín hiệu chủ đạo: tension · Chủ đề nổi bật: Mặt Trăng · Mặt Trời",
@@ -491,14 +531,17 @@
         "wealth": "Đông Nam"
       },
       "recommended": [
-        "Khai trương",
-        "Cầu tài",
-        "Xuất hành"
+        "Học tập, thi cử",
+        "Sáng tác, ra mắt tác phẩm",
+        "Họp hành, bàn việc",
+        "Nhập trạch, về nhà mới",
+        "Đầu tư, mở rộng"
       ],
       "avoid": [
-        "An táng",
-        "Kiện tụng",
-        "Động thổ"
+        "An táng, tang lễ",
+        "Động thổ, khởi công",
+        "Tranh tụng, kiện cáo",
+        "Mua bán, giao dịch"
       ],
       "warning": null,
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Kim · Mặt Trời",
@@ -522,14 +565,16 @@
         "wealth": "Đông Nam"
       },
       "recommended": [
-        "Tu bổ",
-        "Tĩnh tâm",
-        "Lập kế hoạch nội bộ"
+        "Học tập, thi cử",
+        "Sáng tác, ra mắt tác phẩm",
+        "Họp hành, bàn việc",
+        "Hẹn hò, gặp gỡ thân nhân",
+        "Giải quyết mâu thuẫn"
       ],
       "avoid": [
-        "Khai trương",
-        "Xuất hành",
-        "Cưới hỏi"
+        "Di chuyển, du lịch",
+        "Thu tài, nhận tiền",
+        "Công tác, xuất hành xa"
       ],
       "warning": null,
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Kim · Mặt Trời",
@@ -553,14 +598,17 @@
         "wealth": "Chính Đông"
       },
       "recommended": [
-        "Xuất hành",
-        "Khai trương",
-        "Nhậm chức"
+        "Hẹn hò, gặp gỡ thân nhân",
+        "Họp hành, bàn việc",
+        "Sáng tác, ra mắt tác phẩm",
+        "Công tác, xuất hành xa",
+        "Di chuyển, du lịch"
       ],
       "avoid": [
-        "Động thổ",
-        "Đào giếng",
-        "Mở kho"
+        "An táng, tang lễ",
+        "Động thổ, khởi công",
+        "Tranh tụng, kiện cáo",
+        "Mua bán, giao dịch"
       ],
       "warning": null,
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Hải Vương",
@@ -584,14 +632,16 @@
         "wealth": "Chính Đông"
       },
       "recommended": [
-        "Xuất hành",
-        "Khai trương",
-        "Nhậm chức"
+        "Cưới hỏi, hôn lễ",
+        "Họp hành, bàn việc",
+        "Khai trương, ra mắt",
+        "Nhập trạch, về nhà mới",
+        "Sáng tác, ra mắt tác phẩm"
       ],
       "avoid": [
-        "Động thổ",
-        "Đào giếng",
-        "Mở kho"
+        "An táng, tang lễ",
+        "Động thổ, khởi công",
+        "Tranh tụng, kiện cáo"
       ],
       "warning": null,
       "astroEvidence": "Tín hiệu chủ đạo: tension · Chủ đề nổi bật: Sao Kim · Mặt Trời",
@@ -615,14 +665,17 @@
         "wealth": "Chính Bắc"
       },
       "recommended": [
-        "Cầu an",
-        "Chữa bệnh",
-        "Dọn dẹp"
+        "Cầu an, tĩnh dưỡng",
+        "Khám chữa bệnh, phẫu thuật",
+        "Dọn dẹp, vứt đồ cũ",
+        "Giải quyết mâu thuẫn",
+        "Tích lũy, tiết kiệm"
       ],
       "avoid": [
-        "Ký kết lớn",
-        "Xuất hành xa",
-        "Cưới hỏi"
+        "Cưới hỏi, hôn lễ",
+        "Khai trương, ra mắt",
+        "Ký kết hợp đồng",
+        "Nhận chức, bổ nhiệm"
       ],
       "warning": null,
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Mặt Trăng",
@@ -646,14 +699,17 @@
         "wealth": "Chính Nam"
       },
       "recommended": [
-        "Cầu tài",
-        "Khai trương",
-        "Cúng tế"
+        "Học tập, thi cử",
+        "Họp hành, bàn việc",
+        "Sáng tác, ra mắt tác phẩm",
+        "Mua bán, giao dịch",
+        "Thu tài, nhận tiền"
       ],
       "avoid": [
-        "Kiện tụng",
-        "Động thổ",
-        "Nhậm chức"
+        "Động thổ, khởi công",
+        "Nhận chức, bổ nhiệm",
+        "Cưới hỏi, hôn lễ",
+        "Nhập trạch, về nhà mới"
       ],
       "warning": "⚠️ Ngày Tam Nương — không nên cưới hỏi, khai trương",
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trời · Sao Kim",
@@ -677,14 +733,16 @@
         "wealth": "Tây Nam"
       },
       "recommended": [
-        "Giao dịch",
-        "Sửa chữa",
-        "Hội họp"
+        "Di chuyển, du lịch",
+        "Họp hành, bàn việc",
+        "Lập kế hoạch, nghiên cứu",
+        "Sửa chữa nhà cửa",
+        "Tích lũy, tiết kiệm"
       ],
       "avoid": [
-        "Động thổ lớn",
-        "Đào móng",
-        "Kiện tụng"
+        "Cưới hỏi, hôn lễ",
+        "Động thổ, khởi công",
+        "Nhập trạch, về nhà mới"
       ],
       "warning": null,
       "astroEvidence": "Tín hiệu chủ đạo: tension · Chủ đề nổi bật: Mặt Trời · Sao Kim",
@@ -708,14 +766,17 @@
         "wealth": "Tây Nam"
       },
       "recommended": [
-        "Ký kết",
-        "Giao dịch",
-        "Cưới hỏi"
+        "Giảng dạy, truyền nghề",
+        "Hẹn hò, gặp gỡ thân nhân",
+        "Học tập, thi cử",
+        "An táng, tang lễ",
+        "Di chuyển, du lịch"
       ],
       "avoid": [
-        "Kiện tụng",
-        "Xuất hành xa",
-        "Chữa bệnh"
+        "Nhập trạch, về nhà mới",
+        "Đầu tư, mở rộng",
+        "Khai trương, ra mắt",
+        "Thu tài, nhận tiền"
       ],
       "warning": "⚠️ Ngày Nguyệt Kỵ — nên hạn chế khởi sự việc lớn",
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trời · Sao Kim",
@@ -739,15 +800,13 @@
         "wealth": "Chính Tây"
       },
       "recommended": [
-        "Xây dựng",
-        "Sửa chữa",
-        "Cầu an"
+        "Cầu an, tĩnh dưỡng",
+        "Khám chữa bệnh, phẫu thuật",
+        "Cưới hỏi, hôn lễ",
+        "Đầu tư, mở rộng",
+        "Động thổ, khởi công"
       ],
-      "avoid": [
-        "Xuất hành xa",
-        "Dời nhà",
-        "Mở kho"
-      ],
+      "avoid": [],
       "warning": null,
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Kim · Mặt Trời",
       "canChiEvidence": "Ngày Nhâm Thìn · Trực Chấp · Ngày Hoàng đạo (Tư Mệnh)",
@@ -770,14 +829,17 @@
         "wealth": "Tây Bắc"
       },
       "recommended": [
-        "Phá dỡ cũ",
-        "Chữa bệnh",
-        "Dọn dẹp"
+        "An táng, tang lễ",
+        "Cầu an, tĩnh dưỡng",
+        "Di chuyển, du lịch",
+        "Tập luyện thể thao",
+        "Dọn dẹp, vứt đồ cũ"
       ],
       "avoid": [
-        "Khai trương",
-        "Cưới hỏi",
-        "Ký kết"
+        "Cưới hỏi, hôn lễ",
+        "Khai trương, ra mắt",
+        "Nhận chức, bổ nhiệm",
+        "Nhập trạch, về nhà mới"
       ],
       "warning": "⚠️ Ngày Tam Nương — không nên cưới hỏi, khai trương",
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Kim · Mặt Trời",
@@ -801,14 +863,17 @@
         "wealth": "Đông Nam"
       },
       "recommended": [
-        "Cầu an",
-        "Cúng tế",
-        "Tĩnh dưỡng"
+        "Học tập, thi cử",
+        "Sáng tác, ra mắt tác phẩm",
+        "Họp hành, bàn việc",
+        "Nhận chức, bổ nhiệm",
+        "Hẹn hò, gặp gỡ thân nhân"
       ],
       "avoid": [
-        "Xuất hành xa",
-        "Động thổ",
-        "Mạo hiểm"
+        "Di chuyển, du lịch",
+        "Động thổ, khởi công",
+        "Mua bán, giao dịch",
+        "Công tác, xuất hành xa"
       ],
       "warning": null,
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Thiên Vương",
@@ -832,13 +897,16 @@
         "wealth": "Đông Nam"
       },
       "recommended": [
-        "Khai trương",
-        "Cưới hỏi",
-        "Ký kết"
+        "Cưới hỏi, hôn lễ",
+        "Học tập, thi cử",
+        "Nhập trạch, về nhà mới",
+        "Sáng tác, ra mắt tác phẩm",
+        "Đầu tư, mở rộng"
       ],
       "avoid": [
-        "Kiện tụng",
-        "Tranh chấp"
+        "An táng, tang lễ",
+        "Động thổ, khởi công",
+        "Tranh tụng, kiện cáo"
       ],
       "warning": null,
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Sao Kim",
@@ -862,14 +930,13 @@
         "wealth": "Chính Đông"
       },
       "recommended": [
-        "Thu hoạch",
-        "Tích trữ",
-        "Nạp tài"
+        "Lập kế hoạch, nghiên cứu"
       ],
       "avoid": [
-        "Khởi công lớn",
-        "An táng",
-        "Xuất hành xa"
+        "Đầu tư, mở rộng",
+        "An táng, tang lễ",
+        "Cưới hỏi, hôn lễ",
+        "Khai trương, ra mắt"
       ],
       "warning": null,
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trời · Sao Mộc",
@@ -893,14 +960,17 @@
         "wealth": "Chính Đông"
       },
       "recommended": [
-        "Khai trương",
-        "Cầu tài",
-        "Xuất hành"
+        "Học tập, thi cử",
+        "Họp hành, bàn việc",
+        "Sáng tác, ra mắt tác phẩm",
+        "Công tác, xuất hành xa",
+        "Di chuyển, du lịch"
       ],
       "avoid": [
-        "An táng",
-        "Kiện tụng",
-        "Động thổ"
+        "An táng, tang lễ",
+        "Động thổ, khởi công",
+        "Tranh tụng, kiện cáo",
+        "Mua bán, giao dịch"
       ],
       "warning": null,
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Sao Hỏa",
@@ -924,14 +994,16 @@
         "wealth": "Chính Bắc"
       },
       "recommended": [
-        "Tu bổ",
-        "Tĩnh tâm",
-        "Lập kế hoạch nội bộ"
+        "Học tập, thi cử",
+        "Họp hành, bàn việc",
+        "Sáng tác, ra mắt tác phẩm",
+        "Mua bán, giao dịch",
+        "Tích lũy, tiết kiệm"
       ],
       "avoid": [
-        "Khai trương",
-        "Xuất hành",
-        "Cưới hỏi"
+        "Di chuyển, du lịch",
+        "Công tác, xuất hành xa",
+        "Thu tài, nhận tiền"
       ],
       "warning": null,
       "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Sao Thủy",

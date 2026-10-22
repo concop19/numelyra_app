@@ -2,6 +2,7 @@ import type { UserProfile } from '../../store/userProfile';
 import { formatLocalDateKey, getAstrologyProfileFingerprint } from '../astrology/dailyAstroFortune';
 import { generatePureAstroVector, type PureAstroFeatureMetadata } from '../../services/astro/astroVectorEngine';
 import { makeDaySnapshot, type HourInfo, type LunarDaySnapshot } from '../../services/lunarService';
+import type { RatedActivity } from '../../services/activityRuleEngine';
 import { ASTRO_ENGINE_VERSION } from '../../services/astro/astroVersion';
 import { translate, type AppLocale } from '../../i18n/translations';
 
@@ -25,8 +26,14 @@ export interface DailyInsight {
   personality: string;
   luckyTime: DailyInsightLuckyTime | null;
   directions: { joy: string; wealth: string };
+  /** Backward-compat: tên hoạt động có kèm lý do ("Ký kết — Trực Định (Tốt)") */
   recommended: string[];
   avoid: string[];
+  /** Full rated data — UI dùng khi muốn hiển thị icon, category, reason riêng */
+  ratedActivities?: {
+    recommended: RatedActivity[];
+    avoid: RatedActivity[];
+  };
   warning: string | null;
   astroEvidence: string;
   canChiEvidence: string;
@@ -217,6 +224,7 @@ export function buildDailyInsight(
     birthDate: profile.birthDate,
     currentHour: 0,
     timeZone: -date.getTimezoneOffset() / 60,
+    locale,
   });
   const metadata = generatePureAstroVector({
     birthDate: profile.birthDate,
@@ -226,8 +234,18 @@ export function buildDailyInsight(
     resolvedBirthLocation: profile.birthLocation,
   }, date).metadata;
   const bestHour = chooseLuckyAwakeHour(snapshot.hours);
-  const recommended = localizeActivities(snapshot.activities.yi, locale).slice(0, 3);
-  const avoid = localizeActivities(snapshot.activities.ji, locale).slice(0, 3);
+
+  // --- Nên làm / Kiêng cữ ---
+  // Ưu tiên engine đa lớp (rated); fallback về bảng 12 Trực tĩnh nếu rated không có.
+  const ratedData = snapshot.activities.rated;
+
+  const recommended = ratedData
+    ? ratedData.recommended.map((r) => (locale === 'en' ? r.en : r.vi))
+    : localizeActivities(snapshot.activities.yi, locale).slice(0, 5);
+
+  const avoid = ratedData
+    ? ratedData.avoid.map((r) => (locale === 'en' ? r.en : r.vi))
+    : localizeActivities(snapshot.activities.ji, locale).slice(0, 4);
   const base: DailyInsight = {
     dateKey: formatLocalDateKey(date),
     profileKey: getAstrologyProfileFingerprint(profile),
@@ -247,6 +265,7 @@ export function buildDailyInsight(
     },
     recommended,
     avoid,
+    ratedActivities: ratedData,
     warning: snapshot.warning,
     astroEvidence: buildAstroEvidence(metadata, locale),
     canChiEvidence: buildCanChiEvidence(snapshot, locale),

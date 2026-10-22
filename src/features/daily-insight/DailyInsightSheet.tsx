@@ -172,7 +172,9 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
                   />
                   <View style={styles.guidanceCopy}>
                     <Text style={[styles.guidanceTitle, styles.goodTitle]}>✓ {t('daily.recommended')}</Text>
-                    {insight.recommended.map((item) => <Text key={item} style={styles.guidanceText}>• {item}</Text>)}
+                    {insight.recommended.map((item) => (
+                      <Text key={item} style={styles.guidanceText}>• {item}</Text>
+                    ))}
                   </View>
                 </LinearGradient>
                 <LinearGradient colors={['rgba(136,31,112,0.31)', 'rgba(93,27,101,0.26)']} style={[styles.guidance, styles.avoid]}>
@@ -186,7 +188,9 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
                   />
                   <View style={styles.guidanceCopy}>
                     <Text style={[styles.guidanceTitle, styles.avoidTitle]}>× {t('daily.avoid')}</Text>
-                    {insight.avoid.map((item) => <Text key={item} style={styles.guidanceText}>• {item}</Text>)}
+                    {insight.avoid.map((item) => (
+                      <Text key={item} style={styles.guidanceText}>• {item}</Text>
+                    ))}
                   </View>
                 </LinearGradient>
               </View>
@@ -349,7 +353,7 @@ const styles = StyleSheet.create({
   guidanceTitle: { fontSize: 11, fontWeight: '900', marginBottom: 7 },
   goodTitle: { color: '#75F0BD' },
   avoidTitle: { color: '#FF79C5' },
-  guidanceText: { color: '#E1DBED', fontSize: 10, lineHeight: 16 },
+  guidanceText: { color: '#E1DBED', fontSize: 10.5, lineHeight: 17, marginBottom: 2 },
   warningCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',

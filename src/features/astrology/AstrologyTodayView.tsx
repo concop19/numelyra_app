@@ -101,7 +101,7 @@ export function AstrologyTodayView({
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[astrologyUiStyles.content, { paddingTop: insets.top + 6, paddingBottom: Math.max(124, insets.bottom + 112) }]}
+        contentContainerStyle={[astrologyUiStyles.content, { paddingTop: insets.top + 6, paddingBottom: Math.max(38, insets.bottom + 26) }]}
       >
         {!profile && <AstrologyHeader title={t('astrology.title')} subtitle={t('astrology.subtitle')} onBack={onBack} />}
         {!profile ? (
@@ -265,16 +265,6 @@ export function AstrologyTodayView({
                 <Ionicons name="arrow-forward-circle" size={30} color="#FFF2BD" />
               </LinearGradient>
             </TouchableOpacity>
-
-            <SectionHeading title={t('astrology.todayReading')} eyebrow="Today's Interpretation" />
-            <TouchableOpacity activeOpacity={0.82} onPress={onOpenInterpretation} style={styles.interpretationCard}>
-              <Ionicons name="sparkles" size={24} color={ASTRO_COLORS.gold} />
-              <View style={styles.flexCopy}>
-                <Text style={styles.interpretationTitle}>{fortune?.title ?? t('astrology.currentEnergy')}</Text>
-                <Text numberOfLines={4} style={styles.interpretationBody}>{fortune?.mirror ?? metadata.vibeSummary}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#D4C5FF" />
-            </TouchableOpacity>
           </>
         )}
 
@@ -298,26 +288,6 @@ export function AstrologyTodayView({
           </MysticCard>
         )}
       </ScrollView>
-      <View style={[styles.bottomNav, { paddingBottom: Math.max(7, insets.bottom) }]}>
-        {([
-          ['today', 'Hôm nay', undefined],
-          ['explore', 'Khám phá', onOpenNatal],
-          ['journal', 'Nhật ký', onOpenInterpretation],
-          ['profile', 'Hồ sơ', onOpenProfile],
-        ] as const).map(([icon, label, handler]) => (
-          <TouchableOpacity
-            key={icon}
-            accessibilityLabel={label}
-            accessibilityRole="button"
-            activeOpacity={handler ? 0.72 : 1}
-            onPress={handler}
-            style={styles.bottomNavItem}
-          >
-            <Image contentFit="contain" source={ASTROLOGY_UI_ICONS[icon]} style={[styles.bottomNavIcon, icon === 'today' && styles.bottomNavIconActive]} />
-            <Text style={[styles.bottomNavLabel, icon === 'today' && styles.bottomNavLabelActive]}>{label}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
       </View>
     </AstrologyBackground>
   );
@@ -372,17 +342,8 @@ const styles = StyleSheet.create({
   natalIconText: { color: '#FFF1B8', fontSize: 27 },
   natalTitle: { color: '#FFFFFF', fontSize: 17, fontFamily: 'serif', fontWeight: '800' },
   natalSubtitle: { color: '#DED7F6', fontSize: 11, lineHeight: 16, marginTop: 4 },
-  interpretationCard: { minHeight: 98, flexDirection: 'row', alignItems: 'flex-start', gap: 11, padding: 15, borderRadius: 21, backgroundColor: 'rgba(37,26,91,0.92)', borderWidth: 1, borderColor: 'rgba(215,177,255,0.35)' },
-  interpretationTitle: { color: '#FFFFFF', fontSize: 15, fontFamily: 'serif', fontWeight: '800' },
-  interpretationBody: { color: '#D5CEE9', fontSize: 12, lineHeight: 18, marginTop: 6 },
   inlineStatus: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, paddingVertical: 16 },
   inlineStatusText: { color: '#C7C6DB', fontSize: 12 },
   networkError: { marginTop: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10, borderColor: 'rgba(255,130,153,0.35)' },
   retryButton: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(122,70,159,0.7)' },
-  bottomNav: { position: 'absolute', left: 12, right: 12, bottom: 0, minHeight: 70, maxWidth: 696, alignSelf: 'center', flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-around', paddingTop: 6, borderRadius: 26, backgroundColor: 'rgba(8,12,67,0.97)', borderWidth: 1, borderColor: 'rgba(201,167,255,0.32)', shadowColor: '#05031F', shadowOpacity: 0.54, shadowRadius: 16, elevation: 16 },
-  bottomNavItem: { flex: 1, minHeight: 54, alignItems: 'center', justifyContent: 'center' },
-  bottomNavIcon: { width: 26, height: 26, opacity: 0.72 },
-  bottomNavIconActive: { width: 29, height: 29, opacity: 1 },
-  bottomNavLabel: { color: '#B7AED7', fontSize: 9.5, fontWeight: '700', marginTop: 2 },
-  bottomNavLabelActive: { color: ASTRO_COLORS.gold },
 });

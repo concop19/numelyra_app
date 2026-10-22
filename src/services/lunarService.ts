@@ -1,12 +1,17 @@
 /**
  * lunarService.ts - Tính toán âm lịch, can chi, giờ hoàng đạo/hắc đạo, kỵ giờ
- * 
+ *
  * Sử dụng thuật toán Hồ Ngọc Đức cho quy đổi dương→âm
  * và bảng tra giờ hoàng đạo theo ngày can chi.
- * 
- * Nếu @baostudio/viet-lunar hoạt động tốt trên RN thì dùng luôn,
- * nếu không thì fallback sang logic tự viết bên dưới.
+ *
+ * Kể từ phiên bản engine-v2, mục Nên làm / Kiêng cữ được tính qua
+ * activityRuleEngine.ts (5 lớp rule từ JSON) thay vì bảng 12 Trực tĩnh.
  */
+import {
+  buildRatedActivities,
+  type ActivityRuleContext,
+  type RatedActivity,
+} from './activityRuleEngine';
 
 // ============================================================
 // 1. CONSTANTS
@@ -434,15 +439,56 @@ export function getBestDepartureHour(
 export interface DayActivities {
   trucName: string;
   trucQuality: 'Tốt' | 'Bình' | 'Xấu';
+  /** Backward-compat: tên chuỗi thô (từ Trực nền hoặc engine mới) */
   yi: string[];
   ji: string[];
+  /** Full data từ engine đa lớp — undefined khi chạy fallback mode */
+  rated?: {
+    recommended: RatedActivity[];
+    avoid: RatedActivity[];
+  };
 }
 
-export function getDayActivities(dd: number, mm: number, yy: number): DayActivities {
+/**
+ * Tính Trực và danh sách Nên làm / Kiêng cữ.
+ *
+ * @param ruleCtx - Khi được cung cấp, chạy engine 5 lớp từ activity-rules.json;
+ *                  khi bỏ qua, fallback về bảng 12 Trực tĩnh (backward-compat).
+ */
+export function getDayActivities(
+  dd: number,
+  mm: number,
+  yy: number,
+  ruleCtx?: Omit<ActivityRuleContext, 'trucName' | 'trucQuality' | 'isNguyetKy' | 'isTamNuong' | 'dayCanIdx' | 'dayChiIdx'>,
+): DayActivities {
   const lunar = solarToLunar(dd, mm, yy);
   const dayChiIdx = getDayDiaChi(dd, mm, yy);
+  const dayCanIdx = getDayThienCan(dd, mm, yy);
   const monthChiIdx = positiveMod(lunar.month + 1, 12); // Tháng Giêng = Dần
   const truc = THAP_NHI_KIEN_TRU[positiveMod(dayChiIdx - monthChiIdx, 12)];
+
+  // --- Engine mode: chạy 5 lớp rule ---
+  if (ruleCtx) {
+    const ctx: ActivityRuleContext = {
+      ...ruleCtx,
+      trucName: truc.name,
+      trucQuality: truc.quality,
+      isNguyetKy: isNguyetKy(lunar.day),
+      isTamNuong: isTamNuong(lunar.day),
+      dayCanIdx,
+      dayChiIdx,
+    };
+    const rated = buildRatedActivities(ctx);
+    return {
+      trucName: truc.name,
+      trucQuality: truc.quality,
+      yi: rated.recommended.map((r) => (ctx.locale === 'en' ? r.en : r.vi)),
+      ji: rated.avoid.map((r) => (ctx.locale === 'en' ? r.en : r.vi)),
+      rated,
+    };
+  }
+
+  // --- Fallback mode: bảng 12 Trực tĩnh ---
   return {
     trucName: truc.name,
     trucQuality: truc.quality,
@@ -712,6 +758,8 @@ export interface LunarDaySnapshotOptions {
   birthDate?: string | null;
   currentHour?: number;
   timeZone?: number;
+  /** Locale dùng để localize reason trong RatedActivity */
+  locale?: 'vi' | 'en';
 }
 
 export function makeDaySnapshot(
@@ -749,7 +797,13 @@ export function makeDaySnapshot(
       options.currentHour ?? date.getHours(),
     ),
     direction: getDayDirection(day, month, year),
-    activities: getDayActivities(day, month, year),
+    activities: getDayActivities(day, month, year, {
+      isHoangDao: getDayHoangDaoStatus(day, month, year, lunarDate.month).isHoangDao,
+      hoangDaoLabel: getDayHoangDaoStatus(day, month, year, lunarDate.month).label,
+      userZodiac,
+      userZodiacClash: TU_HANH_XUNG[userZodiac] ?? '',
+      locale: options.locale ?? 'vi',
+    }),
     warning: getDayWarning(lunarDate.day),
     weekInfo: getWeekInfo(date),
     userBirthYear,

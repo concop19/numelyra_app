@@ -88,7 +88,7 @@ export default function HourDirectionSheet({
 }: Props) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const { t, l } = useLocalization();
+  const { t, l, locale } = useLocalization();
   const [selectedHour, setSelectedHour] = useState<HourInfo | null>(() => getDefaultHour(hours, bestHour));
   const [activitiesExpanded, setActivitiesExpanded] = useState(false);
   const sheetWidth = Math.min(width, 720);

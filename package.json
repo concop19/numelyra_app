@@ -72,7 +72,7 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "testRegex": "(src/games/(gameHub|lua-ga/engine|zip/game/(logic|generator)|arrow-escape/src/(levels/levels|space_game/engine/spaceEngine)|sudoku/src/utils/sudokuLogic)|src/services/(chatNumerologyContextService|colorGuidance|chatHistoryStorage|dailyNotifications|ttsService|lunarService|numerologyKnowledge|numerologySummaryService|astro/.*)|src/db/numerologyKnowledgeService|src/features/constellation/constellationGeometry|src/features/astrology/dailyAstroFortune|src/features/daily-insight/dailyInsight|src/i18n/LocalizationContext)\\.test\\.ts$",
+    "testRegex": "(src/games/(gameHub|lua-ga/engine|zip/game/(logic|generator)|arrow-escape/src/(levels/levels|space_game/engine/spaceEngine)|sudoku/src/utils/sudokuLogic)|src/services/(chatNumerologyContextService|colorGuidance|chatHistoryStorage|dailyNotifications|ttsService|lunarService|numerologyKnowledge|numerologySummaryService|astro/.*|activityRuleEngine)|src/db/numerologyKnowledgeService|src/features/constellation/constellationGeometry|src/features/astrology/dailyAstroFortune|src/features/daily-insight/dailyInsight|src/i18n/LocalizationContext)\\.test\\.ts$",
     "modulePathIgnorePatterns": [
       "<rootDir>/src/games/zip/router-source/"
     ]
