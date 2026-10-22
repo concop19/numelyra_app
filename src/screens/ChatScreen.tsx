@@ -63,7 +63,6 @@ import {
 } from '../services/chatHistoryStorage';
 import { useLocalization } from '../i18n/LocalizationContext';
 import { buildDailyInsight, cacheDailyInsight } from '../features/daily-insight/dailyInsight';
-import DailyInsightCard from '../features/daily-insight/DailyInsightCard';
 import DailyInsightSheet from '../features/daily-insight/DailyInsightSheet';
 import { formatLocalDateKey } from '../features/astrology/dailyAstroFortune';
 import { useDailyAstroFortune } from '../features/astrology/useDailyAstroFortune';
@@ -760,6 +759,22 @@ export default function ChatScreen({
     }).catch(() => undefined);
     return () => { active = false; };
   }, [dailyInsight?.dateKey, dailyInsight?.profileKey, isHistoryReady, openDailyDate]);
+
+  const handleOpenTodayMessage = useCallback(() => {
+    void Haptics.selectionAsync();
+    if (!dailyInsight) {
+      if (!dailyProfile || !dailyProfile.birthDate) {
+        setProfilePromptNotice(
+          locale === 'vi'
+            ? 'Vui lòng chọn hoặc hoàn thiện hồ sơ ngày sinh để xem thông điệp hôm nay.'
+            : 'Please select or complete your birth date profile to view today’s message.'
+        );
+        setIsProfileModalOpen(true);
+      }
+      return;
+    }
+    setDailySheetVisible(true);
+  }, [dailyInsight, dailyProfile, locale]);
 
   // Theo dõi trạng thái hiển thị bàn phím để tự động thu gọn Mascot và tối ưu không gian cho ô soạn thảo
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
@@ -2020,14 +2035,6 @@ export default function ChatScreen({
           </TouchableOpacity>
         </View>
 
-        {!isKeyboardVisible && dailyInsight ? (
-          <DailyInsightCard
-            insight={dailyInsight}
-            fortune={fortuneForDailyInsight}
-            onPress={() => setDailySheetVisible(true)}
-          />
-        ) : null}
-
         {/* Một luồng chat duy nhất: tin mới nhất ở đầu, kéo xuống để nạp tin cũ. */}
         <View style={styles.chatTimeline}>
           <FlatList
@@ -2365,7 +2372,12 @@ export default function ChatScreen({
         </View>
       </Modal>
 
-      <ChatMoonButton onPress={onOpenGameHub} />
+      <ChatMoonButton
+        onPress={handleOpenTodayMessage}
+        style={{ top: insets.top > 0 ? insets.top + 4 : 14 }}
+        accessibilityLabel={t('daily.cardEyebrow')}
+        accessibilityHint={l('Chạm vào mặt trăng để xem thông điệp hôm nay', 'Tap the moon to view today’s message')}
+      />
 
       <LoveCompatibilityFlow
         visible={!!loveCompatibilityFlow}

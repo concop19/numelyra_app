@@ -10,6 +10,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
+import { useLocalization } from '../../i18n/LocalizationContext';
 
 // Default idle animation — animated WebP loop (sitting peacefully)
 const IDLE_WEBP = require('../../../assets/char/result_Flame_character_sitting_peacefully_1080p_20261017202140_2_ (1)/idle_1.webp');
@@ -21,6 +22,7 @@ export type MascotAnimationItem =
       idleSource: any;
       actionSource: any;
       dialogues: string[];
+      dialoguesEn: string[];
       preIdleMs?: number;
       actionMs?: number;
       postIdleMs?: number;
@@ -30,6 +32,7 @@ export type MascotAnimationItem =
       id: string;
       source: any;
       dialogues: string[];
+      dialoguesEn: string[];
     };
 
 export const DEFAULT_IDLE_DIALOGUES = [
@@ -37,6 +40,13 @@ export const DEFAULT_IDLE_DIALOGUES = [
   'Ở đây luôn có một ngọn lửa nhỏ lắng nghe bạn... 💛',
   'Có tâm sự gì khó nói, cứ trút hết vào đây nha! 🌸',
   'Bạn muốn khám phá điều gì về bản thân hôm nay? 🔮',
+];
+
+const DEFAULT_IDLE_DIALOGUES_EN = [
+  'How is your day going? Tell the Little Spirit Cat all about it ✨',
+  'There is always a little flame here ready to listen... 💛',
+  'If something is on your mind, you can tell me everything! 🌸',
+  'What would you like to discover about yourself today? 🔮',
 ];
 
 export const CHAR_ANIMATIONS: MascotAnimationItem[] = [
@@ -54,6 +64,11 @@ export const CHAR_ANIMATIONS: MascotAnimationItem[] = [
       'Phong độ là nhất thời, đẳng cấp của tui là mãi mãi! 😎',
       'Sút bay deadline, ghi bàn thẳng vào tim crush! ⚽🔥',
     ],
+    dialoguesEn: [
+      'I am playing soccer today, you kick those blues away! SIUUU! ⚽',
+      'Form is temporary, but my class is forever! 😎',
+      'Kick deadlines away and score straight into your crush’s heart! ⚽🔥',
+    ],
   },
   // 2. Bộ 5 (Đồng phục học sinh áo xanh)
   {
@@ -68,6 +83,11 @@ export const CHAR_ANIMATIONS: MascotAnimationItem[] = [
       'Áaaaa trễ deadline gòi, ai cứu bé zớiii! 🏃💨',
       'Học không chơi đánh rơi tuổi trẻ, chơi không học áp lực ngang! 😭',
       'Chạy ngay đi trước khi mọi chuyện tồi tệ hơn! 💨',
+    ],
+    dialoguesEn: [
+      'Ahhh, I am late on my deadline! Somebody save me! 🏃💨',
+      'Study with no play and you miss out; play with no study and the stress hits! 😭',
+      'Run now before things get even worse! 💨',
     ],
   },
   // 3. Bộ 7 (Vest cầm ví tiền)
@@ -84,6 +104,11 @@ export const CHAR_ANIMATIONS: MascotAnimationItem[] = [
       'Tiền không tự mất đi, nó chỉ biến thành đồ ăn và đơn Shopee! 🥲',
       'Đầu tháng tổng tài, cuối tháng tổng xỉ vả ví tiền! 📉',
     ],
+    dialoguesEn: [
+      'Wallet, why are you so skinny... I keep feeding you, but you never gain weight? 💸',
+      'Money does not disappear; it just turns into food and online shopping! 🥲',
+      'A tycoon at the start of the month, yelling at my wallet by the end! 📉',
+    ],
   },
   // 4. Bộ 10 (Vest tóc vàng phong cách Trump)
   {
@@ -99,6 +124,11 @@ export const CHAR_ANIMATIONS: MascotAnimationItem[] = [
       'Make your life great again! Tự tin lên người anh em! 💼',
       'Tôi không có gì ngoài sự tỏa sáng và thần thái triệu đô! 👑',
     ],
+    dialoguesEn: [
+      'A chairman pretends to be a flame, and the result... absolutely brilliant! ✨',
+      'Make your life great again! Believe in yourself, my friend! 💼',
+      'All I have is a million-dollar glow and confidence! 👑',
+    ],
   },
   // 5. Standalone: Tóc vàng khóc dụi mắt
   {
@@ -109,6 +139,11 @@ export const CHAR_ANIMATIONS: MascotAnimationItem[] = [
       'Người giàu cũng biết khóc mà... đừng bắt tui gồng nữa! 🥺💧',
       'Bên ngoài bảnh bao, bên trong nước mắt chảy thành sông... 😭',
       'Ủa alo, ai làm tổn thương trái tim mỏng manh này dạ?',
+    ],
+    dialoguesEn: [
+      'Even rich people cry... stop making me pretend I am okay! 🥺💧',
+      'Looking sharp on the outside, drowning in tears on the inside... 😭',
+      'Hello? Who hurt this delicate little heart?',
     ],
   },
   // 6. Standalone: Ngọn lửa khóc nằm sàn
@@ -121,6 +156,11 @@ export const CHAR_ANIMATIONS: MascotAnimationItem[] = [
       'Cứu bé zới, thế giới này toàn điều làm tổn thương bé thui! 🛌',
       'Cho tui nằm đây ăn vạ 5 phút, ai dỗ thì tui nín... 🤧',
     ],
+    dialoguesEn: [
+      'I am so down... life is being so unfair to me! 😭💔',
+      'Help me out, the world keeps hurting this little flame! 🛌',
+      'Let me lie here and sulk for five minutes; comfort me and I might stop... 🤧',
+    ],
   },
   // 7. Standalone: Ngọn lửa cầm súng
   {
@@ -131,6 +171,11 @@ export const CHAR_ANIMATIONS: MascotAnimationItem[] = [
       'Nói một câu nữa coi? Dịu dàng không muốn lại thích ăn kẹo đồng! 🔫🔥',
       'Đừng đùa với lửa! Chọc tui quạu là tới công chuyện liền nha! 💣',
       'Chế độ đồ sát: ĐÃ BẬT! Ai chọc tui bước ra đây coi? 😤',
+    ],
+    dialoguesEn: [
+      'Say that one more time? You really do not want to get on my bad side! 🔫🔥',
+      'Do not play with fire! Keep pushing me and things will get real! 💣',
+      'Rage mode: ACTIVATED! Whoever started this, step forward! 😤',
     ],
   },
   // 8. Standalone: Ngọn lửa tan chảy
@@ -143,6 +188,11 @@ export const CHAR_ANIMATIONS: MascotAnimationItem[] = [
       'Linh hồn đã rời khỏi thể xác, xin đừng làm phiền lúc này... 🕯️',
       'Trời nóng hay đời nóng mà tui tan chảy ra thế này? 🫠',
     ],
+    dialoguesEn: [
+      'Battery at 0%... I have officially melted into a puddle! 🫠',
+      'My soul has left my body; please do not disturb me right now... 🕯️',
+      'Is it the weather or life that has me melting like this? 🫠',
+    ],
   },
   // 9. Standalone: Nằm ghế lười bấm điện thoại
   {
@@ -153,6 +203,11 @@ export const CHAR_ANIMATIONS: MascotAnimationItem[] = [
       'Lướt tóp tóp 5 phút thôi mà... ủa sao trôi qua 3 tiếng rồi? 📱🛌',
       'Chuyện gì khó quá thì mình trùm mền nằm lướt điện thoại! 😴',
       'Bật chế độ lười toàn phần, thế giới ngoài kia cứ kệ đi nha~ ✨',
+    ],
+    dialoguesEn: [
+      'Just five minutes of scrolling... wait, how did three hours pass? 📱🛌',
+      'When life gets hard, I hide under a blanket and scroll! 😴',
+      'Full lazy mode: on. The outside world can wait~ ✨',
     ],
   },
   // 10. Standalone: Ôm má mệt mỏi
@@ -165,6 +220,11 @@ export const CHAR_ANIMATIONS: MascotAnimationItem[] = [
       'Ủa rồi cuộc đời định đưa đẩy tui đi tới đâu nữa dị trời? 🤦‍♂️',
       'Trán nhăn má xệ vì nghĩ cách làm giàu hoài mà chưa giàu... 💆',
     ],
+    dialoguesEn: [
+      'Head spinning, knees weak, arms are heavy from overthinking! 🤯',
+      'Where on earth is life taking me now? 🤦‍♂️',
+      'Wrinkling my forehead trying to figure out how to get rich... still not rich. 💆',
+    ],
   },
   // 11. Standalone: Ngọn lửa đội mũ sinh nhật
   {
@@ -175,6 +235,11 @@ export const CHAR_ANIMATIONS: MascotAnimationItem[] = [
       'Chúc mừng sinh nhật tôi... lại già thêm một tuổi rồi nè! 🎂🎈',
       'Thêm một tuổi mới, mong tiền vô như nước tình vô như mơ! ✨',
       'Sinh nhật một mình nhưng vẫn phải thật xinh xắn và rực rỡ! 🥳',
+    ],
+    dialoguesEn: [
+      'Happy birthday to me... one year older again! 🎂🎈',
+      'Another year older; may money flow in and love feel like a dream! ✨',
+      'Celebrating alone, but still looking fabulous and radiant! 🥳',
     ],
   },
 ];
@@ -213,6 +278,7 @@ export const FlameMascot: React.FC<Props> = ({
   specialAnimationActive = false,
   specialAnimationIndex,
 }) => {
+  const { locale } = useLocalization();
   const [internalAnimationIndex, setInternalAnimationIndex] = useState(0);
   const [subPhase, setSubPhase] = useState<'pre_idle' | 'action' | 'post_idle'>('pre_idle');
   const [isPressed, setIsPressed] = useState(false);
@@ -291,7 +357,9 @@ export const FlameMascot: React.FC<Props> = ({
     let hideTimer: ReturnType<typeof setTimeout> | undefined;
 
     if (specialAnimationActive) {
-      const pool = activeSpecialItem?.dialogues || [];
+      const pool = locale === 'en'
+        ? activeSpecialItem?.dialoguesEn || []
+        : activeSpecialItem?.dialogues || [];
       if (pool.length > 0) {
         const quote = pool[Math.floor(Math.random() * pool.length)];
         showBubble(quote);
@@ -301,7 +369,8 @@ export const FlameMascot: React.FC<Props> = ({
 
       // Khi ở idle, sau 600ms hiển thị một câu nói ngẫu nhiên trong 2.4s
       idleTimer = setTimeout(() => {
-        const idleQuote = DEFAULT_IDLE_DIALOGUES[Math.floor(Math.random() * DEFAULT_IDLE_DIALOGUES.length)];
+        const idleDialogues = locale === 'en' ? DEFAULT_IDLE_DIALOGUES_EN : DEFAULT_IDLE_DIALOGUES;
+        const idleQuote = idleDialogues[Math.floor(Math.random() * idleDialogues.length)];
         showBubble(idleQuote);
         hideTimer = setTimeout(() => {
           hideBubble();
@@ -313,7 +382,7 @@ export const FlameMascot: React.FC<Props> = ({
       if (idleTimer) clearTimeout(idleTimer);
       if (hideTimer) clearTimeout(hideTimer);
     };
-  }, [specialAnimationActive, activeSpecialItem]);
+  }, [locale, specialAnimationActive, activeSpecialItem]);
 
   useEffect(() => {
     const bounce = Animated.sequence([

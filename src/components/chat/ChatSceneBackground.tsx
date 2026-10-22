@@ -13,7 +13,19 @@ interface Props {
   style?: any;
 }
 
-export function ChatMoonButton({ onPress }: { onPress?: () => void }) {
+export interface ChatMoonButtonProps {
+  onPress?: () => void;
+  style?: any;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+}
+
+export function ChatMoonButton({
+  onPress,
+  style,
+  accessibilityLabel = 'Thông điệp hôm nay',
+  accessibilityHint = 'Chạm vào mặt trăng để xem thông điệp hôm nay',
+}: ChatMoonButtonProps) {
   const moonGlowAnim = useRef(new Animated.Value(0.92)).current;
   const moonFloatAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -55,13 +67,13 @@ export function ChatMoonButton({ onPress }: { onPress?: () => void }) {
   }, [moonGlowAnim, moonFloatAnim]);
 
   return (
-    <Animated.View style={[styles.moonContainer, { transform: [{ translateY: moonFloatAnim }, { scale: moonGlowAnim }] }]}>
+    <Animated.View style={[styles.moonContainer, style, { transform: [{ translateY: moonFloatAnim }, { scale: moonGlowAnim }] }]}>
       <Pressable
         onPress={onPress}
         disabled={!onPress}
         accessibilityRole="button"
-        accessibilityLabel="Mở Game Hub"
-        accessibilityHint="Chạm vào mặt trăng để chọn trò chơi"
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
         style={({ pressed }) => [styles.moonButton, pressed && { opacity: 0.7 }]}
       >
         <Image source={MOON_TOP_LEFT} resizeMode="contain" style={styles.moonImage} />
@@ -171,7 +183,7 @@ const styles = StyleSheet.create({
     left: 14,
     width: 64,
     height: 64,
-    zIndex: 2,
+    zIndex: 20,
   },
   moonButton: {
     width: '100%',
