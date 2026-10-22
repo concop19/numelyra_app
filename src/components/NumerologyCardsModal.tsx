@@ -338,6 +338,7 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
                   onPress={handleFindFigure}
                   shape="pill"
                   size="sm"
+                  style={styles.findFigureButton}
                   trailingIcon={<Ionicons name="arrow-forward" size={14} color="#3B260D" />}
                   variant="gold"
                 />
@@ -641,8 +642,12 @@ const styles = StyleSheet.create({
   },
   insightActionsContainer: {
     alignItems: 'center',
+    justifyContent: 'center',
     width: '100%',
     marginTop: 10,
     gap: 8,
+  },
+  findFigureButton: {
+    alignSelf: 'center',
   },
 });

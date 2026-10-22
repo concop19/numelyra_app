@@ -9,6 +9,7 @@
  */
 import {
   buildRatedActivities,
+  getBaseActivitiesForTruc,
   type ActivityRuleContext,
   type RatedActivity,
 } from './activityRuleEngine';
@@ -91,23 +92,21 @@ const TAI_THAN_BY_DAY_CAN = [
 interface TrucDefinition {
   name: string;
   quality: 'Tốt' | 'Bình' | 'Xấu';
-  yi: string[];
-  ji: string[];
 }
 
 const THAP_NHI_KIEN_TRU: TrucDefinition[] = [
-  { name: 'Kiến', quality: 'Tốt', yi: ['Xuất hành', 'Khai trương', 'Nhậm chức', 'Cưới hỏi'], ji: ['Động thổ', 'Đào giếng', 'Mở kho'] },
-  { name: 'Trừ', quality: 'Tốt', yi: ['Cầu an', 'Chữa bệnh', 'Dọn dẹp', 'Cầu phúc'], ji: ['Ký kết lớn', 'Xuất hành xa', 'Cưới hỏi'] },
-  { name: 'Mãn', quality: 'Tốt', yi: ['Cầu tài', 'Khai trương', 'Cúng tế', 'Hội họp'], ji: ['Kiện tụng', 'Động thổ', 'Nhậm chức'] },
-  { name: 'Bình', quality: 'Bình', yi: ['Giao dịch', 'Sửa chữa', 'Hội họp', 'Di chuyển'], ji: ['Động thổ lớn', 'Đào móng', 'Kiện tụng'] },
-  { name: 'Định', quality: 'Tốt', yi: ['Ký kết', 'Giao dịch', 'Cưới hỏi', 'Cầu phúc'], ji: ['Kiện tụng', 'Xuất hành xa', 'Chữa bệnh'] },
-  { name: 'Chấp', quality: 'Bình', yi: ['Xây dựng', 'Sửa chữa', 'Cầu an', 'Lập kế hoạch'], ji: ['Xuất hành xa', 'Dời nhà', 'Mở kho'] },
-  { name: 'Phá', quality: 'Xấu', yi: ['Phá dỡ cũ', 'Chữa bệnh', 'Dọn dẹp'], ji: ['Khai trương', 'Cưới hỏi', 'Ký kết', 'Cầu tài'] },
-  { name: 'Nguy', quality: 'Xấu', yi: ['Cầu an', 'Cúng tế', 'Tĩnh dưỡng'], ji: ['Xuất hành xa', 'Động thổ', 'Mạo hiểm'] },
-  { name: 'Thành', quality: 'Tốt', yi: ['Khai trương', 'Cưới hỏi', 'Ký kết', 'Nhập trạch'], ji: ['Kiện tụng', 'Tranh chấp'] },
-  { name: 'Thu', quality: 'Bình', yi: ['Thu hoạch', 'Tích trữ', 'Nạp tài', 'Giao dịch'], ji: ['Khởi công lớn', 'An táng', 'Xuất hành xa'] },
-  { name: 'Khai', quality: 'Tốt', yi: ['Khai trương', 'Cầu tài', 'Xuất hành', 'Nhập trạch'], ji: ['An táng', 'Kiện tụng', 'Động thổ'] },
-  { name: 'Bế', quality: 'Xấu', yi: ['Tu bổ', 'Tĩnh tâm', 'Lập kế hoạch nội bộ'], ji: ['Khai trương', 'Xuất hành', 'Cưới hỏi', 'Cầu tài'] },
+  { name: 'Kiến', quality: 'Tốt' },
+  { name: 'Trừ', quality: 'Tốt' },
+  { name: 'Mãn', quality: 'Tốt' },
+  { name: 'Bình', quality: 'Bình' },
+  { name: 'Định', quality: 'Tốt' },
+  { name: 'Chấp', quality: 'Bình' },
+  { name: 'Phá', quality: 'Xấu' },
+  { name: 'Nguy', quality: 'Xấu' },
+  { name: 'Thành', quality: 'Tốt' },
+  { name: 'Thu', quality: 'Bình' },
+  { name: 'Khai', quality: 'Tốt' },
+  { name: 'Bế', quality: 'Xấu' },
 ];
 
 const LUC_THAP_HOA_GIAP_NAP_AM = [
@@ -450,6 +449,25 @@ export interface DayActivities {
 }
 
 /**
+ * Chi tháng dùng cho Kiến Trừ Thập Nhị Trực.
+ *
+ * Nguyệt Kiến đổi vào ngày nhập Tiết (Lập Xuân, Kinh Trập, ...), không đổi
+ * vào mùng 1 âm lịch. Vì UI chỉ chọn theo ngày, phép đo dùng cuối ngày địa
+ * phương để toàn bộ ngày nhập Tiết thuộc tháng tiết khí mới.
+ */
+export function getSolarTermMonthChiIndex(
+  dd: number,
+  mm: number,
+  yy: number,
+  timeZone = 7,
+): number {
+  const jdn = jdFromDate(dd, mm, yy);
+  const endOfLocalDayUtc = jdn + 0.5 - timeZone / 24 - 1 / 86_400;
+  const degrees = positiveMod(sunLongitude(endOfLocalDayUtc) * 180 / Math.PI, 360);
+  return positiveMod(Math.floor(positiveMod(degrees - 315, 360) / 30) + 2, 12);
+}
+
+/**
  * Tính Trực và danh sách Nên làm / Kiêng cữ.
  *
  * @param ruleCtx - Khi được cung cấp, chạy engine 5 lớp từ activity-rules.json;
@@ -460,11 +478,12 @@ export function getDayActivities(
   mm: number,
   yy: number,
   ruleCtx?: Omit<ActivityRuleContext, 'trucName' | 'trucQuality' | 'isNguyetKy' | 'isTamNuong' | 'dayCanIdx' | 'dayChiIdx'>,
+  timeZone = 7,
 ): DayActivities {
-  const lunar = solarToLunar(dd, mm, yy);
+  const lunar = solarToLunar(dd, mm, yy, timeZone);
   const dayChiIdx = getDayDiaChi(dd, mm, yy);
   const dayCanIdx = getDayThienCan(dd, mm, yy);
-  const monthChiIdx = positiveMod(lunar.month + 1, 12); // Tháng Giêng = Dần
+  const monthChiIdx = getSolarTermMonthChiIndex(dd, mm, yy, timeZone);
   const truc = THAP_NHI_KIEN_TRU[positiveMod(dayChiIdx - monthChiIdx, 12)];
 
   // --- Engine mode: chạy 5 lớp rule ---
@@ -488,12 +507,13 @@ export function getDayActivities(
     };
   }
 
-  // --- Fallback mode: bảng 12 Trực tĩnh ---
+  // --- Fallback mode: cùng catalogue JSON, không duy trì bảng Yi/Ji thứ hai ---
+  const base = getBaseActivitiesForTruc(truc.name);
   return {
     trucName: truc.name,
     trucQuality: truc.quality,
-    yi: [...truc.yi],
-    ji: [...truc.ji],
+    yi: base.yi,
+    ji: base.ji,
   };
 }
 
@@ -803,7 +823,7 @@ export function makeDaySnapshot(
       userZodiac,
       userZodiacClash: TU_HANH_XUNG[userZodiac] ?? '',
       locale: options.locale ?? 'vi',
-    }),
+    }, options.timeZone ?? 7),
     warning: getDayWarning(lunarDate.day),
     weekInfo: getWeekInfo(date),
     userBirthYear,

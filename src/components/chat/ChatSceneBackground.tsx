@@ -16,6 +16,7 @@ interface Props {
 export interface ChatMoonButtonProps {
   onPress?: () => void;
   style?: any;
+  attention?: boolean;
   accessibilityLabel?: string;
   accessibilityHint?: string;
 }
@@ -23,11 +24,13 @@ export interface ChatMoonButtonProps {
 export function ChatMoonButton({
   onPress,
   style,
+  attention = false,
   accessibilityLabel = 'Thông điệp hôm nay',
   accessibilityHint = 'Chạm vào mặt trăng để xem thông điệp hôm nay',
 }: ChatMoonButtonProps) {
   const moonGlowAnim = useRef(new Animated.Value(0.92)).current;
   const moonFloatAnim = useRef(new Animated.Value(0)).current;
+  const attentionGlowAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const moonLoop = Animated.loop(
       Animated.sequence([
@@ -66,6 +69,31 @@ export function ChatMoonButton({
     };
   }, [moonGlowAnim, moonFloatAnim]);
 
+  useEffect(() => {
+    if (!attention) {
+      attentionGlowAnim.setValue(0);
+      return;
+    }
+
+    const attentionLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(attentionGlowAnim, {
+          toValue: 1,
+          duration: 750,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+        Animated.timing(attentionGlowAnim, {
+          toValue: 0.2,
+          duration: 950,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+      ])
+    );
+
+    attentionLoop.start();
+    return () => attentionLoop.stop();
+  }, [attention, attentionGlowAnim]);
+
   return (
     <Animated.View style={[styles.moonContainer, style, { transform: [{ translateY: moonFloatAnim }, { scale: moonGlowAnim }] }]}>
       <Pressable
@@ -76,6 +104,23 @@ export function ChatMoonButton({
         accessibilityHint={accessibilityHint}
         style={({ pressed }) => [styles.moonButton, pressed && { opacity: 0.7 }]}
       >
+        {attention && (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.moonAttentionGlow,
+              {
+                opacity: attentionGlowAnim,
+                transform: [{
+                  scale: attentionGlowAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.78, 1.24],
+                  }),
+                }],
+              },
+            ]}
+          />
+        )}
         <Image source={MOON_TOP_LEFT} resizeMode="contain" style={styles.moonImage} />
       </Pressable>
     </Animated.View>
@@ -190,6 +235,18 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  moonAttentionGlow: {
+    position: 'absolute',
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    backgroundColor: 'rgba(255, 220, 146, 0.28)',
+    shadowColor: '#FFE2A0',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 20,
+    elevation: 12,
   },
   moonImage: {
     width: '100%',

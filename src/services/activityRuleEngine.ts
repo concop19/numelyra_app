@@ -67,6 +67,7 @@ interface ActivityRulesJson {
     };
     trucQuality: {
       trucModifiers: Record<string, number>;
+      yiBase: number;
       reasonTemplateYiVi: string;
       reasonTemplateYiEn: string;
       reasonTemplateJiVi: string;
@@ -175,8 +176,10 @@ function layerTruc(act: ActivityJson, ctx: ActivityRuleContext): LayerResult {
   const inJi = act.trucJi.includes(ctx.trucName);
 
   if (inYi) {
-    const bonus = cfg.trucModifiers[ctx.trucQuality] ?? 0;
-    if (bonus === 0) return { priority: 1, delta: 0, reason: '' };
+    // An activity explicitly listed as Yi remains suitable even when the
+    // officer has an overall "Xấu" quality (for example clearing old things
+    // on Trực Phá). The quality modifier only strengthens that base support.
+    const bonus = cfg.yiBase + (cfg.trucModifiers[ctx.trucQuality] ?? 0);
     const template = ctx.locale === 'en' ? cfg.reasonTemplateYiEn : cfg.reasonTemplateYiVi;
     return {
       priority: 1,
@@ -275,10 +278,29 @@ function rateOne(act: ActivityJson, ctx: ActivityRuleContext): RatedActivity {
     layerZodiacClash(act, ctx),
   ];
 
-  const score = layers.reduce((sum, l) => sum + l.delta, 0);
+  const hasPrimarySupport = layers.some((layer) => (
+    (layer.priority === 1 || layer.priority === 2) && layer.delta > 0
+  ));
+  const scoredLayers = layers.map((layer) => (
+    // Can-element affinity is only a tie-breaker. It must not independently
+    // recommend an unrelated activity merely because it shares a category.
+    layer.priority === 3 && layer.delta > 0 && !hasPrimarySupport
+      ? { ...layer, delta: 0, reason: '' }
+      : layer
+  ));
+
+  const rawScore = scoredLayers.reduce((sum, l) => sum + l.delta, 0);
+  const hardBlock = layers
+    .filter((layer) => layer.priority === 0 && layer.delta < 0 && layer.reason)
+    .sort((left, right) => left.delta - right.delta)[0];
+
+  // Nguyệt Kỵ / Tam Nương are veto rules, not ordinary score modifiers.
+  // Positive layers may explain secondary strengths, but must never turn a
+  // blocked activity into a recommendation.
+  const score = hardBlock ? Math.min(rawScore, hardBlock.delta) : rawScore;
 
   // Lấy reason từ layer có |delta| lớn nhất, tie-break bằng priority (thấp = ưu tiên)
-  const mainReason = [...layers]
+  const mainReason = hardBlock?.reason ?? [...scoredLayers]
     .filter((l) => l.reason && l.delta !== 0)
     .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta) || a.priority - b.priority)[0]
     ?.reason ?? '';
@@ -300,6 +322,21 @@ function rateOne(act: ActivityJson, ctx: ActivityRuleContext): RatedActivity {
  */
 export function scoreActivities(ctx: ActivityRuleContext): RatedActivity[] {
   return RULES.activities.map((act) => rateOne(act, ctx));
+}
+
+/**
+ * Base Trực catalogue used by the compatibility fallback in lunarService.
+ * Keeping it here prevents a second, divergent Yi/Ji table.
+ */
+export function getBaseActivitiesForTruc(
+  trucName: string,
+  locale: 'vi' | 'en' = 'vi',
+): { yi: string[]; ji: string[] } {
+  const label = (activity: ActivityJson) => (locale === 'en' ? activity.en : activity.vi);
+  return {
+    yi: RULES.activities.filter((activity) => activity.trucYi.includes(trucName)).map(label),
+    ji: RULES.activities.filter((activity) => activity.trucJi.includes(trucName)).map(label),
+  };
 }
 
 /**

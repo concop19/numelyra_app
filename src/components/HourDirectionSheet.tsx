@@ -121,6 +121,11 @@ export default function HourDirectionSheet({
   const activeHour = selectedHour ?? getDefaultHour(hours, bestHour);
   const activeAsset = activeHour ? HOUR_ASSETS[activeHour.name] : undefined;
   const isBestHour = sameHour(activeHour, bestHour);
+  const activityQualityLabel = activities
+    ? locale === 'en'
+      ? ({ Tốt: 'Good', Bình: 'Neutral', Xấu: 'Caution' } as const)[activities.trucQuality]
+      : activities.trucQuality
+    : '';
   const heroTitle = isBestHour
     ? l('GIỜ XUẤT HÀNH ĐẠI CÁT', 'BEST DEPARTURE HOUR')
     : activeHour?.isHoangDao
@@ -353,7 +358,7 @@ export default function HourDirectionSheet({
                     </View>
                     <View style={styles.activitiesCopy}>
                       <Text style={styles.activitiesTitle}>{l('CÁT HUNG TRONG NGÀY', 'DAILY GUIDANCE')}</Text>
-                      <Text style={styles.activitiesSubtitle}>{l('Trực', 'Day officer')} {activities.trucName} · {activities.trucQuality}</Text>
+                      <Text style={styles.activitiesSubtitle}>{l('Trực', 'Day officer')} {activities.trucName} · {activityQualityLabel}</Text>
                     </View>
                   </View>
                   <Ionicons name={activitiesExpanded ? 'chevron-up' : 'chevron-down'} size={20} color="#F4CD85" />
@@ -366,15 +371,36 @@ export default function HourDirectionSheet({
                         <Ionicons name="checkmark-circle" size={17} color="#62E3AA" />
                         <Text style={styles.activityGoodTitle}>{l('NÊN LÀM', 'FAVORABLE')}</Text>
                       </View>
-                      {activities.yi.map((item, index) => <Text key={`${index}-${item}`} style={styles.activityGoodItem}>• {item}</Text>)}
+                      {activities.rated?.recommended.length ? activities.rated.recommended.map((item) => (
+                        <View key={item.key} style={styles.activityItem}>
+                          <Text style={styles.activityGoodItem}>• {locale === 'en' ? item.en : item.vi}</Text>
+                          {!!item.reason && <Text style={styles.activityReason}>{item.reason}</Text>}
+                        </View>
+                      )) : activities.yi.length ? activities.yi.map((item, index) => (
+                        <Text key={`${index}-${item}`} style={styles.activityGoodItem}>• {item}</Text>
+                      )) : (
+                        <Text style={styles.activityEmpty}>{l('Không có gợi ý nổi bật.', 'No standout recommendation.')}</Text>
+                      )}
                     </View>
                     <View style={[styles.activityColumn, !compact && styles.activityBadColumn]}>
                       <View style={styles.activityHeader}>
                         <Ionicons name="close-circle" size={17} color="#F58AA8" />
                         <Text style={styles.activityBadTitle}>{l('KIÊNG CỮ', 'AVOID')}</Text>
                       </View>
-                      {activities.ji.map((item, index) => <Text key={`${index}-${item}`} style={styles.activityBadItem}>• {item}</Text>)}
+                      {activities.rated?.avoid.length ? activities.rated.avoid.map((item) => (
+                        <View key={item.key} style={styles.activityItem}>
+                          <Text style={styles.activityBadItem}>• {locale === 'en' ? item.en : item.vi}</Text>
+                          {!!item.reason && <Text style={styles.activityReason}>{item.reason}</Text>}
+                        </View>
+                      )) : activities.ji.length ? activities.ji.map((item, index) => (
+                        <Text key={`${index}-${item}`} style={styles.activityBadItem}>• {item}</Text>
+                      )) : (
+                        <Text style={styles.activityEmpty}>{l('Không có kiêng cữ nổi bật.', 'No notable restriction.')}</Text>
+                      )}
                     </View>
+                    <Text style={styles.activitiesDisclaimer}>
+                      {l('Gợi ý tham khảo từ Trực, Hoàng/Hắc đạo, ngày kỵ và tuổi xung.', 'Reference guidance based on the day officer, day quality, traditional caution days, and zodiac clash.')}
+                    </Text>
                   </View>
                 ) : null}
               </View>
@@ -465,7 +491,7 @@ const styles = StyleSheet.create({
   activitiesCopy: { flex: 1 },
   activitiesTitle: { color: '#F7D996', fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
   activitiesSubtitle: { color: '#BFA8D2', fontSize: 10, marginTop: 2, textTransform: 'capitalize' },
-  activitiesBody: { padding: 14, paddingTop: 4, flexDirection: 'row', gap: 16, borderTopWidth: 1, borderTopColor: 'rgba(211,165,249,0.12)' },
+  activitiesBody: { padding: 14, paddingTop: 4, flexDirection: 'row', flexWrap: 'wrap', gap: 16, borderTopWidth: 1, borderTopColor: 'rgba(211,165,249,0.12)' },
   activitiesBodyCompact: { flexDirection: 'column' },
   activityColumn: { flex: 1 },
   activityBadColumn: { paddingLeft: 16, borderLeftWidth: 1, borderLeftColor: 'rgba(207,168,235,0.16)' },
@@ -474,4 +500,8 @@ const styles = StyleSheet.create({
   activityBadTitle: { color: '#F58AA8', fontSize: 11, fontWeight: '900' },
   activityGoodItem: { color: '#C8F6DF', fontSize: 11, lineHeight: 17, marginBottom: 3 },
   activityBadItem: { color: '#FFD0DB', fontSize: 11, lineHeight: 17, marginBottom: 3 },
+  activityItem: { marginBottom: 7 },
+  activityReason: { color: '#BFA8D2', fontSize: 9, lineHeight: 13, marginLeft: 9 },
+  activityEmpty: { color: '#BFA8D2', fontSize: 10, lineHeight: 15, fontStyle: 'italic' },
+  activitiesDisclaimer: { width: '100%', color: '#9E87B2', fontSize: 9, lineHeight: 13, textAlign: 'center', marginTop: 4 },
 });

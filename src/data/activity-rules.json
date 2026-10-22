@@ -147,12 +147,12 @@
     },
     {
       "key": "chua_benh",
-      "vi": "Khám chữa bệnh, phẫu thuật",
-      "en": "Medical appointments",
+      "vi": "Khám sức khỏe, chăm sóc y tế",
+      "en": "Health checkups & medical care",
       "category": "health",
       "icon": "🏥",
-      "trucYi": ["Trừ","Chấp"],
-      "trucJi": ["Định","Phá"]
+      "trucYi": ["Trừ","Chấp","Phá"],
+      "trucJi": []
     },
     {
       "key": "tap_luyen",
@@ -285,12 +285,13 @@
       "reasonEn": "Inauspicious day ({label}) — caution advised"
     },
     "trucQuality": {
-      "description": "Chất lượng Trực: Tốt +3 / Bình +1 / Xấu không cộng thêm",
+      "description": "Việc hợp Trực có nền +1; chất lượng cộng thêm Tốt +2 / Bình +0 / Xấu +0",
       "trucModifiers": {
-        "Tốt": 3,
-        "Bình": 1,
+        "Tốt": 2,
+        "Bình": 0,
         "Xấu": 0
       },
+      "yiBase": 1,
       "reasonTemplateYiVi": "Trực {truc} ({quality}) hỗ trợ việc này",
       "reasonTemplateYiEn": "{truc} officer ({quality}) supports this",
       "reasonTemplateJiVi": "Trực {truc} kiêng việc này",

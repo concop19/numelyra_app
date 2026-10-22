@@ -8,6 +8,7 @@ import {
   getNapAmYear,
   getNguHanh,
   getZodiac,
+  getSolarTermMonthChiIndex,
   makeDaySnapshot,
   solarToLunar,
 } from './lunarService';
@@ -64,6 +65,31 @@ describe('lunarService parity with the Swift reference', () => {
       hacThan: 'Đông Nam',
     });
     expect(getDayActivities(17, 2, 2026)).toMatchObject({ trucName: 'Thành', trucQuality: 'Tốt' });
+  });
+
+  test('changes Nguyệt Kiến on solar-term boundaries instead of lunar new month', () => {
+    // Tiểu Hàn 2026 begins the Sửu month. The officer repeats on the
+    // transition date because both the day branch and month branch advance.
+    expect(getSolarTermMonthChiIndex(4, 1, 2026)).toBe(0); // Tý
+    expect(getSolarTermMonthChiIndex(5, 1, 2026)).toBe(1); // Sửu
+    expect(getDayActivities(4, 1, 2026).trucName).toBe('Mãn');
+    expect(getDayActivities(5, 1, 2026).trucName).toBe('Mãn');
+
+    // Lập Xuân starts the Dần month before lunar New Year in 2026.
+    expect(getSolarTermMonthChiIndex(3, 2, 2026)).toBe(1); // Sửu
+    expect(getSolarTermMonthChiIndex(4, 2, 2026)).toBe(2); // Dần
+    expect(getDayActivities(3, 2, 2026).trucName).toBe('Nguy');
+    expect(getDayActivities(4, 2, 2026).trucName).toBe('Nguy');
+  });
+
+  test('never recommends a hard-blocked activity across a full calendar year', () => {
+    for (let date = new Date(2026, 0, 1, 12); date.getFullYear() === 2026; date.setDate(date.getDate() + 1)) {
+      const snapshot = makeDaySnapshot(new Date(date), { birthDate: '1998-06-15', locale: 'vi' });
+      const hardBlockedRecommendation = snapshot.activities.rated?.recommended.find((activity) => (
+        /Nguyệt Kỵ|Tam Nương/i.test(activity.reason)
+      ));
+      expect(hardBlockedRecommendation).toBeUndefined();
+    }
   });
 
   test('builds one reusable Calendar/Astrology snapshot', () => {

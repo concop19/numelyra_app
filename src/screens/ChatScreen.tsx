@@ -602,6 +602,7 @@ export default function ChatScreen({
   const [isPro, setIsPro] = useState(false);
   const [dailyClock, setDailyClock] = useState(() => new Date());
   const [dailySheetVisible, setDailySheetVisible] = useState(false);
+  const [isDailyInsightUnseen, setIsDailyInsightUnseen] = useState(false);
   const [suggestionOffset, setSuggestionOffset] = useState(0);
 
   const refreshPlan = useCallback(async () => {
@@ -745,15 +746,19 @@ export default function ChatScreen({
   useEffect(() => {
     if (!dailyInsight || !isHistoryReady) return;
     let active = true;
+    setIsDailyInsightUnseen(false);
     void cacheDailyInsight(AsyncStorage, dailyInsight).catch(() => undefined);
     const seenKey = `@numelyra:daily-insight-seen:${dailyInsight.profileKey}:${dailyInsight.dateKey}`;
     if (openDailyDate) {
       setDailySheetVisible(true);
+      setIsDailyInsightUnseen(false);
       void AsyncStorage.setItem(seenKey, '1');
       return;
     }
     AsyncStorage.getItem(seenKey).then((seen) => {
-      if (!active || seen) return;
+      if (!active) return;
+      setIsDailyInsightUnseen(!seen);
+      if (seen) return;
       setDailySheetVisible(true);
       return AsyncStorage.setItem(seenKey, '1');
     }).catch(() => undefined);
@@ -774,6 +779,7 @@ export default function ChatScreen({
       return;
     }
     setDailySheetVisible(true);
+    setIsDailyInsightUnseen(false);
   }, [dailyInsight, dailyProfile, locale]);
 
   // Theo dõi trạng thái hiển thị bàn phím để tự động thu gọn Mascot và tối ưu không gian cho ô soạn thảo
@@ -2174,10 +2180,14 @@ export default function ChatScreen({
           visible={dailySheetVisible}
           insight={dailyInsight}
           fortune={fortuneForDailyInsight}
-          onClose={() => setDailySheetVisible(false)}
+          onClose={() => {
+            setDailySheetVisible(false);
+            setIsDailyInsightUnseen(false);
+          }}
           onAsk={(question) => {
             setInputVal(question);
             setDailySheetVisible(false);
+            setIsDailyInsightUnseen(false);
           }}
         />
       )}
@@ -2374,6 +2384,7 @@ export default function ChatScreen({
 
       <ChatMoonButton
         onPress={handleOpenTodayMessage}
+        attention={isDailyInsightUnseen}
         style={{ top: insets.top > 0 ? insets.top + 4 : 14 }}
         accessibilityLabel={t('daily.cardEyebrow')}
         accessibilityHint={l('Chạm vào mặt trăng để xem thông điệp hôm nay', 'Tap the moon to view today’s message')}

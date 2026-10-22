@@ -41,8 +41,19 @@ function findScore(rated: ReturnType<typeof scoreActivities>, key: string): numb
 // TC1: Nguyệt Kỵ → khai_truong score ≤ -4
 // ============================================================
 test('TC1: Nguyệt Kỵ penalizes khai_truong by at least 4', () => {
-  const rated = scoreActivities(ctx({ isNguyetKy: true }));
-  expect(findScore(rated, 'khai_truong')).toBeLessThanOrEqual(-4);
+  const rated = scoreActivities(ctx({
+    isNguyetKy: true,
+    trucName: 'Kiến',
+    trucQuality: 'Tốt',
+    isHoangDao: true,
+    dayCanIdx: 2, // Bính/Hỏa also boosts the work category
+    dayChiIdx: 5,
+    userZodiacClash: 'Dần',
+  }));
+  const blocked = rated.find((item) => item.key === 'khai_truong')!;
+  expect(blocked.score).toBeLessThanOrEqual(-4);
+  expect(blocked.recommended).toBe(false);
+  expect(blocked.reason).toMatch(/Nguyệt Kỵ/i);
 });
 
 // ============================================================
@@ -154,4 +165,48 @@ test('TC9: Items with significant delta have non-empty reason', () => {
   for (const item of blocked) {
     expect(item.reason.length).toBeGreaterThan(0);
   }
+});
+
+test('TC10: Tam Nương veto cannot be offset by favorable layers', () => {
+  const rated = scoreActivities(ctx({
+    isTamNuong: true,
+    trucName: 'Kiến',
+    trucQuality: 'Tốt',
+    isHoangDao: true,
+    dayCanIdx: 2,
+    dayChiIdx: 5,
+    userZodiacClash: 'Dần',
+  }));
+  const blocked = rated.find((item) => item.key === 'cuoi_hoi')!;
+  expect(blocked.score).toBeLessThanOrEqual(-5);
+  expect(blocked.recommended).toBe(false);
+  expect(blocked.reason).toMatch(/Tam Nương/i);
+});
+
+test('TC11: Trực Phá still supports its explicitly suitable activities', () => {
+  const rated = scoreActivities(ctx({
+    trucName: 'Phá',
+    trucQuality: 'Xấu',
+    isHoangDao: true,
+    dayCanIdx: 0,
+    dayChiIdx: 5,
+    userZodiacClash: 'Dần',
+  }));
+  expect(findScore(rated, 'don_dep')).toBeGreaterThan(0);
+  expect(findScore(rated, 'chua_benh')).toBeGreaterThan(0);
+});
+
+test('TC12: Can element cannot recommend an activity by itself', () => {
+  const rated = scoreActivities(ctx({
+    trucName: 'Phá',
+    trucQuality: 'Xấu',
+    isHoangDao: false,
+    dayCanIdx: 6, // Canh/Kim boosts the travel category
+    dayChiIdx: 5,
+    userZodiacClash: 'Dần',
+  }));
+  const funeral = rated.find((item) => item.key === 'an_tang')!;
+  expect(funeral.score).toBe(0);
+  expect(funeral.recommended).toBe(false);
+  expect(funeral.reason).toBe('');
 });
