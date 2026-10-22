@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState, type ReactNode } from 'react';
 import {
   Modal,
   ScrollView,
@@ -13,27 +13,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { AstroFortuneSlip } from '../../services/astro/astroFortuneService';
 import type { PureAstroFeatureMetadata } from '../../services/astro/astroVectorEngine';
-import { longitudeToZodiac } from '../../services/astro/astroEngine';
 import {
   buildTodayInterpretation,
   getAstrologyRuleTopicSummaries,
 } from './astrologyPresentation';
+import { ASTRO_COLORS } from './AstrologyUi';
 import { useLocalization } from '../../i18n/LocalizationContext';
-
-const ZODIAC_VI: Record<string, string> = {
-  Aries: 'Bạch Dương ♈',
-  Taurus: 'Kim Ngưu ♉',
-  Gemini: 'Song Tử ♊',
-  Cancer: 'Cự Giải ♋',
-  Leo: 'Sư Tử ♌',
-  Virgo: 'Xử Nữ ♍',
-  Libra: 'Thiên Bình ♎',
-  Scorpio: 'Bọ Cạp ♏',
-  Sagittarius: 'Nhân Mã ♐',
-  Capricorn: 'Ma Kết ♑',
-  Aquarius: 'Bảo Bình ♒',
-  Pisces: 'Song Ngư ♓',
-};
 
 const PLANET_VI: Record<string, string> = {
   Sun: 'Mặt Trời',
@@ -55,27 +40,69 @@ interface Props {
   onClose(): void;
 }
 
-function ScoreBar({ label, value, color }: { label: string; value: number; color: string }) {
-  const percent = Math.round(value * 100);
+interface DisclosureProps {
+  title: string;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  accent: string;
+  open: boolean;
+  onToggle(): void;
+  children: ReactNode;
+}
+
+function DisclosureSection({
+  title,
+  icon,
+  accent,
+  open,
+  onToggle,
+  children,
+}: DisclosureProps) {
   return (
-    <View style={styles.scoreBlock}>
-      <View style={styles.scoreHeader}>
-        <Text style={styles.scoreLabel}>{label}</Text>
-        <Text style={[styles.scoreValue, { color }]}>{percent}%</Text>
-      </View>
-      <View style={styles.scoreTrack}>
-        <View style={[styles.scoreFill, { width: `${percent}%`, backgroundColor: color }]} />
-      </View>
+    <View style={[styles.disclosure, open && styles.disclosureOpen]}>
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        activeOpacity={0.78}
+        onPress={onToggle}
+        style={styles.disclosureButton}
+      >
+        <View style={[styles.disclosureIcon, { borderColor: `${accent}66` }]}>
+          <Ionicons name={icon} size={19} color={accent} />
+        </View>
+        <Text style={styles.disclosureTitle}>{title}</Text>
+        <View style={styles.disclosureDivider} />
+        <Ionicons
+          name={open ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color={ASTRO_COLORS.lavender}
+        />
+      </TouchableOpacity>
+      {open && <View style={styles.disclosureBody}>{children}</View>}
     </View>
   );
 }
 
 export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: Props) {
   const insets = useSafeAreaInsets();
-  const { locale, t, l } = useLocalization();
+  const { locale, l, t } = useLocalization();
+  const [caDaoOpen, setCaDaoOpen] = useState(false);
+  const [basisOpen, setBasisOpen] = useState(false);
   const ruleTopics = getAstrologyRuleTopicSummaries(metadata);
-  const zodiacName = (value: string) => locale === 'en' ? value : (ZODIAC_VI[value] || value);
+
+  useEffect(() => {
+    if (!visible) {
+      setCaDaoOpen(false);
+      setBasisOpen(false);
+    }
+  }, [visible]);
+
   const planetName = (value: string) => locale === 'en' ? value : (PLANET_VI[value] || value);
+  const primaryAdvice = fortune?.advice
+    ?? (metadata ? buildTodayInterpretation(metadata) : l(
+      'Luận giải hôm nay đang được tổng hợp. Hãy quay lại sau ít phút.',
+      'Today\'s reading is still being prepared. Please return in a few minutes.'
+    ));
+  const hasBasis = (!!metadata && !!fortune) || !!metadata?.topAspect || ruleTopics.length > 0;
 
   return (
     <Modal
@@ -89,26 +116,37 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
         <TouchableOpacity
           style={StyleSheet.absoluteFill}
           activeOpacity={1}
-          accessibilityLabel={l('Đóng giải mã', 'Close astrology reading')}
+          accessibilityLabel={l('Đóng luận giải', 'Close astrology reading')}
           onPress={onClose}
         />
+
         <LinearGradient
-          colors={['#0A1740', '#080D25', '#050716']}
-          style={[styles.sheet, { paddingBottom: Math.max(18, insets.bottom + 8) }]}
+          accessibilityViewIsModal
+          colors={[ASTRO_COLORS.deep, ASTRO_COLORS.navy, '#050716']}
+          locations={[0, 0.58, 1]}
+          style={[styles.sheet, { paddingBottom: Math.max(12, insets.bottom + 4) }]}
         >
+          <View pointerEvents="none" style={styles.headerOrbitLarge} />
+          <View pointerEvents="none" style={styles.headerOrbitSmall} />
+          <Text pointerEvents="none" style={[styles.decorativeStar, styles.starOne]}>✦</Text>
+          <Text pointerEvents="none" style={[styles.decorativeStar, styles.starTwo]}>✧</Text>
+
           <View style={styles.handle} />
           <View style={styles.sheetHeader}>
-            <View>
-              <Text style={styles.eyebrow}>{l('GIẢI MÃ CHIÊM TINH', 'ASTROLOGY READING')}</Text>
-              <Text style={styles.sheetTitle}>{fortune?.title || l('Quẻ hôm nay', "Today's reading")}</Text>
+            <View style={styles.headerCopy}>
+              <Text style={styles.eyebrow}>{l('LUẬN GIẢI HÔM NAY', "TODAY'S READING")}</Text>
+              <Text numberOfLines={2} style={styles.sheetTitle}>
+                {fortune?.title || l('Thông điệp từ bầu trời', 'A message from the sky')}
+              </Text>
             </View>
             <TouchableOpacity
               accessibilityRole="button"
               accessibilityLabel={t('common.close')}
+              hitSlop={8}
               style={styles.closeButton}
               onPress={onClose}
             >
-              <Ionicons name="close" size={23} color="#E7F7FF" />
+              <Ionicons name="close" size={24} color={ASTRO_COLORS.text} />
             </TouchableOpacity>
           </View>
 
@@ -116,181 +154,137 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
-            {metadata && (
-              <View style={styles.interpretationCard}>
-                <View style={styles.sectionTitleRow}>
-                  <Ionicons name="sparkles" size={18} color="#FBBF24" />
-                  <Text style={styles.sectionTitle}>{l('Luận giải hôm nay', "Today's interpretation")}</Text>
+            <LinearGradient
+              colors={['rgba(50,31,116,0.96)', 'rgba(31,23,93,0.96)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.adviceCard}
+            >
+              <View pointerEvents="none" style={styles.adviceOrbit} />
+              <Text pointerEvents="none" style={styles.adviceStar}>✦</Text>
+              <View style={styles.cardHeadingRow}>
+                <View style={styles.adviceIcon}>
+                  <Ionicons name="compass-outline" size={19} color={ASTRO_COLORS.gold} />
                 </View>
-                <Text style={styles.bodyText}>{buildTodayInterpretation(metadata)}</Text>
+                <Text style={styles.adviceLabel}>
+                  {l('ĐIỀU NÊN LÀM HÔM NAY', 'WHAT TO DO TODAY')}
+                </Text>
+              </View>
+              <Text style={styles.adviceText}>{primaryAdvice}</Text>
+            </LinearGradient>
+
+            {!!fortune?.mirror && (
+              <View style={styles.reflectionCard}>
+                <LinearGradient
+                  colors={['rgba(50,31,116,0.34)', 'rgba(12,11,68,0.18)']}
+                  style={StyleSheet.absoluteFill}
+                />
+                <View pointerEvents="none" style={styles.reflectionGlow} />
+                <View style={styles.sectionHeadingRow}>
+                  <Ionicons name="sparkles" size={20} color={ASTRO_COLORS.pink} />
+                  <Text style={styles.sectionHeading}>{l('Gương soi', 'Reflection')}</Text>
+                </View>
+                <Text style={styles.reflectionText}>{fortune.mirror}</Text>
               </View>
             )}
 
-            {fortune && (
-              <>
-                <View style={styles.fortuneVerseCard}>
-                  <View style={styles.sectionTitleRow}>
-                    <Ionicons name="sparkles-outline" size={18} color="#FBBF24" />
-                    <Text style={styles.sectionTitle}>{l('Bài thơ quẻ hôm nay', "Today's verse")}</Text>
-                  </View>
-                  <Text style={styles.fortuneVerse}>{fortune.verse}</Text>
+            {!!fortune?.verse && (
+              <LinearGradient
+                colors={[ASTRO_COLORS.paperLight, ASTRO_COLORS.paper, ASTRO_COLORS.paperDeep]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.verseCard}
+              >
+                <View pointerEvents="none" style={styles.verseOrbitTop} />
+                <View pointerEvents="none" style={styles.verseOrbitBottom} />
+                <Text pointerEvents="none" style={styles.verseMoon}>☾</Text>
+                <View style={styles.verseHeadingRow}>
+                  <Ionicons name="sparkles-outline" size={19} color="#6A3A92" />
+                  <Text style={styles.verseHeading}>{l('Bài thơ quẻ', "Today's verse")}</Text>
                 </View>
+                <View style={styles.verseRuleRow}>
+                  <View style={styles.verseRule} />
+                  <Text style={styles.verseRuleStar}>✦</Text>
+                  <View style={styles.verseRule} />
+                </View>
+                <Text style={styles.fortuneVerse}>{fortune.verse}</Text>
+                <View style={styles.verseFooterMark}>
+                  <View style={styles.verseRule} />
+                  <Text style={styles.verseRuleStar}>✦</Text>
+                  <View style={styles.verseRule} />
+                </View>
+              </LinearGradient>
+            )}
 
-                {!!fortune.anchorCaDao?.content && (
-                  <View style={styles.verseCard}>
-                    <View style={styles.sectionTitleRow}>
-                      <Ionicons name="musical-notes-outline" size={17} color="#71E7FF" />
-                      <Text style={styles.sectionTitle}>{l('Ca dao gieo nhịp', 'Traditional verse')}</Text>
-                    </View>
-                    <Text style={styles.anchorVerse}>“{fortune.anchorCaDao.content}”</Text>
-                    {!!fortune.anchorCaDao.category && (
-                      <Text style={styles.anchorCategory}>{fortune.anchorCaDao.category}</Text>
-                    )}
-                    {!!fortune.anchorCaDao.matchReason && (
-                      <Text style={styles.anchorReason}>{fortune.anchorCaDao.matchReason}</Text>
-                    )}
+            {!!fortune?.anchorCaDao?.content && (
+              <DisclosureSection
+                title={l('Ca dao nguồn cảm hứng', 'Traditional verse inspiration')}
+                icon="leaf-outline"
+                accent={ASTRO_COLORS.cyan}
+                open={caDaoOpen}
+                onToggle={() => setCaDaoOpen((current) => !current)}
+              >
+                <Text style={styles.anchorVerse}>“{fortune.anchorCaDao.content}”</Text>
+                {!!fortune.anchorCaDao.category && (
+                  <Text style={styles.anchorCategory}>{fortune.anchorCaDao.category}</Text>
+                )}
+                {!!fortune.anchorCaDao.matchReason && (
+                  <Text style={styles.anchorReason}>{fortune.anchorCaDao.matchReason}</Text>
+                )}
+              </DisclosureSection>
+            )}
+
+            {hasBasis && (
+              <DisclosureSection
+                title={l('Vì sao có luận giải này?', 'Why this reading?')}
+                icon="help-outline"
+                accent={ASTRO_COLORS.gold}
+                open={basisOpen}
+                onToggle={() => setBasisOpen((current) => !current)}
+              >
+                {!!metadata && !!fortune && (
+                  <View style={styles.basisSummary}>
+                    <Text style={styles.basisEyebrow}>{l('BỨC TRANH HÔM NAY', "TODAY'S SKY")}</Text>
+                    <Text style={styles.basisText}>{buildTodayInterpretation(metadata)}</Text>
                   </View>
                 )}
 
-                <View style={styles.insightCard}>
-                  <View style={styles.sectionTitleRow}>
-                    <Ionicons name="eye-outline" size={18} color="#A78BFA" />
-                    <Text style={styles.sectionTitle}>{l('Gương soi tâm trí', 'Reflection')}</Text>
+                {!!metadata?.topAspect && (
+                  <View style={styles.aspectRow}>
+                    <View style={styles.aspectIcon}>
+                      <Ionicons name="git-branch-outline" size={16} color={ASTRO_COLORS.cyan} />
+                    </View>
+                    <View style={styles.flexCopy}>
+                      <Text style={styles.aspectLabel}>{l('Góc chiếu nổi bật', 'Leading aspect')}</Text>
+                      <Text style={styles.aspectFormula}>
+                        {planetName(metadata.topAspect.transitPlanet)} · {locale === 'en' ? metadata.topAspect.type : metadata.topAspect.nameVi} · {planetName(metadata.topAspect.natalPlanet)}
+                      </Text>
+                      <Text style={styles.aspectMeta}>
+                        {l('Sai số', 'Orb')} {metadata.topAspect.orb.toFixed(1)}°
+                      </Text>
+                    </View>
                   </View>
-                  <Text style={styles.bodyText}>{fortune.mirror}</Text>
-                </View>
+                )}
 
-                <View style={styles.insightCard}>
-                  <View style={styles.sectionTitleRow}>
-                    <Ionicons name="flash-outline" size={18} color="#5EEAD4" />
-                    <Text style={styles.sectionTitle}>{l('Kế sách bỏ túi', 'Practical guidance')}</Text>
-                  </View>
-                  <Text style={styles.bodyText}>{fortune.advice}</Text>
-                </View>
-              </>
-            )}
-
-            {ruleTopics.length > 0 && (
-              <View style={styles.ruleSection}>
-                <View style={styles.sectionTitleRow}>
-                  <Ionicons name="git-branch-outline" size={18} color="#7CEBFF" />
-                  <Text style={styles.sectionTitle}>{l('Căn cứ luận giải', 'Reading basis')}</Text>
-                </View>
-                <Text style={styles.ruleIntro}>
-                  Các chủ đề nổi bật được chọn từ dữ liệu lá số và bầu trời hôm nay.
-                </Text>
                 {ruleTopics.map((topic) => (
-                  <View key={topic.key} style={styles.ruleTopicCard}>
+                  <View key={topic.key} style={styles.ruleTopic}>
                     <Text style={styles.ruleTopicTitle}>{topic.title}</Text>
-                    <Text style={styles.bodyText}>{topic.experience}</Text>
+                    <Text style={styles.ruleTopicExperience}>{topic.experience}</Text>
                     <View style={styles.ruleAdviceRow}>
-                      <Ionicons name="compass-outline" size={15} color="#5EEAD4" />
+                      <Ionicons name="compass-outline" size={15} color={ASTRO_COLORS.gold} />
                       <Text style={styles.ruleAdviceText}>{topic.advice}</Text>
                     </View>
                   </View>
                 ))}
-              </View>
+              </DisclosureSection>
             )}
 
-            {metadata && (
-              <>
-                <View style={styles.divider} />
-                <Text style={styles.groupTitle}>{l('Lá số bản mệnh', 'Natal chart')}</Text>
-                <Text style={styles.groupDescription}>
-                  Dựa trên ngày sinh {metadata.birthDate}
-                  {metadata.birthTime ? ` lúc ${metadata.birthTime}` : ' với giờ sinh ước lượng'}
-                  {metadata.birthDataPrecision === 'complete'
-                    ? ' và múi giờ nơi sinh.'
-                    : '. Bổ sung nơi sinh cùng giờ sinh chính xác để mở khóa ASC/MC và 12 nhà.'}
-                </Text>
-
-                <View style={styles.dataGrid}>
-                  <View style={styles.dataCard}>
-                    <Text style={styles.dataLabel}>{l('Mặt Trời bản mệnh', 'Natal Sun')}</Text>
-                    <Text style={styles.dataValue}>
-                      {zodiacName(metadata.natalSunSign)}
-                    </Text>
-                  </View>
-                  <View style={styles.dataCard}>
-                    <Text style={styles.dataLabel}>{l('Mặt Trăng bản mệnh', 'Natal Moon')}</Text>
-                    <Text style={styles.dataValue}>
-                      {zodiacName(metadata.natalMoonSign)}
-                    </Text>
-                  </View>
-                  <View style={styles.dataCardWide}>
-                    <Text style={styles.dataLabel}>{l('Khí chất nổi trội', 'Dominant temperament')}</Text>
-                    <Text style={styles.dataValue}>
-                      {metadata.temperament.dominantElement} · {metadata.temperament.dominantModality}
-                    </Text>
-                  </View>
-                </View>
-
-                {metadata.natalContext && (
-                  <View style={styles.houseCard}>
-                    <View style={styles.houseHeader}>
-                      <Ionicons name="compass-outline" size={18} color="#7CEBFF" />
-                      <Text style={styles.houseTitle}>{l('Trục lá số', 'Chart axis')} · Porphyry</Text>
-                    </View>
-                    <View style={styles.axisRow}>
-                      <View style={styles.axisItem}>
-                        <Text style={styles.dataLabel}>{l('Cung Mọc', 'Ascendant')} (ASC)</Text>
-                        <Text style={styles.dataValue}>
-                          {zodiacName(longitudeToZodiac(metadata.natalContext.angles.ascendant).sign)}
-                        </Text>
-                      </View>
-                      <View style={styles.axisItem}>
-                        <Text style={styles.dataLabel}>{l('Thiên Đỉnh', 'Midheaven')} (MC)</Text>
-                        <Text style={styles.dataValue}>
-                          {zodiacName(longitudeToZodiac(metadata.natalContext.angles.midheaven).sign)}
-                        </Text>
-                      </View>
-                    </View>
-                    {!!metadata.dailyContext?.activatedHouses.length && (
-                      <View style={styles.activatedRow}>
-                        {metadata.dailyContext.activatedHouses.map((house) => (
-                          <View key={house.house} style={styles.housePill}>
-                            <Text style={styles.housePillNumber}>{l('Nhà', 'House')} {house.house}</Text>
-                            {locale === 'vi' && <Text style={styles.housePillTopic}>{house.topicVi}</Text>}
-                          </View>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-                )}
-
-                <View style={styles.divider} />
-                <Text style={styles.groupTitle}>{l('Bầu trời hôm nay', "Today's sky")}</Text>
-                <Text style={styles.groupDescription}>{metadata.vibeSummary}</Text>
-
-                <View style={styles.transitCard}>
-                  <Text style={styles.dataLabel}>{l('Mặt Trăng quá cảnh', 'Transit Moon')}</Text>
-                  <Text style={styles.dataValue}>
-                    {zodiacName(metadata.transitMoonSign)}
-                  </Text>
-                </View>
-
-                {metadata.topAspect && (
-                  <View style={styles.aspectCard}>
-                    <Text style={styles.aspectLabel}>{l('Góc chiếu nổi bật', 'Leading aspect')}</Text>
-                    <Text style={styles.aspectFormula}>
-                      {planetName(metadata.topAspect.transitPlanet)}
-                      {' · '}{locale === 'en' ? metadata.topAspect.type : metadata.topAspect.nameVi}{' · '}
-                      {planetName(metadata.topAspect.natalPlanet)}
-                    </Text>
-                    <Text style={styles.aspectMeta}>
-                      Góc {metadata.topAspect.actualAngle.toFixed(0)}° · Sai số {metadata.topAspect.orb.toFixed(1)}°
-                    </Text>
-                  </View>
-                )}
-
-                <View style={styles.scoresCard}>
-                  <ScoreBar label={l('Hài hòa', 'Harmony')} value={metadata.scores.harmony} color="#5EEAD4" />
-                  <ScoreBar label={l('Thử thách', 'Tension')} value={metadata.scores.tension} color="#FB7185" />
-                  <ScoreBar label={l('Hội tụ', 'Conjunction')} value={metadata.scores.conjunction} color="#FBBF24" />
-                </View>
-              </>
-            )}
-
+            <Text style={styles.disclaimer}>
+              {l(
+                'Nội dung mang tính tham khảo và hỗ trợ bạn tự quan sát.',
+                'This content is for reflection and general guidance.'
+              )}
+            </Text>
           </ScrollView>
         </LinearGradient>
       </View>
@@ -302,26 +296,59 @@ const styles = StyleSheet.create({
   modalRoot: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 3, 16, 0.66)',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 3, 16, 0.74)',
   },
   sheet: {
-    height: '88%',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    width: '100%',
+    maxWidth: 560,
+    height: '92%',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     borderWidth: 1,
     borderBottomWidth: 0,
-    borderColor: 'rgba(104, 220, 255, 0.42)',
+    borderColor: 'rgba(201,167,255,0.72)',
     overflow: 'hidden',
+    shadowColor: '#7A55FF',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.24,
+    shadowRadius: 18,
+    elevation: 18,
   },
   handle: {
     width: 48,
     height: 5,
     borderRadius: 3,
-    backgroundColor: 'rgba(190, 232, 255, 0.48)',
+    backgroundColor: 'rgba(214,189,255,0.46)',
     alignSelf: 'center',
     marginTop: 10,
+    zIndex: 3,
   },
+  headerOrbitLarge: {
+    position: 'absolute',
+    right: -42,
+    top: 34,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    borderWidth: 1,
+    borderColor: 'rgba(255,214,155,0.17)',
+  },
+  headerOrbitSmall: {
+    position: 'absolute',
+    right: 4,
+    top: 67,
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    borderWidth: 1,
+    borderColor: 'rgba(143,214,255,0.14)',
+  },
+  decorativeStar: { position: 'absolute', color: ASTRO_COLORS.gold, zIndex: 1 },
+  starOne: { right: 126, top: 70, fontSize: 13, opacity: 0.8 },
+  starTwo: { right: 38, top: 142, fontSize: 17, opacity: 0.55 },
   sheetHeader: {
+    minHeight: 100,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -329,298 +356,316 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(126, 216, 255, 0.24)',
+    borderBottomColor: 'rgba(201,167,255,0.20)',
+    zIndex: 2,
   },
+  headerCopy: { flex: 1, minWidth: 0, paddingRight: 14 },
   eyebrow: {
-    color: '#71E7FF',
+    color: ASTRO_COLORS.cyan,
     fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.8,
+    fontWeight: '900',
+    letterSpacing: 1.9,
   },
   sheetTitle: {
-    color: '#FFFFFF',
-    fontSize: 21,
+    color: ASTRO_COLORS.text,
+    fontSize: 26,
+    lineHeight: 32,
     fontFamily: 'serif',
-    marginTop: 3,
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(85, 164, 217, 0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(152, 225, 255, 0.25)',
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 34,
-    gap: 12,
-  },
-  insightCard: {
-    padding: 16,
-    borderRadius: 18,
-    backgroundColor: 'rgba(30, 44, 91, 0.58)',
-    borderWidth: 1,
-    borderColor: 'rgba(131, 183, 255, 0.22)',
-  },
-  fortuneVerseCard: {
-    padding: 17,
-    borderRadius: 18,
-    backgroundColor: 'rgba(74, 47, 112, 0.66)',
-    borderWidth: 1,
-    borderColor: 'rgba(251, 191, 36, 0.3)',
-  },
-  fortuneVerse: {
-    color: '#FFF4CF',
-    fontFamily: 'serif',
-    fontSize: 15,
-    fontStyle: 'italic',
-    lineHeight: 24,
-  },
-  interpretationCard: {
-    padding: 16,
-    borderRadius: 18,
-    backgroundColor: 'rgba(72, 49, 118, 0.62)',
-    borderWidth: 1,
-    borderColor: 'rgba(251, 191, 36, 0.24)',
-  },
-  ruleSection: {
-    padding: 16,
-    borderRadius: 18,
-    backgroundColor: 'rgba(20, 57, 88, 0.58)',
-    borderWidth: 1,
-    borderColor: 'rgba(113, 231, 255, 0.24)',
-    gap: 10,
-  },
-  ruleIntro: {
-    color: '#AFC3D9',
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: -4,
-  },
-  ruleTopicCard: {
-    padding: 13,
-    borderRadius: 14,
-    backgroundColor: 'rgba(9, 24, 58, 0.62)',
-    gap: 7,
-  },
-  ruleTopicTitle: {
-    color: '#7CEBFF',
-    fontSize: 13,
-    fontWeight: '900',
-  },
-  ruleAdviceRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 7,
-    paddingTop: 2,
-  },
-  ruleAdviceText: {
-    flex: 1,
-    color: '#CFFCF4',
-    fontSize: 13,
-    lineHeight: 20,
-    fontWeight: '600',
-  },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    color: '#F4F7FF',
     fontWeight: '800',
-    fontSize: 14,
-  },
-  bodyText: {
-    color: '#D5E0F2',
-    fontSize: 14,
-    lineHeight: 22,
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(111, 205, 255, 0.25)',
-    marginVertical: 8,
-  },
-  groupTitle: {
-    color: '#77E8FF',
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  groupDescription: {
-    color: '#AFC3D9',
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  dataGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  dataCard: {
-    width: '48%',
-    minHeight: 82,
-    padding: 13,
-    borderRadius: 15,
-    backgroundColor: 'rgba(37, 54, 103, 0.55)',
-  },
-  dataCardWide: {
-    width: '100%',
-    padding: 13,
-    borderRadius: 15,
-    backgroundColor: 'rgba(37, 54, 103, 0.55)',
-  },
-  dataLabel: {
-    color: '#9EB4CC',
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.7,
-  },
-  dataValue: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
-    marginTop: 7,
-  },
-  transitCard: {
-    padding: 14,
-    borderRadius: 15,
-    backgroundColor: 'rgba(25, 74, 111, 0.48)',
-  },
-  houseCard: {
-    width: '100%',
-    padding: 14,
-    borderRadius: 16,
-    backgroundColor: 'rgba(18, 58, 91, 0.58)',
-    borderWidth: 1,
-    borderColor: 'rgba(113, 231, 255, 0.22)',
-  },
-  houseHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    marginBottom: 10,
-  },
-  houseTitle: {
-    color: '#DDF9FF',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  axisRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  axisItem: {
-    flex: 1,
-  },
-  activatedRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 7,
-    marginTop: 13,
-  },
-  housePill: {
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 12,
-    backgroundColor: 'rgba(80, 162, 196, 0.18)',
-  },
-  housePillNumber: {
-    color: '#7CEBFF',
-    fontSize: 10,
-    fontWeight: '900',
-  },
-  housePillTopic: {
-    color: '#E8F6FC',
-    fontSize: 11,
-    fontWeight: '700',
-    marginTop: 2,
-  },
-  aspectCard: {
-    padding: 15,
-    borderRadius: 16,
-    backgroundColor: 'rgba(73, 53, 119, 0.48)',
-    borderWidth: 1,
-    borderColor: 'rgba(193, 156, 255, 0.2)',
-  },
-  aspectLabel: {
-    color: '#C4A7FF',
-    fontSize: 11,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-  aspectFormula: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-    lineHeight: 21,
-    marginTop: 7,
-  },
-  aspectMeta: {
-    color: '#B5A9CE',
-    fontSize: 12,
     marginTop: 5,
   },
-  scoresCard: {
-    padding: 15,
-    borderRadius: 16,
-    backgroundColor: 'rgba(16, 30, 70, 0.72)',
+  closeButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(31,23,93,0.88)',
+    borderWidth: 1,
+    borderColor: 'rgba(201,167,255,0.66)',
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 26,
     gap: 12,
   },
-  scoreBlock: {
-    gap: 6,
-  },
-  scoreHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  scoreLabel: {
-    color: '#C8D5E6',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  scoreValue: {
-    fontSize: 12,
-    fontWeight: '900',
-  },
-  scoreTrack: {
-    height: 5,
-    borderRadius: 3,
+  adviceCard: {
+    position: 'relative',
+    minHeight: 164,
+    padding: 18,
+    borderRadius: 22,
+    borderWidth: 1.25,
+    borderColor: ASTRO_COLORS.gold,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.08)',
   },
-  scoreFill: {
-    height: '100%',
-    borderRadius: 3,
+  adviceOrbit: {
+    position: 'absolute',
+    right: -45,
+    bottom: -55,
+    width: 175,
+    height: 175,
+    borderRadius: 88,
+    borderWidth: 1,
+    borderColor: 'rgba(255,214,155,0.22)',
+  },
+  adviceStar: {
+    position: 'absolute',
+    right: 35,
+    top: 36,
+    color: ASTRO_COLORS.gold,
+    fontSize: 17,
+    opacity: 0.72,
+  },
+  cardHeadingRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  adviceIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,214,155,0.09)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,214,155,0.50)',
+  },
+  adviceLabel: {
+    flex: 1,
+    color: ASTRO_COLORS.gold,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '900',
+    letterSpacing: 1.05,
+  },
+  adviceText: {
+    color: ASTRO_COLORS.text,
+    fontSize: 16,
+    lineHeight: 25,
+    fontWeight: '600',
+    marginTop: 16,
+    paddingRight: 8,
+  },
+  reflectionCard: {
+    position: 'relative',
+    minHeight: 142,
+    padding: 18,
+    borderRadius: 22,
+    backgroundColor: 'rgba(31,23,93,0.74)',
+    borderWidth: 1,
+    borderColor: 'rgba(201,167,255,0.58)',
+    overflow: 'hidden',
+  },
+  reflectionGlow: {
+    position: 'absolute',
+    right: -34,
+    bottom: -52,
+    width: 145,
+    height: 145,
+    borderRadius: 73,
+    backgroundColor: 'rgba(249,183,221,0.10)',
+  },
+  sectionHeadingRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  sectionHeading: {
+    color: ASTRO_COLORS.text,
+    fontFamily: 'serif',
+    fontSize: 21,
+    lineHeight: 27,
+    fontWeight: '800',
+  },
+  reflectionText: {
+    color: ASTRO_COLORS.muted,
+    fontSize: 15,
+    lineHeight: 24,
+    marginTop: 12,
+    paddingRight: 4,
   },
   verseCard: {
-    padding: 16,
-    borderRadius: 18,
-    backgroundColor: 'rgba(16, 30, 70, 0.66)',
-    borderLeftWidth: 2,
-    borderLeftColor: '#71E7FF',
+    position: 'relative',
+    minHeight: 238,
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 20,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255,245,204,0.72)',
+    overflow: 'hidden',
   },
-  anchorVerse: {
-    color: '#E3ECF8',
+  verseOrbitTop: {
+    position: 'absolute',
+    right: -46,
+    top: -44,
+    width: 145,
+    height: 145,
+    borderRadius: 73,
+    borderWidth: 1,
+    borderColor: 'rgba(106,58,146,0.18)',
+  },
+  verseOrbitBottom: {
+    position: 'absolute',
+    left: -55,
+    bottom: -70,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    borderWidth: 1,
+    borderColor: 'rgba(106,58,146,0.13)',
+  },
+  verseMoon: {
+    position: 'absolute',
+    right: 25,
+    top: 20,
+    color: '#6A3A92',
+    fontSize: 33,
+    opacity: 0.32,
+  },
+  verseHeadingRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  verseHeading: {
+    color: ASTRO_COLORS.paperText,
     fontFamily: 'serif',
-    fontStyle: 'italic',
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 21,
+    lineHeight: 27,
+    fontWeight: '900',
   },
-  anchorCategory: {
-    color: '#71E7FF',
-    fontSize: 11,
-    fontWeight: '700',
+  verseRuleRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
     marginTop: 10,
   },
-  anchorReason: {
-    color: '#AFC3D9',
+  verseFooterMark: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+  },
+  verseRule: { width: 45, height: 1, backgroundColor: 'rgba(106,58,146,0.30)' },
+  verseRuleStar: { color: '#9D5B91', fontSize: 13 },
+  fortuneVerse: {
+    color: ASTRO_COLORS.paperText,
+    fontFamily: 'serif',
+    fontSize: 17,
+    fontStyle: 'italic',
+    fontWeight: '700',
+    lineHeight: 27,
+    textAlign: 'center',
+    marginTop: 12,
+  },
+  disclosure: {
+    borderRadius: 18,
+    backgroundColor: 'rgba(31,23,93,0.78)',
+    borderWidth: 1,
+    borderColor: 'rgba(201,167,255,0.40)',
+    overflow: 'hidden',
+  },
+  disclosureOpen: { borderColor: 'rgba(201,167,255,0.66)' },
+  disclosureButton: {
+    minHeight: 62,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    gap: 11,
+  },
+  disclosureIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(8,12,67,0.52)',
+    borderWidth: 1,
+  },
+  disclosureTitle: {
+    flex: 1,
+    color: ASTRO_COLORS.lavender,
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '800',
+  },
+  disclosureDivider: {
+    width: StyleSheet.hairlineWidth,
+    height: 28,
+    backgroundColor: 'rgba(214,189,255,0.28)',
+  },
+  disclosureBody: {
+    paddingHorizontal: 16,
+    paddingTop: 2,
+    paddingBottom: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(201,167,255,0.18)',
+    gap: 10,
+  },
+  anchorVerse: {
+    color: ASTRO_COLORS.text,
+    fontFamily: 'serif',
+    fontStyle: 'italic',
+    fontSize: 15,
+    lineHeight: 24,
+    marginTop: 12,
+  },
+  anchorCategory: {
+    color: ASTRO_COLORS.cyan,
     fontSize: 11,
-    lineHeight: 17,
-    marginTop: 7,
+    lineHeight: 15,
+    fontWeight: '900',
+  },
+  anchorReason: { color: '#C9C1E0', fontSize: 12, lineHeight: 19 },
+  basisSummary: {
+    padding: 13,
+    borderRadius: 14,
+    backgroundColor: 'rgba(8,12,67,0.58)',
+    marginTop: 12,
+  },
+  basisEyebrow: {
+    color: ASTRO_COLORS.cyan,
+    fontSize: 9,
+    lineHeight: 12,
+    fontWeight: '900',
+    letterSpacing: 1.15,
+  },
+  basisText: { color: '#DADAF0', fontSize: 13, lineHeight: 21, marginTop: 7 },
+  aspectRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    padding: 13,
+    borderRadius: 14,
+    backgroundColor: 'rgba(8,12,67,0.44)',
+  },
+  aspectIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(138,229,234,0.10)',
+  },
+  flexCopy: { flex: 1 },
+  aspectLabel: {
+    color: ASTRO_COLORS.cyan,
+    fontSize: 9,
+    lineHeight: 12,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  aspectFormula: { color: ASTRO_COLORS.text, fontSize: 12, lineHeight: 18, fontWeight: '800', marginTop: 5 },
+  aspectMeta: { color: '#B8ADD2', fontSize: 10, lineHeight: 14, marginTop: 3 },
+  ruleTopic: {
+    padding: 13,
+    borderRadius: 14,
+    backgroundColor: 'rgba(8,12,67,0.44)',
+  },
+  ruleTopicTitle: { color: ASTRO_COLORS.pink, fontSize: 12, lineHeight: 17, fontWeight: '900' },
+  ruleTopicExperience: { color: '#DADAF0', fontSize: 12, lineHeight: 19, marginTop: 6 },
+  ruleAdviceRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginTop: 9 },
+  ruleAdviceText: { flex: 1, color: '#FFF0C7', fontSize: 12, lineHeight: 19, fontWeight: '700' },
+  disclaimer: {
+    color: '#8F89AA',
+    fontSize: 9,
+    lineHeight: 14,
+    textAlign: 'center',
+    paddingHorizontal: 18,
+    marginTop: 2,
   },
 });

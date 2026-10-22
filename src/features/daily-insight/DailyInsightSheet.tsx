@@ -114,33 +114,97 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
-              <View style={[styles.hero, compact && styles.heroCompact]}>
-                <View style={styles.heroHalo} />
-                <View style={[styles.heroOrbit, styles.heroOrbitOuter]} />
-                <View style={[styles.heroOrbit, styles.heroOrbitInner]} />
+              <View style={[styles.mascotStage, compact && styles.mascotStageCompact]}>
+                <View style={styles.mascotHalo} />
+                <View style={[styles.mascotOrbit, styles.mascotOrbitWide]} />
+                <View style={[styles.mascotOrbit, styles.mascotOrbitTall]} />
                 <Image
                   accessibilityLabel={`${t('daily.cardTitle')} — Flame`}
                   contentFit="contain"
                   source={DAILY_HERO}
-                  style={styles.heroImage}
+                  style={styles.mascotImage}
                 />
               </View>
 
-              <View style={styles.personalityCard}>
-                <View style={styles.sectionIcon}>
-                  <Ionicons name="sparkles" size={20} color="#FFE39A" />
-                </View>
-                <View style={styles.flex}>
-                  <Text style={styles.sectionEyebrow}>{t('daily.verse')}</Text>
-                  <Text style={styles.verse}>{fortune?.verse || insight.personality}</Text>
-                  {!!fortune?.mirror && (
-                    <>
-                      <Text style={[styles.sectionEyebrow, styles.mirrorEyebrow]}>{t('daily.mirror')}</Text>
+              <LinearGradient
+                colors={['#FFE39A', '#BE68E8', '#6A2FB5', '#FFE39A']}
+                end={{ x: 1, y: 1 }}
+                start={{ x: 0, y: 0 }}
+                style={styles.verseCardFrame}
+              >
+                <LinearGradient
+                  colors={['rgba(42,16,94,0.98)', 'rgba(22,12,73,0.99)', 'rgba(28,15,78,0.99)']}
+                  end={{ x: 0.8, y: 1 }}
+                  start={{ x: 0.18, y: 0 }}
+                  style={styles.verseCard}
+                >
+                  <View pointerEvents="none" style={[styles.cornerOrnament, styles.cornerOrnamentLeft]} />
+                  <View pointerEvents="none" style={[styles.cornerOrnament, styles.cornerOrnamentRight]} />
+                  <Ionicons
+                    name="sparkles"
+                    size={12}
+                    color="#FFE39A"
+                    style={[styles.verseSparkle, styles.verseSparkleLeft]}
+                  />
+                  <Ionicons
+                    name="sparkles"
+                    size={10}
+                    color="#FFD56F"
+                    style={[styles.verseSparkle, styles.verseSparkleRight]}
+                  />
+
+                  <View style={styles.verseHeadingRow}>
+                    <LinearGradient colors={['rgba(255,215,113,0)', '#F7C96C']} style={styles.headingRule} />
+                    <Text style={styles.sectionEyebrow}>{t('daily.verse')}</Text>
+                    <LinearGradient colors={['#F7C96C', 'rgba(255,215,113,0)']} style={styles.headingRule} />
+                  </View>
+                  <Text style={[styles.verse, compact && styles.verseCompact]}>
+                    {fortune?.verse || insight.personality}
+                  </Text>
+                  <View style={styles.verseFooter}>
+                    <LinearGradient colors={['rgba(255,215,113,0)', '#E6B859']} style={styles.footerRule} />
+                    <Ionicons name="sparkles" size={18} color="#FFE08A" />
+                    <LinearGradient colors={['#E6B859', 'rgba(255,215,113,0)']} style={styles.footerRule} />
+                  </View>
+                </LinearGradient>
+              </LinearGradient>
+
+              {!!fortune?.mirror && (
+                <LinearGradient
+                  colors={['rgba(196,129,255,0.62)', 'rgba(100,57,174,0.50)', 'rgba(255,213,121,0.38)']}
+                  end={{ x: 1, y: 1 }}
+                  start={{ x: 0, y: 0 }}
+                  style={styles.mirrorCardFrame}
+                >
+                  <LinearGradient
+                    colors={['rgba(50,26,112,0.98)', 'rgba(28,18,78,0.98)']}
+                    end={{ x: 0.9, y: 1 }}
+                    start={{ x: 0.05, y: 0 }}
+                    style={styles.mirrorCard}
+                  >
+                    <View pointerEvents="none" style={styles.mirrorGlow} />
+                    <Ionicons
+                      name="sparkles"
+                      size={15}
+                      color="rgba(255,220,135,0.72)"
+                      style={[styles.mirrorDecoration, styles.mirrorDecorationTop]}
+                    />
+                    <Ionicons
+                      name="sparkles"
+                      size={12}
+                      color="rgba(221,154,255,0.58)"
+                      style={[styles.mirrorDecoration, styles.mirrorDecorationBottom]}
+                    />
+                    <View style={styles.mirrorIcon}>
+                      <Ionicons name="sparkles" size={25} color="#FFE08A" />
+                    </View>
+                    <View style={styles.flex}>
+                      <Text style={styles.mirrorEyebrow}>{t('daily.mirror')}</Text>
                       <Text style={styles.personality}>{fortune.mirror}</Text>
-                    </>
-                  )}
-                </View>
-              </View>
+                    </View>
+                  </LinearGradient>
+                </LinearGradient>
+              )}
 
               <View style={styles.stats}>
                 {[
@@ -274,52 +338,130 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.08)',
   },
   content: { paddingHorizontal: 12, paddingBottom: 18, gap: 10 },
-  hero: {
-    height: 242,
+  mascotStage: {
+    height: 220,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
     marginHorizontal: -2,
-    marginTop: -2,
+    marginBottom: -50,
+    marginTop: -4,
+    zIndex: 2,
   },
-  heroCompact: { height: 210 },
-  heroHalo: {
+  mascotStageCompact: { height: 192, marginBottom: -46 },
+  mascotHalo: {
     position: 'absolute',
-    width: 230,
-    height: 230,
-    borderRadius: 115,
-    backgroundColor: 'rgba(92, 45, 196, 0.22)',
+    width: 210,
+    height: 210,
+    borderRadius: 105,
+    backgroundColor: 'rgba(103, 54, 211, 0.22)',
     shadowColor: '#E34BFF',
     shadowOpacity: 0.48,
-    shadowRadius: 34,
+    shadowRadius: 30,
     elevation: 4,
   },
-  heroOrbit: { position: 'absolute', borderWidth: 1, borderColor: 'rgba(255, 164, 218, 0.28)' },
-  heroOrbitOuter: { width: 250, height: 184, borderRadius: 125, transform: [{ rotate: '-18deg' }] },
-  heroOrbitInner: { width: 190, height: 214, borderRadius: 105, transform: [{ rotate: '28deg' }] },
-  heroImage: { width: '100%', height: '100%' },
-  personalityCard: {
-    flexDirection: 'row',
-    gap: 11,
-    padding: 14,
-    borderRadius: 20,
-    backgroundColor: 'rgba(111, 60, 207, 0.24)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 210, 129, 0.25)',
+  mascotOrbit: { position: 'absolute', borderWidth: 1, borderColor: 'rgba(255, 184, 222, 0.28)' },
+  mascotOrbitWide: { width: 245, height: 168, borderRadius: 122, transform: [{ rotate: '-18deg' }] },
+  mascotOrbitTall: { width: 176, height: 205, borderRadius: 103, transform: [{ rotate: '28deg' }] },
+  mascotImage: { width: '100%', height: '100%' },
+  verseCardFrame: {
+    padding: 1.25,
+    borderRadius: 27,
+    shadowColor: '#D087FF',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.26,
+    shadowRadius: 13,
+    elevation: 7,
+    zIndex: 1,
   },
-  sectionIcon: {
-    width: 35,
-    height: 35,
-    borderRadius: 18,
+  verseCard: {
+    position: 'relative',
+    minHeight: 260,
+    alignItems: 'center',
+    overflow: 'hidden',
+    paddingHorizontal: 21,
+    paddingTop: 54,
+    paddingBottom: 17,
+    borderRadius: 26,
+  },
+  cornerOrnament: {
+    position: 'absolute',
+    top: 17,
+    width: 48,
+    height: 48,
+    borderTopWidth: 1.5,
+    borderColor: 'rgba(255,221,137,0.75)',
+  },
+  cornerOrnamentLeft: { left: 13, borderLeftWidth: 1.5, borderTopLeftRadius: 28 },
+  cornerOrnamentRight: { right: 13, borderRightWidth: 1.5, borderTopRightRadius: 28 },
+  verseSparkle: { position: 'absolute' },
+  verseSparkleLeft: { left: 18, top: 92 },
+  verseSparkleRight: { right: 18, top: 123 },
+  verseHeadingRow: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
+  headingRule: { flex: 1, maxWidth: 54, height: 1 },
+  footerRule: { flex: 1, maxWidth: 78, height: 1 },
+  verseFooter: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginTop: 12 },
+  mirrorCardFrame: {
+    padding: 1,
+    borderRadius: 24,
+    shadowColor: '#7544DD',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.20,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  mirrorCard: {
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 13,
+    minHeight: 126,
+    overflow: 'hidden',
+    paddingHorizontal: 15,
+    paddingVertical: 16,
+    paddingRight: 25,
+    borderRadius: 23,
+  },
+  mirrorGlow: {
+    position: 'absolute',
+    right: -38,
+    top: -44,
+    width: 135,
+    height: 135,
+    borderRadius: 68,
+    backgroundColor: 'rgba(123,68,204,0.20)',
+  },
+  mirrorIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 220, 145, 0.10)',
+    backgroundColor: 'rgba(132,82,207,0.40)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,226,153,0.08)',
   },
+  mirrorDecoration: { position: 'absolute' },
+  mirrorDecorationTop: { right: 12, top: 15 },
+  mirrorDecorationBottom: { left: 32, bottom: 7 },
   flex: { flex: 1 },
-  sectionEyebrow: { color: '#FFD878', fontSize: 10, fontWeight: '900', letterSpacing: 0.4, textTransform: 'uppercase' },
-  mirrorEyebrow: { marginTop: 13 },
-  verse: { color: '#FFF5D6', fontFamily: 'serif', fontSize: 14, lineHeight: 21, fontWeight: '700', marginTop: 5 },
-  personality: { color: '#FFFFFF', fontSize: 13, lineHeight: 20, fontWeight: '600', marginTop: 4 },
+  sectionEyebrow: { color: '#FFD878', fontSize: 11, fontWeight: '900', letterSpacing: 1.8, textTransform: 'uppercase' },
+  mirrorEyebrow: { color: '#FFD878', fontSize: 11, lineHeight: 15, fontWeight: '900', letterSpacing: 0.65, textTransform: 'uppercase' },
+  verse: {
+    color: '#FFF4D6',
+    fontFamily: 'serif',
+    fontSize: 18,
+    lineHeight: 28,
+    fontStyle: 'italic',
+    fontWeight: '700',
+    textAlign: 'center',
+    marginTop: 13,
+    textShadowColor: 'rgba(255,214,133,0.24)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 5,
+  },
+  verseCompact: { fontSize: 16, lineHeight: 24 },
+  personality: { color: '#F8F4FF', fontSize: 15, lineHeight: 23, fontWeight: '600', marginTop: 6 },
   stats: { flexDirection: 'row', gap: 7 },
   stat: {
     flex: 1,
