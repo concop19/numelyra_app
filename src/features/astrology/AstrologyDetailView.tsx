@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
   planetHeroRow: { width: '100%', minHeight: 290, flexDirection: 'row', alignItems: 'center', zIndex: 2 },
   planetArtStage: { width: '55%', minHeight: 290, alignItems: 'center', justifyContent: 'center' },
   planetAura: { position: 'absolute', width: 124, height: 124, borderRadius: 62, backgroundColor: 'rgba(167,111,255,0.2)', shadowColor: '#FFD69B', shadowOpacity: 0.74, shadowRadius: 28, elevation: 10 },
-  planetEmblemWrap: { width: '140%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', shadowColor: '#F8C98C', shadowOpacity: 0.72, shadowRadius: 22, elevation: 12 },
+  planetEmblemWrap: { width: '120%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', shadowColor: '#F8C98C', shadowOpacity: 0.72, shadowRadius: 22, elevation: 12 },
   planetEmblem: { width: '94%', height: '94%' },
   planetCopy: { width: '45%', minHeight: 290, alignItems: 'center', justifyContent: 'center', position: 'relative', paddingHorizontal: 3 },
   planetConstellationHalo: { position: 'absolute', width: 146, height: 146, top: 8, alignSelf: 'center', opacity: 0.48 },
