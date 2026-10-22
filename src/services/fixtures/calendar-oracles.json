@@ -1,0 +1,49 @@
+{
+  "capturedAt": "2026-10-22",
+  "sources": {
+    "ngayGio": "https://ngaygio.vn/api/lich-am",
+    "huyenMinh": "https://huyenminh.com.vn/api/khunggio"
+  },
+  "cases": [
+    {
+      "date": "2026-02-17",
+      "expected": {
+        "lunar": { "day": 1, "month": 1, "year": 2026, "leap": false },
+        "canChiDay": "Nhâm Tuất",
+        "trucName": "Thành",
+        "goodHours": ["Dần", "Thìn", "Tỵ", "Thân", "Dậu", "Hợi"]
+      },
+      "observed": {
+        "ngayGio": { "canChiDay": "Nhâm Tuất", "goodHours": ["Dần", "Thìn", "Tỵ", "Thân", "Dậu", "Hợi"] },
+        "huyenMinh": { "canChiDay": "Nhâm Tuất", "trucName": "Thành", "goodHours": ["Dần", "Thìn", "Tỵ", "Thân", "Dậu", "Hợi"] }
+      }
+    },
+    {
+      "date": "2026-01-05",
+      "expected": {
+        "lunar": { "day": 17, "month": 11, "year": 2025, "leap": false },
+        "canChiDay": "Kỷ Mão",
+        "trucName": "Mãn",
+        "goodHours": ["Tý", "Dần", "Mão", "Ngọ", "Mùi", "Dậu"]
+      },
+      "observed": {
+        "ngayGio": { "canChiDay": "Kỷ Mão", "goodHours": ["Tý", "Dần", "Mão", "Ngọ", "Mùi", "Dậu"] },
+        "huyenMinh": { "canChiDay": "Kỷ Mão", "trucName": "Bình", "goodHours": ["Tý", "Dần", "Mão", "Ngọ", "Mùi", "Dậu"] },
+        "note": "Nguồn Trực khác nhau đúng ngày nhập Tiểu Hàn; engine dùng quy ước toàn bộ ngày nhập Tiết thuộc tháng tiết khí mới."
+      }
+    },
+    {
+      "date": "2026-10-22",
+      "expected": {
+        "lunar": { "day": 13, "month": 9, "year": 2026, "leap": false },
+        "canChiDay": "Kỷ Tỵ",
+        "trucName": "Nguy",
+        "goodHours": ["Sửu", "Thìn", "Ngọ", "Mùi", "Tuất", "Hợi"]
+      },
+      "observed": {
+        "ngayGio": { "canChiDay": "Kỷ Tỵ", "goodHours": ["Sửu", "Thìn", "Ngọ", "Mùi", "Tuất", "Hợi"] },
+        "huyenMinh": { "canChiDay": "Kỷ Tỵ", "trucName": "Nguy", "goodHours": ["Sửu", "Thìn", "Ngọ", "Mùi", "Tuất", "Hợi"] }
+      }
+    }
+  ]
+}

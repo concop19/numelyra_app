@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { DayActivities, DayDirection, HourInfo } from '../services/lunarService';
+import { buildHourlyActivities } from '../services/activityRuleEngine';
 import { useLocalization } from '../i18n/LocalizationContext';
 
 const HERO_BACKGROUND = require('../../assets/giao_dien/giaodien1/calender_asset/hoursDetailAsset/Celestial Moonlit Mountain Lake.png');
@@ -115,10 +116,26 @@ export default function HourDirectionSheet({
     onPanResponderRelease: (_event, gesture) => onSheetDragEnd(Math.max(0, gesture.dy), gesture.vy),
     onPanResponderTerminate: () => onSheetDragEnd(0, 0),
   }), [onSheetDragEnd, onSheetDragMove, onSheetDragStart]);
+  const activeHour = selectedHour ?? getDefaultHour(hours, bestHour);
+  const hourlyActivities = useMemo(() => {
+    if (!activeHour || !activities?.rated?.all?.length) return null;
+    return buildHourlyActivities(activities.rated.all, {
+      hourName: activeHour.name,
+      canChi: activeHour.canChi,
+      range: activeHour.range,
+      isHoangDao: activeHour.isHoangDao,
+      hourLabel: activeHour.label,
+      isClash: activeHour.isClash,
+      isDayClash: activeHour.isDayClash,
+      lyThuanPhong: activeHour.lyThuanPhong,
+      isLyThuanPhongGood: activeHour.isLyThuanPhongGood,
+      userZodiac,
+      locale,
+    });
+  }, [activeHour, activities?.rated?.all, locale, userZodiac]);
 
   if (!visible) return null;
 
-  const activeHour = selectedHour ?? getDefaultHour(hours, bestHour);
   const activeAsset = activeHour ? HOUR_ASSETS[activeHour.name] : undefined;
   const isBestHour = sameHour(activeHour, bestHour);
   const activityQualityLabel = activities
@@ -131,6 +148,14 @@ export default function HourDirectionSheet({
     : activeHour?.isHoangDao
       ? l('GIỜ HOÀNG ĐẠO', 'FAVORABLE HOUR')
       : l('GIỜ HẮC ĐẠO', 'CAUTIOUS HOUR');
+  const displayedRecommended = hourlyActivities?.recommended ?? activities?.rated?.recommended;
+  const displayedAvoid = hourlyActivities?.avoid ?? activities?.rated?.avoid;
+  const activitiesTitle = hourlyActivities
+    ? l('CÁT HUNG TRONG GIỜ', 'GUIDANCE FOR SELECTED HOUR')
+    : l('CÁT HUNG TRONG NGÀY', 'DAILY GUIDANCE');
+  const activitiesSubtitle = hourlyActivities && activeHour
+    ? `${activeHour.canChi} · ${activeHour.range.replace('-', ' – ')} · ${l('Trực', 'Day officer')} ${activities?.trucName}`
+    : `${l('Trực', 'Day officer')} ${activities?.trucName ?? ''} · ${activityQualityLabel}`;
 
   const closeWithFeedback = () => {
     void Haptics.selectionAsync();
@@ -350,15 +375,15 @@ export default function HourDirectionSheet({
                   style={styles.activitiesToggle}
                   accessibilityRole="button"
                   accessibilityState={{ expanded: activitiesExpanded }}
-                  accessibilityLabel={`${activitiesExpanded ? l('Thu gọn', 'Collapse') : l('Mở', 'Open')} ${l('việc nên làm và kiêng cữ', 'favorable and unfavorable activities')}`}
+                  accessibilityLabel={`${activitiesExpanded ? l('Thu gọn', 'Collapse') : l('Mở', 'Open')} ${l('việc nên làm và kiêng cữ', 'favorable and unfavorable activities')}${hourlyActivities && activeHour ? ` · ${activeHour.canChi}, ${activeHour.range}` : ''}`}
                 >
                   <View style={styles.activitiesTitleWrap}>
                     <View style={styles.activitiesIcon}>
                       <Ionicons name="calendar-outline" size={17} color="#442058" />
                     </View>
                     <View style={styles.activitiesCopy}>
-                      <Text style={styles.activitiesTitle}>{l('CÁT HUNG TRONG NGÀY', 'DAILY GUIDANCE')}</Text>
-                      <Text style={styles.activitiesSubtitle}>{l('Trực', 'Day officer')} {activities.trucName} · {activityQualityLabel}</Text>
+                      <Text style={styles.activitiesTitle}>{activitiesTitle}</Text>
+                      <Text style={styles.activitiesSubtitle}>{activitiesSubtitle}</Text>
                     </View>
                   </View>
                   <Ionicons name={activitiesExpanded ? 'chevron-up' : 'chevron-down'} size={20} color="#F4CD85" />
@@ -371,7 +396,7 @@ export default function HourDirectionSheet({
                         <Ionicons name="checkmark-circle" size={17} color="#62E3AA" />
                         <Text style={styles.activityGoodTitle}>{l('NÊN LÀM', 'FAVORABLE')}</Text>
                       </View>
-                      {activities.rated?.recommended.length ? activities.rated.recommended.map((item) => (
+                      {displayedRecommended?.length ? displayedRecommended.map((item) => (
                         <View key={item.key} style={styles.activityItem}>
                           <Text style={styles.activityGoodItem}>• {locale === 'en' ? item.en : item.vi}</Text>
                           {!!item.reason && <Text style={styles.activityReason}>{item.reason}</Text>}
@@ -387,7 +412,7 @@ export default function HourDirectionSheet({
                         <Ionicons name="close-circle" size={17} color="#F58AA8" />
                         <Text style={styles.activityBadTitle}>{l('KIÊNG CỮ', 'AVOID')}</Text>
                       </View>
-                      {activities.rated?.avoid.length ? activities.rated.avoid.map((item) => (
+                      {displayedAvoid?.length ? displayedAvoid.map((item) => (
                         <View key={item.key} style={styles.activityItem}>
                           <Text style={styles.activityBadItem}>• {locale === 'en' ? item.en : item.vi}</Text>
                           {!!item.reason && <Text style={styles.activityReason}>{item.reason}</Text>}
@@ -399,7 +424,15 @@ export default function HourDirectionSheet({
                       )}
                     </View>
                     <Text style={styles.activitiesDisclaimer}>
-                      {l('Gợi ý tham khảo từ Trực, Hoàng/Hắc đạo, ngày kỵ và tuổi xung.', 'Reference guidance based on the day officer, day quality, traditional caution days, and zodiac clash.')}
+                      {hourlyActivities
+                        ? l(
+                          'Gợi ý tham khảo kết hợp Trực, ngày kỵ, giờ Hoàng/Hắc đạo, Lý Thuần Phong và tuổi xung.',
+                          'Reference guidance combining the day officer, caution days, favorable or cautious hours, Ly Thuan Phong, and zodiac clashes.',
+                        )
+                        : l(
+                          'Gợi ý tham khảo từ Trực, Hoàng/Hắc đạo, ngày kỵ và tuổi xung.',
+                          'Reference guidance based on the day officer, day quality, traditional caution days, and zodiac clash.',
+                        )}
                     </Text>
                   </View>
                 ) : null}

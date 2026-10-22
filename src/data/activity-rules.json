@@ -1,5 +1,5 @@
 ﻿{
-  "version": "1.0.0",
+  "version": "1.1.0",
   "activities": [
     {
       "key": "hop_hanh",
@@ -328,6 +328,45 @@
       "deltaOther": -1,
       "reasonTemplateVi": "Ngày xung tuổi {zodiac} — hạn chế việc lớn",
       "reasonTemplateEn": "Day clashes with your zodiac ({zodiac})"
+    }
+  },
+  "hourLayers": {
+    "quality": {
+      "description": "Giờ Hoàng/Hắc đạo chỉ điều chỉnh các việc nhạy theo thời điểm khởi sự",
+      "sensitiveKeys": [
+        "hop_hanh", "ky_ket", "nham_chuc", "khai_truong",
+        "xuat_hanh_cong", "mua_ban", "nap_tai", "dau_tu",
+        "cuoi_hoi", "gap_go", "nhap_trach", "hoc_tap",
+        "sang_tao", "dong_tho", "sua_chua", "di_chuyen"
+      ],
+      "hoangDaoDelta": 2,
+      "hacDaoDelta": -2,
+      "hoangDaoReasonVi": "Giờ {label} hỗ trợ khởi sự",
+      "hoangDaoReasonEn": "The {label} hour supports new starts",
+      "hacDaoReasonVi": "Giờ {label} cần thận trọng",
+      "hacDaoReasonEn": "The {label} hour calls for caution"
+    },
+    "zodiacClash": {
+      "description": "Giờ xung tuổi là veto cho các việc nhạy theo giờ",
+      "delta": -4,
+      "reasonVi": "Giờ {hour} xung tuổi {zodiac} — tránh việc lớn",
+      "reasonEn": "The {hour} hour clashes with your zodiac ({zodiac}) — avoid major starts"
+    },
+    "dayClash": {
+      "description": "Nhật Phá làm giảm độ thuận của việc khởi sự nhưng không phải veto tuyệt đối",
+      "delta": -3,
+      "reasonVi": "Giờ {hour} phạm Nhật Phá",
+      "reasonEn": "The {hour} hour conflicts with the day"
+    },
+    "lyThuanPhong": {
+      "description": "Lý Thuần Phong chỉ dùng cho công tác, xuất hành và di chuyển",
+      "travelKeys": ["xuat_hanh_cong", "di_chuyen"],
+      "goodDelta": 2,
+      "badDelta": -2,
+      "goodReasonVi": "Lý Thuần Phong {name} thuận cho xuất hành",
+      "goodReasonEn": "Ly Thuan Phong {name} favors travel",
+      "badReasonVi": "Lý Thuần Phong {name} không thuận cho xuất hành",
+      "badReasonEn": "Ly Thuan Phong {name} is unfavorable for travel"
     }
   },
   "categoryLabels": {

@@ -8,7 +8,9 @@ import {
   pickRecommended,
   pickAvoid,
   buildRatedActivities,
+  buildHourlyActivities,
   type ActivityRuleContext,
+  type HourActivityContext,
 } from './activityRuleEngine';
 
 // ============================================================
@@ -35,6 +37,31 @@ function ctx(overrides: Partial<ActivityRuleContext>): ActivityRuleContext {
 
 function findScore(rated: ReturnType<typeof scoreActivities>, key: string): number {
   return rated.find((r) => r.key === key)?.score ?? 0;
+}
+
+const baseHourCtx: HourActivityContext = {
+  hourName: 'Thìn',
+  canChi: 'Canh Thìn',
+  range: '07h-09h',
+  isHoangDao: true,
+  hourLabel: 'Thanh Long',
+  isClash: false,
+  isDayClash: false,
+  lyThuanPhong: 'Tốc Hỷ',
+  isLyThuanPhongGood: true,
+  userZodiac: 'Thân',
+  locale: 'vi',
+};
+
+function hourCtx(overrides: Partial<HourActivityContext>): HourActivityContext {
+  return { ...baseHourCtx, ...overrides };
+}
+
+function hourlyItem(
+  result: ReturnType<typeof buildHourlyActivities>,
+  key: string,
+) {
+  return result.all.find((item) => item.key === key);
 }
 
 // ============================================================
@@ -209,4 +236,98 @@ test('TC12: Can element cannot recommend an activity by itself', () => {
   expect(funeral.score).toBe(0);
   expect(funeral.recommended).toBe(false);
   expect(funeral.reason).toBe('');
+});
+
+test('TC13: favorable and cautious hours adjust only time-sensitive activities', () => {
+  const all = buildRatedActivities(ctx({})).all;
+  const favorable = buildHourlyActivities(all, hourCtx({ isHoangDao: true }));
+  const cautious = buildHourlyActivities(all, hourCtx({ isHoangDao: false }));
+  const favorableMeeting = hourlyItem(favorable, 'hop_hanh')!;
+  const cautiousMeeting = hourlyItem(cautious, 'hop_hanh')!;
+
+  expect(favorableMeeting.hourDelta).toBeGreaterThan(cautiousMeeting.hourDelta);
+  expect(favorableMeeting.hourReason).toMatch(/Thanh Long/);
+  expect(cautiousMeeting.hourReason).toMatch(/thận trọng/i);
+});
+
+test('TC14: zodiac-clashing hour vetoes a strong major activity', () => {
+  const all = buildRatedActivities(ctx({ trucName: 'Thành', trucQuality: 'Tốt' })).all;
+  const result = buildHourlyActivities(all, hourCtx({ isClash: true }));
+  const contract = hourlyItem(result, 'ky_ket')!;
+
+  expect(contract).toMatchObject({ blockedByHour: true, recommended: false });
+  expect(contract.score).toBeLessThanOrEqual(-2);
+  expect(contract.hourReason).toMatch(/xung tuổi/i);
+  expect(result.recommended.some((item) => item.key === 'ky_ket')).toBe(false);
+});
+
+test('TC15: day-clash hour penalizes without creating an hour veto', () => {
+  const all = buildRatedActivities(ctx({})).all;
+  const normal = buildHourlyActivities(all, hourCtx({ isDayClash: false }));
+  const clashing = buildHourlyActivities(all, hourCtx({ isDayClash: true }));
+  const normalMeeting = hourlyItem(normal, 'hop_hanh')!;
+  const clashingMeeting = hourlyItem(clashing, 'hop_hanh')!;
+
+  expect(clashingMeeting.hourDelta).toBe(normalMeeting.hourDelta - 3);
+  expect(clashingMeeting.blockedByHour).toBe(false);
+  expect(clashingMeeting.hourReason).toMatch(/Nhật Phá/i);
+});
+
+test('TC16: Ly Thuan Phong changes travel but not unrelated activities', () => {
+  const all = buildRatedActivities(ctx({ trucName: 'Bình', trucQuality: 'Bình' })).all;
+  const good = buildHourlyActivities(all, hourCtx({ isLyThuanPhongGood: true }));
+  const bad = buildHourlyActivities(all, hourCtx({ isLyThuanPhongGood: false, lyThuanPhong: 'Không Vong' }));
+
+  expect(hourlyItem(good, 'di_chuyen')!.hourDelta - hourlyItem(bad, 'di_chuyen')!.hourDelta).toBe(4);
+  expect(hourlyItem(good, 'hop_hanh')!.hourDelta).toBe(hourlyItem(bad, 'hop_hanh')!.hourDelta);
+});
+
+test('TC17: favorable hour cannot reverse a day hard block', () => {
+  const all = buildRatedActivities(ctx({
+    isTamNuong: true,
+    trucName: 'Kiến',
+    trucQuality: 'Tốt',
+    isHoangDao: true,
+  })).all;
+  const result = buildHourlyActivities(all, hourCtx({ isHoangDao: true }));
+  const wedding = hourlyItem(result, 'cuoi_hoi')!;
+
+  expect(wedding).toMatchObject({ blockedByDay: true, recommended: false });
+  expect(wedding.score).toBeLessThanOrEqual(-2);
+  expect(result.recommended.some((item) => item.key === 'cuoi_hoi')).toBe(false);
+});
+
+test('TC18: hour rules do not turn medical care into an avoided activity', () => {
+  const all = buildRatedActivities(ctx({ trucName: 'Phá', trucQuality: 'Xấu' })).all;
+  const medicalDay = all.find((item) => item.key === 'chua_benh')!;
+  const result = buildHourlyActivities(all, hourCtx({
+    isHoangDao: false,
+    isClash: true,
+    isDayClash: true,
+    isLyThuanPhongGood: false,
+  }));
+  const medicalHour = hourlyItem(result, 'chua_benh')!;
+
+  expect(medicalHour.hourDelta).toBe(0);
+  expect(medicalHour.score).toBe(medicalDay.score);
+  expect(result.avoid.some((item) => item.key === 'chua_benh')).toBe(false);
+});
+
+test('TC19: hourly output is deterministic, localized, disjoint, and category-balanced', () => {
+  const allVi = buildRatedActivities(ctx({ locale: 'vi' })).all;
+  const allEn = buildRatedActivities(ctx({ locale: 'en' })).all;
+  const vi = buildHourlyActivities(allVi, hourCtx({ locale: 'vi' }));
+  const viAgain = buildHourlyActivities(allVi, hourCtx({ locale: 'vi' }));
+  const en = buildHourlyActivities(allEn, hourCtx({ locale: 'en' }));
+
+  expect(viAgain).toEqual(vi);
+  expect(vi.recommended.map((item) => item.score)).toEqual(en.recommended.map((item) => item.score));
+  expect(vi.recommended[0]?.hourReason).not.toBe(en.recommended[0]?.hourReason);
+  const recommendedKeys = new Set(vi.recommended.map((item) => item.key));
+  expect(vi.avoid.some((item) => recommendedKeys.has(item.key))).toBe(false);
+  const categoryCounts = vi.recommended.reduce<Record<string, number>>((counts, item) => ({
+    ...counts,
+    [item.category]: (counts[item.category] ?? 0) + 1,
+  }), {});
+  expect(Math.max(0, ...Object.values(categoryCounts))).toBeLessThanOrEqual(2);
 });

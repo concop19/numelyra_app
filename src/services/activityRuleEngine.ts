@@ -89,6 +89,36 @@ interface ActivityRulesJson {
       reasonTemplateEn: string;
     };
   };
+  hourLayers: {
+    quality: {
+      sensitiveKeys: string[];
+      hoangDaoDelta: number;
+      hacDaoDelta: number;
+      hoangDaoReasonVi: string;
+      hoangDaoReasonEn: string;
+      hacDaoReasonVi: string;
+      hacDaoReasonEn: string;
+    };
+    zodiacClash: {
+      delta: number;
+      reasonVi: string;
+      reasonEn: string;
+    };
+    dayClash: {
+      delta: number;
+      reasonVi: string;
+      reasonEn: string;
+    };
+    lyThuanPhong: {
+      travelKeys: string[];
+      goodDelta: number;
+      badDelta: number;
+      goodReasonVi: string;
+      goodReasonEn: string;
+      badReasonVi: string;
+      badReasonEn: string;
+    };
+  };
   categoryLabels: Record<ActivityCategory, { vi: string; en: string }>;
 }
 
@@ -108,6 +138,8 @@ export interface RatedActivity {
   score: number;
   /** true = nên làm; false = nên tránh */
   recommended: boolean;
+  /** Veto từ Nguyệt Kỵ / Tam Nương; giờ tốt không được phép đảo kết quả này. */
+  blockedByDay: boolean;
 }
 
 export interface ActivityRuleContext {
@@ -122,6 +154,41 @@ export interface ActivityRuleContext {
   userZodiac: string;      // 'Tý', 'Sửu', ...
   userZodiacClash: string; // con giáp xung với user
   locale: 'vi' | 'en';
+}
+
+export interface HourActivityContext {
+  hourName: string;
+  canChi: string;
+  range: string;
+  isHoangDao: boolean;
+  hourLabel: string;
+  isClash: boolean;
+  isDayClash: boolean;
+  lyThuanPhong: string;
+  isLyThuanPhongGood: boolean;
+  userZodiac: string;
+  locale: 'vi' | 'en';
+}
+
+export interface HourlyRatedActivity extends RatedActivity {
+  dayScore: number;
+  hourDelta: number;
+  dayReason: string;
+  hourReason: string;
+  blockedByHour: boolean;
+}
+
+export interface HourlyActivities {
+  hour: Pick<HourActivityContext, 'hourName' | 'canChi' | 'range'>;
+  all: HourlyRatedActivity[];
+  recommended: HourlyRatedActivity[];
+  avoid: HourlyRatedActivity[];
+}
+
+export interface RatedActivities {
+  all: RatedActivity[];
+  recommended: RatedActivity[];
+  avoid: RatedActivity[];
 }
 
 // ============================================================
@@ -314,6 +381,7 @@ function rateOne(act: ActivityJson, ctx: ActivityRuleContext): RatedActivity {
     reason: mainReason,
     score,
     recommended: score > 0,
+    blockedByDay: Boolean(hardBlock),
   };
 }
 
@@ -343,12 +411,12 @@ export function getBaseActivitiesForTruc(
  * Chọn N hoạt động nên làm (score > 0).
  * Đảm bảo đa dạng category — không quá 2 item/nhóm.
  */
-export function pickRecommended(rated: RatedActivity[], n = 5): RatedActivity[] {
+export function pickRecommended<T extends RatedActivity>(rated: T[], n = 5, fillBeyondCategoryLimit = true): T[] {
   const positive = [...rated]
     .filter((r) => r.score > 0)
     .sort((a, b) => b.score - a.score || a.key.localeCompare(b.key));
 
-  const result: RatedActivity[] = [];
+  const result: T[] = [];
   const catCount: Partial<Record<ActivityCategory, number>> = {};
 
   // Pass 1: max 2 per category
@@ -362,7 +430,7 @@ export function pickRecommended(rated: RatedActivity[], n = 5): RatedActivity[] 
   }
 
   // Pass 2: fill remaining slots regardless of category
-  if (result.length < n) {
+  if (fillBeyondCategoryLimit && result.length < n) {
     for (const item of positive) {
       if (result.length >= n) break;
       if (!result.find((r) => r.key === item.key)) {
@@ -378,11 +446,23 @@ export function pickRecommended(rated: RatedActivity[], n = 5): RatedActivity[] 
  * Chọn N hoạt động nên tránh (score ≤ -2).
  * Xấu nhất trước (sort ascending).
  */
-export function pickAvoid(rated: RatedActivity[], n = 4): RatedActivity[] {
-  return [...rated]
+export function pickAvoid<T extends RatedActivity>(rated: T[], n = 4, limitByCategory = false): T[] {
+  const negative = [...rated]
     .filter((r) => r.score <= -2)
-    .sort((a, b) => a.score - b.score || a.key.localeCompare(b.key))
-    .slice(0, n);
+    .sort((a, b) => a.score - b.score || a.key.localeCompare(b.key));
+
+  if (!limitByCategory) return negative.slice(0, n);
+
+  const result: T[] = [];
+  const catCount: Partial<Record<ActivityCategory, number>> = {};
+  for (const item of negative) {
+    if (result.length >= n) break;
+    const count = catCount[item.category] ?? 0;
+    if (count >= 2) continue;
+    result.push(item);
+    catCount[item.category] = count + 1;
+  }
+  return result;
 }
 
 /**
@@ -392,10 +472,114 @@ export function buildRatedActivities(
   ctx: ActivityRuleContext,
   recommendedCount = 5,
   avoidCount = 4,
-): { recommended: RatedActivity[]; avoid: RatedActivity[] } {
+): RatedActivities {
   const all = scoreActivities(ctx);
   return {
+    all,
     recommended: pickRecommended(all, recommendedCount),
     avoid: pickAvoid(all, avoidCount),
+  };
+}
+
+interface HourLayerResult {
+  priority: number;
+  delta: number;
+  reason: string;
+  veto?: boolean;
+}
+
+function localizeHourReason(ctx: HourActivityContext, vi: string, en: string, vars: Record<string, string>): string {
+  return tmpl(ctx.locale === 'en' ? en : vi, vars);
+}
+
+function scoreActivityForHour(activity: RatedActivity, ctx: HourActivityContext): HourlyRatedActivity {
+  const cfg = RULES.hourLayers;
+  const isSensitive = cfg.quality.sensitiveKeys.includes(activity.key);
+  const layers: HourLayerResult[] = [];
+
+  if (isSensitive) {
+    const delta = ctx.isHoangDao ? cfg.quality.hoangDaoDelta : cfg.quality.hacDaoDelta;
+    layers.push({
+      priority: 3,
+      delta,
+      reason: localizeHourReason(
+        ctx,
+        ctx.isHoangDao ? cfg.quality.hoangDaoReasonVi : cfg.quality.hacDaoReasonVi,
+        ctx.isHoangDao ? cfg.quality.hoangDaoReasonEn : cfg.quality.hacDaoReasonEn,
+        { label: ctx.hourLabel },
+      ),
+    });
+  }
+
+  if (isSensitive && ctx.isClash) {
+    layers.push({
+      priority: 0,
+      delta: cfg.zodiacClash.delta,
+      veto: true,
+      reason: localizeHourReason(ctx, cfg.zodiacClash.reasonVi, cfg.zodiacClash.reasonEn, {
+        hour: ctx.hourName,
+        zodiac: ctx.userZodiac,
+      }),
+    });
+  }
+
+  if (isSensitive && ctx.isDayClash) {
+    layers.push({
+      priority: 1,
+      delta: cfg.dayClash.delta,
+      reason: localizeHourReason(ctx, cfg.dayClash.reasonVi, cfg.dayClash.reasonEn, { hour: ctx.hourName }),
+    });
+  }
+
+  if (cfg.lyThuanPhong.travelKeys.includes(activity.key)) {
+    const delta = ctx.isLyThuanPhongGood ? cfg.lyThuanPhong.goodDelta : cfg.lyThuanPhong.badDelta;
+    layers.push({
+      priority: 2,
+      delta,
+      reason: localizeHourReason(
+        ctx,
+        ctx.isLyThuanPhongGood ? cfg.lyThuanPhong.goodReasonVi : cfg.lyThuanPhong.badReasonVi,
+        ctx.isLyThuanPhongGood ? cfg.lyThuanPhong.goodReasonEn : cfg.lyThuanPhong.badReasonEn,
+        { name: ctx.lyThuanPhong },
+      ),
+    });
+  }
+
+  const orderedLayers = [...layers]
+    .filter((layer) => layer.delta !== 0 && layer.reason)
+    .sort((left, right) => left.priority - right.priority);
+  const hourDelta = layers.reduce((sum, layer) => sum + layer.delta, 0);
+  const blockedByHour = layers.some((layer) => layer.veto);
+  const rawScore = activity.score + hourDelta;
+  const score = activity.blockedByDay || blockedByHour ? Math.min(rawScore, -2) : rawScore;
+  const hourReason = orderedLayers.map((layer) => layer.reason).join(' · ');
+  const reason = [activity.reason, hourReason].filter(Boolean).join(' · ');
+
+  return {
+    ...activity,
+    dayScore: activity.score,
+    hourDelta,
+    score,
+    dayReason: activity.reason,
+    hourReason,
+    reason,
+    recommended: score > 0 && !activity.blockedByDay && !blockedByHour,
+    blockedByHour,
+  };
+}
+
+/** Kết hợp điểm ngày với giờ đang chọn mà không thay đổi dữ liệu ngày gốc. */
+export function buildHourlyActivities(
+  dayRatings: RatedActivity[],
+  ctx: HourActivityContext,
+  recommendedCount = 5,
+  avoidCount = 4,
+): HourlyActivities {
+  const all = dayRatings.map((activity) => scoreActivityForHour(activity, ctx));
+  return {
+    hour: { hourName: ctx.hourName, canChi: ctx.canChi, range: ctx.range },
+    all,
+    recommended: pickRecommended(all, recommendedCount, false),
+    avoid: pickAvoid(all, avoidCount, true),
   };
 }

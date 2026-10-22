@@ -265,7 +265,10 @@ export function buildDailyInsight(
     },
     recommended,
     avoid,
-    ratedActivities: ratedData,
+    ratedActivities: ratedData ? {
+      recommended: ratedData.recommended,
+      avoid: ratedData.avoid,
+    } : undefined,
     warning: snapshot.warning,
     astroEvidence: buildAstroEvidence(metadata, locale),
     canChiEvidence: buildCanChiEvidence(snapshot, locale),

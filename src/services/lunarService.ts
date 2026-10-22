@@ -443,6 +443,7 @@ export interface DayActivities {
   ji: string[];
   /** Full data từ engine đa lớp — undefined khi chạy fallback mode */
   rated?: {
+    all: RatedActivity[];
     recommended: RatedActivity[];
     avoid: RatedActivity[];
   };

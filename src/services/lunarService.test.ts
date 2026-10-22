@@ -13,6 +13,19 @@ import {
   solarToLunar,
 } from './lunarService';
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const calendarOracles = require('./fixtures/calendar-oracles.json') as {
+  cases: Array<{
+    date: string;
+    expected: {
+      lunar: { day: number; month: number; year: number; leap: boolean };
+      canChiDay: string;
+      trucName: string;
+      goodHours: string[];
+    };
+  }>;
+};
+
 describe('lunarService parity with the Swift reference', () => {
   test('converts the 2026 Lunar New Year correctly', () => {
     expect(solarToLunar(17, 2, 2026)).toEqual({ day: 1, month: 1, year: 2026, leap: false });
@@ -103,5 +116,17 @@ describe('lunarService parity with the Swift reference', () => {
       canChiYear: 'Bính Ngọ',
     });
     expect(snapshot.hours).toHaveLength(12);
+    expect(snapshot.activities.rated?.all.length).toBeGreaterThan(
+      (snapshot.activities.rated?.recommended.length ?? 0) + (snapshot.activities.rated?.avoid.length ?? 0),
+    );
+  });
+
+  test.each(calendarOracles.cases)('matches frozen calendar oracles for $date', ({ date, expected }) => {
+    const [year, month, day] = date.split('-').map(Number);
+    expect(solarToLunar(day, month, year)).toEqual(expected.lunar);
+    expect(getDayActivities(day, month, year).trucName).toBe(expected.trucName);
+    expect(getHoangDaoHours(day, month, year).filter((hour) => hour.isHoangDao).map((hour) => hour.name))
+      .toEqual(expected.goodHours);
+    expect(makeDaySnapshot(new Date(year, month - 1, day, 12)).canChiDay).toBe(expected.canChiDay);
   });
 });
