@@ -341,28 +341,6 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
                   </View>
                 </View>
 
-                {/* Lucky Color Sticky Note Banner */}
-                <View style={styles.luckyColorCard}>
-                  <View style={styles.tapeMint} />
-                  <View style={styles.luckyColorRow}>
-                    <View style={[styles.luckyColorDot, { backgroundColor: insight.luckyColor.hex }]} />
-                    <View style={styles.luckyColorTextCol}>
-                      <Text style={styles.luckyColorTitle}>
-                        {t('daily.luckyColor')}:{' '}
-                        <Text style={[styles.luckyColorName, { color: insight.luckyColor.hex }]}>
-                          {insight.luckyColor.name}
-                        </Text>
-                      </Text>
-                      {!!insight.luckyColor.evidence && (
-                        <Text numberOfLines={1} style={styles.luckyColorEvidence}>
-                          ✦ {insight.luckyColor.evidence}
-                        </Text>
-                      )}
-                    </View>
-                    <Ionicons color="#6A4E94" name="sparkles" size={14} style={{ opacity: 0.6 }} />
-                  </View>
-                </View>
-
                 {/* Flip to Page 2 Bookmark Button */}
                 <TouchableOpacity
                   activeOpacity={0.8}
@@ -411,6 +389,28 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
 
                 <Text style={styles.p2Title}>Bản Đồ Năng Lượng</Text>
                 <Text style={styles.p2Subtitle}>{dateSubtitle}</Text>
+
+                {/* Lucky Color Sticky Note Banner */}
+                <View style={styles.luckyColorCard}>
+                  <View style={styles.tapeMint} />
+                  <View style={styles.luckyColorRow}>
+                    <View style={[styles.luckyColorDot, { backgroundColor: insight.luckyColor.hex }]} />
+                    <View style={styles.luckyColorTextCol}>
+                      <Text style={styles.luckyColorTitle}>
+                        {t('daily.luckyColor')}:{' '}
+                        <Text style={[styles.luckyColorName, { color: insight.luckyColor.hex }]}>
+                          {insight.luckyColor.name}
+                        </Text>
+                      </Text>
+                      {!!insight.luckyColor.evidence && (
+                        <Text numberOfLines={1} style={styles.luckyColorEvidence}>
+                          ✦ {insight.luckyColor.evidence}
+                        </Text>
+                      )}
+                    </View>
+                    <Ionicons color="#6A4E94" name="sparkles" size={14} style={{ opacity: 0.6 }} />
+                  </View>
+                </View>
 
                 {/* 4 Astro Metrics Grid */}
                 <View style={styles.metricsBox}>
