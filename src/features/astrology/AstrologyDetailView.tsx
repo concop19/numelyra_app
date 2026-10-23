@@ -182,8 +182,6 @@ function PlanetDetailView({
         <ModeSelector mode={mode} onChange={setMode} />
 
         <View style={styles.planetHero}>
-          <Image accessibilityElementsHidden contentFit="cover" priority="high" source={ASTROLOGY_BACKGROUNDS.planetDetail} style={StyleSheet.absoluteFill} />
-          <LinearGradient colors={['rgba(8,12,47,0.02)', 'rgba(8,12,55,0.2)', 'rgba(8,10,48,0.86)']} locations={[0, 0.48, 1]} pointerEvents="none" style={StyleSheet.absoluteFill} />
           <View style={styles.planetHeroRow}>
             <View style={styles.planetArtStage}>
               <View pointerEvents="none" style={styles.planetAura} />
@@ -398,11 +396,11 @@ const styles = StyleSheet.create({
   modeLabelActive: { color: '#FFFFFF' },
   modeCaption: { color: '#777593', fontSize: 9, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginTop: 3 },
   modeCaptionActive: { color: '#FCE2AB' },
-  planetHero: { paddingHorizontal: 8, paddingTop: 10, paddingBottom: 8, borderRadius: 28, borderWidth: 1, borderColor: 'rgba(201,167,255,0.58)', overflow: 'hidden', shadowColor: '#B77CFF', shadowOpacity: 0.34, shadowRadius: 22, elevation: 7 },
+  planetHero: { paddingHorizontal: 8, paddingTop: 10, paddingBottom: 8 },
   planetHeroRow: { width: '100%', minHeight: 290, flexDirection: 'row', alignItems: 'center', zIndex: 2 },
   planetArtStage: { width: '55%', minHeight: 290, alignItems: 'center', justifyContent: 'center' },
   planetAura: { position: 'absolute', width: 124, height: 124, borderRadius: 62, backgroundColor: 'rgba(167,111,255,0.2)', shadowColor: '#FFD69B', shadowOpacity: 0.74, shadowRadius: 28, elevation: 10 },
-  planetEmblemWrap: { width: '120%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', shadowColor: '#F8C98C', shadowOpacity: 0.72, shadowRadius: 22, elevation: 12 },
+  planetEmblemWrap: { width: '120%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center' },
   planetEmblem: { width: '94%', height: '94%' },
   planetCopy: { width: '45%', minHeight: 290, alignItems: 'center', justifyContent: 'center', position: 'relative', paddingHorizontal: 3 },
   planetConstellationHalo: { position: 'absolute', width: 146, height: 146, top: 8, alignSelf: 'center', opacity: 0.48 },

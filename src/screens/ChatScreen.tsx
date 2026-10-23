@@ -59,6 +59,7 @@ import {
   clearChatHistory,
   loadChatHistory,
   MAX_STORED_CHAT_MESSAGES,
+  orderChatHistoryMessages,
   saveChatHistory,
 } from '../services/chatHistoryStorage';
 import { useLocalization } from '../i18n/LocalizationContext';
@@ -79,6 +80,8 @@ export interface MessageItem {
   sender: 'user' | 'mascot';
   text: string;
   time: string;
+  turnId?: string;
+  createdAt?: number;
   card?: any;
   isTypingCompleted?: boolean;
 }
@@ -727,6 +730,7 @@ export default function ChatScreen({
 
   // Messages & States
   const [messages, setMessages] = useState<MessageItem[]>([]);
+  const chatTurnSequenceRef = useRef(0);
   const [loveCompatibilityFlow, setLoveCompatibilityFlow] = useState<LoveCompatibilityFlowState | null>(null);
   const loveCompatibilityFlowDismissedRef = useRef(false);
   const [visibleMessageCount, setVisibleMessageCount] = useState(1);
@@ -877,7 +881,7 @@ export default function ChatScreen({
   }, []);
 
   const appendMessage = useCallback((message: MessageItem) => {
-    setMessages(prev => [...prev, message].slice(-MAX_STORED_CHAT_MESSAGES));
+    setMessages(prev => orderChatHistoryMessages([...prev, message]).slice(-MAX_STORED_CHAT_MESSAGES));
     setVisibleMessageCount(message.sender === 'mascot' ? 2 : 1);
   }, []);
 
@@ -1311,11 +1315,16 @@ export default function ChatScreen({
       setIsListening(false);
     }
 
+    const turnCreatedAt = Date.now();
+    const turnSequence = chatTurnSequenceRef.current++;
+    const turnId = `turn-${turnCreatedAt}-${turnSequence}`;
     const userMsg: MessageItem = {
-      id: `user-${Date.now()}`,
+      id: `user-${turnCreatedAt}-${turnSequence}`,
       sender: 'user',
       text: prompt,
-      time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+      time: new Date(turnCreatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+      turnId,
+      createdAt: turnCreatedAt,
     };
 
     appendMessage(userMsg);
@@ -1391,6 +1400,8 @@ export default function ChatScreen({
         sender: 'mascot',
         text: decision.replyText || 'Câu hỏi của bạn chưa có chủ đề rõ ràng. Bạn có thể cho Tiểu Linh Miêu biết điều bạn đang muốn tìm hiểu không?',
         time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        turnId,
+        createdAt: Date.now(),
         isTypingCompleted: false
       });
       setLoading(false);
@@ -1412,6 +1423,8 @@ export default function ChatScreen({
           sender: 'mascot',
           text: '✦ TIỂU LINH MIÊU CẦN VỊ TRÍ HIỆN TẠI:\nĐể lọc địa điểm theo khoảng cách thực tế, bạn hãy cho phép dùng vị trí một lần nhé.',
           time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+          turnId,
+          createdAt: Date.now(),
           isTypingCompleted: false,
         });
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
@@ -1443,7 +1456,8 @@ export default function ChatScreen({
     // Start the ritual immediately. The cards are already fixed locally and
     // travel to the API with this request, so the user can reveal them while
     // the personalized interpretation is still being generated.
-    const tarotMessageId = `mascot-${Date.now()}`;
+    const tarotMessageCreatedAt = Date.now();
+    const tarotMessageId = `mascot-${tarotMessageCreatedAt}-${turnSequence}`;
     if (drawnCards.length > 0) {
       waitsForTarotReveal = true;
       setPendingTarotReveal({ messageId: tarotMessageId, cards: drawnCards });
@@ -1517,6 +1531,8 @@ export default function ChatScreen({
           text: data.data.replyText,
           card: cardPayload,
           time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+          turnId,
+          createdAt: tarotMessageCreatedAt,
           isTypingCompleted: decision.mode === 'compatibility' || drawnCards.length > 0
         };
         appendMessage(mascotMsg);
@@ -1553,6 +1569,8 @@ export default function ChatScreen({
         text: synthesis.text,
         card: synthesis.card ? { ...synthesis.card, questionText: prompt } : { questionText: prompt },
         time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        turnId,
+        createdAt: tarotMessageCreatedAt,
         isTypingCompleted: decision.mode === 'compatibility' || drawnCards.length > 0
       };
       appendMessage(mascotMsg);

@@ -16,7 +16,6 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import ThreeDButton from '../../components/ThreeDButton';
 import type { AstroFortuneSlip } from '../../services/astro/astroFortuneService';
 import type { DailyInsight } from './dailyInsight';
 import type { DailyAstroMetricId } from '../../services/astro/dailyMetricEngine';
@@ -378,6 +377,7 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
                 contentContainerStyle={[
                   styles.contentContainer,
                   isCompact && styles.contentContainerCompact,
+                  styles.page2ContentContainer,
                 ]}
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
@@ -506,29 +506,29 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
                   <Text style={styles.evidenceDesc}>{insight.canChiEvidence}</Text>
                 </View>
 
-                {/* Ask AI Button */}
-                <View style={styles.askButtonContainer}>
-                  <ThreeDButton
+                <View style={styles.page2ActionsRow}>
+                  <TouchableOpacity
                     accessibilityLabel={t('daily.ask')}
-                    fullWidth
-                    label={t('daily.ask')}
-                    leadingIcon={<Ionicons color="#3B260D" name="chatbubble-ellipses" size={16} />}
+                    accessibilityRole="button"
+                    activeOpacity={0.8}
                     onPress={() => onAsk(insight.suggestedQuestions[0])}
-                    shape="pill"
-                    size={isCompact ? 'sm' : 'md'}
-                    variant="gold"
-                  />
-                </View>
+                    style={[styles.pageFlipBackButton, styles.askButton]}
+                  >
+                    <Ionicons color="#735118" name="chatbubble-ellipses" size={12} />
+                    <Text style={[styles.pageFlipBackButtonText, styles.askButtonText]}>
+                      {t('daily.ask')}
+                    </Text>
+                  </TouchableOpacity>
 
-                {/* Flip Back Button */}
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => flipToPage(1)}
-                  style={styles.pageFlipBackButton}
-                >
-                  <Ionicons color="#553A82" name="arrow-back" size={14} />
-                  <Text style={styles.pageFlipButtonText}>Quay lại thông điệp</Text>
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => flipToPage(1)}
+                    style={styles.pageFlipBackButton}
+                  >
+                    <Ionicons color="#553A82" name="arrow-back" size={12} />
+                    <Text style={styles.pageFlipBackButtonText}>Quay lại thông điệp</Text>
+                  </TouchableOpacity>
+                </View>
 
                 {/* Pagination Dots */}
                 <View style={styles.paginationRow}>
@@ -620,7 +620,11 @@ const styles = StyleSheet.create({
   },
   contentContainerCompact: {
     paddingTop: '5%',
-    paddingBottom: '6%',
+    paddingBottom: '10%',
+  },
+  page2ContentContainer: {
+    flexGrow: 1,
+    justifyContent: 'space-between',
   },
 
   // Eyebrow Badge
@@ -1008,20 +1012,37 @@ const styles = StyleSheet.create({
     color: '#553A82',
   },
 
-  // Page 2 Flip Back Button
+  page2ActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    gap: 8,
+    marginVertical: 4,
+  },
   pageFlipBackButton: {
+    flex: 1,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 4,
     backgroundColor: 'rgba(237, 231, 246, 0.85)',
     borderColor: '#D1C4E9',
     borderWidth: 1,
     borderRadius: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 8,
+    paddingVertical: 7,
+    paddingHorizontal: 6,
+  },
+  askButton: {
+    backgroundColor: 'rgba(254, 246, 216, 0.9)',
+    borderColor: '#F0D486',
+  },
+  pageFlipBackButtonText: {
+    flexShrink: 1,
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#553A82',
+    textAlign: 'center',
   },
 
   // Pagination Dots
@@ -1220,9 +1241,8 @@ const styles = StyleSheet.create({
   },
 
   // Ask Button
-  askButtonContainer: {
-    width: '94%',
-    marginVertical: 4,
+  askButtonText: {
+    color: '#735118',
   },
 
   disclaimerText: {
@@ -1233,4 +1253,3 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
-
