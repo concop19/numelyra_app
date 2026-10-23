@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, View, Image, Animated, Platform, Pressable } from 'react-native';
+import { StyleSheet, View, Image, Animated, Platform, Pressable, Text } from 'react-native';
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
@@ -17,6 +17,8 @@ export interface ChatMoonButtonProps {
   onPress?: () => void;
   style?: any;
   attention?: boolean;
+  attentionHint?: string;
+  showAttentionHint?: boolean;
   accessibilityLabel?: string;
   accessibilityHint?: string;
 }
@@ -25,12 +27,15 @@ export function ChatMoonButton({
   onPress,
   style,
   attention = false,
+  attentionHint = 'Lời nhắn hôm nay ✨',
+  showAttentionHint = attention,
   accessibilityLabel = 'Thông điệp hôm nay',
   accessibilityHint = 'Chạm vào mặt trăng để xem thông điệp hôm nay',
 }: ChatMoonButtonProps) {
   const moonGlowAnim = useRef(new Animated.Value(0.92)).current;
   const moonFloatAnim = useRef(new Animated.Value(0)).current;
-  const attentionGlowAnim = useRef(new Animated.Value(0)).current;
+  const attentionPulseAnim = useRef(new Animated.Value(0)).current;
+  const attentionHintAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const moonLoop = Animated.loop(
       Animated.sequence([
@@ -71,28 +76,61 @@ export function ChatMoonButton({
 
   useEffect(() => {
     if (!attention) {
-      attentionGlowAnim.setValue(0);
+      attentionPulseAnim.setValue(0);
       return;
     }
 
+    attentionPulseAnim.setValue(0);
     const attentionLoop = Animated.loop(
       Animated.sequence([
-        Animated.timing(attentionGlowAnim, {
+        Animated.delay(6_500),
+        Animated.timing(attentionPulseAnim, {
           toValue: 1,
-          duration: 750,
+          duration: 220,
           useNativeDriver: USE_NATIVE_DRIVER,
         }),
-        Animated.timing(attentionGlowAnim, {
-          toValue: 0.2,
-          duration: 950,
+        Animated.delay(1_900),
+        Animated.timing(attentionPulseAnim, {
+          toValue: 0,
+          duration: 320,
           useNativeDriver: USE_NATIVE_DRIVER,
         }),
+        Animated.delay(18_060),
       ])
     );
 
     attentionLoop.start();
     return () => attentionLoop.stop();
-  }, [attention, attentionGlowAnim]);
+  }, [attention, attentionPulseAnim]);
+
+  useEffect(() => {
+    if (!attention || !showAttentionHint) {
+      attentionHintAnim.setValue(0);
+      return;
+    }
+
+    attentionHintAnim.setValue(0);
+    const hintLoop = Animated.loop(
+      Animated.sequence([
+        Animated.delay(700),
+        Animated.timing(attentionHintAnim, {
+          toValue: 1,
+          duration: 280,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+        Animated.delay(3_200),
+        Animated.timing(attentionHintAnim, {
+          toValue: 0,
+          duration: 320,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+        Animated.delay(14_500),
+      ])
+    );
+
+    hintLoop.start();
+    return () => hintLoop.stop();
+  }, [attention, attentionHintAnim, showAttentionHint]);
 
   return (
     <Animated.View style={[styles.moonContainer, style, { transform: [{ translateY: moonFloatAnim }, { scale: moonGlowAnim }] }]}>
@@ -104,25 +142,73 @@ export function ChatMoonButton({
         accessibilityHint={accessibilityHint}
         style={({ pressed }) => [styles.moonButton, pressed && { opacity: 0.7 }]}
       >
-        {attention && (
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              styles.moonAttentionGlow,
-              {
-                opacity: attentionGlowAnim,
-                transform: [{
-                  scale: attentionGlowAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.78, 1.24],
-                  }),
-                }],
-              },
-            ]}
-          />
-        )}
         <Image source={MOON_TOP_LEFT} resizeMode="contain" style={styles.moonImage} />
+        {attention && (
+          <View pointerEvents="none" style={styles.moonAttentionBadgeWrap}>
+            <Animated.View
+              style={[
+                styles.moonAttentionRing,
+                {
+                  opacity: attentionPulseAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 0.65],
+                  }),
+                  transform: [{
+                    scale: attentionPulseAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1, 2.1],
+                    }),
+                  }],
+                },
+              ]}
+            />
+            <Animated.View
+              style={[
+                styles.moonAttentionDot,
+                {
+                  opacity: attentionPulseAnim,
+                  transform: [{
+                    scale: attentionPulseAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.72, 1.18],
+                    }),
+                  }],
+                },
+              ]}
+            />
+          </View>
+        )}
       </Pressable>
+      {attention && showAttentionHint && (
+        <Animated.View
+          pointerEvents="none"
+          accessible={false}
+          importantForAccessibility="no-hide-descendants"
+          style={[
+            styles.moonAttentionHint,
+            {
+              opacity: attentionHintAnim,
+              transform: [
+                {
+                  translateY: attentionHintAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-4, 0],
+                  }),
+                },
+                {
+                  scale: attentionHintAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.96, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <View style={styles.moonAttentionHintArrow} />
+          <Text numberOfLines={2} style={styles.moonAttentionHintText}>{attentionHint}</Text>
+        </Animated.View>
+      )}
     </Animated.View>
   );
 }
@@ -236,17 +322,78 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  moonAttentionGlow: {
+  moonAttentionBadgeWrap: {
     position: 'absolute',
-    width: 86,
-    height: 86,
-    borderRadius: 43,
-    backgroundColor: 'rgba(255, 220, 146, 0.28)',
-    shadowColor: '#FFE2A0',
+    top: 1,
+    right: 0,
+    width: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 4,
+  },
+  moonAttentionRing: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#FF4B67',
+  },
+  moonAttentionDot: {
+    width: 11,
+    height: 11,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: '#FFF1E6',
+    backgroundColor: '#FF375F',
+    shadowColor: '#FF5472',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 20,
-    elevation: 12,
+    shadowOpacity: 0.95,
+    shadowRadius: 5,
+    elevation: 6,
+  },
+  moonAttentionHint: {
+    position: 'absolute',
+    top: 43,
+    left: 52,
+    width: 148,
+    minHeight: 34,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 220, 155, 0.78)',
+    backgroundColor: 'rgba(42, 19, 75, 0.96)',
+    shadowColor: '#120827',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.55,
+    shadowRadius: 9,
+    elevation: 10,
+  },
+  moonAttentionHintArrow: {
+    position: 'absolute',
+    top: 8,
+    left: -5,
+    width: 10,
+    height: 10,
+    borderBottomWidth: 1,
+    borderLeftWidth: 1,
+    borderColor: 'rgba(255, 220, 155, 0.78)',
+    backgroundColor: 'rgba(42, 19, 75, 0.96)',
+    transform: [{ rotate: '45deg' }],
+  },
+  moonAttentionHintText: {
+    color: '#FFF3D2',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '800',
+    letterSpacing: 0.15,
+    textAlign: 'center',
+    textShadowColor: 'rgba(255, 220, 155, 0.26)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   moonImage: {
     width: '100%',

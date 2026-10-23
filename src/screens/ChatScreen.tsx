@@ -14,7 +14,7 @@ import {
   StyleSheet, View, Text, TextInput, TouchableOpacity,
   FlatList, KeyboardAvoidingView, Platform, Keyboard,
   Animated, Easing, Image, Alert, ScrollView, Modal, Linking,
-  ActivityIndicator, type ImageSourcePropType
+  ActivityIndicator, useWindowDimensions, type ImageSourcePropType
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -49,6 +49,7 @@ import FlameMascot, {
   FLAME_COLOR_PALETTES,
 } from '../components/chat/FlameMascot';
 import MeteorShower from '../components/chat/MeteorShower';
+import FloatingWallpaperCloud from '../components/FloatingWallpaperCloud';
 import ChatInputBar from '../components/chat/ChatInputBar';
 import HighlightedAnswerText from '../components/chat/HighlightedAnswerText';
 import { PlaceSearchContextModal } from '../components/chat/PlaceSearchContextModal';
@@ -107,8 +108,18 @@ type AmbientMascotState = 'idle' | 'thinking' | 'answer';
 
 const CHAT_MASCOT_SIZE = 175;
 const THINKING_MASCOT_SIZE = 185;
+const CHAT_MASCOT_SIDE_UI_GUTTER = 52;
+const CHAT_MASCOT_MAX_WIDTH_RATIO = 1.9;
 const SPECIAL_MASCOT_DURATION_MS = 10_000;
 const SPECIAL_MASCOT_IDLE_REST_MS = 3_000;
+
+const getMascotMaxVisualWidth = (size: number, viewportWidth: number) => Math.max(
+  size,
+  Math.min(
+    size * CHAT_MASCOT_MAX_WIDTH_RATIO,
+    viewportWidth - (CHAT_MASCOT_SIDE_UI_GUTTER * 2)
+  )
+);
 
 interface Props {
   profile?: UserProfile;
@@ -168,7 +179,6 @@ const SceneActionButton: React.FC<SceneActionButtonProps> = ({
 );
 
 interface ChatSceneActionsProps {
-  alignWithCenter: boolean;
   onOpenCalendar?: () => void;
   onOpenAstrology?: () => void;
   onOpenWallpaper?: () => void;
@@ -176,7 +186,6 @@ interface ChatSceneActionsProps {
 }
 
 const ChatSceneActions: React.FC<ChatSceneActionsProps> = ({
-  alignWithCenter,
   onOpenCalendar,
   onOpenAstrology,
   onOpenWallpaper,
@@ -186,10 +195,7 @@ const ChatSceneActions: React.FC<ChatSceneActionsProps> = ({
   return (
   <View
     pointerEvents="box-none"
-    style={[
-      styles.sceneActionsOverlay,
-      alignWithCenter ? styles.sceneActionsCentered : styles.sceneActionsBottom,
-    ]}
+    style={[styles.sceneActionsOverlay, styles.sceneActionsBottom]}
   >
     <View style={styles.sceneActionRail} pointerEvents="box-none">
       <SceneActionButton
@@ -615,8 +621,11 @@ export default function ChatScreen({
   onContinueReading,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { width: viewportWidth } = useWindowDimensions();
   const { user } = useAuth();
   const { locale, t, l } = useLocalization();
+  const chatMascotMaxVisualWidth = getMascotMaxVisualWidth(CHAT_MASCOT_SIZE, viewportWidth);
+  const thinkingMascotMaxVisualWidth = getMascotMaxVisualWidth(THINKING_MASCOT_SIZE, viewportWidth);
   const chatHistoryOwner = user?.id || 'guest';
   const [isPro, setIsPro] = useState(false);
   const [dailyClock, setDailyClock] = useState(() => new Date());
@@ -764,7 +773,10 @@ export default function ChatScreen({
   }, []);
 
   useEffect(() => {
-    if (!dailyInsight || !isHistoryReady) return;
+    if (!dailyInsight || !isHistoryReady) {
+      setIsDailyInsightUnseen(false);
+      return;
+    }
     let active = true;
     setIsDailyInsightUnseen(false);
     void cacheDailyInsight(AsyncStorage, dailyInsight).catch(() => undefined);
@@ -778,9 +790,6 @@ export default function ChatScreen({
     AsyncStorage.getItem(seenKey).then((seen) => {
       if (!active) return;
       setIsDailyInsightUnseen(!seen);
-      if (seen) return;
-      setDailySheetVisible(true);
-      return AsyncStorage.setItem(seenKey, '1');
     }).catch(() => undefined);
     return () => { active = false; };
   }, [dailyInsight?.dateKey, dailyInsight?.profileKey, isHistoryReady, openDailyDate]);
@@ -800,6 +809,8 @@ export default function ChatScreen({
     }
     setDailySheetVisible(true);
     setIsDailyInsightUnseen(false);
+    const seenKey = `@numelyra:daily-insight-seen:${dailyInsight.profileKey}:${dailyInsight.dateKey}`;
+    void AsyncStorage.setItem(seenKey, '1').catch(() => undefined);
   }, [dailyInsight, dailyProfile, locale]);
 
   // Theo dõi trạng thái hiển thị bàn phím để tự động thu gọn Mascot và tối ưu không gian cho ô soạn thảo
@@ -2046,6 +2057,16 @@ export default function ChatScreen({
     <View style={styles.outerScreenWrap}>
       {/* 🌟 1. BỐI CẢNH ĐÊM 3 LỚP PARALLAX + MOON + STARS */}
       <ChatSceneBackground />
+      <View pointerEvents="none" style={styles.chatCloudLayer}>
+        <FloatingWallpaperCloud
+          width={210}
+          topRatio={0.12}
+          minTop={72}
+          driftDurationMs={26_000}
+          pauseDurationMs={18_000}
+          opacity={0.42}
+        />
+      </View>
       <MeteorShower
         burstKey={meteorBurstKey}
         color={activeMascotPalette.outline}
@@ -2115,7 +2136,6 @@ export default function ChatScreen({
 
           {!isKeyboardVisible ? (
             <ChatSceneActions
-              alignWithCenter={isZeroState}
               onOpenCalendar={onOpenCalendar}
               onOpenAstrology={onOpenAstrology}
               onOpenWallpaper={onOpenWallpaper}
@@ -2124,21 +2144,9 @@ export default function ChatScreen({
           ) : null}
 
           {isZeroState && !loading && !isKeyboardVisible ? (
-            <View style={styles.emptyMascotStage} pointerEvents="box-none">
+            <View style={styles.emptyWelcomeStage} pointerEvents="none">
               <Text style={styles.welcomeHeading}>{t('chat.welcomeHeading')}</Text>
               <Text style={styles.welcomeParagraph}>{t('chat.welcomeParagraph')}</Text>
-              <TouchableOpacity
-                onPress={handleMascotPress}
-                accessibilityLabel={t('chat.openCards')}
-              >
-                <FlameMascot
-                  state={ambientMascotState}
-                  size={CHAT_MASCOT_SIZE}
-                  paletteIndex={mascotPaletteIndex}
-                  specialAnimationActive={showSpecialMascotAnimation}
-                  specialAnimationIndex={specialMascotAnimationIndex}
-                />
-              </TouchableOpacity>
             </View>
           ) : null}
 
@@ -2147,12 +2155,14 @@ export default function ChatScreen({
               <FlameMascot
                 state="thinking"
                 size={THINKING_MASCOT_SIZE}
+                glowVariant="candle"
                 paletteIndex={mascotPaletteIndex}
+                maxVisualWidth={thinkingMascotMaxVisualWidth}
               />
             </View>
           ) : null}
 
-          {!isZeroState && !loading && !isKeyboardVisible ? (
+          {!loading && !isKeyboardVisible ? (
             <View style={styles.restingMascotStage} pointerEvents="box-none">
               <TouchableOpacity
                 activeOpacity={0.7}
@@ -2163,9 +2173,11 @@ export default function ChatScreen({
                 <FlameMascot
                   state={speakingMessageId ? 'speaking' : ambientMascotState}
                   size={CHAT_MASCOT_SIZE}
+                  glowVariant="candle"
                   paletteIndex={mascotPaletteIndex}
                   specialAnimationActive={showSpecialMascotAnimation}
                   specialAnimationIndex={specialMascotAnimationIndex}
+                  maxVisualWidth={chatMascotMaxVisualWidth}
                 />
               </TouchableOpacity>
             </View>
@@ -2440,7 +2452,9 @@ export default function ChatScreen({
 
       <ChatMoonButton
         onPress={handleOpenTodayMessage}
-        attention={isDailyInsightUnseen}
+        attention
+        attentionHint={l('Lời nhắn hôm nay ✨', "Today's message ✨")}
+        showAttentionHint={!isKeyboardVisible}
         style={{ top: insets.top > 0 ? insets.top + 4 : 14 }}
         accessibilityLabel={t('daily.cardEyebrow')}
         accessibilityHint={l('Chạm vào mặt trăng để xem thông điệp hôm nay', 'Tap the moon to view today’s message')}
@@ -2476,6 +2490,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent',
+    overflow: 'hidden',
+    zIndex: 2,
+  },
+  chatCloudLayer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     overflow: 'hidden',
     zIndex: 1,
   },
@@ -2588,10 +2611,6 @@ const styles = StyleSheet.create({
     zIndex: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
-  },
-  sceneActionsCentered: {
-    alignItems: 'center',
-    paddingBottom: 6,
   },
   sceneActionsBottom: {
     alignItems: 'flex-end',
@@ -2744,15 +2763,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
   },
-  emptyMascotStage: {
+  emptyWelcomeStage: {
     position: 'absolute',
-    top: 0,
+    top: '29%',
     right: 0,
-    bottom: 0,
     left: 0,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingBottom: 24,
+    paddingHorizontal: 24,
   },
   thinkingMascotStage: {
     position: 'absolute',

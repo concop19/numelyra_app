@@ -1,12 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { Image, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
-
-const CALENDAR_IDLE_SPRITE = require('../../assets/giao_dien/giaodien1/calender_asset/mascot/idle_3x4.png');
-
-const COLUMNS = 4;
-const ROWS = 3;
-const FRAME_COUNT = COLUMNS * ROWS;
-const FRAME_DURATION_MS = 100;
+import React from 'react';
+import { Image } from 'expo-image';
+import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import { MASCOT_VISUAL_ASSETS, resolveMascotVisualLayout } from './chat/mascotVisualLayout';
 
 interface Props {
   size?: number;
@@ -14,25 +9,13 @@ interface Props {
   active?: boolean;
 }
 
-/** Plays the 4 x 3 idle sprite sheet prepared for the calendar scene. */
+/** Reuses the animated idle WebP shown in the chat scene. */
 export default function CalendarMascotSprite({ size = 112, style, active = true }: Props) {
-  const [frameIndex, setFrameIndex] = useState(0);
-
-  useEffect(() => {
-    if (!active) {
-      setFrameIndex(0);
-      return undefined;
-    }
-
-    const timer = setInterval(() => {
-      setFrameIndex((current) => (current + 1) % FRAME_COUNT);
-    }, FRAME_DURATION_MS);
-
-    return () => clearInterval(timer);
-  }, [active]);
-
-  const column = frameIndex % COLUMNS;
-  const row = Math.floor(frameIndex / COLUMNS);
+  const idleAsset = MASCOT_VISUAL_ASSETS.defaultIdle;
+  const visualLayout = resolveMascotVisualLayout(idleAsset, {
+    stageSize: size,
+    visibleHeightRatio: 1,
+  });
 
   return (
     <View
@@ -42,15 +25,16 @@ export default function CalendarMascotSprite({ size = 112, style, active = true 
       importantForAccessibility="no-hide-descendants"
     >
       <Image
-        source={CALENDAR_IDLE_SPRITE}
-        fadeDuration={0}
-        resizeMode="stretch"
+        source={idleAsset.source}
+        autoplay={active}
+        contentFit="contain"
+        contentPosition="center"
         style={{
           position: 'absolute',
-          left: -column * size,
-          top: -row * size,
-          width: size * COLUMNS,
-          height: size * ROWS,
+          left: visualLayout.left,
+          top: visualLayout.top,
+          width: visualLayout.width,
+          height: visualLayout.height,
         }}
       />
     </View>

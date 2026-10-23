@@ -184,7 +184,7 @@ function PlanetDetailView({
         <View style={styles.planetHero}>
           <View style={styles.planetHeroRow}>
             <View style={styles.planetArtStage}>
-              <View pointerEvents="none" style={styles.planetAura} />
+              {planetId !== 'Moon' && <View pointerEvents="none" style={styles.planetAura} />}
               <View style={styles.planetEmblemWrap}>
                 <Image accessibilityLabel={`${l('Hành tinh', 'Planet')} ${locale === 'en' ? info.id : info.nameVi}`} contentFit="contain" source={PLANET_PNG[planetId]} style={styles.planetEmblem} />
               </View>

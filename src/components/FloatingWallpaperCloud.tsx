@@ -8,11 +8,28 @@ const FRAME_COUNT = 6;
 const FRAME_WIDTH = 357;
 const FRAME_HEIGHT = FRAME_WIDTH * 724 / (2172 / FRAME_COUNT);
 
+interface Props {
+  width?: number;
+  topRatio?: number;
+  minTop?: number;
+  driftDurationMs?: number;
+  pauseDurationMs?: number;
+  opacity?: number;
+}
+
 /** A slow cloud drifting through the input view's background. */
-export default function FloatingWallpaperCloud() {
+export default function FloatingWallpaperCloud({
+  width = FRAME_WIDTH,
+  topRatio = 0.25,
+  minTop = 150,
+  driftDurationMs = 22_000,
+  pauseDurationMs = 0,
+  opacity = 1,
+}: Props) {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const [frame, setFrame] = useState(0);
-  const driftX = useRef(new Animated.Value(-FRAME_WIDTH)).current;
+  const driftX = useRef(new Animated.Value(-width)).current;
+  const frameHeight = width * FRAME_HEIGHT / FRAME_WIDTH;
 
   useEffect(() => {
     const frameTimer = setInterval(() => {
@@ -23,24 +40,31 @@ export default function FloatingWallpaperCloud() {
   }, []);
 
   useEffect(() => {
-    driftX.setValue(-FRAME_WIDTH);
-    const drift = Animated.loop(Animated.timing(driftX, {
+    driftX.setValue(-width);
+    const crossing = Animated.timing(driftX, {
       toValue: screenWidth + 24,
-      duration: 22_000,
+      duration: driftDurationMs,
       easing: Easing.linear,
       useNativeDriver: true,
-    }));
+      isInteraction: false,
+    });
+    const drift = Animated.loop(
+      pauseDurationMs > 0
+        ? Animated.sequence([crossing, Animated.delay(pauseDurationMs)])
+        : crossing
+    );
     drift.start();
 
     return () => drift.stop();
-  }, [driftX, screenWidth]);
+  }, [driftDurationMs, driftX, pauseDurationMs, screenWidth, width]);
 
   return <Animated.View
     pointerEvents="none"
     style={[styles.drifter, {
-      top: Math.max(150, screenHeight * 0.25),
-      width: FRAME_WIDTH,
-      height: FRAME_HEIGHT,
+      top: Math.max(minTop, screenHeight * topRatio),
+      width,
+      height: frameHeight,
+      opacity,
       transform: [{ translateX: driftX }],
     }]}
   >
@@ -50,9 +74,9 @@ export default function FloatingWallpaperCloud() {
         fadeDuration={0}
         resizeMode="stretch"
         style={{
-          width: FRAME_WIDTH * FRAME_COUNT,
-          height: FRAME_HEIGHT,
-          transform: [{ translateX: -frame * FRAME_WIDTH }],
+          width: width * FRAME_COUNT,
+          height: frameHeight,
+          transform: [{ translateX: -frame * width }],
         }}
       />
     </View>

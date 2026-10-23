@@ -48,7 +48,8 @@ export const ChatInputBar: React.FC<Props> = ({
         variant="purple"
         size="md"
         shape="circle"
-        diameter={50}
+        diameter={44}
+        highlightColor="rgba(216, 190, 255, 0.14)"
         leadingIcon={<Ionicons name="add" size={28} color="#FFFFFF" />}
         accessibilityLabel="Mở menu tính năng nhanh"
         style={styles.circlePlusButton}
@@ -62,11 +63,10 @@ export const ChatInputBar: React.FC<Props> = ({
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor="rgba(200, 190, 230, 0.55)"
-          returnKeyType="send"
-          onSubmitEditing={() => {
-            handleSend();
-          }}
-          multiline={false}
+          returnKeyType="default"
+          multiline={true}
+          maxLength={2000}
+          textAlignVertical="center"
           editable={!disabled && !isLoading}
           autoCorrect={false}
           cursorColor="#F7CC6A"
@@ -93,7 +93,7 @@ export const ChatInputBar: React.FC<Props> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 4,
@@ -101,18 +101,22 @@ const styles = StyleSheet.create({
   },
   circlePlusButton: {
     marginRight: 8,
+    marginBottom: 0,
   },
   inputWrapper: {
     flex: 1,
-    height: 58,
-    borderRadius: 29,
+    minHeight: 54,
+    maxHeight: 120,
+    borderRadius: 27,
     backgroundColor: 'rgba(53, 31, 108, 0.7)',
     borderWidth: 1,
     borderColor: 'rgba(181, 139, 244, 0.35)',
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingLeft: 22,
+    alignItems: 'flex-end',
+    paddingLeft: 20,
     paddingRight: 5,
+    paddingTop: 5,
+    paddingBottom: 5,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -122,12 +126,17 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     fontSize: 15,
+    lineHeight: 20,
     color: '#F7F3FF',
     fontWeight: '400',
-    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
+    paddingTop: Platform.OS === 'ios' ? 12 : 8,
+    paddingBottom: Platform.OS === 'ios' ? 12 : 8,
+    paddingRight: 8,
+    textAlignVertical: 'center',
   },
   circleSendButton: {
     flexShrink: 0,
+    marginBottom: 0,
   },
 });
 

@@ -14,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { AstroFortuneSlip } from '../../services/astro/astroFortuneService';
 import type { DailyInsight } from './dailyInsight';
@@ -24,7 +24,6 @@ import { useLocalization } from '../../i18n/LocalizationContext';
 const JOURNAL_TEMPLATE = require('../../../assets/Dreamy Purple Lined Journal Template.png');
 const FLAME_MASCOT = require('../../../assets/giao_dien/daily-insight/flame-dreamy-mascot.png');
 const TITLE_ENERGY_ART = require('../../../assets/giao_dien/daily-insight/title-energy-art.png');
-const EYEBROW_PILL_ART = require('../../../assets/giao_dien/daily-insight/eyebrow-pill-art.png');
 const BADGE_VERSE = require('../../../assets/giao_dien/daily-insight/badge-verse.png');
 const BADGE_MIRROR = require('../../../assets/giao_dien/daily-insight/badge-mirror.png');
 
@@ -51,6 +50,7 @@ interface Props {
 export default function DailyInsightSheet({ visible, insight, fortune, onClose, onAsk }: Props) {
   const { t, formatDate, locale } = useLocalization();
   const { height, width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const [currentPage, setCurrentPage] = useState<1 | 2>(1);
   const [selectedMetric, setSelectedMetric] = useState<DailyAstroMetricId | null>(null);
 
@@ -98,7 +98,10 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
 
   const isCompact = height < 750 || width < 360;
   const sheetWidth = Math.min(width - 24, 430);
-  const sheetHeight = Math.min(height - 40, sheetWidth * (1672 / 941));
+  const availableHeight = height - insets.top - insets.bottom - 24;
+  const sheetHeight = Math.min(availableHeight, sheetWidth * (1672 / 941));
+  const paperTopInset = Math.max(24, Math.round(sheetHeight * 0.055));
+  const paperBottomInset = Math.max(28, Math.round(sheetHeight * 0.07));
 
   // Page 1 3D transform (flips leftwards)
   const page1RotateY = flipAnim.interpolate({
@@ -129,7 +132,13 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
       transparent
       visible={visible}
     >
-      <SafeAreaView accessibilityViewIsModal edges={['top', 'right', 'bottom', 'left']} style={styles.overlay}>
+      <View
+        accessibilityViewIsModal
+        style={[
+          styles.overlay,
+          { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12 },
+        ]}
+      >
         <TouchableOpacity
           accessibilityLabel={t('common.close')}
           activeOpacity={1}
@@ -180,26 +189,22 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
                 contentContainerStyle={[
                   styles.contentContainer,
                   isCompact && styles.contentContainerCompact,
+                  styles.page1ContentContainer,
                 ]}
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
+                style={[
+                  styles.pageScroll,
+                  { marginTop: paperTopInset, marginBottom: paperBottomInset },
+                ]}
               >
                 {/* Header: Eyebrow Badge */}
                 <View style={styles.eyebrowRow}>
-                  {locale === 'vi' ? (
-                    <Image
-                      accessible={false}
-                      contentFit="contain"
-                      source={EYEBROW_PILL_ART}
-                      style={[styles.eyebrowArt, isCompact && styles.eyebrowArtCompact]}
-                    />
-                  ) : (
-                    <View style={styles.eyebrowPillFallback}>
-                      <Text style={styles.eyebrowRay}>˗ˏˋ</Text>
-                      <Text style={styles.eyebrowTextFallback}>{t('daily.cardEyebrow').toUpperCase()}</Text>
-                      <Text style={styles.eyebrowRay}>ˎˊ˗</Text>
-                    </View>
-                  )}
+                  <View style={styles.eyebrowPillFallback}>
+                    <Text style={styles.eyebrowRay}>˗ˏˋ</Text>
+                    <Text style={styles.eyebrowTextFallback}>{t('daily.cardEyebrow').toUpperCase()}</Text>
+                    <Text style={styles.eyebrowRay}>ˎˊ˗</Text>
+                  </View>
                 </View>
 
                 {/* Header: Title "Năng lượng hôm nay" */}
@@ -381,6 +386,7 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
                 ]}
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
+                style={styles.pageScroll}
               >
                 {/* Page 2 Header */}
                 <View style={styles.p2EyebrowPill}>
@@ -543,7 +549,7 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
             </Animated.View>
           </View>
         </View>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 }
@@ -610,6 +616,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     backfaceVisibility: 'hidden',
   },
+  pageScroll: {
+    flex: 1,
+    minHeight: 0,
+    overflow: 'hidden',
+  },
 
   contentContainer: {
     paddingLeft: '13.5%', // Clearance for spiral binder ring punch holes
@@ -622,6 +633,11 @@ const styles = StyleSheet.create({
     paddingTop: '5%',
     paddingBottom: '10%',
   },
+  page1ContentContainer: {
+    flexGrow: 1,
+    paddingTop: 12,
+    paddingBottom: 36,
+  },
   page2ContentContainer: {
     flexGrow: 1,
     justifyContent: 'space-between',
@@ -633,14 +649,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 2,
     marginBottom: 2,
-  },
-  eyebrowArt: {
-    width: 220,
-    height: 38,
-  },
-  eyebrowArtCompact: {
-    width: 195,
-    height: 34,
   },
   eyebrowPillFallback: {
     flexDirection: 'row',

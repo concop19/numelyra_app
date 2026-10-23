@@ -11,29 +11,32 @@ import {
   ViewStyle,
 } from 'react-native';
 import { useLocalization } from '../../i18n/LocalizationContext';
-
-// Default idle animation — animated WebP loop (sitting peacefully)
-const IDLE_WEBP = require('../../../assets/char/result_Flame_character_sitting_peacefully_1080p_20261017202140_2_ (1)/idle_1.webp');
+import CandleFlameGlow from './CandleFlameGlow';
+import {
+  MASCOT_VISUAL_ASSETS,
+  resolveMascotVisualLayout,
+  type MascotVisualAsset,
+} from './mascotVisualLayout';
 
 export type MascotAnimationItem =
   | {
-      type: 'paired';
-      id: string;
-      idleSource: any;
-      actionSource: any;
-      dialogues: string[];
-      dialoguesEn: string[];
-      preIdleMs?: number;
-      actionMs?: number;
-      postIdleMs?: number;
-    }
+    type: 'paired';
+    id: string;
+    idleAsset: MascotVisualAsset;
+    actionAsset: MascotVisualAsset;
+    dialogues: string[];
+    dialoguesEn: string[];
+    preIdleMs?: number;
+    actionMs?: number;
+    postIdleMs?: number;
+  }
   | {
-      type: 'standalone';
-      id: string;
-      source: any;
-      dialogues: string[];
-      dialoguesEn: string[];
-    };
+    type: 'standalone';
+    id: string;
+    asset: MascotVisualAsset;
+    dialogues: string[];
+    dialoguesEn: string[];
+  };
 
 export const DEFAULT_IDLE_DIALOGUES = [
   'Hôm nay của bạn thế nào? Kể Tiểu Linh Miêu nghe nè ✨',
@@ -54,8 +57,8 @@ export const CHAR_ANIMATIONS: MascotAnimationItem[] = [
   {
     type: 'paired',
     id: 'char_3_football',
-    idleSource: require('../../../assets/char/result_Flame_character_in_football_jersey_20261017202155/preview_3_idle.webp'),
-    actionSource: require('../../../assets/char/preview copy 3.webp'),
+    idleAsset: MASCOT_VISUAL_ASSETS.footballIdle,
+    actionAsset: MASCOT_VISUAL_ASSETS.footballAction,
     preIdleMs: 3_000,
     actionMs: 4_000,
     postIdleMs: 3_000,
@@ -74,8 +77,8 @@ export const CHAR_ANIMATIONS: MascotAnimationItem[] = [
   {
     type: 'paired',
     id: 'char_5_school',
-    idleSource: require('../../../assets/char/result_Flame_character_breathing_idle_1080p_20261017202322/preview_5_idle.webp'),
-    actionSource: require('../../../assets/char/preview copy 5.webp'),
+    idleAsset: MASCOT_VISUAL_ASSETS.schoolIdle,
+    actionAsset: MASCOT_VISUAL_ASSETS.schoolAction,
     preIdleMs: 3_000,
     actionMs: 4_000,
     postIdleMs: 3_000,
@@ -94,8 +97,8 @@ export const CHAR_ANIMATIONS: MascotAnimationItem[] = [
   {
     type: 'paired',
     id: 'char_7_wallet',
-    idleSource: require('../../../assets/char/result_Flame_character_holding_wallet_1080p_20261017202251/preview_7_idle.webp'),
-    actionSource: require('../../../assets/char/preview copy 7.webp'),
+    idleAsset: MASCOT_VISUAL_ASSETS.walletIdle,
+    actionAsset: MASCOT_VISUAL_ASSETS.walletAction,
     preIdleMs: 3_000,
     actionMs: 4_000,
     postIdleMs: 3_000,
@@ -114,8 +117,8 @@ export const CHAR_ANIMATIONS: MascotAnimationItem[] = [
   {
     type: 'paired',
     id: 'char_10_trump_suit',
-    idleSource: require('../../../assets/char/result_Flame_character_wearing_suit_sta__20261017202150/preview_10_idle.webp'),
-    actionSource: require('../../../assets/char/preview copy 10.webp'),
+    idleAsset: MASCOT_VISUAL_ASSETS.suitIdle,
+    actionAsset: MASCOT_VISUAL_ASSETS.suitAction,
     preIdleMs: 3_000,
     actionMs: 4_000,
     postIdleMs: 3_000,
@@ -134,7 +137,7 @@ export const CHAR_ANIMATIONS: MascotAnimationItem[] = [
   {
     type: 'standalone',
     id: 'standalone_preview_1',
-    source: require('../../../assets/char/preview.webp'),
+    asset: MASCOT_VISUAL_ASSETS.crying,
     dialogues: [
       'Người giàu cũng biết khóc mà... đừng bắt tui gồng nữa! 🥺💧',
       'Bên ngoài bảnh bao, bên trong nước mắt chảy thành sông... 😭',
@@ -150,7 +153,7 @@ export const CHAR_ANIMATIONS: MascotAnimationItem[] = [
   {
     type: 'standalone',
     id: 'standalone_preview_2',
-    source: require('../../../assets/char/preview copy.webp'),
+    asset: MASCOT_VISUAL_ASSETS.floorCrying,
     dialogues: [
       'Trầm cảm ngang... Cuộc đời này bất công với bé quá! 😭💔',
       'Cứu bé zới, thế giới này toàn điều làm tổn thương bé thui! 🛌',
@@ -166,7 +169,7 @@ export const CHAR_ANIMATIONS: MascotAnimationItem[] = [
   {
     type: 'standalone',
     id: 'standalone_preview_shotgun',
-    source: require('../../../assets/char/preview copy 2.webp'),
+    asset: MASCOT_VISUAL_ASSETS.shotgun,
     dialogues: [
       'Nói một câu nữa coi? Dịu dàng không muốn lại thích ăn kẹo đồng! 🔫🔥',
       'Đừng đùa với lửa! Chọc tui quạu là tới công chuyện liền nha! 💣',
@@ -182,7 +185,7 @@ export const CHAR_ANIMATIONS: MascotAnimationItem[] = [
   {
     type: 'standalone',
     id: 'standalone_preview_melting',
-    source: require('../../../assets/char/preview copy 4.webp'),
+    asset: MASCOT_VISUAL_ASSETS.melting,
     dialogues: [
       'Hết pin 0%... Tui chính thức biến thành một vũng nước lèo! 🫠',
       'Linh hồn đã rời khỏi thể xác, xin đừng làm phiền lúc này... 🕯️',
@@ -198,7 +201,7 @@ export const CHAR_ANIMATIONS: MascotAnimationItem[] = [
   {
     type: 'standalone',
     id: 'standalone_preview_phone',
-    source: require('../../../assets/char/preview copy 6.webp'),
+    asset: MASCOT_VISUAL_ASSETS.phone,
     dialogues: [
       'Lướt tóp tóp 5 phút thôi mà... ủa sao trôi qua 3 tiếng rồi? 📱🛌',
       'Chuyện gì khó quá thì mình trùm mền nằm lướt điện thoại! 😴',
@@ -214,7 +217,7 @@ export const CHAR_ANIMATIONS: MascotAnimationItem[] = [
   {
     type: 'standalone',
     id: 'standalone_preview_tired',
-    source: require('../../../assets/char/preview copy 8.webp'),
+    asset: MASCOT_VISUAL_ASSETS.tired,
     dialogues: [
       'Đau đầu hoa mắt chóng mặt bủn rủn tay chân vì overthinking! 🤯',
       'Ủa rồi cuộc đời định đưa đẩy tui đi tới đâu nữa dị trời? 🤦‍♂️',
@@ -230,7 +233,7 @@ export const CHAR_ANIMATIONS: MascotAnimationItem[] = [
   {
     type: 'standalone',
     id: 'standalone_preview_party',
-    source: require('../../../assets/char/preview copy 9.webp'),
+    asset: MASCOT_VISUAL_ASSETS.party,
     dialogues: [
       'Chúc mừng sinh nhật tôi... lại già thêm một tuổi rồi nè! 🎂🎈',
       'Thêm một tuổi mới, mong tiền vô như nước tình vô như mơ! ✨',
@@ -254,6 +257,8 @@ interface Props {
   paletteIndex?: number;
   specialAnimationActive?: boolean;
   specialAnimationIndex?: number;
+  glowVariant?: 'legacy' | 'candle';
+  maxVisualWidth?: number;
 }
 
 export type FirePalette = {
@@ -277,6 +282,8 @@ export const FlameMascot: React.FC<Props> = ({
   onPress,
   specialAnimationActive = false,
   specialAnimationIndex,
+  glowVariant = 'legacy',
+  maxVisualWidth,
 }) => {
   const { locale } = useLocalization();
   const [internalAnimationIndex, setInternalAnimationIndex] = useState(0);
@@ -405,6 +412,11 @@ export const FlameMascot: React.FC<Props> = ({
   }, [bounceAnim, state]);
 
   useEffect(() => {
+    if (glowVariant !== 'legacy') {
+      glowPulseAnim.setValue(0.7);
+      return;
+    }
+
     const pulseLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(glowPulseAnim, {
@@ -422,23 +434,28 @@ export const FlameMascot: React.FC<Props> = ({
 
     pulseLoop.start();
     return () => pulseLoop.stop();
-  }, [glowPulseAnim]);
+  }, [glowPulseAnim, glowVariant]);
 
-  let currentImageSource = IDLE_WEBP;
+  let currentVisualAsset = MASCOT_VISUAL_ASSETS.defaultIdle;
   let currentKey = 'default-idle';
 
   if (specialAnimationActive && activeSpecialItem) {
     if (activeSpecialItem.type === 'paired') {
-      currentImageSource =
+      currentVisualAsset =
         subPhase === 'action'
-          ? activeSpecialItem.actionSource
-          : activeSpecialItem.idleSource;
+          ? activeSpecialItem.actionAsset
+          : activeSpecialItem.idleAsset;
       currentKey = `paired-${activeSpecialItem.id}-${subPhase}`;
     } else {
-      currentImageSource = activeSpecialItem.source;
+      currentVisualAsset = activeSpecialItem.asset;
       currentKey = `standalone-${activeSpecialItem.id}`;
     }
   }
+
+  const visualLayout = resolveMascotVisualLayout(currentVisualAsset, {
+    stageSize: size,
+    maxVisualWidth,
+  });
 
   return (
     <Pressable
@@ -482,21 +499,29 @@ export const FlameMascot: React.FC<Props> = ({
         </Animated.View>
       ) : null}
 
-      <Animated.View
-        style={[
-          styles.ambientGlow,
-          {
-            width: size * 1.3,
-            height: size * 0.45,
-            bottom: -size * 0.08,
-            opacity: isPressed ? 1 : glowPulseAnim,
-            transform: [{ scale: isPressed ? 1.18 : 1 }],
-            backgroundColor: isPressed
-              ? 'rgba(255, 145, 45, 0.8)'
-              : 'rgba(255, 195, 100, 0.35)',
-          },
-        ]}
-      />
+      {glowVariant === 'candle' ? (
+        <CandleFlameGlow size={size} state={state} pressed={isPressed} />
+      ) : (
+        <Animated.View
+          style={[
+            styles.ambientGlow,
+            {
+              width: size * 1.2,
+              height: size * 1.2,
+              borderRadius: (size * 1.2) / 2,
+              bottom: -size * 0.52,
+              opacity: isPressed ? 1 : glowPulseAnim,
+              transform: [
+                { scale: isPressed ? 1.15 : 1 },
+                { scaleY: 0.26 },
+              ],
+              backgroundColor: isPressed
+                ? 'rgba(255, 145, 45, 0.75)'
+                : 'rgba(255, 195, 100, 0.32)',
+            },
+          ]}
+        />
+      )}
 
       <Animated.View
         style={[
@@ -508,12 +533,22 @@ export const FlameMascot: React.FC<Props> = ({
           },
         ]}
       >
-        <View style={[styles.specialPreviewWrap, { width: size, height: size }]}>
+        <View style={[styles.visualStage, { width: size, height: size }]}>
           <ExpoImage
             key={currentKey}
-            source={currentImageSource}
-            style={{ width: size * 0.8, height: size * 0.8 }}
+            recyclingKey={currentKey}
+            source={currentVisualAsset.source}
+            style={[
+              styles.mascotImage,
+              {
+                width: visualLayout.width,
+                height: visualLayout.height,
+                left: visualLayout.left,
+                top: visualLayout.top,
+              },
+            ]}
             contentFit="contain"
+            contentPosition="center"
             autoplay
           />
         </View>
@@ -578,15 +613,18 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   cropContainer: {
-    overflow: 'hidden',
+    overflow: 'visible',
     position: 'relative',
     zIndex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  specialPreviewWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  visualStage: {
+    position: 'relative',
+    overflow: 'visible',
+  },
+  mascotImage: {
+    position: 'absolute',
   },
 });
 

@@ -282,7 +282,6 @@ export default function CalendarScreen({ profile, onBack, onOpenSettings }: Prop
           </View>
 
           <View style={styles.mascotScene}>
-            <View style={styles.mascotGlow} />
             <CalendarMascotSprite size={compact ? 94 : 108} />
           </View>
 
@@ -466,7 +465,6 @@ const styles = StyleSheet.create({
   quoteOrnament: { position: 'absolute', top: 13, left: 15, color: '#F1A45C', fontSize: 16 },
   quoteOrnamentRight: { left: undefined, top: undefined, right: 15, bottom: 13 },
   mascotScene: { height: 116, alignItems: 'flex-start', justifyContent: 'flex-end', paddingLeft: 35, marginTop: 3 },
-  mascotGlow: { position: 'absolute', left: 25, bottom: 2, width: 130, height: 38, borderRadius: 65, backgroundColor: 'rgba(255, 170, 88, 0.34)', shadowColor: '#FFB55F', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.75, shadowRadius: 20, elevation: 4 },
   infoRow: { minHeight: 170, flexDirection: 'row', gap: 8, alignItems: 'stretch' },
   infoRowCompact: { gap: 6 },
   infoCard: { backgroundColor: CARD_BACKGROUND, borderRadius: 22, borderWidth: 1.5, borderColor: 'rgba(255, 193, 152, 0.86)', paddingHorizontal: 11, paddingVertical: 12, overflow: 'hidden', shadowColor: '#21074E', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.34, shadowRadius: 13, elevation: 8 },

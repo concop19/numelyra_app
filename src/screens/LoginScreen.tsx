@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -20,6 +21,8 @@ import { useAuth } from '../store/authContext';
 import { useLocalization } from '../i18n/LocalizationContext';
 
 const MASCOT = require('../../assets/giao_dien/Whimsical Flame Mascot Reading a Grimoire.png');
+const AUTH_BACKGROUND = require('../../assets/giao_dien/auth/auth-celestial-background-v1.png');
+const INPUT_PLACEHOLDER_COLOR = '#BEB2DC';
 
 interface Props {
   onAuthenticated: () => void;
@@ -41,6 +44,14 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
   const [facebookLoading, setFacebookLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const scrollRef = useRef<ScrollView>(null);
+
+  const revealFocusedInput = () => {
+    const keyboardAnimationDelay = Platform.OS === 'ios' ? 260 : 180;
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, keyboardAnimationDelay);
+  };
 
   const handleGoogleSignIn = async () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -111,15 +122,35 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <StatusBar style="dark" />
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <View style={styles.hero}>
-            <Image source={MASCOT} resizeMode="contain" style={styles.mascot} />
-          </View>
+    <View style={styles.root}>
+      <Image source={AUTH_BACKGROUND} resizeMode="cover" style={StyleSheet.absoluteFill} />
+      <LinearGradient
+        pointerEvents="none"
+        colors={['rgba(11, 8, 73, 0.18)', 'rgba(17, 8, 71, 0.34)', 'rgba(21, 7, 68, 0.72)']}
+        style={StyleSheet.absoluteFill}
+      />
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <StatusBar style="light" />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+          style={styles.flex}
+        >
+          <ScrollView
+            ref={scrollRef}
+            automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+            contentContainerStyle={styles.content}
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.hero}>
+              <Ionicons name="sparkles" size={22} color="#FFE38D" style={styles.heroSparkleLeft} />
+              <Ionicons name="sparkles" size={15} color="#FFB8D7" style={styles.heroSparkleRight} />
+              <Image source={MASCOT} resizeMode="contain" style={styles.mascot} />
+            </View>
 
-          <View style={styles.card}>
+            <View style={styles.card}>
             <Text style={styles.eyebrow}>✦ {en ? 'WELCOME TO' : 'CHÀO MỪNG ĐẾN VỚI'}</Text>
             <Text style={styles.brand}>NUMELYRA</Text>
             <Text style={styles.tagline}>{en ? 'Unlock your magic ♡' : 'Đánh thức phép màu của bạn ♡'}</Text>
@@ -172,8 +203,9 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
                 value={fullName}
                 onChangeText={setFullName}
                 placeholder={en ? 'Full name' : 'Họ và tên'}
-                placeholderTextColor="#B68179"
+                placeholderTextColor={INPUT_PLACEHOLDER_COLOR}
                 autoCapitalize="words"
+                onFocus={revealFocusedInput}
                 style={styles.input}
               />
             )}
@@ -181,10 +213,11 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
               value={email}
               onChangeText={setEmail}
               placeholder="Email"
-              placeholderTextColor="#B68179"
+              placeholderTextColor={INPUT_PLACEHOLDER_COLOR}
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
+              onFocus={revealFocusedInput}
               style={styles.input}
             />
             <View style={styles.passwordRow}>
@@ -192,9 +225,10 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
                 value={password}
                 onChangeText={setPassword}
                 placeholder={en ? 'Password' : 'Mật khẩu'}
-                placeholderTextColor="#B68179"
+                placeholderTextColor={INPUT_PLACEHOLDER_COLOR}
                 autoCapitalize="none"
                 autoComplete={isSignUp ? 'new-password' : 'password'}
+                onFocus={revealFocusedInput}
                 secureTextEntry={!showPassword}
                 style={styles.passwordInput}
               />
@@ -227,37 +261,52 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
                 <Text style={styles.guestText}>{en ? 'Continue as guest' : 'Tiếp tục với tư cách Khách'}</Text>
               </TouchableOpacity>
             )}
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#171061' },
   flex: { flex: 1 },
-  safeArea: { flex: 1, backgroundColor: '#FFF4EC' },
-  content: { flexGrow: 1, padding: 20, justifyContent: 'center' },
-  hero: { alignItems: 'center', height: 230, overflow: 'hidden' },
-  mascot: { width: 245, height: 270, marginTop: -26 },
-  card: { backgroundColor: '#FFFDFB', borderRadius: 26, padding: 22, shadowColor: '#C65A35', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.16, shadowRadius: 22, elevation: 4 },
-  eyebrow: { color: '#A54A3A', fontSize: 12, fontWeight: '800', textAlign: 'center', letterSpacing: 2 },
-  brand: { color: '#F04435', fontSize: 34, fontWeight: '900', letterSpacing: 0.4, textAlign: 'center', marginTop: 2 },
-  tagline: { color: '#CE633C', fontSize: 17, fontStyle: 'italic', textAlign: 'center', marginTop: 2 },
-  description: { color: '#8E5E58', fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 14, marginBottom: 18 },
-  input: { minHeight: 50, marginBottom: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: '#F1CFC7', borderRadius: 13, backgroundColor: '#FFF9F5', color: '#5B302B', fontSize: 15 },
-  passwordRow: { minHeight: 50, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#F1CFC7', borderRadius: 13, backgroundColor: '#FFF9F5' },
-  passwordInput: { flex: 1, paddingHorizontal: 14, color: '#5B302B', fontSize: 15 },
+  safeArea: { flex: 1, backgroundColor: 'transparent' },
+  content: { flexGrow: 1, paddingHorizontal: 18, paddingTop: 8, paddingBottom: 22, justifyContent: 'center' },
+  hero: { alignItems: 'center', justifyContent: 'center', height: 220, overflow: 'visible' },
+  heroSparkleLeft: { position: 'absolute', left: 34, top: 55 },
+  heroSparkleRight: { position: 'absolute', right: 42, top: 28 },
+  mascot: { width: 198, height: 219, marginTop: -12 },
+  card: {
+    backgroundColor: 'rgba(42, 27, 111, 0.92)',
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 187, 218, 0.24)',
+    padding: 22,
+    shadowColor: '#090322',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.42,
+    shadowRadius: 24,
+    elevation: 10,
+  },
+  eyebrow: { color: '#FFD59A', fontSize: 12, fontWeight: '800', textAlign: 'center', letterSpacing: 2 },
+  brand: { color: '#FFF8FE', fontSize: 34, fontWeight: '900', letterSpacing: 0.4, textAlign: 'center', marginTop: 2, textShadowColor: 'rgba(255, 116, 179, 0.62)', textShadowRadius: 12 },
+  tagline: { color: '#FFB2CF', fontSize: 17, fontStyle: 'italic', textAlign: 'center', marginTop: 2 },
+  description: { color: '#DED5F3', fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 14, marginBottom: 18 },
+  input: { minHeight: 50, marginBottom: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: 'rgba(218, 185, 255, 0.28)', borderRadius: 13, backgroundColor: 'rgba(103, 78, 187, 0.32)', color: '#FFF9FE', fontSize: 15 },
+  passwordRow: { minHeight: 50, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(218, 185, 255, 0.28)', borderRadius: 13, backgroundColor: 'rgba(103, 78, 187, 0.32)' },
+  passwordInput: { flex: 1, paddingHorizontal: 14, color: '#FFF9FE', fontSize: 15 },
   showButton: { paddingHorizontal: 13, paddingVertical: 12 },
-  showButtonText: { color: '#D45B3B', fontSize: 11, fontWeight: '800' },
+  showButtonText: { color: '#FFB1CF', fontSize: 11, fontWeight: '800' },
   submit3d: { marginTop: 16 },
-  error: { color: '#A33126', fontSize: 12, lineHeight: 18, marginTop: 12, textAlign: 'center' },
-  message: { color: '#3D7A50', fontSize: 12, lineHeight: 18, marginTop: 12, textAlign: 'center' },
+  error: { color: '#FFD0DA', fontSize: 12, lineHeight: 18, marginTop: 12, textAlign: 'center' },
+  message: { color: '#A8F1D0', fontSize: 12, lineHeight: 18, marginTop: 12, textAlign: 'center' },
   modeButton: { alignItems: 'center', paddingTop: 17, paddingBottom: 8 },
-  modeText: { color: '#8E5E58', fontSize: 13 },
-  modeEmphasis: { color: '#EC4938', fontWeight: '800' },
+  modeText: { color: '#D7CEE9', fontSize: 13 },
+  modeEmphasis: { color: '#FFADC9', fontWeight: '800' },
   guestButton: { alignItems: 'center', paddingVertical: 8 },
-  guestText: { color: '#A54A3A', fontSize: 12, textDecorationLine: 'underline' },
+  guestText: { color: '#CFC5E5', fontSize: 12, textDecorationLine: 'underline' },
   googleButton3d: { marginBottom: 8 },
   oauthButton3d: { marginBottom: 8 },
   googleIconBadge: {
@@ -301,12 +350,12 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#F1CFC7',
+    backgroundColor: 'rgba(223, 197, 255, 0.27)',
   },
   dividerText: {
     paddingHorizontal: 10,
     fontSize: 11,
-    color: '#B68179',
+    color: '#BEB2DC',
     fontWeight: '700',
     letterSpacing: 0.8,
   },

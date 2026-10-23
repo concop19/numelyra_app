@@ -70,7 +70,7 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "testRegex": "(src/services/(chatNumerologyContextService|colorGuidance|chatHistoryStorage|chatStreamClient|dailyNotifications|ttsService|lunarService|numerologyKnowledge|numerologySummaryService|astro/.*|activityRuleEngine)|src/db/numerologyKnowledgeService|src/features/constellation/constellationGeometry|src/features/astrology/dailyAstroFortune|src/features/daily-insight/dailyInsight|src/i18n/LocalizationContext)\\.test\\.ts$"
+    "testRegex": "(src/services/(chatNumerologyContextService|colorGuidance|chatHistoryStorage|chatStreamClient|dailyNotifications|ttsService|lunarService|numerologyKnowledge|numerologySummaryService|astro/.*|activityRuleEngine)|src/db/numerologyKnowledgeService|src/features/constellation/constellationGeometry|src/features/astrology/dailyAstroFortune|src/features/daily-insight/dailyInsight|src/components/chat/mascotVisualLayout|src/i18n/LocalizationContext)\\.test\\.ts$"
   },
   "private": true
 }

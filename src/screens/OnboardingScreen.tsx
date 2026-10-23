@@ -24,6 +24,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { canSetAudioPlayerVolume } from '../services/audioPlatform';
+import { TAROT_AMBIENT_AUDIO } from '../services/tarotAssets';
 
 import ThreeDButton from '../components/ThreeDButton';
 import { useBirthPlaceSuggestions } from '../features/astrology/useBirthPlaceSuggestions';
@@ -53,6 +54,17 @@ type Draft = {
   birthPlace: string;
   birthLocation?: ResolvedBirthLocation;
 };
+
+type ProfileFieldName = 'fullName' | 'birthDate' | 'gender' | 'birthTime' | 'birthPlace';
+type ProfileErrors = Partial<Record<ProfileFieldName, string>>;
+
+const PROFILE_FIELD_NAMES: ProfileFieldName[] = [
+  'fullName',
+  'birthDate',
+  'gender',
+  'birthTime',
+  'birthPlace',
+];
 
 type FeatureSlide = {
   id: string;
@@ -203,6 +215,43 @@ function fromHtmlDateValue(value: string): string {
   return year && month && day ? `${day}/${month}/${year}` : '';
 }
 
+function getProfileErrors(draft: Draft, english: boolean): ProfileErrors {
+  const errors: ProfileErrors = {};
+  const birthDate = parseBirthDate(draft.birthDate);
+  const birthTime = draft.birthTime.trim();
+  const birthPlace = draft.birthPlace.trim();
+
+  if (!draft.fullName.trim()) {
+    errors.fullName = english ? 'Enter your full name.' : 'Vui lòng nhập họ và tên.';
+  }
+
+  if (!draft.birthDate.trim()) {
+    errors.birthDate = english ? 'Choose your birth date.' : 'Vui lòng chọn ngày sinh.';
+  } else if (!birthDate) {
+    errors.birthDate = english ? 'Use a valid date in DD/MM/YYYY format.' : 'Ngày sinh không hợp lệ, hãy dùng định dạng DD/MM/YYYY.';
+  } else if (birthDate < MIN_BIRTH_DATE || birthDate > new Date()) {
+    errors.birthDate = english ? 'Birth date must be between 1920 and today.' : 'Ngày sinh phải từ năm 1920 đến hôm nay.';
+  }
+
+  if (!draft.gender) {
+    errors.gender = english ? 'Choose your gender.' : 'Vui lòng chọn giới tính.';
+  }
+
+  if (birthTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(birthTime)) {
+    errors.birthTime = english
+      ? 'Use 24-hour HH:mm format, for example 08:30.'
+      : 'Giờ sinh phải theo định dạng 24 giờ HH:mm, ví dụ 08:30.';
+  }
+
+  if (!birthPlace) {
+    errors.birthPlace = english ? 'Enter your birth place.' : 'Vui lòng nhập nơi sinh.';
+  } else if (birthPlace.length < 3) {
+    errors.birthPlace = english ? 'Enter at least 3 characters.' : 'Nơi sinh cần có ít nhất 3 ký tự.';
+  }
+
+  return errors;
+}
+
 function PrimaryButton({
   label,
   onPress,
@@ -280,6 +329,8 @@ function Field({
   onChangeText,
   keyboardType = 'default',
   maxLength,
+  error,
+  onBlur,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
@@ -288,23 +339,40 @@ function Field({
   onChangeText: (value: string) => void;
   keyboardType?: 'default' | 'numeric';
   maxLength?: number;
+  error?: string;
+  onBlur?: () => void;
 }) {
   return (
-    <View style={styles.field}>
-      <View style={styles.fieldIcon}><Ionicons name={icon} size={18} color="#FF91C5" /></View>
-      <View style={styles.fieldBody}>
-        <Text style={styles.fieldLabel}>{label}</Text>
-        <TextInput
-          accessibilityLabel={label}
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor="#A79BD3"
-          keyboardType={keyboardType}
-          maxLength={maxLength}
-          style={styles.fieldInput}
-        />
+    <View style={styles.fieldGroup}>
+      <View style={[styles.field, !!error && styles.fieldInvalid]}>
+        <View style={styles.fieldIcon}><Ionicons name={icon} size={18} color={error ? '#FFB1C3' : '#FF91C5'} /></View>
+        <View style={styles.fieldBody}>
+          <Text style={styles.fieldLabel}>{label}</Text>
+          <TextInput
+            accessibilityHint={error}
+            accessibilityLabel={label}
+            value={value}
+            onBlur={onBlur}
+            onChangeText={onChangeText}
+            placeholder={placeholder}
+            placeholderTextColor="#A79BD3"
+            keyboardType={keyboardType}
+            maxLength={maxLength}
+            style={styles.fieldInput}
+          />
+        </View>
       </View>
+      <FieldError message={error} />
+    </View>
+  );
+}
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <View accessibilityLiveRegion="polite" style={styles.fieldErrorRow}>
+      <Ionicons name="alert-circle" size={14} color="#FFB1C3" />
+      <Text style={styles.fieldErrorText}>{message}</Text>
     </View>
   );
 }
@@ -315,66 +383,89 @@ function SelectionField({
   value,
   placeholder,
   onPress,
+  error,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   value: string;
   placeholder: string;
   onPress: () => void;
+  error?: string;
 }) {
   return (
-    <TouchableOpacity
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      activeOpacity={0.78}
-      onPress={onPress}
-      style={styles.field}
-    >
-      <View style={styles.fieldIcon}><Ionicons name={icon} size={18} color="#FF91C5" /></View>
-      <View style={styles.fieldBody}>
-        <Text style={styles.fieldLabel}>{label}</Text>
-        <Text style={[styles.selectionValue, !value && styles.selectionPlaceholder]}>
-          {value || placeholder}
-        </Text>
-      </View>
-      <Ionicons name="chevron-down" size={18} color="#C8BDE8" />
-    </TouchableOpacity>
+    <View style={styles.fieldGroup}>
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityHint={error}
+        accessibilityLabel={label}
+        activeOpacity={0.78}
+        onPress={onPress}
+        style={[styles.field, !!error && styles.fieldInvalid]}
+      >
+        <View style={styles.fieldIcon}><Ionicons name={icon} size={18} color={error ? '#FFB1C3' : '#FF91C5'} /></View>
+        <View style={styles.fieldBody}>
+          <Text style={styles.fieldLabel}>{label}</Text>
+          <Text style={[styles.selectionValue, !value && styles.selectionPlaceholder]}>
+            {value || placeholder}
+          </Text>
+        </View>
+        <Ionicons name="chevron-down" size={18} color="#C8BDE8" />
+      </TouchableOpacity>
+      <FieldError message={error} />
+    </View>
   );
 }
 
-function WebDateField({ value, onChangeText, english = false }: { value: string; onChangeText: (value: string) => void; english?: boolean }) {
+function WebDateField({
+  value,
+  onChangeText,
+  onBlur,
+  error,
+  english = false,
+}: {
+  value: string;
+  onChangeText: (value: string) => void;
+  onBlur?: () => void;
+  error?: string;
+  english?: boolean;
+}) {
   const maxDate = toHtmlDateValue(formatBirthDate(new Date()));
 
   return (
-    <View style={[styles.field, styles.webDateField]}>
-      <View style={styles.fieldIcon}><Ionicons name="calendar-outline" size={18} color="#FF91C5" /></View>
-      <View style={styles.fieldBody}>
-        <Text style={styles.fieldLabel}>{english ? 'Birth date *' : 'Ngày sinh *'}</Text>
-        <Text style={[styles.selectionValue, !value && styles.selectionPlaceholder]}>
-          {value || (english ? 'Choose day/month/year' : 'Chọn ngày/tháng/năm')}
-        </Text>
+    <View style={styles.fieldGroup}>
+      <View style={[styles.field, styles.webDateField, !!error && styles.fieldInvalid]}>
+        <View style={styles.fieldIcon}><Ionicons name="calendar-outline" size={18} color={error ? '#FFB1C3' : '#FF91C5'} /></View>
+        <View style={styles.fieldBody}>
+          <Text style={styles.fieldLabel}>{english ? 'Birth date *' : 'Ngày sinh *'}</Text>
+          <Text style={[styles.selectionValue, !value && styles.selectionPlaceholder]}>
+            {value || (english ? 'Choose day/month/year' : 'Chọn ngày/tháng/năm')}
+          </Text>
+        </View>
+        <Ionicons name="chevron-down" size={18} color="#C8BDE8" />
+        {React.createElement('input', {
+          'aria-label': english ? 'Birth date' : 'Ngày sinh',
+          'aria-invalid': Boolean(error),
+          max: maxDate,
+          min: '1920-01-01',
+          onBlur,
+          onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
+            onChangeText(fromHtmlDateValue(event.currentTarget.value));
+          },
+          style: {
+            border: 0,
+            cursor: 'pointer',
+            height: '100%',
+            inset: 0,
+            opacity: 0,
+            position: 'absolute',
+            width: '100%',
+            zIndex: 3,
+          },
+          type: 'date',
+          value: toHtmlDateValue(value),
+        })}
       </View>
-      <Ionicons name="chevron-down" size={18} color="#C8BDE8" />
-      {React.createElement('input', {
-        'aria-label': english ? 'Birth date' : 'Ngày sinh',
-        max: maxDate,
-        min: '1920-01-01',
-        onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
-          onChangeText(fromHtmlDateValue(event.currentTarget.value));
-        },
-        style: {
-          border: 0,
-          cursor: 'pointer',
-          height: '100%',
-          inset: 0,
-          opacity: 0,
-          position: 'absolute',
-          width: '100%',
-          zIndex: 3,
-        },
-        type: 'date',
-        value: toHtmlDateValue(value),
-      })}
+      <FieldError message={error} />
     </View>
   );
 }
@@ -469,9 +560,13 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [showBirthDatePicker, setShowBirthDatePicker] = useState(false);
   const [selectedPlaceSuggestion, setSelectedPlaceSuggestion] = useState<BirthPlaceSuggestion | null>(null);
+  const [profileTouched, setProfileTouched] = useState<Partial<Record<ProfileFieldName, boolean>>>({});
+  const [profileSubmitAttempted, setProfileSubmitAttempted] = useState(false);
+  const [birthPlaceResolutionError, setBirthPlaceResolutionError] = useState<string | null>(null);
   const [rewardAnimationRun, setRewardAnimationRun] = useState(0);
   const fade = useRef(new Animated.Value(1)).current;
   const rewardPulse = useRef(new Animated.Value(1)).current;
+  const ambientPlayer = useAudioPlayer(TAROT_AMBIENT_AUDIO, { keepAudioSessionActive: true });
   const rewardSound = useAudioPlayer(REWARD_SOUND, { keepAudioSessionActive: true });
 
   const compact = height < 720;
@@ -537,11 +632,33 @@ export default function OnboardingScreen({ onComplete }: Props) {
   }, [fade, step]);
 
   useEffect(() => {
-    void setAudioModeAsync({
-      playsInSilentMode: true,
-      interruptionMode: 'mixWithOthers',
-    }).catch(() => undefined);
-  }, []);
+    try {
+      void setAudioModeAsync({
+        playsInSilentMode: true,
+        interruptionMode: 'mixWithOthers',
+      }).catch(() => undefined);
+      ambientPlayer.loop = true;
+      if (canSetAudioPlayerVolume()) ambientPlayer.volume = 0.09;
+      void ambientPlayer.seekTo(0).catch(() => undefined);
+      ambientPlayer.play();
+    } catch {
+      // Onboarding remains usable when audio playback is unavailable.
+    }
+
+    return () => {
+      try {
+        ambientPlayer.pause();
+      } catch {}
+    };
+  }, [ambientPlayer]);
+
+  const profileErrors = useMemo(() => getProfileErrors(draft, en), [draft, en]);
+  const visibleProfileError = (field: ProfileFieldName) => (
+    profileSubmitAttempted || profileTouched[field] ? profileErrors[field] : undefined
+  );
+  const touchProfileField = (field: ProfileFieldName) => {
+    setProfileTouched((current) => ({ ...current, [field]: true }));
+  };
 
   const parsedProfile = useMemo<UserProfile | null>(() => {
     const date = parseBirthDate(draft.birthDate);
@@ -575,6 +692,8 @@ export default function OnboardingScreen({ onComplete }: Props) {
 
   const selectBirthPlace = (suggestion: BirthPlaceSuggestion) => {
     const birthLocation = resolveBirthPlaceSuggestion(suggestion);
+    setBirthPlaceResolutionError(null);
+    touchProfileField('birthPlace');
     setSelectedPlaceSuggestion(suggestion);
     setDraft((value) => ({
       ...value,
@@ -586,15 +705,17 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const handleBirthDateChange = (event: DateTimePickerEvent, date?: Date) => {
     if (Platform.OS === 'android') setShowBirthDatePicker(false);
     if (event.type === 'dismissed' || !date) return;
+    touchProfileField('birthDate');
     setDraft((value) => ({ ...value, birthDate: formatBirthDate(date) }));
   };
 
   const completeProfileStep = async () => {
-    if (!parsedProfile) {
-      Alert.alert(
-        en ? 'Check your information' : 'Kiểm tra thông tin',
-        en ? 'Enter your full name and birth place, then choose your gender and birth date. Use HH:mm for birth time or leave it blank.' : 'Hãy nhập họ tên, giới tính, chọn ngày sinh và nhập nơi sinh. Giờ sinh dùng định dạng HH:mm hoặc để trống.',
-      );
+    setProfileSubmitAttempted(true);
+    setProfileTouched(Object.fromEntries(PROFILE_FIELD_NAMES.map((field) => [field, true])));
+    setBirthPlaceResolutionError(null);
+
+    if (Object.keys(profileErrors).length > 0 || !parsedProfile) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
     }
 
@@ -623,14 +744,16 @@ export default function OnboardingScreen({ onComplete }: Props) {
         birthPlace: birthLocation.userLabel,
         birthLocation,
       }));
+      setBirthPlaceResolutionError(null);
       goTo(step + 1);
-    } catch (caught) {
-      Alert.alert(
-        en ? 'Birth place not found' : 'Chưa xác định được nơi sinh',
-        caught instanceof Error
-          ? caught.message
-          : (en ? 'Choose a place from the suggestions and try again.' : 'Hãy chọn một địa điểm trong danh sách đề xuất rồi thử lại.'),
+    } catch {
+      setBirthPlaceResolutionError(
+        en
+          ? 'We could not identify this place. Choose one from the suggestions and try again.'
+          : 'Chưa xác định được nơi này. Hãy chọn một địa điểm trong danh sách gợi ý rồi thử lại.',
       );
+      touchProfileField('birthPlace');
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setResolvingPlace(false);
     }
@@ -678,6 +801,8 @@ export default function OnboardingScreen({ onComplete }: Props) {
 
   const finish = async () => {
     if (!parsedProfile) {
+      setProfileSubmitAttempted(true);
+      setProfileTouched(Object.fromEntries(PROFILE_FIELD_NAMES.map((field) => [field, true])));
       goTo(PROFILE_STEP);
       return;
     }
@@ -751,12 +876,25 @@ export default function OnboardingScreen({ onComplete }: Props) {
                   <Text style={styles.sectionDescription}>{en ? 'This helps Numelyra personalize numerology, Can Chi and your birth chart.' : 'Thông tin giúp Numelyra cá nhân hóa thần số học, lịch Can Chi và bản đồ sao.'}</Text>
                   {!compact && <HeroImage source={HERO_PROFILE} imageKey="profile-form" compact />}
                   <View style={styles.formCard}>
-                    <Field icon="person-outline" label={en ? 'Full name *' : 'Họ và tên *'} value={draft.fullName} placeholder={en ? 'Your name' : 'Nguyễn Văn A'} onChangeText={(fullName) => setDraft((value) => ({ ...value, fullName }))} />
+                    <Field
+                      icon="person-outline"
+                      label={en ? 'Full name *' : 'Họ và tên *'}
+                      value={draft.fullName}
+                      placeholder={en ? 'Your name' : 'Nguyễn Văn A'}
+                      error={visibleProfileError('fullName')}
+                      onBlur={() => touchProfileField('fullName')}
+                      onChangeText={(fullName) => setDraft((value) => ({ ...value, fullName }))}
+                    />
                     {Platform.OS === 'web' ? (
                       <WebDateField
                         english={en}
                         value={draft.birthDate}
-                        onChangeText={(birthDate) => setDraft((current) => ({ ...current, birthDate }))}
+                        error={visibleProfileError('birthDate')}
+                        onBlur={() => touchProfileField('birthDate')}
+                        onChangeText={(birthDate) => {
+                          touchProfileField('birthDate');
+                          setDraft((current) => ({ ...current, birthDate }));
+                        }}
                       />
                     ) : (
                       <SelectionField
@@ -764,6 +902,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
                         label={en ? 'Birth date *' : 'Ngày sinh *'}
                         value={draft.birthDate}
                         placeholder={en ? 'Choose day/month/year' : 'Chọn ngày/tháng/năm'}
+                        error={visibleProfileError('birthDate')}
                         onPress={() => setShowBirthDatePicker(true)}
                       />
                     )}
@@ -785,21 +924,51 @@ export default function OnboardingScreen({ onComplete }: Props) {
                         )}
                       </View>
                     )}
-                    <View style={styles.genderRow}>
-                      {(['female', 'male'] as const).map((gender) => (
-                        <TouchableOpacity key={gender} onPress={() => setDraft((value) => ({ ...value, gender }))} style={[styles.genderButton, draft.gender === gender && styles.genderButtonActive]}>
-                          <Ionicons name={gender === 'female' ? 'female' : 'male'} size={17} color={draft.gender === gender ? '#41206F' : '#C8BDE8'} />
-                          <Text style={[styles.genderText, draft.gender === gender && styles.genderTextActive]}>{gender === 'female' ? (en ? 'Female' : 'Nữ') : (en ? 'Male' : 'Nam')}</Text>
-                        </TouchableOpacity>
-                      ))}
+                    <View style={styles.fieldGroup}>
+                      <Text style={styles.genderGroupLabel}>{en ? 'Gender *' : 'Giới tính *'}</Text>
+                      <View style={styles.genderRow}>
+                        {(['female', 'male'] as const).map((gender) => (
+                          <TouchableOpacity
+                            key={gender}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: draft.gender === gender }}
+                            onPress={() => {
+                              touchProfileField('gender');
+                              setDraft((value) => ({ ...value, gender }));
+                            }}
+                            style={[
+                              styles.genderButton,
+                              !!visibleProfileError('gender') && styles.genderButtonInvalid,
+                              draft.gender === gender && styles.genderButtonActive,
+                            ]}
+                          >
+                            <Ionicons name={gender === 'female' ? 'female' : 'male'} size={17} color={draft.gender === gender ? '#41206F' : '#C8BDE8'} />
+                            <Text style={[styles.genderText, draft.gender === gender && styles.genderTextActive]}>{gender === 'female' ? (en ? 'Female' : 'Nữ') : (en ? 'Male' : 'Nam')}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                      <FieldError message={visibleProfileError('gender')} />
                     </View>
-                    <Field icon="time-outline" label={en ? 'Birth time' : 'Giờ sinh'} value={draft.birthTime} placeholder={en ? 'HH:mm (optional)' : 'HH:mm (có thể bỏ qua)'} keyboardType="numeric" maxLength={5} onChangeText={(birthTime) => setDraft((value) => ({ ...value, birthTime }))} />
+                    <Field
+                      icon="time-outline"
+                      label={en ? 'Birth time' : 'Giờ sinh'}
+                      value={draft.birthTime}
+                      placeholder={en ? 'HH:mm (optional)' : 'HH:mm (có thể bỏ qua)'}
+                      keyboardType="numeric"
+                      maxLength={5}
+                      error={visibleProfileError('birthTime')}
+                      onBlur={() => touchProfileField('birthTime')}
+                      onChangeText={(birthTime) => setDraft((value) => ({ ...value, birthTime }))}
+                    />
                     <Field
                       icon="location-outline"
                       label={en ? 'Birth place *' : 'Nơi sinh *'}
                       value={draft.birthPlace}
                       placeholder={en ? 'Enter a city, for example London' : 'Nhập tên thành phố, ví dụ: Hà Nội'}
+                      error={birthPlaceResolutionError || visibleProfileError('birthPlace')}
+                      onBlur={() => touchProfileField('birthPlace')}
                       onChangeText={(birthPlace) => {
+                        setBirthPlaceResolutionError(null);
                         setSelectedPlaceSuggestion(null);
                         setDraft((value) => ({ ...value, birthPlace, birthLocation: undefined }));
                       }}
@@ -986,19 +1155,25 @@ const styles = StyleSheet.create({
   sectionTitle: { color: '#FFF9FE', fontSize: 23, lineHeight: 29, fontWeight: '800', textAlign: 'center', paddingHorizontal: 32 },
   sectionDescription: { color: '#DED6F4', fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 7, paddingHorizontal: 22 },
   formCard: { backgroundColor: 'rgba(48, 35, 125, 0.82)', borderRadius: 20, padding: 12, marginBottom: 14, borderWidth: 1, borderColor: 'rgba(210,180,255,0.14)' },
-  field: { minHeight: 62, flexDirection: 'row', alignItems: 'center', borderRadius: 14, backgroundColor: 'rgba(104,79,190,0.34)', marginBottom: 9, paddingHorizontal: 12 },
+  fieldGroup: { marginBottom: 9 },
+  field: { minHeight: 62, flexDirection: 'row', alignItems: 'center', borderRadius: 14, backgroundColor: 'rgba(104,79,190,0.34)', borderWidth: 1, borderColor: 'transparent', paddingHorizontal: 12 },
+  fieldInvalid: { borderColor: '#FF91AA', backgroundColor: 'rgba(148,58,112,0.26)' },
   fieldIcon: { width: 31, height: 31, borderRadius: 9, backgroundColor: 'rgba(255,151,201,0.13)', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
   fieldBody: { flex: 1, paddingVertical: 7 },
   fieldLabel: { color: '#F4EDFF', fontSize: 11, fontWeight: '700', marginBottom: 1 },
   fieldInput: { color: '#FFFFFF', fontSize: 14, paddingVertical: 4 },
+  fieldErrorRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 5, paddingHorizontal: 5, paddingTop: 5 },
+  fieldErrorText: { flex: 1, color: '#FFD0DA', fontSize: 11, lineHeight: 15, fontWeight: '600' },
   selectionValue: { color: '#FFFFFF', fontSize: 14, paddingVertical: 4 },
   selectionPlaceholder: { color: '#A79BD3' },
   webDateField: { position: 'relative' },
   datePickerPanel: { marginTop: -2, marginBottom: 9, borderRadius: 16, overflow: 'hidden', backgroundColor: 'rgba(244,235,255,0.96)', padding: 6 },
   datePickerDone: { alignSelf: 'flex-end', minWidth: 70, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F47BB5', marginRight: 6, marginBottom: 4 },
   datePickerDoneText: { color: '#3F246E', fontSize: 13, fontWeight: '800' },
-  genderRow: { flexDirection: 'row', gap: 9, marginBottom: 9 },
+  genderGroupLabel: { color: '#F4EDFF', fontSize: 11, fontWeight: '700', marginBottom: 6, marginLeft: 2 },
+  genderRow: { flexDirection: 'row', gap: 9 },
   genderButton: { flex: 1, minHeight: 43, borderRadius: 12, backgroundColor: 'rgba(104,79,190,0.34)', flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'transparent' },
+  genderButtonInvalid: { borderColor: '#FF91AA', backgroundColor: 'rgba(148,58,112,0.26)' },
   genderButtonActive: { backgroundColor: '#FFAAC8', borderColor: '#FFD5E3' },
   genderText: { color: '#D9D0EF', fontSize: 13, fontWeight: '700' },
   genderTextActive: { color: '#41206F' },

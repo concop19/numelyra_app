@@ -25,6 +25,7 @@ export type ThreeDButtonProps = {
   shape?: ThreeDButtonShape;
   fullWidth?: boolean;
   diameter?: number;
+  highlightColor?: string;
   leadingIcon?: React.ReactNode;
   trailingIcon?: React.ReactNode;
   loading?: boolean;
@@ -92,6 +93,7 @@ export default function ThreeDButton({
   shape = 'rounded',
   fullWidth = false,
   diameter,
+  highlightColor,
   leadingIcon,
   trailingIcon,
   loading = false,
@@ -196,7 +198,18 @@ export default function ThreeDButton({
               faceStyle,
             ]}
           >
-            {!blocked && <View pointerEvents="none" style={[styles.highlight, { borderRadius: radius }]} />}
+            {!blocked && (
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.highlight,
+                  {
+                    borderRadius: radius,
+                    backgroundColor: highlightColor ?? 'rgba(255,255,255,0.34)',
+                  },
+                ]}
+              />
+            )}
             {loading ? (
               <ActivityIndicator color={tokens.ink} size="small" />
             ) : (
@@ -260,7 +273,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   highlight: {
-    backgroundColor: 'rgba(255,255,255,0.34)',
     height: '34%',
     left: '9%',
     position: 'absolute',
