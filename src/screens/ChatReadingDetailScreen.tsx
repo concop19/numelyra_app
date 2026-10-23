@@ -9,6 +9,7 @@ import { getTarotCardImage, TAROT_AMBIENT_AUDIO } from '../services/tarotAssets'
 import HighlightedAnswerText from '../components/chat/HighlightedAnswerText';
 import LoveCompatibilityDetail from '../components/chat/love/LoveCompatibilityDetail';
 import { getLoveReadingViewModel } from '../components/chat/love/loveReadingModel';
+import { canSetAudioPlayerVolume } from '../services/audioPlatform';
 import type { MessageItem } from './ChatScreen';
 
 export type ChatReadingDetailParams = {
@@ -16,7 +17,13 @@ export type ChatReadingDetailParams = {
   previousQuestion?: string;
 };
 
-type Props = NativeStackScreenProps<{ ChatReadingDetail: ChatReadingDetailParams }, 'ChatReadingDetail'>;
+type ChatReadingDetailStackParamList = {
+  Main: undefined;
+  ChatReadingDetail: ChatReadingDetailParams;
+  ChatContinuation: { sessionId: string; title?: string };
+};
+
+type Props = NativeStackScreenProps<ChatReadingDetailStackParamList, 'ChatReadingDetail'>;
 
 const withoutQuickConclusionHeading = (text: string) => text
   .replace(/^\s*[✦★✨•-]*\s*KẾT\s+LUẬN\s+NHANH\s*:\s*/i, '')
@@ -47,7 +54,7 @@ export default function ChatReadingDetailScreen({ navigation, route }: Props) {
         interruptionMode: 'mixWithOthers',
       }).catch(() => undefined);
       ambientPlayer.loop = true;
-      ambientPlayer.volume = 0.09;
+      if (canSetAudioPlayerVolume()) ambientPlayer.volume = 0.09;
       void ambientPlayer.seekTo(0).catch(() => undefined);
       ambientPlayer.play();
     } catch {}
@@ -67,12 +74,27 @@ export default function ChatReadingDetailScreen({ navigation, route }: Props) {
   const question = typeof (message.card as { questionText?: unknown } | undefined)?.questionText === 'string'
     ? (message.card as { questionText: string }).questionText
     : previousQuestion;
+  const sessionId = typeof (message.card as { sessionId?: unknown } | undefined)?.sessionId === 'string'
+    ? (message.card as { sessionId: string }).sessionId
+    : undefined;
+  const canContinue = Boolean(sessionId && (message.card as { canContinue?: unknown } | undefined)?.canContinue);
+  const continueReading = canContinue && sessionId
+    ? () => navigation.navigate('ChatContinuation', { sessionId, title: question })
+    : undefined;
+  const close = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+    navigation.navigate('Main');
+  };
 
   if (loveReading) {
     return (
       <LoveCompatibilityDetail
         model={loveReading}
-        onClose={() => navigation.goBack()}
+        onClose={close}
+        onContinue={continueReading}
       />
     );
   }
@@ -81,7 +103,7 @@ export default function ChatReadingDetailScreen({ navigation, route }: Props) {
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={close}
           style={styles.backButton}
           accessibilityRole="button"
           accessibilityLabel="Quay lại trò chuyện"
@@ -134,6 +156,20 @@ export default function ChatReadingDetailScreen({ navigation, route }: Props) {
             emphasisStyle={styles.answerEmphasis}
           />
         </View>
+
+        {continueReading ? (
+          <TouchableOpacity
+            activeOpacity={0.84}
+            onPress={continueReading}
+            accessibilityRole="button"
+            accessibilityLabel="Tiếp tục trò chuyện về bài luận giải này"
+            style={styles.continueButton}
+          >
+            <Ionicons name="chatbubble-ellipses-outline" size={20} color="#FFF8E7" />
+            <Text style={styles.continueButtonText}>Tiếp tục trò chuyện</Text>
+            <Ionicons name="arrow-forward" size={18} color="#FFF8E7" />
+          </TouchableOpacity>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -168,4 +204,10 @@ const styles = StyleSheet.create({
   senderName: { color: '#D64F6A', fontSize: 15, fontWeight: '800' },
   answerText: { color: '#301934', fontSize: 16, lineHeight: 25 },
   answerEmphasis: { color: '#7C305A', fontWeight: '900' },
+  continueButton: {
+    minHeight: 52, borderRadius: 26, paddingHorizontal: 20, flexDirection: 'row',
+    alignItems: 'center', justifyContent: 'center', gap: 9, backgroundColor: '#7440A5',
+    borderWidth: 1, borderColor: 'rgba(255, 226, 160, 0.72)',
+  },
+  continueButtonText: { flex: 1, color: '#FFF8E7', fontSize: 15, fontWeight: '900', textAlign: 'center' },
 });

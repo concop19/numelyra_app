@@ -114,8 +114,8 @@ interface Props {
   onOpenCalendar?: () => void;
   onOpenAstrology?: () => void;
   onOpenWallpaper?: () => void;
-  onOpenGameHub?: () => void;
   onOpenRawReading?: (message: MessageItem, previousQuestion?: string) => void;
+  onContinueReading?: (sessionId: string, title?: string) => void;
 }
 
 interface SceneActionButtonProps {
@@ -240,6 +240,7 @@ interface AssistantPreviewBubbleProps {
   message: MessageItem;
   onFinishTyping: (messageId: string) => void;
   onOpen: () => void;
+  onContinue?: () => void;
 }
 
 /** A compact history-safe preview. The complete reading belongs to raw detail. */
@@ -247,6 +248,7 @@ const AssistantPreviewBubble: React.FC<AssistantPreviewBubbleProps> = ({
   message,
   onFinishTyping,
   onOpen,
+  onContinue,
 }) => {
   const { l } = useLocalization();
   const text = withoutQuickConclusionHeading(message.text);
@@ -279,18 +281,32 @@ const AssistantPreviewBubble: React.FC<AssistantPreviewBubbleProps> = ({
 
   return (
     <View style={styles.assistantBubbleRow}>
-      <TouchableOpacity
-        activeOpacity={0.82}
-        onPress={canOpenDetail ? onOpen : undefined}
-        accessibilityRole="button"
-        accessibilityLabel={l('Mở lời giải chi tiết', 'Open detailed reading')}
-        style={styles.assistantBubble}
-      >
-        <Text numberOfLines={3} style={styles.assistantBubbleText}>
-          {displayText}
-          {!message.isTypingCompleted ? <Text style={styles.assistantTypingCursor}> ▌</Text> : null}
-        </Text>
-      </TouchableOpacity>
+      <View style={styles.assistantBubble}>
+        <TouchableOpacity
+          activeOpacity={0.82}
+          onPress={canOpenDetail ? onOpen : undefined}
+          accessibilityRole="button"
+          accessibilityLabel={l('Mở lời giải chi tiết', 'Open detailed reading')}
+          style={styles.assistantReadingTouch}
+        >
+          <Text numberOfLines={3} style={styles.assistantBubbleText}>
+            {displayText}
+            {!message.isTypingCompleted ? <Text style={styles.assistantTypingCursor}> ▌</Text> : null}
+          </Text>
+        </TouchableOpacity>
+        {message.isTypingCompleted && onContinue ? (
+          <TouchableOpacity
+            activeOpacity={0.82}
+            onPress={onContinue}
+            accessibilityRole="button"
+            accessibilityLabel={l('Tiếp tục trò chuyện về bài đọc này', 'Continue chatting about this reading')}
+            style={styles.continueReadingButton}
+          >
+            <Ionicons name="chatbubble-ellipses-outline" size={17} color="#FFF8E7" />
+            <Text style={styles.continueReadingText}>{l('Tiếp tục trò chuyện', 'Continue conversation')}</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
     </View>
   );
 };
@@ -592,8 +608,8 @@ export default function ChatScreen({
   onOpenCalendar,
   onOpenAstrology,
   onOpenWallpaper,
-  onOpenGameHub,
   onOpenRawReading,
+  onContinueReading,
 }: Props) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
@@ -1492,6 +1508,8 @@ export default function ChatScreen({
           drawnCards: serverCardPayload.drawnCards?.length
             ? serverCardPayload.drawnCards
             : drawnCards,
+          sessionId: typeof data.data.sessionId === 'string' ? data.data.sessionId : undefined,
+          canContinue: Boolean(data.data.canContinue && data.data.sessionId),
         };
         const mascotMsg: MessageItem = {
           id: tarotMessageId,
@@ -1986,6 +2004,9 @@ export default function ChatScreen({
     ? messages.findIndex((message) => message.id === readingTraceMessageId)
     : -1;
   const readingTraceMessage = readingTraceIndex >= 0 ? messages[readingTraceIndex] : null;
+  const activeReadingMessage = liveTarotReading
+    ? messages.find((message) => message.id === liveTarotReading.id) || null
+    : readingTraceMessage;
   const previousReadingQuestion = readingTraceIndex >= 0
     ? messages.slice(0, readingTraceIndex).reverse().find((message) => message.sender === 'user')?.text
     : undefined;
@@ -2067,6 +2088,9 @@ export default function ChatScreen({
                 message={item}
                 onFinishTyping={markMessageTypingCompleted}
                 onOpen={() => openRawReading(item)}
+                onContinue={item.card?.canContinue && typeof item.card?.sessionId === 'string' && onContinueReading
+                  ? () => onContinueReading(item.card.sessionId, item.card.questionText)
+                  : undefined}
               />
             )}
           />
@@ -2199,6 +2223,20 @@ export default function ChatScreen({
         liveReading={liveTarotReading}
         revealedCount={pendingFlippedCount}
         onRevealNext={revealNextLiveTarotCard}
+        onContinue={activeReadingMessage?.card?.canContinue
+          && typeof activeReadingMessage.card.sessionId === 'string'
+          && onContinueReading
+          ? () => {
+              const sessionId = activeReadingMessage.card.sessionId as string;
+              const title = typeof activeReadingMessage.card.questionText === 'string'
+                ? activeReadingMessage.card.questionText
+                : liveTarotReading?.question || previousReadingQuestion;
+              setLiveTarotReading(null);
+              setPendingTarotReveal(null);
+              setReadingTraceMessageId(null);
+              onContinueReading(sessionId, title);
+            }
+          : undefined}
         onClose={() => {
           if (liveTarotReading) {
             if (liveTarotReading.status === 'revealed') {
@@ -2658,6 +2696,10 @@ const styles = StyleSheet.create({
     paddingLeft: 28,
     paddingRight: 21,
   },
+  assistantReadingTouch: {
+    flex: 1,
+    justifyContent: 'center',
+  },
   assistantBubbleText: {
     color: '#3B2856',
     fontSize: 17,
@@ -2667,6 +2709,22 @@ const styles = StyleSheet.create({
   assistantTypingCursor: {
     color: '#7C42A6',
     fontWeight: '900',
+  },
+  continueReadingButton: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: 13,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 18,
+    backgroundColor: '#6D3DA0',
+  },
+  continueReadingText: {
+    color: '#FFF8E7',
+    fontSize: 12,
+    fontWeight: '800',
   },
   emptyMascotStage: {
     position: 'absolute',

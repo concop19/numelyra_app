@@ -4,9 +4,5 @@
     "strict": true,
     "allowImportingTsExtensions": true,
     "types": ["jest"]
-  },
-  "exclude": [
-    "_cloned_games",
-    "src/games"
-  ]
+  }
 }

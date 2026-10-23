@@ -25,6 +25,7 @@ import BottomFlameSprite from '../BottomFlameSprite';
 import ThreeDButton from '../ThreeDButton';
 import { ttsService } from '../../services/ttsService';
 import { useLocalization } from '../../i18n/LocalizationContext';
+import { canSetAudioPlayerVolume } from '../../services/audioPlatform';
 
 const BACKGROUND = require('../../../assets/giao_dien/giaodien1/chat_detail/background/background.png');
 const MAT = require('../../../assets/giao_dien/giaodien1/chat_detail/item/tham.png');
@@ -59,6 +60,7 @@ type Props = {
   liveReading?: LiveTarotReading | null;
   revealedCount?: number;
   onRevealNext?: () => void;
+  onContinue?: () => void;
 };
 
 const REFERENCE_WIDTH = 941;
@@ -138,6 +140,7 @@ export default function MysticReadingTraceModal({
   liveReading = null,
   revealedCount = 0,
   onRevealNext,
+  onContinue,
 }: Props) {
   const { locale, l } = useLocalization();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -161,7 +164,7 @@ export default function MysticReadingTraceModal({
           interruptionMode: 'mixWithOthers',
         }).catch(() => undefined);
         ambientPlayer.loop = true;
-        ambientPlayer.volume = 0.09;
+        if (canSetAudioPlayerVolume()) ambientPlayer.volume = 0.09;
         void ambientPlayer.seekTo(0).catch(() => undefined);
         ambientPlayer.play();
       } catch {}
@@ -476,6 +479,16 @@ export default function MysticReadingTraceModal({
               emphasisStyle={styles.answerEmphasis}
             />
             {isLiveDraw && !hasRevealedAnswerIntro ? <Text style={styles.writingCursor}>✦</Text> : null}
+            {onContinue ? <ThreeDButton
+              accessibilityLabel={l('Tiếp tục trò chuyện về bài đọc này', 'Continue chatting about this reading')}
+              label={l('Tiếp tục trò chuyện', 'Continue conversation')}
+              leadingIcon={<Ionicons name="chatbubble-ellipses-outline" size={16} color="#FFF8E7" />}
+              onPress={() => { void Haptics.selectionAsync(); onContinue(); }}
+              shape="pill"
+              size="sm"
+              style={styles.continueButton3d}
+              variant="purple"
+            /> : null}
             <ThreeDButton
               accessibilityLabel={l('Đóng luận giải', 'Close reading')}
               label={l('Đã hiểu · quay lại', 'Got it · go back')}
@@ -545,5 +558,6 @@ const styles = StyleSheet.create({
   answer: { color: '#503A3B', fontSize: 13, lineHeight: 19.5, fontWeight: '500' },
   answerEmphasis: { color: '#713543', fontWeight: '900' },
   writingCursor: { color: '#713543', fontSize: 14, marginTop: 2, opacity: 0.78 },
+  continueButton3d: { alignSelf: 'center', marginTop: 18 },
   doneButton3d: { alignSelf: 'center', marginTop: 18 },
 });

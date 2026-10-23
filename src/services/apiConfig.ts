@@ -38,6 +38,7 @@ export const getApiBaseUrl = (): string => {
 
 export const API_ENDPOINTS = {
   get CHAT_AGENT() { return `${getApiBaseUrl()}/api/chat/agent`; },
+  get CHAT_CONTINUE() { return `${getApiBaseUrl()}/api/chat/continue`; },
   get CLASSIFY() { return `${getApiBaseUrl()}/api/chat/classify`; },
   get BAZI_LOVE() { return `${getApiBaseUrl()}/api/bazi-love/reading`; },
   get LUCKY_WALLPAPER() { return `${getApiBaseUrl()}/api/lucky-wallpaper/generate`; },

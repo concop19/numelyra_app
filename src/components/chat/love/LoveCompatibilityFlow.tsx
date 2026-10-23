@@ -19,6 +19,7 @@ import ThreeDButton from '../../ThreeDButton';
 import type { MessageItem } from '../../../screens/ChatScreen';
 import { TAROT_AMBIENT_AUDIO } from '../../../services/tarotAssets';
 import { getLoveReadingViewModel } from './loveReadingModel';
+import { canSetAudioPlayerVolume } from '../../../services/audioPlatform';
 
 const LOADING_BACKGROUND = require('../../../../assets/giao_dien/giaodien1/chat_detail/love/background/loading.png');
 const SUCCESS_BACKGROUND = require('../../../../assets/giao_dien/giaodien1/chat_detail/love/background/success.png');
@@ -75,7 +76,7 @@ export default function LoveCompatibilityFlow({
           interruptionMode: 'mixWithOthers',
         }).catch(() => undefined);
         ambientPlayer.loop = true;
-        ambientPlayer.volume = 0.09;
+        if (canSetAudioPlayerVolume()) ambientPlayer.volume = 0.09;
         void ambientPlayer.seekTo(0).catch(() => undefined);
         ambientPlayer.play();
       } catch {}

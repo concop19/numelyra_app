@@ -23,6 +23,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { canSetAudioPlayerVolume } from '../services/audioPlatform';
 
 import ThreeDButton from '../components/ThreeDButton';
 import { useBirthPlaceSuggestions } from '../features/astrology/useBirthPlaceSuggestions';
@@ -81,7 +82,7 @@ const HERO_PROFILE = require('../../assets/onboarding/heroes/profile-720.png');
 const HERO_COINS = require('../../assets/onboarding/heroes/coins-720.png');
 const HERO_REWARD_CALENDAR = require('../../assets/onboarding/heroes/reward-calendar-720.png');
 const HERO_CROWN = require('../../assets/onboarding/heroes/crown-720.png');
-const REWARD_SOUND = require('../../assets/games/sound/dots_box/finish_1_o_dot.mp3');
+const REWARD_SOUND = require('../../assets/onboarding/sound/finish_1_o_dot.mp3');
 
 const COIN_PARTICLES = [
   { delay: 0, rotate: 180, size: 30, x: -124, y: -235 },
@@ -668,7 +669,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
     ]).start();
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     try {
-      rewardSound.volume = 0.58;
+      if (canSetAudioPlayerVolume()) rewardSound.volume = 0.58;
       rewardSound.play();
     } catch {
       // Reward claiming still succeeds when audio playback is unavailable.

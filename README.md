@@ -170,7 +170,6 @@ Các navigation chính:
 - `CalendarScreen` dùng profile để hiển thị lịch cá nhân và các chỉ số âm dương
 - `WallpaperStudioScreen` có thể render background theo sở thích / phong cách
 - `SettingsScreen` cho phép người dùng yêu cầu login hoặc cập nhật cấu hình
-- `GameHubScreen` quản lý trò chơi và tiến độ daily challenge
 
 ### 5) Luồng xử lý chat và numerology / tarot
 
@@ -197,24 +196,13 @@ Triết lý chính ở đây là: profile người dùng được dùng như “
 - gắn màu sắc, hình ảnh và biểu tượng theo ngày / mùa / yếu tố
 - hiển thị ở `CalendarScreen` như một màn hình “lịch cá nhân” thay vì lịch đơn thuần
 
-### 7) Luồng game hub
-
-[src/screens/GameHubScreen.tsx](src/screens/GameHubScreen.tsx) và thư mục [src/games](src/games) quản lý:
-
-- danh sách trò chơi
-- tiến độ người dùng
-- daily challenge
-- route vào từng game cụ thể
-
-Game hub là tầng giải trí bổ sung, giúp app không chỉ là hệ thống bói tính mà còn có trải nghiệm tương tác hằng ngày.
-
-### 8) Luồng deep linking và thông báo
+### 7) Luồng deep linking và thông báo
 
 Trong [App.tsx](App.tsx), app thiết lập:
 
 - `Linking` để bắt URL từ hệ thống
 - `notifications.getLastNotificationResponseAsync()` để xử lý notification mở từ background
-- `config: { screens: { Games: 'games/:entry?' } }` để route tới game hub qua deep link
+- `config: { screens: { ... } }` để route tới các màn hình qua deep link
 
 Điều này cho phép mở app hoặc điều hướng trực tiếp tới một chức năng từ URL / notification.
 
