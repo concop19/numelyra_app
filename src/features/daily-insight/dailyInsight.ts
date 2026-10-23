@@ -4,9 +4,14 @@ import { generatePureAstroVector, type PureAstroFeatureMetadata } from '../../se
 import { makeDaySnapshot, type HourInfo, type LunarDaySnapshot } from '../../services/lunarService';
 import type { RatedActivity } from '../../services/activityRuleEngine';
 import { ASTRO_ENGINE_VERSION } from '../../services/astro/astroVersion';
+import { computeTransitChart } from '../../services/astro/astroEngine';
 import { translate, type AppLocale } from '../../i18n/translations';
+import {
+  buildDailyAstroMetricsFromMetadata,
+  type DailyAstroMetrics,
+} from '../../services/astro/dailyMetricEngine';
 
-export const DAILY_INSIGHT_ENGINE_VERSION = `daily-insight-v2:${ASTRO_ENGINE_VERSION}`;
+export const DAILY_INSIGHT_ENGINE_VERSION = `daily-insight-v4:${ASTRO_ENGINE_VERSION}`;
 export const DAILY_INSIGHT_QUIET_START = 7;
 export const DAILY_INSIGHT_QUIET_END = 22;
 
@@ -18,6 +23,14 @@ export interface DailyInsightLuckyTime {
   label: string;
 }
 
+export interface DailyInsightLuckyColor {
+  moonSign: string;
+  moonSignLabel: string;
+  name: string;
+  hex: string;
+  evidence: string;
+}
+
 export interface DailyInsight {
   dateKey: string;
   profileKey: string;
@@ -25,6 +38,7 @@ export interface DailyInsight {
   timeZone: string;
   personality: string;
   luckyTime: DailyInsightLuckyTime | null;
+  luckyColor: DailyInsightLuckyColor;
   directions: { joy: string; wealth: string };
   /** Backward-compat: tên hoạt động có kèm lý do ("Ký kết — Trực Định (Tốt)") */
   recommended: string[];
@@ -35,6 +49,7 @@ export interface DailyInsight {
     avoid: RatedActivity[];
   };
   warning: string | null;
+  astroMetrics: DailyAstroMetrics;
   astroEvidence: string;
   canChiEvidence: string;
   canChiDay: string;
@@ -95,6 +110,104 @@ export function chooseLuckyAwakeHour(
 }
 
 type LocalizedDailyCopy = Record<AppLocale, string>;
+
+interface MoonSignLuckyColorDefinition {
+  hex: string;
+  signLabel: LocalizedDailyCopy;
+  colorName: LocalizedDailyCopy;
+}
+
+export const MOON_SIGN_LUCKY_COLORS: Record<string, MoonSignLuckyColorDefinition> = {
+  Aries: {
+    hex: '#EF4444',
+    signLabel: { vi: 'Bạch Dương', en: 'Aries' },
+    colorName: { vi: 'Đỏ tươi', en: 'Bright red' },
+  },
+  Taurus: {
+    hex: '#F3E6C8',
+    signLabel: { vi: 'Kim Ngưu', en: 'Taurus' },
+    colorName: { vi: 'Trắng ngà', en: 'Ivory' },
+  },
+  Gemini: {
+    hex: '#65C466',
+    signLabel: { vi: 'Song Tử', en: 'Gemini' },
+    colorName: { vi: 'Xanh lá sáng', en: 'Bright green' },
+  },
+  Cancer: {
+    hex: '#C5CED8',
+    signLabel: { vi: 'Cự Giải', en: 'Cancer' },
+    colorName: { vi: 'Bạc', en: 'Silver' },
+  },
+  Leo: {
+    hex: '#F59E0B',
+    signLabel: { vi: 'Sư Tử', en: 'Leo' },
+    colorName: { vi: 'Cam', en: 'Orange' },
+  },
+  Virgo: {
+    hex: '#7A8B3A',
+    signLabel: { vi: 'Xử Nữ', en: 'Virgo' },
+    colorName: { vi: 'Xanh olive', en: 'Olive green' },
+  },
+  Libra: {
+    hex: '#F29BC2',
+    signLabel: { vi: 'Thiên Bình', en: 'Libra' },
+    colorName: { vi: 'Hồng phấn', en: 'Blush pink' },
+  },
+  Scorpio: {
+    hex: '#7F1D3F',
+    signLabel: { vi: 'Bọ Cạp', en: 'Scorpio' },
+    colorName: { vi: 'Đỏ rượu', en: 'Burgundy' },
+  },
+  Sagittarius: {
+    hex: '#F4C542',
+    signLabel: { vi: 'Nhân Mã', en: 'Sagittarius' },
+    colorName: { vi: 'Vàng', en: 'Yellow' },
+  },
+  Capricorn: {
+    hex: '#4B5563',
+    signLabel: { vi: 'Ma Kết', en: 'Capricorn' },
+    colorName: { vi: 'Xám than', en: 'Charcoal gray' },
+  },
+  Aquarius: {
+    hex: '#315C9B',
+    signLabel: { vi: 'Bảo Bình', en: 'Aquarius' },
+    colorName: { vi: 'Xanh dương đậm', en: 'Deep blue' },
+  },
+  Pisces: {
+    hex: '#7CC7D9',
+    signLabel: { vi: 'Song Ngư', en: 'Pisces' },
+    colorName: { vi: 'Xanh biển nhạt', en: 'Light sea blue' },
+  },
+};
+
+export function getLuckyColorForMoonSign(
+  moonSign: string,
+  locale: AppLocale = 'vi',
+): DailyInsightLuckyColor {
+  const definition = MOON_SIGN_LUCKY_COLORS[moonSign];
+  if (!definition) throw new Error(`Unsupported Moon sign: ${moonSign}`);
+  const moonSignLabel = definition.signLabel[locale];
+  return {
+    moonSign,
+    moonSignLabel,
+    name: definition.colorName[locale],
+    hex: definition.hex,
+    evidence: locale === 'vi'
+      ? `Mặt Trăng ở ${moonSignLabel} hôm nay`
+      : `Moon in ${moonSignLabel} today`,
+  };
+}
+
+export function buildDailyLuckyColor(
+  date = new Date(),
+  locale: AppLocale = 'vi',
+): DailyInsightLuckyColor {
+  const localNoon = new Date(date);
+  localNoon.setHours(12, 0, 0, 0);
+  const moonSign = computeTransitChart(localNoon).planets.Moon?.sign;
+  if (!moonSign) throw new Error('Moon position is unavailable');
+  return getLuckyColorForMoonSign(moonSign, locale);
+}
 
 const TRANSIT_MOON_TONES: Record<string, LocalizedDailyCopy> = {
   Aries: {
@@ -233,6 +346,8 @@ export function buildDailyInsight(
     birthTimeAccuracy: profile.birthTimeAccuracy,
     resolvedBirthLocation: profile.birthLocation,
   }, date).metadata;
+  const astroMetrics = buildDailyAstroMetricsFromMetadata(metadata, date, locale);
+  const luckyColor = buildDailyLuckyColor(date, locale);
   const bestHour = chooseLuckyAwakeHour(snapshot.hours);
 
   // --- Nên làm / Kiêng cữ ---
@@ -259,6 +374,7 @@ export function buildDailyInsight(
       canChi: bestHour.canChi,
       label: bestHour.label,
     } : null,
+    luckyColor,
     directions: {
       joy: localizeDirection(snapshot.direction.hyThan, locale),
       wealth: localizeDirection(snapshot.direction.taiThan, locale),
@@ -270,6 +386,7 @@ export function buildDailyInsight(
       avoid: ratedData.avoid,
     } : undefined,
     warning: snapshot.warning,
+    astroMetrics,
     astroEvidence: buildAstroEvidence(metadata, locale),
     canChiEvidence: buildCanChiEvidence(snapshot, locale),
     canChiDay: snapshot.canChiDay,
@@ -280,7 +397,7 @@ export function buildDailyInsight(
 }
 
 export function getDailyInsightCacheKey(insight: Pick<DailyInsight, 'dateKey' | 'profileKey' | 'locale' | 'timeZone'>): string {
-  return `@numelyra:daily-insight:v2:${insight.dateKey}:${insight.profileKey}:${insight.locale}:${insight.timeZone}`;
+  return `@numelyra:daily-insight:v4:${insight.dateKey}:${insight.profileKey}:${insight.locale}:${insight.timeZone}`;
 }
 
 export interface DailyInsightStorage {
@@ -305,6 +422,7 @@ export async function readCachedDailyInsight(
       && parsed.profileKey === identity.profileKey
       && parsed.locale === identity.locale
       && parsed.timeZone === identity.timeZone
+      && !!parsed.luckyColor
       ? parsed as DailyInsight
       : null;
   } catch {

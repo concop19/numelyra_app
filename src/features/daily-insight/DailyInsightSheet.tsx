@@ -16,12 +16,31 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import ThreeDButton from '../../components/ThreeDButton';
 import type { AstroFortuneSlip } from '../../services/astro/astroFortuneService';
 import type { DailyInsight } from './dailyInsight';
+import type { DailyAstroMetricId } from '../../services/astro/dailyMetricEngine';
 import { useLocalization } from '../../i18n/LocalizationContext';
 
 const DAILY_HERO = require('../../../assets/giao_dien/daily-insight/flame-daily-hero.png');
 const DAILY_BACKGROUND = require('../../../assets/giao_dien/daily-insight/flame-daily-background.png');
 const FAVORABLE_DECORATION = require('../../../assets/giao_dien/daily-insight/favorable-leaves.png');
 const AVOID_DECORATION = require('../../../assets/giao_dien/daily-insight/avoid-mountains.png');
+
+const METRIC_PRESENTATION = {
+  energy: { labelKey: 'daily.metric.energy', icon: 'flash-outline', color: '#FFB45E' },
+  emotion: { labelKey: 'daily.metric.emotion', icon: 'water-outline', color: '#77C9FF' },
+  focus: { labelKey: 'daily.metric.focus', icon: 'eye-outline', color: '#C99BFF' },
+  connection: { labelKey: 'daily.metric.connection', icon: 'heart-outline', color: '#FF79C5' },
+} as const;
+
+const METRIC_LEVEL_KEYS = {
+  low: 'daily.metric.low',
+  balanced: 'daily.metric.balanced',
+  high: 'daily.metric.high',
+} as const;
+
+const PLANET_NAMES_VI: Record<string, string> = {
+  Sun: 'Mặt Trời', Moon: 'Mặt Trăng', Mercury: 'Sao Thủy', Venus: 'Sao Kim', Mars: 'Sao Hỏa',
+  Jupiter: 'Sao Mộc', Saturn: 'Sao Thổ', Uranus: 'Thiên Vương', Neptune: 'Hải Vương', Pluto: 'Diêm Vương',
+};
 
 interface Props {
   visible: boolean;
@@ -58,8 +77,43 @@ function EvidenceRow({ title, value }: { title: string; value: string }) {
 export default function DailyInsightSheet({ visible, insight, fortune, onClose, onAsk }: Props) {
   const { t, formatDate, locale } = useLocalization();
   const { height, width } = useWindowDimensions();
+  const [selectedMetric, setSelectedMetric] = useState<DailyAstroMetricId | null>(null);
   const date = new Date(`${insight.dateKey}T12:00:00`);
   const compact = height < 740 || width < 350;
+  const selectedMetricData = selectedMetric ? insight.astroMetrics.metrics[selectedMetric] : null;
+  const dailyStats: Array<{
+    icon: React.ComponentProps<typeof Ionicons>['name'];
+    label: string;
+    value: string;
+    color: string;
+    evidence?: string;
+  }> = [
+    {
+      icon: 'time-outline',
+      label: t('daily.luckyTime'),
+      value: insight.luckyTime?.range ?? t('daily.noLuckyTime'),
+      color: '#77C9FF',
+    },
+    {
+      icon: 'heart-outline',
+      label: t('daily.joyDirection'),
+      value: insight.directions.joy,
+      color: '#FF70C4',
+    },
+    {
+      icon: 'cash-outline',
+      label: t('daily.wealthDirection'),
+      value: insight.directions.wealth,
+      color: '#FFD169',
+    },
+    {
+      icon: 'moon-outline',
+      label: t('daily.luckyColor'),
+      value: insight.luckyColor.name,
+      color: insight.luckyColor.hex,
+      evidence: insight.luckyColor.evidence,
+    },
+  ];
 
   return (
     <Modal
@@ -206,20 +260,106 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
                 </LinearGradient>
               )}
 
+              <View style={styles.metricsSection}>
+                <View style={styles.metricsHeadingRow}>
+                  <Text style={styles.metricsTitle}>{t('daily.metricsTitle')}</Text>
+                  {insight.astroMetrics.confidence === 'estimated' && (
+                    <View style={styles.estimatedBadge}>
+                      <Text style={styles.estimatedText}>{t('daily.metric.estimated')}</Text>
+                    </View>
+                  )}
+                </View>
+                <View style={styles.metricsGrid}>
+                  {(Object.keys(METRIC_PRESENTATION) as DailyAstroMetricId[]).map((id) => {
+                    const presentation = METRIC_PRESENTATION[id];
+                    const metric = insight.astroMetrics.metrics[id];
+                    const selected = selectedMetric === id;
+                    return (
+                      <TouchableOpacity
+                        accessibilityLabel={`${t(presentation.labelKey)} ${metric.score}/100. ${t(METRIC_LEVEL_KEYS[metric.level])}`}
+                        accessibilityRole="button"
+                        accessibilityState={{ expanded: selected, selected }}
+                        activeOpacity={0.82}
+                        key={id}
+                        onPress={() => setSelectedMetric((current) => current === id ? null : id)}
+                        style={[styles.metricCard, selected && { borderColor: presentation.color }]}
+                      >
+                        <View style={styles.metricTopRow}>
+                          <View style={[styles.metricIcon, { backgroundColor: `${presentation.color}1F` }]}>
+                            <Ionicons
+                              color={presentation.color}
+                              name={presentation.icon}
+                              size={17}
+                            />
+                          </View>
+                          <Text style={[styles.metricScore, { color: presentation.color }]}>{metric.score}</Text>
+                        </View>
+                        <Text style={styles.metricLabel}>{t(presentation.labelKey)}</Text>
+                        <View style={styles.metricTrack}>
+                          <View
+                            style={[
+                              styles.metricFill,
+                              { backgroundColor: presentation.color, width: `${metric.score}%` },
+                            ]}
+                          />
+                        </View>
+                        <Text style={styles.metricLevel}>{t(METRIC_LEVEL_KEYS[metric.level])}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {!!selectedMetric && !!selectedMetricData && (
+                  <View style={styles.metricDetail}>
+                    <View style={styles.metricDetailHeading}>
+                      <Text style={styles.metricDetailTitle}>
+                        {t(METRIC_PRESENTATION[selectedMetric].labelKey)} · {selectedMetricData.score}/100
+                      </Text>
+                      <TouchableOpacity
+                        accessibilityLabel={t('daily.metric.close')}
+                        hitSlop={8}
+                        onPress={() => setSelectedMetric(null)}
+                      >
+                        <Ionicons name="chevron-up" size={17} color="#D9CAFF" />
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.metricSummary}>{selectedMetricData.summary}</Text>
+                    {selectedMetricData.evidence.map((item) => (
+                      <View
+                        key={`${item.transitPlanet}-${item.natalPlanet}-${item.aspectType}`}
+                        style={styles.metricEvidenceRow}
+                      >
+                        <Text style={styles.metricEvidenceSymbol}>{item.symbol}</Text>
+                        <View style={styles.flex}>
+                          <Text style={styles.metricEvidenceTitle}>
+                            {locale === 'vi' ? PLANET_NAMES_VI[item.transitPlanet] ?? item.transitPlanet : item.transitPlanet}
+                            {' · '}{item.aspectName}{' · '}
+                            {locale === 'vi' ? PLANET_NAMES_VI[item.natalPlanet] ?? item.natalPlanet : item.natalPlanet}
+                          </Text>
+                          <Text style={styles.metricEvidenceMeta}>{t('daily.metric.orb')} {item.orb.toFixed(2)}°</Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+
               <View style={styles.stats}>
-                {[
-                  ['time-outline', t('daily.luckyTime'), insight.luckyTime?.range ?? t('daily.noLuckyTime'), '#77C9FF'],
-                  ['heart-outline', t('daily.joyDirection'), insight.directions.joy, '#FF70C4'],
-                  ['cash-outline', t('daily.wealthDirection'), insight.directions.wealth, '#FFD169'],
-                ].map(([icon, label, value, color]) => (
+                {dailyStats.map(({ icon, label, value, color, evidence }) => (
                   <LinearGradient
+                    accessible
+                    accessibilityLabel={[label, value, evidence].filter(Boolean).join('. ')}
                     colors={[`${color}22`, 'rgba(255,255,255,0.045)']}
                     key={label}
                     style={styles.stat}
                   >
-                    <Ionicons name={icon as React.ComponentProps<typeof Ionicons>['name']} size={19} color={color} />
+                    <Ionicons name={icon} size={19} color={color} />
                     <Text style={styles.statLabel}>{label}</Text>
-                    <Text numberOfLines={2} style={styles.statValue}>{value}</Text>
+                    <View style={styles.statValueRow}>
+                      {!!evidence && <View style={[styles.colorSwatch, { backgroundColor: color }]} />}
+                      <Text numberOfLines={2} style={[styles.statValue, styles.statValueFlexible]}>{value}</Text>
+                    </View>
+                    {!!evidence && <Text numberOfLines={2} style={styles.statEvidence}>{evidence}</Text>}
                   </LinearGradient>
                 ))}
               </View>
@@ -266,7 +406,6 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
                 </View>
               )}
 
-              <EvidenceRow title={t('daily.astroBasis')} value={insight.astroEvidence} />
               <EvidenceRow title={t('daily.canchiBasis')} value={insight.canChiEvidence} />
 
               <ThreeDButton
@@ -462,11 +601,53 @@ const styles = StyleSheet.create({
   },
   verseCompact: { fontSize: 16, lineHeight: 24 },
   personality: { color: '#F8F4FF', fontSize: 15, lineHeight: 23, fontWeight: '600', marginTop: 6 },
-  stats: { flexDirection: 'row', gap: 7 },
+  metricsSection: {
+    padding: 12,
+    borderRadius: 20,
+    backgroundColor: 'rgba(31,20,82,0.82)',
+    borderWidth: 1,
+    borderColor: 'rgba(211,178,255,0.16)',
+  },
+  metricsHeadingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 },
+  metricsTitle: { flex: 1, color: '#FFF3D0', fontSize: 13, lineHeight: 18, fontWeight: '900' },
+  estimatedBadge: { paddingHorizontal: 7, paddingVertical: 4, borderRadius: 9, backgroundColor: 'rgba(255,211,126,0.09)' },
+  estimatedText: { color: '#D9C89E', fontSize: 8, lineHeight: 11, fontWeight: '700' },
+  metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  metricCard: {
+    width: '48.5%',
+    minHeight: 112,
+    padding: 11,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.045)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  metricTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  metricIcon: { width: 29, height: 29, alignItems: 'center', justifyContent: 'center', borderRadius: 15 },
+  metricScore: { fontSize: 21, lineHeight: 25, fontWeight: '900' },
+  metricLabel: { color: '#FFFFFF', fontSize: 11, lineHeight: 15, fontWeight: '800', marginTop: 7 },
+  metricTrack: { height: 4, overflow: 'hidden', borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.10)', marginTop: 7 },
+  metricFill: { height: '100%', borderRadius: 2 },
+  metricLevel: { color: '#AFA6C7', fontSize: 8.5, lineHeight: 12, marginTop: 5 },
+  metricDetail: {
+    marginTop: 9,
+    padding: 12,
+    borderRadius: 15,
+    backgroundColor: 'rgba(7,5,35,0.48)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  metricDetailHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  metricDetailTitle: { flex: 1, color: '#FFE29A', fontSize: 11.5, lineHeight: 16, fontWeight: '900' },
+  metricSummary: { color: '#E5DFF1', fontSize: 10.5, lineHeight: 17, marginTop: 7 },
+  metricEvidenceRow: { flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 9 },
+  metricEvidenceSymbol: { width: 24, color: '#D7AEFF', fontSize: 17, textAlign: 'center' },
+  metricEvidenceTitle: { color: '#FFFFFF', fontSize: 9.5, lineHeight: 14, fontWeight: '700' },
+  metricEvidenceMeta: { color: '#9F95B8', fontSize: 8.5, lineHeight: 12, marginTop: 1 },
+  stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   stat: {
-    flex: 1,
-    minWidth: 0,
-    minHeight: 96,
+    width: '48.5%',
+    minHeight: 106,
     paddingHorizontal: 9,
     paddingVertical: 10,
     borderRadius: 16,
@@ -475,6 +656,17 @@ const styles = StyleSheet.create({
   },
   statLabel: { color: '#BFB4D7', fontSize: 9, lineHeight: 12, fontWeight: '700', marginTop: 7 },
   statValue: { color: '#FFFFFF', fontSize: 12, lineHeight: 16, fontWeight: '900', marginTop: 3 },
+  statValueRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  statValueFlexible: { flex: 1 },
+  colorSwatch: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.55)',
+    marginTop: 3,
+  },
+  statEvidence: { color: '#AAA0C2', fontSize: 8.5, lineHeight: 12, marginTop: 4 },
   guidanceRow: { flexDirection: 'row', gap: 8 },
   guidance: {
     position: 'relative',

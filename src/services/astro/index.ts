@@ -3,4 +3,5 @@
  */
 export * from './astroEngine';
 export * from './aspectCalculator';
+export * from './dailyMetricEngine';
 export * from './astroVectorEngine';
