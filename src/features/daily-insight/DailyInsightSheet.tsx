@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
+  Animated,
+  Easing,
   Modal,
+  PanResponder,
   ScrollView,
   StyleSheet,
   Text,
@@ -9,8 +12,8 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ThreeDButton from '../../components/ThreeDButton';
@@ -19,22 +22,18 @@ import type { DailyInsight } from './dailyInsight';
 import type { DailyAstroMetricId } from '../../services/astro/dailyMetricEngine';
 import { useLocalization } from '../../i18n/LocalizationContext';
 
-const DAILY_HERO = require('../../../assets/giao_dien/daily-insight/flame-daily-hero.png');
-const DAILY_BACKGROUND = require('../../../assets/giao_dien/daily-insight/flame-daily-background.png');
-const FAVORABLE_DECORATION = require('../../../assets/giao_dien/daily-insight/favorable-leaves.png');
-const AVOID_DECORATION = require('../../../assets/giao_dien/daily-insight/avoid-mountains.png');
+const JOURNAL_TEMPLATE = require('../../../assets/Dreamy Purple Lined Journal Template.png');
+const FLAME_MASCOT = require('../../../assets/giao_dien/daily-insight/flame-dreamy-mascot.png');
+const TITLE_ENERGY_ART = require('../../../assets/giao_dien/daily-insight/title-energy-art.png');
+const EYEBROW_PILL_ART = require('../../../assets/giao_dien/daily-insight/eyebrow-pill-art.png');
+const BADGE_VERSE = require('../../../assets/giao_dien/daily-insight/badge-verse.png');
+const BADGE_MIRROR = require('../../../assets/giao_dien/daily-insight/badge-mirror.png');
 
 const METRIC_PRESENTATION = {
-  energy: { labelKey: 'daily.metric.energy', icon: 'flash-outline', color: '#FFB45E' },
-  emotion: { labelKey: 'daily.metric.emotion', icon: 'water-outline', color: '#77C9FF' },
-  focus: { labelKey: 'daily.metric.focus', icon: 'eye-outline', color: '#C99BFF' },
-  connection: { labelKey: 'daily.metric.connection', icon: 'heart-outline', color: '#FF79C5' },
-} as const;
-
-const METRIC_LEVEL_KEYS = {
-  low: 'daily.metric.low',
-  balanced: 'daily.metric.balanced',
-  high: 'daily.metric.high',
+  energy: { labelKey: 'daily.metric.energy', icon: 'flash-outline', color: '#FF9E40' },
+  emotion: { labelKey: 'daily.metric.emotion', icon: 'water-outline', color: '#4EA8DE' },
+  focus: { labelKey: 'daily.metric.focus', icon: 'eye-outline', color: '#9D4EDD' },
+  connection: { labelKey: 'daily.metric.connection', icon: 'heart-outline', color: '#E05780' },
 } as const;
 
 const PLANET_NAMES_VI: Record<string, string> = {
@@ -50,70 +49,77 @@ interface Props {
   onAsk(question: string): void;
 }
 
-function EvidenceRow({ title, value }: { title: string; value: string }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <TouchableOpacity
-      accessibilityRole="button"
-      accessibilityState={{ expanded: open }}
-      activeOpacity={0.78}
-      onPress={() => setOpen((current) => !current)}
-      style={styles.evidence}
-    >
-      <View style={styles.row}>
-        <View style={styles.evidenceHeading}>
-          <View style={styles.evidenceIcon}>
-            <Ionicons name="sparkles-outline" size={15} color="#FFD57A" />
-          </View>
-          <Text style={styles.evidenceTitle}>{title}</Text>
-        </View>
-        <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={17} color="#D9CAFF" />
-      </View>
-      {open && <Text style={styles.evidenceText}>{value}</Text>}
-    </TouchableOpacity>
-  );
-}
-
 export default function DailyInsightSheet({ visible, insight, fortune, onClose, onAsk }: Props) {
   const { t, formatDate, locale } = useLocalization();
   const { height, width } = useWindowDimensions();
+  const [currentPage, setCurrentPage] = useState<1 | 2>(1);
   const [selectedMetric, setSelectedMetric] = useState<DailyAstroMetricId | null>(null);
+
+  // 3D Flip animation value (0 = Page 1, 1 = Page 2)
+  const flipAnim = useRef(new Animated.Value(0)).current;
+
+  const flipToPage = (target: 1 | 2) => {
+    if (target === currentPage) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    Animated.timing(flipAnim, {
+      toValue: target === 2 ? 1 : 0,
+      duration: 420,
+      easing: Easing.bezier(0.33, 1, 0.68, 1),
+      useNativeDriver: true,
+    }).start(() => {
+      setCurrentPage(target);
+    });
+  };
+
+  // Swipe gesture handler
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        Math.abs(gestureState.dx) > 30 && Math.abs(gestureState.dy) < 30,
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dx < -50 && currentPage === 1) {
+          flipToPage(2);
+        } else if (gestureState.dx > 50 && currentPage === 2) {
+          flipToPage(1);
+        }
+      },
+    })
+  ).current;
+
   const date = new Date(`${insight.dateKey}T12:00:00`);
-  const compact = height < 740 || width < 350;
   const selectedMetricData = selectedMetric ? insight.astroMetrics.metrics[selectedMetric] : null;
-  const dailyStats: Array<{
-    icon: React.ComponentProps<typeof Ionicons>['name'];
-    label: string;
-    value: string;
-    color: string;
-    evidence?: string;
-  }> = [
-    {
-      icon: 'time-outline',
-      label: t('daily.luckyTime'),
-      value: insight.luckyTime?.range ?? t('daily.noLuckyTime'),
-      color: '#77C9FF',
-    },
-    {
-      icon: 'heart-outline',
-      label: t('daily.joyDirection'),
-      value: insight.directions.joy,
-      color: '#FF70C4',
-    },
-    {
-      icon: 'cash-outline',
-      label: t('daily.wealthDirection'),
-      value: insight.directions.wealth,
-      color: '#FFD169',
-    },
-    {
-      icon: 'moon-outline',
-      label: t('daily.luckyColor'),
-      value: insight.luckyColor.name,
-      color: insight.luckyColor.hex,
-      evidence: insight.luckyColor.evidence,
-    },
-  ];
+
+  const formattedDate = formatDate(date, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'numeric',
+    year: 'numeric',
+  });
+  const dateSubtitle = `${formattedDate} · Ngày ${insight.canChiDay}`;
+
+  const isCompact = height < 750 || width < 360;
+  const sheetWidth = Math.min(width - 24, 430);
+  const sheetHeight = Math.min(height - 40, sheetWidth * (1672 / 941));
+
+  // Page 1 3D transform (flips leftwards)
+  const page1RotateY = flipAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: ['0deg', '-90deg', '-90deg'],
+  });
+  const page1Opacity = flipAnim.interpolate({
+    inputRange: [0, 0.48, 0.5],
+    outputRange: [1, 1, 0],
+  });
+
+  // Page 2 3D transform (opens from right)
+  const page2RotateY = flipAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: ['90deg', '90deg', '0deg'],
+  });
+  const page2Opacity = flipAnim.interpolate({
+    inputRange: [0, 0.5, 0.52, 1],
+    outputRange: [0, 0, 1, 1],
+  });
 
   return (
     <Modal
@@ -125,302 +131,416 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
       visible={visible}
     >
       <SafeAreaView accessibilityViewIsModal edges={['top', 'right', 'bottom', 'left']} style={styles.overlay}>
-        <TouchableOpacity accessibilityLabel={t('common.close')} onPress={onClose} style={styles.backdrop} />
+        <TouchableOpacity
+          accessibilityLabel={t('common.close')}
+          activeOpacity={1}
+          onPress={onClose}
+          style={styles.backdrop}
+        />
 
-        <View style={styles.sheetFrame}>
-          <View style={styles.sheet}>
-            <Image
-              accessible={false}
-              contentFit="cover"
-              pointerEvents="none"
-              source={DAILY_BACKGROUND}
-              style={styles.sheetBackground}
-            />
-            <LinearGradient
-              colors={['rgba(18, 7, 60, 0.18)', 'rgba(13, 7, 46, 0.42)', 'rgba(6, 5, 29, 0.64)']}
-              end={{ x: 0.75, y: 1 }}
-              pointerEvents="none"
-              start={{ x: 0.12, y: 0 }}
-              style={styles.sheetScrim}
-            />
-            <View style={styles.header}>
-              <View style={styles.headerCopy}>
-                <Text style={styles.eyebrow}>{t('daily.cardEyebrow')}</Text>
-                <Text style={styles.title}>{t('daily.cardTitle')}</Text>
-                <Text style={styles.date}>
-                  {formatDate(date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · {insight.canChiDay}
-                </Text>
-              </View>
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel={t('common.close')}
-                activeOpacity={0.8}
-                hitSlop={8}
-                onPress={onClose}
-                style={styles.close}
-              >
-                <Ionicons name="close" size={22} color="#FFFFFF" />
-              </TouchableOpacity>
+        <View style={[styles.sheetFrame, { width: sheetWidth, height: sheetHeight }]}>
+          {/* Background Notebook Template */}
+          <Image
+            accessible={false}
+            contentFit="fill"
+            pointerEvents="none"
+            source={JOURNAL_TEMPLATE}
+            style={StyleSheet.absoluteFill}
+          />
+
+          {/* Close button touch target over template's circular X button */}
+          <TouchableOpacity
+            accessibilityLabel={t('common.close')}
+            accessibilityRole="button"
+            activeOpacity={0.7}
+            hitSlop={12}
+            onPress={onClose}
+            style={styles.closeTarget}
+          >
+            <View style={styles.closeInner}>
+              <Ionicons color="#3E2468" name="close" size={20} />
             </View>
+          </TouchableOpacity>
 
-            <ScrollView
-              contentContainerStyle={styles.content}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
+          {/* 3D Flippable Page Container */}
+          <View style={styles.pageFlipperWrapper} {...panResponder.panHandlers}>
+            {/* TRANG 1: THÔNG ĐIỆP SỔ TAY */}
+            <Animated.View
+              pointerEvents={currentPage === 1 ? 'auto' : 'none'}
+              style={[
+                styles.pageWrapper,
+                {
+                  opacity: page1Opacity,
+                  transform: [{ perspective: 1400 }, { rotateY: page1RotateY }],
+                  zIndex: currentPage === 1 ? 2 : 1,
+                },
+              ]}
             >
-              <View style={[styles.mascotStage, compact && styles.mascotStageCompact]}>
-                <View style={styles.mascotHalo} />
-                <View style={[styles.mascotOrbit, styles.mascotOrbitWide]} />
-                <View style={[styles.mascotOrbit, styles.mascotOrbitTall]} />
-                <Image
-                  accessibilityLabel={`${t('daily.cardTitle')} — Flame`}
-                  contentFit="contain"
-                  source={DAILY_HERO}
-                  style={styles.mascotImage}
-                />
-              </View>
-
-              <LinearGradient
-                colors={['#FFE39A', '#BE68E8', '#6A2FB5', '#FFE39A']}
-                end={{ x: 1, y: 1 }}
-                start={{ x: 0, y: 0 }}
-                style={styles.verseCardFrame}
+              <ScrollView
+                bounces={false}
+                contentContainerStyle={[
+                  styles.contentContainer,
+                  isCompact && styles.contentContainerCompact,
+                ]}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
               >
-                <LinearGradient
-                  colors={['rgba(42,16,94,0.98)', 'rgba(22,12,73,0.99)', 'rgba(28,15,78,0.99)']}
-                  end={{ x: 0.8, y: 1 }}
-                  start={{ x: 0.18, y: 0 }}
-                  style={styles.verseCard}
-                >
-                  <View pointerEvents="none" style={[styles.cornerOrnament, styles.cornerOrnamentLeft]} />
-                  <View pointerEvents="none" style={[styles.cornerOrnament, styles.cornerOrnamentRight]} />
-                  <Ionicons
-                    name="sparkles"
-                    size={12}
-                    color="#FFE39A"
-                    style={[styles.verseSparkle, styles.verseSparkleLeft]}
-                  />
-                  <Ionicons
-                    name="sparkles"
-                    size={10}
-                    color="#FFD56F"
-                    style={[styles.verseSparkle, styles.verseSparkleRight]}
-                  />
-
-                  <View style={styles.verseHeadingRow}>
-                    <LinearGradient colors={['rgba(255,215,113,0)', '#F7C96C']} style={styles.headingRule} />
-                    <Text style={styles.sectionEyebrow}>{t('daily.verse')}</Text>
-                    <LinearGradient colors={['#F7C96C', 'rgba(255,215,113,0)']} style={styles.headingRule} />
-                  </View>
-                  <Text style={[styles.verse, compact && styles.verseCompact]}>
-                    {fortune?.verse || insight.personality}
-                  </Text>
-                  <View style={styles.verseFooter}>
-                    <LinearGradient colors={['rgba(255,215,113,0)', '#E6B859']} style={styles.footerRule} />
-                    <Ionicons name="sparkles" size={18} color="#FFE08A" />
-                    <LinearGradient colors={['#E6B859', 'rgba(255,215,113,0)']} style={styles.footerRule} />
-                  </View>
-                </LinearGradient>
-              </LinearGradient>
-
-              {!!fortune?.mirror && (
-                <LinearGradient
-                  colors={['rgba(196,129,255,0.62)', 'rgba(100,57,174,0.50)', 'rgba(255,213,121,0.38)']}
-                  end={{ x: 1, y: 1 }}
-                  start={{ x: 0, y: 0 }}
-                  style={styles.mirrorCardFrame}
-                >
-                  <LinearGradient
-                    colors={['rgba(50,26,112,0.98)', 'rgba(28,18,78,0.98)']}
-                    end={{ x: 0.9, y: 1 }}
-                    start={{ x: 0.05, y: 0 }}
-                    style={styles.mirrorCard}
-                  >
-                    <View pointerEvents="none" style={styles.mirrorGlow} />
-                    <Ionicons
-                      name="sparkles"
-                      size={15}
-                      color="rgba(255,220,135,0.72)"
-                      style={[styles.mirrorDecoration, styles.mirrorDecorationTop]}
+                {/* Header: Eyebrow Badge */}
+                <View style={styles.eyebrowRow}>
+                  {locale === 'vi' ? (
+                    <Image
+                      accessible={false}
+                      contentFit="contain"
+                      source={EYEBROW_PILL_ART}
+                      style={[styles.eyebrowArt, isCompact && styles.eyebrowArtCompact]}
                     />
-                    <Ionicons
-                      name="sparkles"
-                      size={12}
-                      color="rgba(221,154,255,0.58)"
-                      style={[styles.mirrorDecoration, styles.mirrorDecorationBottom]}
-                    />
-                    <View style={styles.mirrorIcon}>
-                      <Ionicons name="sparkles" size={25} color="#FFE08A" />
-                    </View>
-                    <View style={styles.flex}>
-                      <Text style={styles.mirrorEyebrow}>{t('daily.mirror')}</Text>
-                      <Text style={styles.personality}>{fortune.mirror}</Text>
-                    </View>
-                  </LinearGradient>
-                </LinearGradient>
-              )}
-
-              <View style={styles.metricsSection}>
-                <View style={styles.metricsHeadingRow}>
-                  <Text style={styles.metricsTitle}>{t('daily.metricsTitle')}</Text>
-                  {insight.astroMetrics.confidence === 'estimated' && (
-                    <View style={styles.estimatedBadge}>
-                      <Text style={styles.estimatedText}>{t('daily.metric.estimated')}</Text>
+                  ) : (
+                    <View style={styles.eyebrowPillFallback}>
+                      <Text style={styles.eyebrowRay}>˗ˏˋ</Text>
+                      <Text style={styles.eyebrowTextFallback}>{t('daily.cardEyebrow').toUpperCase()}</Text>
+                      <Text style={styles.eyebrowRay}>ˎˊ˗</Text>
                     </View>
                   )}
                 </View>
-                <View style={styles.metricsGrid}>
-                  {(Object.keys(METRIC_PRESENTATION) as DailyAstroMetricId[]).map((id) => {
-                    const presentation = METRIC_PRESENTATION[id];
-                    const metric = insight.astroMetrics.metrics[id];
-                    const selected = selectedMetric === id;
-                    return (
-                      <TouchableOpacity
-                        accessibilityLabel={`${t(presentation.labelKey)} ${metric.score}/100. ${t(METRIC_LEVEL_KEYS[metric.level])}`}
-                        accessibilityRole="button"
-                        accessibilityState={{ expanded: selected, selected }}
-                        activeOpacity={0.82}
-                        key={id}
-                        onPress={() => setSelectedMetric((current) => current === id ? null : id)}
-                        style={[styles.metricCard, selected && { borderColor: presentation.color }]}
-                      >
-                        <View style={styles.metricTopRow}>
-                          <View style={[styles.metricIcon, { backgroundColor: `${presentation.color}1F` }]}>
-                            <Ionicons
-                              color={presentation.color}
-                              name={presentation.icon}
-                              size={17}
+
+                {/* Header: Title "Năng lượng hôm nay" */}
+                <View style={styles.titleRow}>
+                  {locale === 'vi' ? (
+                    <Image
+                      accessible={false}
+                      contentFit="contain"
+                      source={TITLE_ENERGY_ART}
+                      style={[styles.titleArt, isCompact && styles.titleArtCompact]}
+                    />
+                  ) : (
+                    <View style={styles.titleFallbackRow}>
+                      <Text style={styles.titleFallbackPurple}>{t('daily.cardTitle')}</Text>
+                      <Text style={styles.titleHeartDoodle}> ♡</Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Header: Date Subtitle */}
+                <View style={styles.dateRow}>
+                  <Ionicons color="#7B56C7" name="star" size={10} style={styles.dateStar} />
+                  <Text style={[styles.dateText, isCompact && styles.dateTextCompact]}>
+                    {dateSubtitle}
+                  </Text>
+                </View>
+
+                {/* Date Hand-drawn Underline with loop */}
+                <View style={styles.flourishLineContainer}>
+                  <View style={styles.flourishLine} />
+                  <Text style={styles.flourishHeart}>♡</Text>
+                </View>
+
+                {/* Mascot Character Illustration */}
+                <View style={[styles.mascotStage, isCompact && styles.mascotStageCompact]}>
+                  <Image
+                    accessibilityLabel="Flame Spirit Mascot"
+                    contentFit="contain"
+                    source={FLAME_MASCOT}
+                    style={styles.mascotImage}
+                  />
+                </View>
+
+                {/* Section 1: LỜI THƠ HÔM NAY */}
+                <View style={styles.verseSection}>
+                  <View style={styles.badgeRow}>
+                    {locale === 'vi' ? (
+                      <Image
+                        accessible={false}
+                        contentFit="contain"
+                        source={BADGE_VERSE}
+                        style={styles.badgeImage}
+                      />
+                    ) : (
+                      <View style={styles.badgeFallbackPill}>
+                        <Text style={styles.badgeFallbackText}>{t('daily.verse').toUpperCase()}</Text>
+                        <Ionicons color="#7B56C7" name="leaf-outline" size={13} style={{ marginLeft: 6 }} />
+                      </View>
+                    )}
+                  </View>
+
+                  <Text style={[styles.verseText, isCompact && styles.verseTextCompact]}>
+                    {fortune?.verse || insight.personality}
+                  </Text>
+                  <Text style={styles.verseHeartDoodle}>♡</Text>
+                </View>
+
+                {/* Section 2: LỜI NHẮN DÀNH CHO BẠN */}
+                <View style={styles.mirrorSection}>
+                  <View style={styles.badgeRow}>
+                    {locale === 'vi' ? (
+                      <Image
+                        accessible={false}
+                        contentFit="contain"
+                        source={BADGE_MIRROR}
+                        style={styles.badgeMirrorImage}
+                      />
+                    ) : (
+                      <View style={[styles.badgeFallbackPill, styles.badgeMirrorFallback]}>
+                        <Text style={styles.badgeMirrorFallbackText}>♡ {t('daily.mirror').toUpperCase()}</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <Text style={[styles.mirrorText, isCompact && styles.mirrorTextCompact]}>
+                    {fortune?.mirror || insight.personality}
+                  </Text>
+                </View>
+
+                {/* Section 3: Bottom 3 Sticky Note Memo Cards */}
+                <View style={styles.stickyNotesRow}>
+                  {/* Note 1: Giờ tốt */}
+                  <View style={[styles.stickyNote, styles.notePurple]}>
+                    <View style={[styles.noteTape, styles.tapePurple]} />
+                    <View style={styles.noteHeader}>
+                      <View style={[styles.noteIconCircle, styles.iconCirclePurple]}>
+                        <Ionicons color="#6141A8" name="time-outline" size={12} />
+                      </View>
+                      <Text numberOfLines={1} style={[styles.noteLabel, styles.labelPurple]}>
+                        {t('daily.luckyTime')}:
+                      </Text>
+                    </View>
+                    <Text numberOfLines={1} style={styles.noteValue}>
+                      {insight.luckyTime?.range ?? t('daily.noLuckyTime')}
+                    </Text>
+                  </View>
+
+                  {/* Note 2: Hướng vui */}
+                  <View style={[styles.stickyNote, styles.notePink]}>
+                    <View style={[styles.noteTape, styles.tapePink]} />
+                    <View style={styles.noteHeader}>
+                      <View style={[styles.noteIconCircle, styles.iconCirclePink]}>
+                        <Ionicons color="#A33663" name="navigate-outline" size={11} />
+                      </View>
+                      <Text numberOfLines={1} style={[styles.noteLabel, styles.labelPink]}>
+                        {t('daily.joyDirection')}:
+                      </Text>
+                    </View>
+                    <Text numberOfLines={1} style={styles.noteValue}>
+                      {insight.directions.joy}
+                    </Text>
+                  </View>
+
+                  {/* Note 3: Hướng tài lộc */}
+                  <View style={[styles.stickyNote, styles.noteYellow]}>
+                    <View style={[styles.noteTape, styles.tapeYellow]} />
+                    <View style={styles.noteHeader}>
+                      <View style={[styles.noteIconCircle, styles.iconCircleYellow]}>
+                        <Ionicons color="#946312" name="cash-outline" size={12} />
+                      </View>
+                      <Text numberOfLines={1} style={[styles.noteLabel, styles.labelYellow]}>
+                        {t('daily.wealthDirection')}:
+                      </Text>
+                    </View>
+                    <Text numberOfLines={1} style={styles.noteValue}>
+                      {insight.directions.wealth}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Lucky Color Sticky Note Banner */}
+                <View style={styles.luckyColorCard}>
+                  <View style={styles.tapeMint} />
+                  <View style={styles.luckyColorRow}>
+                    <View style={[styles.luckyColorDot, { backgroundColor: insight.luckyColor.hex }]} />
+                    <View style={styles.luckyColorTextCol}>
+                      <Text style={styles.luckyColorTitle}>
+                        {t('daily.luckyColor')}:{' '}
+                        <Text style={[styles.luckyColorName, { color: insight.luckyColor.hex }]}>
+                          {insight.luckyColor.name}
+                        </Text>
+                      </Text>
+                      {!!insight.luckyColor.evidence && (
+                        <Text numberOfLines={1} style={styles.luckyColorEvidence}>
+                          ✦ {insight.luckyColor.evidence}
+                        </Text>
+                      )}
+                    </View>
+                    <Ionicons color="#6A4E94" name="sparkles" size={14} style={{ opacity: 0.6 }} />
+                  </View>
+                </View>
+
+                {/* Flip to Page 2 Bookmark Button */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => flipToPage(2)}
+                  style={styles.pageFlipButton}
+                >
+                  <Text style={styles.pageFlipButtonText}>✦ Xem Chiêm Tinh & Vận Hạn</Text>
+                  <Ionicons color="#553A82" name="arrow-forward" size={14} />
+                </TouchableOpacity>
+
+                {/* Pagination Dots */}
+                <View style={styles.paginationRow}>
+                  <View style={[styles.paginationDot, styles.dotActive]} />
+                  <TouchableOpacity hitSlop={10} onPress={() => flipToPage(2)}>
+                    <View style={[styles.paginationDot, styles.dotInactive]} />
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </Animated.View>
+
+            {/* TRANG 2: CHIÊM TINH & VẬN HẠN */}
+            <Animated.View
+              pointerEvents={currentPage === 2 ? 'auto' : 'none'}
+              style={[
+                styles.pageWrapper,
+                {
+                  opacity: page2Opacity,
+                  transform: [{ perspective: 1400 }, { rotateY: page2RotateY }],
+                  zIndex: currentPage === 2 ? 2 : 1,
+                },
+              ]}
+            >
+              <ScrollView
+                bounces={false}
+                contentContainerStyle={[
+                  styles.contentContainer,
+                  isCompact && styles.contentContainerCompact,
+                ]}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                {/* Page 2 Header */}
+                <View style={styles.p2EyebrowPill}>
+                  <Text style={styles.p2EyebrowText}>— CHIÊM TINH HÔM NAY —</Text>
+                </View>
+
+                <Text style={styles.p2Title}>Bản Đồ Năng Lượng</Text>
+                <Text style={styles.p2Subtitle}>{dateSubtitle}</Text>
+
+                {/* 4 Astro Metrics Grid */}
+                <View style={styles.metricsBox}>
+                  <View style={styles.metricsHeaderRow}>
+                    <Text style={styles.metricsTitle}>Nhịp điệu 4 trụ cột</Text>
+                    <Text style={styles.metricsHint}>Chạm để xem góc chiếu</Text>
+                  </View>
+                  <View style={styles.metricsGrid}>
+                    {(Object.keys(METRIC_PRESENTATION) as DailyAstroMetricId[]).map((id) => {
+                      const presentation = METRIC_PRESENTATION[id];
+                      const metric = insight.astroMetrics.metrics[id];
+                      const selected = selectedMetric === id;
+                      return (
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          key={id}
+                          onPress={() => setSelectedMetric((curr) => (curr === id ? null : id))}
+                          style={[
+                            styles.metricCard,
+                            selected && {
+                              borderColor: presentation.color,
+                              backgroundColor: `${presentation.color}18`,
+                            },
+                          ]}
+                        >
+                          <View style={styles.metricTop}>
+                            <Ionicons color={presentation.color} name={presentation.icon} size={15} />
+                            <Text style={[styles.metricScore, { color: presentation.color }]}>
+                              {metric.score}
+                            </Text>
+                          </View>
+                          <Text style={styles.metricName}>{t(presentation.labelKey)}</Text>
+                          <View style={styles.metricTrack}>
+                            <View
+                              style={[
+                                styles.metricFill,
+                                { backgroundColor: presentation.color, width: `${metric.score}%` },
+                              ]}
                             />
                           </View>
-                          <Text style={[styles.metricScore, { color: presentation.color }]}>{metric.score}</Text>
-                        </View>
-                        <Text style={styles.metricLabel}>{t(presentation.labelKey)}</Text>
-                        <View style={styles.metricTrack}>
-                          <View
-                            style={[
-                              styles.metricFill,
-                              { backgroundColor: presentation.color, width: `${metric.score}%` },
-                            ]}
-                          />
-                        </View>
-                        <Text style={styles.metricLevel}>{t(METRIC_LEVEL_KEYS[metric.level])}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  {/* Selected Metric Detail Box */}
+                  {!!selectedMetric && !!selectedMetricData && (
+                    <View style={styles.metricDetailBox}>
+                      <Text style={styles.metricDetailSummary}>{selectedMetricData.summary}</Text>
+                      {selectedMetricData.evidence.map((item) => (
+                        <Text
+                          key={`${item.transitPlanet}-${item.natalPlanet}-${item.aspectType}`}
+                          style={styles.metricEvidenceItem}
+                        >
+                          •{' '}
+                          {locale === 'vi'
+                            ? PLANET_NAMES_VI[item.transitPlanet] ?? item.transitPlanet
+                            : item.transitPlanet}{' '}
+                          {item.aspectName}{' '}
+                          {locale === 'vi'
+                            ? PLANET_NAMES_VI[item.natalPlanet] ?? item.natalPlanet
+                            : item.natalPlanet}{' '}
+                          ({item.orb.toFixed(1)}°)
+                        </Text>
+                      ))}
+                    </View>
+                  )}
                 </View>
 
-                {!!selectedMetric && !!selectedMetricData && (
-                  <View style={styles.metricDetail}>
-                    <View style={styles.metricDetailHeading}>
-                      <Text style={styles.metricDetailTitle}>
-                        {t(METRIC_PRESENTATION[selectedMetric].labelKey)} · {selectedMetricData.score}/100
+                {/* Recommended & Avoid Guidance */}
+                <View style={styles.guidanceRow}>
+                  <View style={[styles.guidanceCard, styles.guidanceGood]}>
+                    <Text style={styles.guidanceGoodTitle}>✓ {t('daily.recommended')}</Text>
+                    {insight.recommended.slice(0, 3).map((item) => (
+                      <Text key={item} numberOfLines={2} style={styles.guidanceItemText}>
+                        • {item}
                       </Text>
-                      <TouchableOpacity
-                        accessibilityLabel={t('daily.metric.close')}
-                        hitSlop={8}
-                        onPress={() => setSelectedMetric(null)}
-                      >
-                        <Ionicons name="chevron-up" size={17} color="#D9CAFF" />
-                      </TouchableOpacity>
-                    </View>
-                    <Text style={styles.metricSummary}>{selectedMetricData.summary}</Text>
-                    {selectedMetricData.evidence.map((item) => (
-                      <View
-                        key={`${item.transitPlanet}-${item.natalPlanet}-${item.aspectType}`}
-                        style={styles.metricEvidenceRow}
-                      >
-                        <Text style={styles.metricEvidenceSymbol}>{item.symbol}</Text>
-                        <View style={styles.flex}>
-                          <Text style={styles.metricEvidenceTitle}>
-                            {locale === 'vi' ? PLANET_NAMES_VI[item.transitPlanet] ?? item.transitPlanet : item.transitPlanet}
-                            {' · '}{item.aspectName}{' · '}
-                            {locale === 'vi' ? PLANET_NAMES_VI[item.natalPlanet] ?? item.natalPlanet : item.natalPlanet}
-                          </Text>
-                          <Text style={styles.metricEvidenceMeta}>{t('daily.metric.orb')} {item.orb.toFixed(2)}°</Text>
-                        </View>
-                      </View>
                     ))}
                   </View>
-                )}
-              </View>
-
-              <View style={styles.stats}>
-                {dailyStats.map(({ icon, label, value, color, evidence }) => (
-                  <LinearGradient
-                    accessible
-                    accessibilityLabel={[label, value, evidence].filter(Boolean).join('. ')}
-                    colors={[`${color}22`, 'rgba(255,255,255,0.045)']}
-                    key={label}
-                    style={styles.stat}
-                  >
-                    <Ionicons name={icon} size={19} color={color} />
-                    <Text style={styles.statLabel}>{label}</Text>
-                    <View style={styles.statValueRow}>
-                      {!!evidence && <View style={[styles.colorSwatch, { backgroundColor: color }]} />}
-                      <Text numberOfLines={2} style={[styles.statValue, styles.statValueFlexible]}>{value}</Text>
-                    </View>
-                    {!!evidence && <Text numberOfLines={2} style={styles.statEvidence}>{evidence}</Text>}
-                  </LinearGradient>
-                ))}
-              </View>
-
-              <View style={styles.guidanceRow}>
-                <LinearGradient colors={['rgba(20,128,111,0.30)', 'rgba(15,77,106,0.28)']} style={[styles.guidance, styles.good]}>
-                  <Image
-                    accessible={false}
-                    contentFit="contain"
-                    contentPosition="bottom left"
-                    pointerEvents="none"
-                    source={FAVORABLE_DECORATION}
-                    style={[styles.guidanceDecoration, styles.goodDecoration]}
-                  />
-                  <View style={styles.guidanceCopy}>
-                    <Text style={[styles.guidanceTitle, styles.goodTitle]}>✓ {t('daily.recommended')}</Text>
-                    {insight.recommended.map((item) => (
-                      <Text key={item} style={styles.guidanceText}>• {item}</Text>
+                  <View style={[styles.guidanceCard, styles.guidanceAvoid]}>
+                    <Text style={styles.guidanceAvoidTitle}>× {t('daily.avoid')}</Text>
+                    {insight.avoid.slice(0, 3).map((item) => (
+                      <Text key={item} numberOfLines={2} style={styles.guidanceItemText}>
+                        • {item}
+                      </Text>
                     ))}
                   </View>
-                </LinearGradient>
-                <LinearGradient colors={['rgba(136,31,112,0.31)', 'rgba(93,27,101,0.26)']} style={[styles.guidance, styles.avoid]}>
-                  <Image
-                    accessible={false}
-                    contentFit="contain"
-                    contentPosition="bottom right"
-                    pointerEvents="none"
-                    source={AVOID_DECORATION}
-                    style={[styles.guidanceDecoration, styles.avoidDecoration]}
-                  />
-                  <View style={styles.guidanceCopy}>
-                    <Text style={[styles.guidanceTitle, styles.avoidTitle]}>× {t('daily.avoid')}</Text>
-                    {insight.avoid.map((item) => (
-                      <Text key={item} style={styles.guidanceText}>• {item}</Text>
-                    ))}
-                  </View>
-                </LinearGradient>
-              </View>
-
-              {!!insight.warning && locale === 'vi' && (
-                <View style={styles.warningCard}>
-                  <Ionicons name="information-circle-outline" size={16} color="#FFD39B" />
-                  <Text style={styles.warning}>{insight.warning}</Text>
                 </View>
-              )}
 
-              <EvidenceRow title={t('daily.canchiBasis')} value={insight.canChiEvidence} />
+                {/* Evidence Basis: Can Chi */}
+                <View style={styles.evidenceBox}>
+                  <Text style={styles.evidenceLabel}>✦ {t('daily.canchiBasis')}</Text>
+                  <Text style={styles.evidenceDesc}>{insight.canChiEvidence}</Text>
+                </View>
 
-              <ThreeDButton
-                accessibilityLabel={t('daily.ask')}
-                fullWidth
-                label={t('daily.ask')}
-                leadingIcon={<Ionicons name="chatbubble-ellipses" size={18} color="#3B260D" />}
-                onPress={() => onAsk(insight.suggestedQuestions[0])}
-                shape="pill"
-                style={styles.askButton3d}
-                variant="gold"
-              />
+                {/* Ask AI Button */}
+                <View style={styles.askButtonContainer}>
+                  <ThreeDButton
+                    accessibilityLabel={t('daily.ask')}
+                    fullWidth
+                    label={t('daily.ask')}
+                    leadingIcon={<Ionicons color="#3B260D" name="chatbubble-ellipses" size={16} />}
+                    onPress={() => onAsk(insight.suggestedQuestions[0])}
+                    shape="pill"
+                    size={isCompact ? 'sm' : 'md'}
+                    variant="gold"
+                  />
+                </View>
 
-              <Text style={styles.disclaimer}>{t('daily.disclaimer')}</Text>
-            </ScrollView>
+                {/* Flip Back Button */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => flipToPage(1)}
+                  style={styles.pageFlipBackButton}
+                >
+                  <Ionicons color="#553A82" name="arrow-back" size={14} />
+                  <Text style={styles.pageFlipButtonText}>Quay lại thông điệp</Text>
+                </TouchableOpacity>
+
+                {/* Pagination Dots */}
+                <View style={styles.paginationRow}>
+                  <TouchableOpacity hitSlop={10} onPress={() => flipToPage(1)}>
+                    <View style={[styles.paginationDot, styles.dotInactive]} />
+                  </TouchableOpacity>
+                  <View style={[styles.paginationDot, styles.dotActive]} />
+                </View>
+
+                <Text style={styles.disclaimerText}>{t('daily.disclaimer')}</Text>
+              </ScrollView>
+            </Animated.View>
           </View>
         </View>
       </SafeAreaView>
@@ -433,292 +553,684 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(4, 1, 22, 0.82)',
+    backgroundColor: 'rgba(12, 6, 32, 0.78)',
   },
-  backdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   sheetFrame: {
-    flex: 1,
-    width: '100%',
-    maxWidth: 420,
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: 'rgba(186, 111, 255, 0.72)',
-    backgroundColor: '#130938',
-    shadowColor: '#8F43FF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.42,
-    shadowRadius: 18,
-    elevation: 16,
-  },
-  sheet: { flex: 1, borderRadius: 29, overflow: 'hidden', backgroundColor: '#0B0628' },
-  sheetBackground: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
-  sheetScrim: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 6,
-  },
-  headerCopy: { flex: 1, paddingRight: 10 },
-  eyebrow: { color: '#FFD878', fontSize: 10, fontWeight: '900', letterSpacing: 2.1 },
-  title: { color: '#FFFFFF', fontFamily: 'serif', fontSize: 25, lineHeight: 31, fontWeight: '900', marginTop: 3 },
-  date: { color: '#BFB0DE', fontSize: 11, lineHeight: 16, marginTop: 4, textTransform: 'capitalize' },
-  close: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  content: { paddingHorizontal: 12, paddingBottom: 18, gap: 10 },
-  mascotStage: {
-    height: 220,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    marginHorizontal: -2,
-    marginBottom: -50,
-    marginTop: -4,
-    zIndex: 2,
-  },
-  mascotStageCompact: { height: 192, marginBottom: -46 },
-  mascotHalo: {
-    position: 'absolute',
-    width: 210,
-    height: 210,
-    borderRadius: 105,
-    backgroundColor: 'rgba(103, 54, 211, 0.22)',
-    shadowColor: '#E34BFF',
-    shadowOpacity: 0.48,
-    shadowRadius: 30,
-    elevation: 4,
-  },
-  mascotOrbit: { position: 'absolute', borderWidth: 1, borderColor: 'rgba(255, 184, 222, 0.28)' },
-  mascotOrbitWide: { width: 245, height: 168, borderRadius: 122, transform: [{ rotate: '-18deg' }] },
-  mascotOrbitTall: { width: 176, height: 205, borderRadius: 103, transform: [{ rotate: '28deg' }] },
-  mascotImage: { width: '100%', height: '100%' },
-  verseCardFrame: {
-    padding: 1.25,
-    borderRadius: 27,
-    shadowColor: '#D087FF',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.26,
-    shadowRadius: 13,
-    elevation: 7,
-    zIndex: 1,
-  },
-  verseCard: {
     position: 'relative',
-    minHeight: 260,
-    alignItems: 'center',
     overflow: 'hidden',
-    paddingHorizontal: 21,
-    paddingTop: 54,
-    paddingBottom: 17,
-    borderRadius: 26,
-  },
-  cornerOrnament: {
-    position: 'absolute',
-    top: 17,
-    width: 48,
-    height: 48,
-    borderTopWidth: 1.5,
-    borderColor: 'rgba(255,221,137,0.75)',
-  },
-  cornerOrnamentLeft: { left: 13, borderLeftWidth: 1.5, borderTopLeftRadius: 28 },
-  cornerOrnamentRight: { right: 13, borderRightWidth: 1.5, borderTopRightRadius: 28 },
-  verseSparkle: { position: 'absolute' },
-  verseSparkleLeft: { left: 18, top: 92 },
-  verseSparkleRight: { right: 18, top: 123 },
-  verseHeadingRow: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
-  headingRule: { flex: 1, maxWidth: 54, height: 1 },
-  footerRule: { flex: 1, maxWidth: 78, height: 1 },
-  verseFooter: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginTop: 12 },
-  mirrorCardFrame: {
-    padding: 1,
     borderRadius: 24,
-    shadowColor: '#7544DD',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.20,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowColor: '#8C4BF5',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 12,
   },
-  mirrorCard: {
-    position: 'relative',
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 13,
-    minHeight: 126,
-    overflow: 'hidden',
-    paddingHorizontal: 15,
-    paddingVertical: 16,
-    paddingRight: 25,
-    borderRadius: 23,
-  },
-  mirrorGlow: {
+  closeTarget: {
     position: 'absolute',
-    right: -38,
-    top: -44,
-    width: 135,
-    height: 135,
-    borderRadius: 68,
-    backgroundColor: 'rgba(123,68,204,0.20)',
-  },
-  mirrorIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    top: '4.8%',
+    right: '7.2%',
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(132,82,207,0.40)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,226,153,0.08)',
+    zIndex: 20,
   },
-  mirrorDecoration: { position: 'absolute' },
-  mirrorDecorationTop: { right: 12, top: 15 },
-  mirrorDecorationBottom: { left: 32, bottom: 7 },
-  flex: { flex: 1 },
-  sectionEyebrow: { color: '#FFD878', fontSize: 11, fontWeight: '900', letterSpacing: 1.8, textTransform: 'uppercase' },
-  mirrorEyebrow: { color: '#FFD878', fontSize: 11, lineHeight: 15, fontWeight: '900', letterSpacing: 0.65, textTransform: 'uppercase' },
-  verse: {
-    color: '#FFF4D6',
-    fontFamily: 'serif',
-    fontSize: 18,
-    lineHeight: 28,
-    fontStyle: 'italic',
-    fontWeight: '700',
-    textAlign: 'center',
-    marginTop: 13,
-    textShadowColor: 'rgba(255,214,133,0.24)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 5,
-  },
-  verseCompact: { fontSize: 16, lineHeight: 24 },
-  personality: { color: '#F8F4FF', fontSize: 15, lineHeight: 23, fontWeight: '600', marginTop: 6 },
-  metricsSection: {
-    padding: 12,
-    borderRadius: 20,
-    backgroundColor: 'rgba(31,20,82,0.82)',
-    borderWidth: 1,
-    borderColor: 'rgba(211,178,255,0.16)',
-  },
-  metricsHeadingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 },
-  metricsTitle: { flex: 1, color: '#FFF3D0', fontSize: 13, lineHeight: 18, fontWeight: '900' },
-  estimatedBadge: { paddingHorizontal: 7, paddingVertical: 4, borderRadius: 9, backgroundColor: 'rgba(255,211,126,0.09)' },
-  estimatedText: { color: '#D9C89E', fontSize: 8, lineHeight: 11, fontWeight: '700' },
-  metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  metricCard: {
-    width: '48.5%',
-    minHeight: 112,
-    padding: 11,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.045)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  metricTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  metricIcon: { width: 29, height: 29, alignItems: 'center', justifyContent: 'center', borderRadius: 15 },
-  metricScore: { fontSize: 21, lineHeight: 25, fontWeight: '900' },
-  metricLabel: { color: '#FFFFFF', fontSize: 11, lineHeight: 15, fontWeight: '800', marginTop: 7 },
-  metricTrack: { height: 4, overflow: 'hidden', borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.10)', marginTop: 7 },
-  metricFill: { height: '100%', borderRadius: 2 },
-  metricLevel: { color: '#AFA6C7', fontSize: 8.5, lineHeight: 12, marginTop: 5 },
-  metricDetail: {
-    marginTop: 9,
-    padding: 12,
-    borderRadius: 15,
-    backgroundColor: 'rgba(7,5,35,0.48)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  metricDetailHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  metricDetailTitle: { flex: 1, color: '#FFE29A', fontSize: 11.5, lineHeight: 16, fontWeight: '900' },
-  metricSummary: { color: '#E5DFF1', fontSize: 10.5, lineHeight: 17, marginTop: 7 },
-  metricEvidenceRow: { flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 9 },
-  metricEvidenceSymbol: { width: 24, color: '#D7AEFF', fontSize: 17, textAlign: 'center' },
-  metricEvidenceTitle: { color: '#FFFFFF', fontSize: 9.5, lineHeight: 14, fontWeight: '700' },
-  metricEvidenceMeta: { color: '#9F95B8', fontSize: 8.5, lineHeight: 12, marginTop: 1 },
-  stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  stat: {
-    width: '48.5%',
-    minHeight: 106,
-    paddingHorizontal: 9,
-    paddingVertical: 10,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.11)',
-  },
-  statLabel: { color: '#BFB4D7', fontSize: 9, lineHeight: 12, fontWeight: '700', marginTop: 7 },
-  statValue: { color: '#FFFFFF', fontSize: 12, lineHeight: 16, fontWeight: '900', marginTop: 3 },
-  statValueRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  statValueFlexible: { flex: 1 },
-  colorSwatch: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.55)',
-    marginTop: 3,
-  },
-  statEvidence: { color: '#AAA0C2', fontSize: 8.5, lineHeight: 12, marginTop: 4 },
-  guidanceRow: { flexDirection: 'row', gap: 8 },
-  guidance: {
-    position: 'relative',
-    flex: 1,
-    minWidth: 0,
-    minHeight: 128,
-    padding: 12,
-    borderRadius: 18,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  good: { borderColor: 'rgba(91,231,185,0.26)' },
-  avoid: { borderColor: 'rgba(255,119,191,0.25)' },
-  guidanceDecoration: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 72 },
-  goodDecoration: { opacity: 0.76 },
-  avoidDecoration: { opacity: 0.82 },
-  guidanceCopy: { zIndex: 1 },
-  guidanceTitle: { fontSize: 11, fontWeight: '900', marginBottom: 7 },
-  goodTitle: { color: '#75F0BD' },
-  avoidTitle: { color: '#FF79C5' },
-  guidanceText: { color: '#E1DBED', fontSize: 10.5, lineHeight: 17, marginBottom: 2 },
-  warningCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,190,93,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,204,126,0.16)',
-  },
-  warning: { flex: 1, color: '#FFD3A1', fontSize: 11, lineHeight: 17 },
-  evidence: {
-    padding: 12,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
-  },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  evidenceHeading: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 9 },
-  evidenceIcon: {
+  closeInner: {
     width: 28,
     height: 28,
     borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 214, 122, 0.08)',
+    shadowColor: '#301852',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.22,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  evidenceTitle: { flex: 1, color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
-  evidenceText: { color: '#CFC8E0', fontSize: 11, lineHeight: 17, marginTop: 9, paddingLeft: 37 },
-  askButton3d: { marginTop: 2 },
-  disclaimer: { color: '#9288A9', fontSize: 9, lineHeight: 13, textAlign: 'center', marginTop: 1 },
+
+  // 3D Flip Wrapper
+  pageFlipperWrapper: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  pageWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backfaceVisibility: 'hidden',
+  },
+
+  contentContainer: {
+    paddingLeft: '13.5%', // Clearance for spiral binder ring punch holes
+    paddingRight: '7.5%',
+    paddingTop: '6.5%',
+    paddingBottom: '8%',
+    alignItems: 'center',
+  },
+  contentContainerCompact: {
+    paddingTop: '5%',
+    paddingBottom: '6%',
+  },
+
+  // Eyebrow Badge
+  eyebrowRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+    marginBottom: 2,
+  },
+  eyebrowArt: {
+    width: 220,
+    height: 38,
+  },
+  eyebrowArtCompact: {
+    width: 195,
+    height: 34,
+  },
+  eyebrowPillFallback: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EDE7F6',
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 14,
+  },
+  eyebrowRay: {
+    color: '#7E57C2',
+    fontSize: 12,
+    marginHorizontal: 4,
+  },
+  eyebrowTextFallback: {
+    color: '#513C7B',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+  },
+
+  // Title "Năng lượng hôm nay"
+  titleRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -2,
+    marginBottom: 0,
+  },
+  titleArt: {
+    width: 290,
+    height: 54,
+  },
+  titleArtCompact: {
+    width: 260,
+    height: 48,
+  },
+  titleFallbackRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  titleFallbackPurple: {
+    fontFamily: 'serif',
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#5A3896',
+    fontStyle: 'italic',
+  },
+  titleHeartDoodle: {
+    fontSize: 20,
+    color: '#7E57C2',
+  },
+
+  // Date Subtitle
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  dateStar: {
+    marginRight: 5,
+  },
+  dateText: {
+    fontFamily: 'serif',
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#362452',
+    letterSpacing: 0.2,
+  },
+  dateTextCompact: {
+    fontSize: 11,
+  },
+  flourishLineContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '78%',
+    marginTop: 2,
+    marginBottom: 2,
+  },
+  flourishLine: {
+    flex: 1,
+    height: 1.2,
+    backgroundColor: 'rgba(123, 86, 199, 0.45)',
+    borderRadius: 1,
+  },
+  flourishHeart: {
+    color: '#7B56C7',
+    fontSize: 11,
+    marginLeft: 3,
+  },
+
+  // Mascot Stage
+  mascotStage: {
+    width: '100%',
+    height: 185,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 1,
+  },
+  mascotStageCompact: {
+    height: 155,
+  },
+  mascotImage: {
+    width: '100%',
+    height: '100%',
+  },
+
+  // Section 1: Lời thơ
+  verseSection: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  badgeRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  badgeImage: {
+    width: 175,
+    height: 28,
+  },
+  badgeMirrorImage: {
+    width: 250,
+    height: 28,
+  },
+  badgeFallbackPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EDE7F6',
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 14,
+  },
+  badgeFallbackText: {
+    color: '#513C7B',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  verseText: {
+    fontFamily: 'serif',
+    fontSize: 14.5,
+    lineHeight: 22.5,
+    fontStyle: 'italic',
+    fontWeight: '700',
+    textAlign: 'center',
+    color: '#261742',
+    paddingHorizontal: 10,
+  },
+  verseTextCompact: {
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  verseHeartDoodle: {
+    alignSelf: 'flex-end',
+    marginRight: 16,
+    color: '#8E67D1',
+    fontSize: 12,
+    marginTop: -4,
+  },
+
+  // Section 2: Lời nhắn
+  mirrorSection: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  badgeMirrorFallback: {
+    backgroundColor: '#FDE4EA',
+  },
+  badgeMirrorFallbackText: {
+    color: '#9E3663',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  mirrorText: {
+    fontSize: 11.5,
+    lineHeight: 18,
+    color: '#34264A',
+    textAlign: 'center',
+    paddingHorizontal: 12,
+    fontWeight: '500',
+  },
+  mirrorTextCompact: {
+    fontSize: 10.5,
+    lineHeight: 16.5,
+  },
+
+  // Bottom 3 Sticky Notes
+  stickyNotesRow: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 7,
+    marginTop: 2,
+    marginBottom: 8,
+  },
+  stickyNote: {
+    flex: 1,
+    minHeight: 64,
+    borderRadius: 11,
+    paddingVertical: 7,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    shadowColor: '#3B1863',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  noteTape: {
+    position: 'absolute',
+    top: -5,
+    width: 26,
+    height: 8,
+    borderRadius: 2,
+    zIndex: 1,
+  },
+  notePurple: {
+    backgroundColor: '#ECE8FB',
+    borderColor: '#DDD4F5',
+  },
+  tapePurple: {
+    backgroundColor: 'rgba(189, 169, 230, 0.72)',
+  },
+  notePink: {
+    backgroundColor: '#FCEBF0',
+    borderColor: '#F6D2DC',
+  },
+  tapePink: {
+    backgroundColor: 'rgba(238, 178, 198, 0.72)',
+  },
+  noteYellow: {
+    backgroundColor: '#FEF6D8',
+    borderColor: '#F7E7B6',
+  },
+  tapeYellow: {
+    backgroundColor: 'rgba(240, 212, 134, 0.72)',
+  },
+  noteHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 3,
+  },
+  noteIconCircle: {
+    width: 17,
+    height: 17,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconCirclePurple: {
+    backgroundColor: '#E0D8F7',
+  },
+  iconCirclePink: {
+    backgroundColor: '#F9D5E2',
+  },
+  iconCircleYellow: {
+    backgroundColor: '#F9E7AD',
+  },
+  noteLabel: {
+    fontSize: 9.5,
+    fontWeight: '700',
+  },
+  labelPurple: {
+    color: '#553E7E',
+  },
+  labelPink: {
+    color: '#7D3352',
+  },
+  labelYellow: {
+    color: '#735118',
+  },
+  noteValue: {
+    fontSize: 11.5,
+    fontWeight: '900',
+    color: '#1D1137',
+    textAlign: 'center',
+  },
+
+  // Lucky Color Card
+  luckyColorCard: {
+    width: '100%',
+    backgroundColor: '#F3FBF7',
+    borderColor: '#CCEADF',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginTop: 2,
+    marginBottom: 10,
+    alignItems: 'center',
+    position: 'relative',
+    shadowColor: '#204B3E',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  tapeMint: {
+    position: 'absolute',
+    top: -5,
+    width: 32,
+    height: 8,
+    borderRadius: 2,
+    backgroundColor: 'rgba(164, 222, 198, 0.75)',
+    zIndex: 1,
+  },
+  luckyColorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    gap: 8,
+  },
+  luckyColorDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  luckyColorTextCol: {
+    flex: 1,
+  },
+  luckyColorTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#315447',
+  },
+  luckyColorName: {
+    fontWeight: '900',
+    fontSize: 12,
+  },
+  luckyColorEvidence: {
+    fontSize: 9.5,
+    color: '#4B7363',
+    marginTop: 1,
+  },
+
+  // Page 1 Flip Button
+  pageFlipButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(237, 231, 246, 0.85)',
+    borderColor: '#D1C4E9',
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  pageFlipButtonText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#553A82',
+  },
+
+  // Page 2 Flip Back Button
+  pageFlipBackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(237, 231, 246, 0.85)',
+    borderColor: '#D1C4E9',
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+
+  // Pagination Dots
+  paginationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginVertical: 4,
+  },
+  paginationDot: {
+    height: 6,
+    borderRadius: 3,
+  },
+  dotActive: {
+    width: 18,
+    backgroundColor: '#7E57C2',
+  },
+  dotInactive: {
+    width: 6,
+    backgroundColor: '#D1C4E9',
+  },
+
+  // PAGE 2 STYLES
+  p2EyebrowPill: {
+    backgroundColor: '#EDE7F6',
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 14,
+    marginTop: 4,
+    marginBottom: 6,
+  },
+  p2EyebrowText: {
+    color: '#513C7B',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+  },
+  p2Title: {
+    fontFamily: 'serif',
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#5A3896',
+    fontStyle: 'italic',
+    marginBottom: 2,
+  },
+  p2Subtitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#4B3A64',
+    marginBottom: 10,
+  },
+
+  metricsBox: {
+    width: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.65)',
+    borderRadius: 14,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(123, 86, 199, 0.22)',
+    marginBottom: 10,
+  },
+  metricsHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  metricsTitle: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#3C2665',
+  },
+  metricsHint: {
+    fontSize: 9,
+    color: '#7E6B9B',
+    fontStyle: 'italic',
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  metricCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 7,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(123, 86, 199, 0.15)',
+  },
+  metricTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  metricScore: {
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  metricName: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#4A356E',
+    marginTop: 2,
+  },
+  metricTrack: {
+    width: '100%',
+    height: 3,
+    backgroundColor: '#E8E1F5',
+    borderRadius: 2,
+    marginTop: 4,
+    overflow: 'hidden',
+  },
+  metricFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  metricDetailBox: {
+    marginTop: 8,
+    padding: 8,
+    backgroundColor: '#F7F3FD',
+    borderRadius: 8,
+  },
+  metricDetailSummary: {
+    fontSize: 10,
+    lineHeight: 15,
+    color: '#3F2C5C',
+    fontWeight: '600',
+  },
+  metricEvidenceItem: {
+    fontSize: 9,
+    color: '#6E5692',
+    marginTop: 3,
+  },
+
+  // Guidance Row
+  guidanceRow: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 7,
+    marginBottom: 10,
+  },
+  guidanceCard: {
+    flex: 1,
+    borderRadius: 12,
+    padding: 8,
+    borderWidth: 1,
+  },
+  guidanceGood: {
+    backgroundColor: '#EFFBF7',
+    borderColor: '#B6E8D6',
+  },
+  guidanceAvoid: {
+    backgroundColor: '#FDF2F7',
+    borderColor: '#F3C5D9',
+  },
+  guidanceGoodTitle: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#15835C',
+    marginBottom: 4,
+  },
+  guidanceAvoidTitle: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#B02A62',
+    marginBottom: 4,
+  },
+  guidanceItemText: {
+    fontSize: 9.5,
+    lineHeight: 14,
+    color: '#3A2E4B',
+  },
+
+  // Evidence Box
+  evidenceBox: {
+    width: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.65)',
+    borderRadius: 10,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(123, 86, 199, 0.20)',
+    marginBottom: 10,
+  },
+  evidenceLabel: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#523B7C',
+    marginBottom: 2,
+  },
+  evidenceDesc: {
+    fontSize: 9,
+    lineHeight: 14,
+    color: '#4B3A64',
+  },
+
+  // Ask Button
+  askButtonContainer: {
+    width: '94%',
+    marginVertical: 4,
+  },
+
+  disclaimerText: {
+    fontSize: 8.5,
+    lineHeight: 12,
+    color: '#7E6B9B',
+    textAlign: 'center',
+    marginTop: 4,
+  },
 });
+
