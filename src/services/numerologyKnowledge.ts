@@ -18,6 +18,7 @@ import {
 } from './numerologyKnowledgeContract';
 import { getFrequencyBand, type MatrixReading } from './numerologyMatrixInterpretations';
 import type { CalculatedIndicator } from './numerologyEngine';
+import type { AppLocale } from '../i18n/translations';
 
 export interface KnowledgeReadingResult {
   title: string;
@@ -391,18 +392,23 @@ function combineKnowledgeReadings(
   };
 }
 
-function toMatrixReading(reading: KnowledgeReadingResult): MatrixKnowledgeReading {
+function toMatrixReading(reading: KnowledgeReadingResult, locale: AppLocale): MatrixKnowledgeReading {
   return {
     source: 'local-sqlite',
     summary: reading.overview,
-    strength: reading.strengths.join(' ') || 'Năng lượng này có thể được phát triển qua quan sát và thực hành.',
-    challenge: reading.challenges.join(' ') || 'Hãy lưu ý cách năng lượng này biểu hiện khi chịu áp lực.',
+    strength: reading.strengths.join(' ') || (locale === 'en'
+      ? 'This quality can be developed through observation and deliberate practice.'
+      : 'Năng lượng này có thể được phát triển qua quan sát và thực hành.'),
+    challenge: reading.challenges.join(' ') || (locale === 'en'
+      ? 'Notice how this quality changes when it is placed under pressure.'
+      : 'Hãy lưu ý cách năng lượng này biểu hiện khi chịu áp lực.'),
     advice: reading.advice,
   };
 }
 
 export async function getMatrixKnowledgeBundle(
-  indicator: CalculatedIndicator
+  indicator: CalculatedIndicator,
+  locale: AppLocale,
 ): Promise<MatrixKnowledgeBundle> {
   const chartData = indicator.chartData;
   if (!chartData) return {};
@@ -414,12 +420,13 @@ export async function getMatrixKnowledgeBundle(
     );
 
   try {
-    const rows = await fetchNumerologyKnowledgeRows(indicator.key, requestedValues);
+    const rows = await fetchNumerologyKnowledgeRows(indicator.key, requestedValues, locale);
     const bundle: MatrixKnowledgeBundle = {};
     for (const row of rows) {
       if (!row.content) continue;
       bundle[row.number_value] = toMatrixReading(
-        parseKnowledgeMarkdown(row.content, row.title || `${indicator.nameVi} ${row.number_value}`)
+        parseKnowledgeMarkdown(row.content, row.title || `${locale === 'en' ? indicator.nameEn : indicator.nameVi} ${row.number_value}`),
+        locale,
       );
     }
     return bundle;
@@ -435,31 +442,38 @@ export async function getMatrixKnowledgeBundle(
 export async function getIndicatorReading(
   indicatorKey: string,
   indicatorValue: string | number,
-  cardNameVi: string
+  cardName: string,
+  locale: AppLocale,
 ): Promise<KnowledgeReadingResult> {
   const valStr = String(indicatorValue).trim();
   const numVal = parseInt(valStr, 10);
 
   // Matrix cell/state readings are loaded separately in one batch. The overview remains local.
   if (indicatorKey === 'nameChart' || indicatorKey === 'birthChart' || indicatorKey === 'arrows') {
-    const chartTitle = indicatorKey === 'nameChart'
-      ? 'Biểu đồ tên'
-      : indicatorKey === 'birthChart'
-        ? 'Biểu đồ ngày sinh'
-        : '8 mũi tên cá tính';
-    const chartOverview = indicatorKey === 'nameChart'
-      ? 'Ma trận cho biết tần suất các con số được quy đổi từ từng chữ cái trong họ tên. Mỗi hồ sơ có thể có phân bố khác nhau.'
-      : indicatorKey === 'birthChart'
-        ? 'Ma trận cho biết số lần xuất hiện của từng chữ số khác 0 trong ngày, tháng và năm sinh.'
-        : 'Các trạng thái bên dưới được tính từ ma trận ngày sinh: đủ bộ khi có cả ba số, trống khi không có số nào, và có một phần khi chỉ có một hoặc hai số.';
+    const chartTitle = locale === 'en'
+      ? indicatorKey === 'nameChart' ? 'Name chart' : indicatorKey === 'birthChart' ? 'Birth chart' : 'Arrows of Individuality'
+      : indicatorKey === 'nameChart' ? 'Biểu đồ tên' : indicatorKey === 'birthChart' ? 'Biểu đồ ngày sinh' : '8 mũi tên cá tính';
+    const chartOverview = locale === 'en'
+      ? indicatorKey === 'nameChart'
+        ? 'This matrix shows the frequency of numbers converted from letters in the full name. Every profile may have a different distribution.'
+        : indicatorKey === 'birthChart'
+          ? 'This matrix shows how often each non-zero digit appears in the date of birth.'
+          : 'These states come from the birth chart: complete when all three numbers appear, empty when none appear, and partial when one or two appear.'
+      : indicatorKey === 'nameChart'
+        ? 'Ma trận cho biết tần suất các con số được quy đổi từ từng chữ cái trong họ tên. Mỗi hồ sơ có thể có phân bố khác nhau.'
+        : indicatorKey === 'birthChart'
+          ? 'Ma trận cho biết số lần xuất hiện của từng chữ số khác 0 trong ngày, tháng và năm sinh.'
+          : 'Các trạng thái bên dưới được tính từ ma trận ngày sinh: đủ bộ khi có cả ba số, trống khi không có số nào, và có một phần khi chỉ có một hoặc hai số.';
 
     return {
-      title: `${cardNameVi}: ${chartTitle}`,
+      title: `${cardName}: ${chartTitle}`,
       source: 'offline-archetype',
-      overview: `${chartOverview} Dữ liệu riêng của hồ sơ: ${valStr}.`,
+      overview: `${chartOverview} ${locale === 'en' ? 'Profile data' : 'Dữ liệu riêng của hồ sơ'}: ${valStr}.`,
       strengths: [],
       challenges: [],
-      advice: 'Đọc ma trận và tần suất từng số ở phần trên để xem dữ liệu riêng của hồ sơ này.',
+      advice: locale === 'en'
+        ? 'Read the matrix and each number frequency above to interpret this profile’s actual data.'
+        : 'Đọc ma trận và tần suất từng số ở phần trên để xem dữ liệu riêng của hồ sơ này.',
     };
   }
 
@@ -468,15 +482,17 @@ export async function getIndicatorReading(
   try {
     const atoms = getKnowledgeAtoms(indicatorKey, indicatorValue);
     const orderedValues = atoms.map((atom) => atom.numberValue);
-    const rows = await fetchNumerologyKnowledgeRows(indicatorKey, orderedValues);
-    const combined = combineKnowledgeReadings(cardNameVi, orderedValues, rows);
+    const rows = await fetchNumerologyKnowledgeRows(indicatorKey, orderedValues, locale);
+    const combined = combineKnowledgeReadings(cardName, orderedValues, rows);
     if (combined) return combined;
   } catch (err) {
     console.warn('[numerologyKnowledge] SQLite query fallback to offline:', err);
   }
 
   // 2. Fallback offline cho các chỉ số dạng danh sách/chuỗi.
-  const specialReading = getSpecialIndicatorReading(indicatorKey, indicatorValue, cardNameVi);
+  const specialReading = locale === 'vi'
+    ? getSpecialIndicatorReading(indicatorKey, indicatorValue, cardName)
+    : null;
   if (specialReading) {
     return {
       ...specialReading,
@@ -485,10 +501,10 @@ export async function getIndicatorReading(
   }
 
   // 3. Fallback Tức thì Offline: Dành cho Vận hạn Năm cá nhân
-  if (indicatorKey === 'yearIndividual' && !isNaN(numVal) && PERSONAL_YEAR_DATA[numVal]) {
+  if (locale === 'vi' && indicatorKey === 'yearIndividual' && !isNaN(numVal) && PERSONAL_YEAR_DATA[numVal]) {
     const yearData = PERSONAL_YEAR_DATA[numVal];
     return {
-      title: `${cardNameVi}: ${yearData.title}`,
+      title: `${cardName}: ${yearData.title}`,
       source: 'offline-archetype',
       overview: yearData.overview,
       strengths: yearData.str,
@@ -502,8 +518,35 @@ export async function getIndicatorReading(
   const targetNum = !isNaN(numVal) ? numVal : 1;
   const arch = ARCHETYPE_MAP[targetNum] || ARCHETYPE_MAP[targetNum % 9 || 9] || ARCHETYPE_MAP[1];
 
+  if (locale === 'en') {
+    const themes: Record<number, [string, string, string, string, string]> = {
+      1: ['The Initiator', 'Number 1 emphasizes initiative, independence, and the courage to begin.', 'Decisive leadership and originality.', 'Impatience or excessive self-reliance.', 'Lead clearly while remaining receptive to feedback.'],
+      2: ['The Diplomat', 'Number 2 emphasizes cooperation, sensitivity, and patient connection.', 'Diplomacy and emotional awareness.', 'Indecision or over-accommodation.', 'Protect your boundaries while preserving collaboration.'],
+      3: ['The Creative Communicator', 'Number 3 emphasizes expression, creativity, and social vitality.', 'Imaginative communication.', 'Scattered attention or unspoken feelings.', 'Turn inspiration into one concrete form.'],
+      4: ['The Builder', 'Number 4 emphasizes structure, discipline, and dependable progress.', 'Practical organization.', 'Rigidity or fear of change.', 'Build steadily while leaving room to adapt.'],
+      5: ['The Explorer', 'Number 5 emphasizes freedom, movement, and learning through experience.', 'Adaptability and curiosity.', 'Restlessness or impulsive choices.', 'Choose change deliberately rather than reactively.'],
+      6: ['The Nurturer', 'Number 6 emphasizes care, responsibility, and harmony.', 'Loyal support and stewardship.', 'Over-responsibility or perfectionism.', 'Care for others without abandoning your own needs.'],
+      7: ['The Seeker', 'Number 7 emphasizes analysis, contemplation, and inner knowledge.', 'Discernment and depth.', 'Isolation or excessive skepticism.', 'Balance reflection with direct participation.'],
+      8: ['The Executive', 'Number 8 emphasizes achievement, authority, and material stewardship.', 'Strategic execution.', 'Control, workaholism, or status anxiety.', 'Use influence ethically and measure success broadly.'],
+      9: ['The Humanitarian', 'Number 9 emphasizes compassion, completion, and a broad human perspective.', 'Generosity and emotional wisdom.', 'Martyrdom or difficulty letting go.', 'Serve with boundaries and release completed cycles.'],
+      11: ['The Intuitive Messenger', 'Master 11 emphasizes intuition, inspiration, and perceptive sensitivity.', 'Visionary insight.', 'Nervous intensity or impractical idealism.', 'Ground intuition in routines and verifiable action.'],
+      22: ['The Master Builder', 'Master 22 emphasizes translating an ambitious vision into durable form.', 'Large-scale planning and service.', 'Pressure, overwork, or fear of a large calling.', 'Divide the vision into responsible, measurable stages.'],
+      33: ['The Master Teacher', 'Master 33 emphasizes compassionate service and healing responsibility.', 'Uplifting guidance and care.', 'Self-sacrifice or unrealistic responsibility.', 'Serve within healthy limits and accept support.'],
+    };
+    const [title, overview, strength, challenge, advice] = themes[targetNum] || themes[targetNum % 9 || 9] || themes[1];
+    return {
+      title: `${cardName} ${valStr}: ${title}`,
+      source: 'offline-archetype',
+      overview,
+      strengths: [strength],
+      challenges: [challenge],
+      advice,
+      fullContent: `${overview}\n\n**Strengths:**\n- ${strength}\n\n**Challenges:**\n- ${challenge}\n\n**Guidance:** ${advice}`,
+    };
+  }
+
   return {
-    title: `${cardNameVi} ${valStr}: ${arch.title}`,
+    title: `${cardName} ${valStr}: ${arch.title}`,
     source: 'offline-archetype',
     overview: arch.overview,
     strengths: arch.str,

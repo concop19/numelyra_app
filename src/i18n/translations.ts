@@ -1,5 +1,10 @@
 export type AppLocale = 'vi' | 'en';
 export type LanguagePreference = 'system' | AppLocale;
+export type Localized<T> = Record<AppLocale, T>;
+
+export function localize<T>(value: Localized<T>, locale: AppLocale): T {
+  return value[locale];
+}
 
 export const translations = {
   vi: {
@@ -22,6 +27,24 @@ export const translations = {
     'chat.calendar': 'Lịch',
     'chat.settings': 'Cài đặt',
     'chat.wallpaper': 'Hình nền',
+    'chat.continueTitle': 'Tiếp tục bài luận giải',
+    'chat.thinking': 'Numelyra đang suy ngẫm…',
+    'chat.you': 'Bạn',
+    'chat.originalQuestion': 'CÂU HỎI GỐC',
+    'chat.originalReading': 'BÀI ĐỌC GỐC',
+    'chat.reopenContext': 'Đang mở lại bối cảnh bài đọc…',
+    'chat.continuePlaceholder': 'Nhắn tin cho Numelyra…',
+    'chat.sessionComplete': 'Phiên chiêm nghiệm đã hoàn thành',
+    'chat.sessionCompleteBody': 'Bạn đã đi hết 10 câu hỏi tiếp nối của bài đọc này.',
+    'chat.startNewReading': 'Bắt đầu bài đọc mới',
+    'chat.sessionNotFound': 'Không tìm thấy phiên trò chuyện hoặc bạn chưa đăng nhập đúng tài khoản.',
+    'chat.sessionLoadError': 'Không thể tải phiên trò chuyện. Vui lòng kiểm tra kết nối và thử lại.',
+    'chat.emptyAnswer': 'Tiểu Linh Miêu chưa nhận được nội dung trả lời.',
+    'chat.sendError': 'Không thể gửi câu hỏi.',
+    'chat.streamInterrupted': 'Luồng trả lời bị gián đoạn. Nội dung cục bộ đã được giữ lại.',
+    'tarot.tapToFlip': 'Chạm để lật',
+    'tarot.upright': 'Lá Xuôi ↾',
+    'tarot.reversed': 'Lá Ngược ↷',
     'daily.cardEyebrow': 'THÔNG ĐIỆP HÔM NAY',
     'daily.cardTitle': 'Năng lượng của bạn hôm nay',
     'daily.open': 'Mở lá hôm nay',
@@ -108,6 +131,24 @@ export const translations = {
     'chat.calendar': 'Calendar',
     'chat.settings': 'Settings',
     'chat.wallpaper': 'Wallpaper',
+    'chat.continueTitle': 'Continue the reading',
+    'chat.thinking': 'Numelyra is reflecting…',
+    'chat.you': 'You',
+    'chat.originalQuestion': 'ORIGINAL QUESTION',
+    'chat.originalReading': 'ORIGINAL READING',
+    'chat.reopenContext': 'Restoring the reading context…',
+    'chat.continuePlaceholder': 'Message Numelyra…',
+    'chat.sessionComplete': 'Reflection session complete',
+    'chat.sessionCompleteBody': 'You have used all 10 follow-up questions for this reading.',
+    'chat.startNewReading': 'Start a new reading',
+    'chat.sessionNotFound': 'This chat session was not found, or you are signed in to a different account.',
+    'chat.sessionLoadError': 'Unable to load this chat. Check your connection and try again.',
+    'chat.emptyAnswer': 'Little Spirit Cat did not receive an answer.',
+    'chat.sendError': 'Unable to send the question.',
+    'chat.streamInterrupted': 'The answer stream was interrupted. Your local content has been preserved.',
+    'tarot.tapToFlip': 'Tap to flip',
+    'tarot.upright': 'Upright ↾',
+    'tarot.reversed': 'Reversed ↷',
     'daily.cardEyebrow': "TODAY'S MESSAGE",
     'daily.cardTitle': 'Your energy today',
     'daily.open': "Open today's reading",

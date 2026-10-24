@@ -8,6 +8,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import ThreeDButton from '../ThreeDButton';
+import { useLocalization } from '../../i18n/LocalizationContext';
 
 interface Props {
   value: string;
@@ -32,6 +33,7 @@ export const ChatInputBar: React.FC<Props> = ({
   placeholder = 'Type a message...',
   disabled = false,
 }) => {
+  const { l } = useLocalization();
   const canSend = value.trim().length > 0 && !isLoading && !disabled;
   const handleSend = () => {
     if (!canSend) return;
@@ -51,7 +53,7 @@ export const ChatInputBar: React.FC<Props> = ({
         diameter={44}
         highlightColor="rgba(216, 190, 255, 0.14)"
         leadingIcon={<Ionicons name="add" size={28} color="#FFFFFF" />}
-        accessibilityLabel="Mở menu tính năng nhanh"
+        accessibilityLabel={l('Mở menu tính năng nhanh', 'Open quick actions')}
         style={styles.circlePlusButton}
       />
 
@@ -82,7 +84,7 @@ export const ChatInputBar: React.FC<Props> = ({
           shape="circle"
           diameter={44}
           leadingIcon={<Ionicons name="arrow-up" size={22} color="#2A1938" />}
-          accessibilityLabel="Gửi tin nhắn"
+          accessibilityLabel={l('Gửi tin nhắn', 'Send message')}
           style={styles.circleSendButton}
         />
       </View>

@@ -31,6 +31,7 @@ import {
   hydrateChatSessionFromSupabase,
   syncPendingChatSession,
 } from '../services/chatSessionSyncService';
+import { useLocalization } from '../i18n/LocalizationContext';
 
 const CHAT_BACKGROUND = require('../../assets/giao_dien/giaodien1/chat_continue/background.png');
 
@@ -40,19 +41,15 @@ interface Props {
   onBack: () => void;
 }
 
-const formatTime = (iso: string) => new Date(iso).toLocaleTimeString('vi-VN', {
-  hour: '2-digit',
-  minute: '2-digit',
-});
-
 function ChatMessageCard({ item, isSending }: { item: LocalChatMessage; isSending: boolean }) {
+  const { t, formatTime } = useLocalization();
   const isUser = item.sender === 'user';
-  const messageText = item.text || (isSending && !isUser ? 'Numelyra đang suy ngẫm…' : '');
+  const messageText = item.text || (isSending && !isUser ? t('chat.thinking') : '');
 
   const content = (
     <>
       <Text style={styles.messageText}>{messageText}</Text>
-      <Text style={styles.timeText}>{formatTime(item.createdAt)}</Text>
+      <Text style={styles.timeText}>{formatTime(new Date(item.createdAt))}</Text>
     </>
   );
 
@@ -68,9 +65,9 @@ function ChatMessageCard({ item, isSending }: { item: LocalChatMessage; isSendin
             <Ionicons name="sparkles" size={13} color="#FFF7D6" />
           </LinearGradient>
         )}
-        <Text style={styles.senderName}>{isUser ? 'Bạn' : 'Numelyra AI'}</Text>
+        <Text style={styles.senderName}>{isUser ? t('chat.you') : 'Numelyra AI'}</Text>
         {item.turnIndex === 0 ? (
-          <Text style={styles.rootBadge}>{isUser ? 'CÂU HỎI GỐC' : 'BÀI ĐỌC GỐC'}</Text>
+          <Text style={styles.rootBadge}>{isUser ? t('chat.originalQuestion') : t('chat.originalReading')}</Text>
         ) : null}
       </View>
 
@@ -91,6 +88,7 @@ function ChatMessageCard({ item, isSending }: { item: LocalChatMessage; isSendin
 }
 
 export default function ChatContinuationScreen({ sessionId, initialTitle, onBack }: Props) {
+  const { locale, t } = useLocalization();
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<LocalChatMessage>>(null);
   const [session, setSession] = useState<LocalChatSession | null>(null);
@@ -120,16 +118,16 @@ export default function ChatContinuationScreen({ sessionId, initialTitle, onBack
         setSession(remote.session);
         setMessages(remote.messages);
       } else if (!localSession) {
-        setError('Không tìm thấy phiên trò chuyện hoặc bạn chưa đăng nhập đúng tài khoản.');
+        setError(t('chat.sessionNotFound'));
       }
     } catch (loadError) {
       console.warn('[ChatContinuationScreen] Could not load session:', loadError);
-      setError('Không thể tải phiên trò chuyện. Vui lòng kiểm tra kết nối và thử lại.');
+      setError(t('chat.sessionLoadError'));
     } finally {
       setIsLoading(false);
       scrollToEnd();
     }
-  }, [scrollToEnd, sessionId]);
+  }, [scrollToEnd, sessionId, t]);
 
   useEffect(() => {
     void loadSession();
@@ -187,6 +185,7 @@ export default function ChatContinuationScreen({ sessionId, initialTitle, onBack
         turnIndex: requestedTurn,
         userMessageId,
         assistantMessageId,
+        locale,
         timeZone: (() => {
           try { return Intl.DateTimeFormat().resolvedOptions().timeZone; }
           catch { return undefined; }
@@ -198,7 +197,7 @@ export default function ChatContinuationScreen({ sessionId, initialTitle, onBack
         scrollToEnd();
       });
 
-      const answer = result.text.trim() || 'Tiểu Linh Miêu chưa nhận được nội dung trả lời.';
+      const answer = result.text.trim() || t('chat.emptyAnswer');
       const acceptedCount = result.done.accepted ? result.done.turnIndex : session.questionCount;
       const assistantMessage: LocalChatMessage = {
         ...assistantPlaceholder,
@@ -222,7 +221,7 @@ export default function ChatContinuationScreen({ sessionId, initialTitle, onBack
       setSession(updatedSession);
       await syncPendingChatSession(sessionId);
     } catch (sendError) {
-      const message = sendError instanceof Error ? sendError.message : 'Không thể gửi câu hỏi.';
+      const message = sendError instanceof Error ? sendError.message : t('chat.sendError');
       const failedAssistant: LocalChatMessage = {
         ...assistantPlaceholder,
         text: `⚠️ ${message}`,
@@ -232,7 +231,7 @@ export default function ChatContinuationScreen({ sessionId, initialTitle, onBack
         item.id === assistantMessageId ? failedAssistant : item
       )));
       await finishLocalChatTurn(session, failedAssistant, session.questionCount, false).catch(() => undefined);
-      setError('Luồng trả lời bị gián đoạn. Nội dung cục bộ đã được giữ lại.');
+      setError(t('chat.streamInterrupted'));
       const remote = await hydrateChatSessionFromSupabase(sessionId).catch(() => null);
       if (remote) {
         setSession(remote.session);
@@ -242,7 +241,7 @@ export default function ChatContinuationScreen({ sessionId, initialTitle, onBack
       setIsSending(false);
       scrollToEnd();
     }
-  }, [input, isSending, scrollToEnd, session, sessionId]);
+  }, [input, isSending, locale, scrollToEnd, session, sessionId, t]);
 
   const isCompleted = session?.status === 'completed' || Boolean(
     session && session.questionCount >= session.maxQuestions
@@ -256,13 +255,13 @@ export default function ChatContinuationScreen({ sessionId, initialTitle, onBack
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.header}>
-          <TouchableOpacity onPress={onBack} style={styles.headerButton} accessibilityLabel="Quay lại bài luận giải">
+          <TouchableOpacity onPress={onBack} style={styles.headerButton} accessibilityLabel={t('common.back')}>
             <Ionicons name="chevron-back" size={22} color="#F8F6FF" />
-            <Text style={styles.backText}>Quay lại</Text>
+            <Text style={styles.backText}>{t('common.back')}</Text>
           </TouchableOpacity>
           <View style={styles.headerCopy}>
             <Text style={styles.title}>Numelyra AI</Text>
-            <Text numberOfLines={1} style={styles.subtitle}>{session?.title || initialTitle || 'Tiếp tục bài luận giải'}</Text>
+            <Text numberOfLines={1} style={styles.subtitle}>{session?.title || initialTitle || t('chat.continueTitle')}</Text>
           </View>
           <View style={styles.quotaBadge}>
             <Text style={styles.quotaText}>{session?.questionCount ?? 0}/{session?.maxQuestions ?? 10}</Text>
@@ -279,7 +278,7 @@ export default function ChatContinuationScreen({ sessionId, initialTitle, onBack
         {isLoading ? (
           <View style={styles.centerState}>
             <ActivityIndicator color="#F6C768" size="large" />
-            <Text style={styles.centerText}>Đang mở lại bối cảnh bài đọc…</Text>
+            <Text style={styles.centerText}>{t('chat.reopenContext')}</Text>
           </View>
         ) : (
           <FlatList
@@ -297,10 +296,10 @@ export default function ChatContinuationScreen({ sessionId, initialTitle, onBack
 
         {isCompleted ? (
           <View style={[styles.completedBox, { paddingBottom: Math.max(insets.bottom, 14) }]}>
-            <Text style={styles.completedTitle}>Phiên chiêm nghiệm đã hoàn thành</Text>
-            <Text style={styles.completedText}>Bạn đã đi hết 10 câu hỏi tiếp nối của bài đọc này.</Text>
+            <Text style={styles.completedTitle}>{t('chat.sessionComplete')}</Text>
+            <Text style={styles.completedText}>{t('chat.sessionCompleteBody')}</Text>
             <TouchableOpacity onPress={onBack} style={styles.newReadingButton}>
-              <Text style={styles.newReadingText}>Bắt đầu bài đọc mới</Text>
+              <Text style={styles.newReadingText}>{t('chat.startNewReading')}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -309,7 +308,7 @@ export default function ChatContinuationScreen({ sessionId, initialTitle, onBack
               value={input}
               onChangeText={setInput}
               editable={!isSending && Boolean(session)}
-              placeholder="Nhắn tin cho Numelyra…"
+              placeholder={t('chat.continuePlaceholder')}
               placeholderTextColor="rgba(235, 232, 248, 0.42)"
               style={styles.input}
               multiline

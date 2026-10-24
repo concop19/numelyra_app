@@ -45,33 +45,46 @@ export interface TuViBaziSynastryResult {
     type: 'liu_he' | 'san_he' | 'chong' | 'hai' | 'neutral';
     labelVi: string;
     description: string;
+    labelEn?: string;
+    descriptionEn?: string;
   };
   stemInteraction: {
     type: 'he' | 'chong' | 'neutral';
     labelVi: string;
     description: string;
+    labelEn?: string;
+    descriptionEn?: string;
   };
   elementHarmony: {
     relationship: 'sinh' | 'khac' | 'dong_hanh';
     description: string;
+    descriptionEn?: string;
   };
   napAmHarmony: {
     relationship: 'sinh' | 'khac' | 'dong_hanh';
     labelVi: string;
     description: string;
+    labelEn?: string;
+    descriptionEn?: string;
   };
   cungPhiBatTrach: {
     type: 'sinh_khi' | 'dien_nien' | 'thien_y' | 'phuc_vi' | 'tuyet_menh' | 'hoa_hai' | 'luc_sat' | 'ngu_quy';
     isAuspicious: boolean;
     labelVi: string;
     description: string;
+    labelEn?: string;
+    descriptionEn?: string;
   };
   yearAnimalHarmony: {
     labelVi: string;
     description: string;
+    labelEn?: string;
+    descriptionEn?: string;
   };
   summaryVi: string;
   adviceVi: string;
+  summaryEn: string;
+  adviceEn: string;
 }
 
 // -------------------------------------------------------------
@@ -625,17 +638,63 @@ export function evaluateTuViBaziLove(
     ? `Lá số Tử Vi của hai bạn kết hợp rất đẹp (${cungPhiBatTrach.labelVi} & ${napAmHarmony.labelVi}). Hãy cùng nhau duy trì sự tôn trọng, đồng hành phát triển sự nghiệp và chăm sóc gia đạo viên mãn.`
     : `Tử Vi khuyên hai bạn: Dù có điểm khắc chế (${cungPhiBatTrach.labelVi}), nhưng có thể hóa giải trọn vẹn qua việc chọn hướng nhà/bếp cát lành, kiềm chế tính nóng nảy và thực hành lắng nghe chân thành mỗi ngày.`;
 
+  const relationshipLabels = {
+    sinh: 'supportive cycle',
+    khac: 'controlling cycle',
+    dong_hanh: 'same-element pattern',
+  } as const;
+  const spousalLabels = {
+    liu_he: 'Liu He harmony',
+    san_he: 'San He harmony',
+    chong: 'opposition pattern',
+    hai: 'sensitivity pattern',
+    neutral: 'neutral spouse-palace pattern',
+  } as const;
+  const batTrachLabels: Record<TuViBaziSynastryResult['cungPhiBatTrach']['type'], string> = {
+    sinh_khi: 'Sheng Qi', dien_nien: 'Yan Nian', thien_y: 'Tian Yi', phuc_vi: 'Fu Wei',
+    tuyet_menh: 'Jue Ming', hoa_hai: 'Huo Hai', luc_sat: 'Liu Sha', ngu_quy: 'Wu Gui',
+  };
+  const summaryEn = `The Bazi and Tu Vi compatibility score for ${personAChart.fullName} and ${personBChart.fullName} is ${finalScore}%. Their spouse-palace relationship is read as ${spousalLabels[spousalInteraction.type]}; the Nạp Âm elements form a ${relationshipLabels[napAmHarmony.relationship]}; and their Eight Mansions pairing is ${batTrachLabels[cungPhiBatTrach.type]}. Traditional Can Chi and Nạp Âm names are retained as proper terms.`;
+  const adviceEn = finalScore >= 80
+    ? 'The traditional patterns are broadly supportive. Maintain the result through direct communication, shared responsibility, and room for both people to grow independently.'
+    : 'The chart contains some friction, but it is not a verdict. Agree on conflict rules, listen without interruption, and make practical expectations about home, money, and family explicit.';
+
   return {
     personA: personAChart,
     personB: personBChart,
     compatibilityScore: finalScore,
-    spousalInteraction,
-    stemInteraction,
-    elementHarmony,
-    napAmHarmony,
-    cungPhiBatTrach,
-    yearAnimalHarmony,
+    spousalInteraction: {
+      ...spousalInteraction,
+      labelEn: spousalLabels[spousalInteraction.type],
+      descriptionEn: `The spouse-palace branches ${branchA} and ${branchB} form a ${spousalLabels[spousalInteraction.type]}. Use this as a prompt to observe communication and conflict habits.`,
+    },
+    stemInteraction: {
+      ...stemInteraction,
+      labelEn: stemInteraction.type === 'he' ? 'Five-combination harmony' : stemInteraction.type === 'chong' ? 'stem opposition' : 'independent day masters',
+      descriptionEn: `Day Masters ${stemA} and ${stemB} describe how each person asserts direction and responds under pressure.`,
+    },
+    elementHarmony: {
+      ...elementHarmony,
+      descriptionEn: `The Day Master elements ${personAChart.dayPillar.elementEn} and ${personBChart.dayPillar.elementEn} form a ${relationshipLabels[elementHarmony.relationship]}.`,
+    },
+    napAmHarmony: {
+      ...napAmHarmony,
+      labelEn: relationshipLabels[napAmHarmony.relationship],
+      descriptionEn: `The Nạp Âm elements form a ${relationshipLabels[napAmHarmony.relationship]}; use the pattern for reflection rather than prediction.`,
+    },
+    cungPhiBatTrach: {
+      ...cungPhiBatTrach,
+      labelEn: batTrachLabels[cungPhiBatTrach.type],
+      descriptionEn: `The Eight Mansions pairing is ${batTrachLabels[cungPhiBatTrach.type]} and is traditionally classified as ${cungPhiBatTrach.isAuspicious ? 'supportive' : 'challenging'}.`,
+    },
+    yearAnimalHarmony: {
+      ...yearAnimalHarmony,
+      labelEn: LIU_HE_MAP[zhiYearA]?.pair === zhiYearB ? 'Liu He zodiac harmony' : 'zodiac-year pattern',
+      descriptionEn: `The year branches ${zhiYearA} and ${zhiYearB} provide background context for shared rhythm and expectations.`,
+    },
     summaryVi,
-    adviceVi
+    adviceVi,
+    summaryEn,
+    adviceEn,
   };
 }

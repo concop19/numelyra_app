@@ -33,13 +33,13 @@ describe('numerologyKnowledge SQLite-first resolution', () => {
       ]
     );
 
-    const reading = await getIndicatorReading('karmicDebts', '13/4, 16/7', 'Con Số Nợ Nghiệp');
+    const reading = await getIndicatorReading('karmicDebts', '13/4, 16/7', 'Con Số Nợ Nghiệp', 'vi');
 
     expect(reading.source).toBe('local-sqlite');
     expect(reading.overview).toContain('13/4');
     expect(reading.overview).toContain('16/7');
     expect(reading.strengths).toEqual(['13/4 · Điểm mạnh 13/4', '16/7 · Điểm mạnh 16/7']);
-    expect(mockFetchRows).toHaveBeenCalledWith('karmicDebts', ['13/4', '16/7']);
+    expect(mockFetchRows).toHaveBeenCalledWith('karmicDebts', ['13/4', '16/7'], 'vi');
   });
 
   it('uses the complete offline reading when one atomic DB row is missing', async () => {
@@ -49,7 +49,7 @@ describe('numerologyKnowledge SQLite-first resolution', () => {
       ]
     );
 
-    const reading = await getIndicatorReading('missingNumbers', '2, 7', 'Bài Học Số Thiếu');
+    const reading = await getIndicatorReading('missingNumbers', '2, 7', 'Bài Học Số Thiếu', 'vi');
 
     expect(reading.source).toBe('offline-archetype');
     expect(reading.overview).toContain('Số 2 thiếu');
@@ -68,7 +68,7 @@ describe('numerologyKnowledge SQLite-first resolution', () => {
       chartData: { counts: { 1: 1, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0 } },
     } as unknown as CalculatedIndicator;
 
-    const bundle = await getMatrixKnowledgeBundle(indicator);
+    const bundle = await getMatrixKnowledgeBundle(indicator, 'vi');
 
     expect(bundle['1:baseline']?.source).toBe('local-sqlite');
     expect(bundle['1:baseline']?.summary).toContain('số 1 nền tảng');
@@ -95,9 +95,9 @@ describe('numerologyKnowledge SQLite-first resolution', () => {
       },
     ]);
 
-    const reading = await getIndicatorReading('mature', 4, 'Số Trưởng Thành');
+    const reading = await getIndicatorReading('mature', 4, 'Số Trưởng Thành', 'vi');
 
-    expect(mockFetchRows).toHaveBeenCalledWith('mature', ['4']);
+    expect(mockFetchRows).toHaveBeenCalledWith('mature', ['4'], 'vi');
     expect(reading.source).toBe('local-sqlite');
     expect(reading.overview).toContain('nền móng vững chắc');
     expect(reading.strengths).toContain('Bạn phát huy khả năng quản trị hệ thống và xây dựng di sản thực tế.');
@@ -127,7 +127,7 @@ describe('numerologyKnowledge SQLite-first resolution', () => {
       },
     ]);
 
-    const reading = await getIndicatorReading('balance', 5, 'Số Cân Bằng');
+    const reading = await getIndicatorReading('balance', 5, 'Số Cân Bằng', 'vi');
 
     expect(reading.source).toBe('local-sqlite');
     expect(reading.overview).toContain('muốn thay đổi ngay');

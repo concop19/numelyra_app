@@ -3,7 +3,8 @@
  * Cung cấp cho AI Agent khả năng tra cứu chính xác từng chỉ số theo nhu cầu của câu hỏi.
  */
 
-import { getConciseIndicatorMeaning } from './chatNumerologyContextService';
+import { getChatIndicatorName, getConciseIndicatorMeaning } from './chatNumerologyContextService';
+import type { AppLocale } from '../i18n/translations';
 
 export const PYTHAGOREAN_MAP: Record<string, number> = {
   A: 1, J: 1, S: 1,
@@ -64,10 +65,12 @@ export class NumerologyCalculator {
   year: number;
   fullName: string;
   normalizedName: string;
+  locale: AppLocale;
 
-  constructor(fullName: string, birthDate: string) {
+  constructor(fullName: string, birthDate: string, locale: AppLocale = 'vi') {
     this.fullName = fullName;
     this.normalizedName = normalizeName(fullName);
+    this.locale = locale;
 
     const parts = birthDate.split('-');
     if (parts.length === 3) {
@@ -89,9 +92,9 @@ export class NumerologyCalculator {
     const val = reduceNumber(rDay + rMonth + rYear, true);
     return {
       key: 'walksOfLife',
-      name: 'Số Đường Đời (Life Path)',
+      name: getChatIndicatorName('walksOfLife', this.locale) || 'Số Đường Đời (Life Path)',
       value: val,
-      meaning: getConciseIndicatorMeaning('walksOfLife', val) ||
+      meaning: getConciseIndicatorMeaning('walksOfLife', val, this.locale) ||
         `Chỉ số cốt lõi số ${val}, phản ánh bài học và con đường tiến hóa cả đời của bạn.`
     };
   }
@@ -105,9 +108,9 @@ export class NumerologyCalculator {
     const val = reduceNumber(sum, true);
     return {
       key: 'mission',
-      name: 'Số Sứ Mệnh (Destiny / Mission)',
+      name: getChatIndicatorName('mission', this.locale) || 'Số Sứ Mệnh (Destiny / Mission)',
       value: val,
-      meaning: getConciseIndicatorMeaning('mission', val) ||
+      meaning: getConciseIndicatorMeaning('mission', val, this.locale) ||
         `Năng lực bẩm sinh và đích đến mà bạn được sinh ra để cống hiến cho cuộc đời (Số ${val}).`
     };
   }
@@ -126,9 +129,9 @@ export class NumerologyCalculator {
     const val = reduceNumber(sum, true);
     return {
       key: 'soul',
-      name: 'Số Linh Hồn (Soul Urge)',
+      name: getChatIndicatorName('soul', this.locale) || 'Số Linh Hồn (Soul Urge)',
       value: val,
-      meaning: getConciseIndicatorMeaning('soul', val) ||
+      meaning: getConciseIndicatorMeaning('soul', val, this.locale) ||
         `Khát vọng sâu kín, điều thực sự nuôi dưỡng cảm xúc và mang lại hạnh phúc cho bạn (Số ${val}).`
     };
   }
@@ -147,9 +150,9 @@ export class NumerologyCalculator {
     const val = reduceNumber(sum, true);
     return {
       key: 'personality',
-      name: 'Số Nhân Cách (Personality)',
+      name: getChatIndicatorName('personality', this.locale) || 'Số Nhân Cách (Personality)',
       value: val,
-      meaning: getConciseIndicatorMeaning('personality', val) ||
+      meaning: getConciseIndicatorMeaning('personality', val, this.locale) ||
         `Ấn tượng và phong thái bên ngoài mà người khác cảm nhận được từ bạn (Số ${val}).`
     };
   }
@@ -159,9 +162,9 @@ export class NumerologyCalculator {
     const val = this.day === 11 || this.day === 22 ? this.day : reduceNumber(this.day, false);
     return {
       key: 'dateOfBirth',
-      name: 'Số Ngày Sinh (Birthday Number)',
+      name: getChatIndicatorName('dateOfBirth', this.locale) || 'Số Ngày Sinh (Birthday Number)',
       value: val,
-      meaning: getConciseIndicatorMeaning('dateOfBirth', val) ||
+      meaning: getConciseIndicatorMeaning('dateOfBirth', val, this.locale) ||
         `Món quà tài năng đặc biệt và phản xạ tự nhiên trong cuộc sống thường nhật (Số ${val}).`
     };
   }
@@ -173,9 +176,9 @@ export class NumerologyCalculator {
     const val = reduceNumber(lp + mis, true);
     return {
       key: 'mature',
-      name: 'Số Trưởng Thành (Maturity)',
+      name: getChatIndicatorName('mature', this.locale) || 'Số Trưởng Thành (Maturity)',
       value: val,
-      meaning: getConciseIndicatorMeaning('mature', val) ||
+      meaning: getConciseIndicatorMeaning('mature', val, this.locale) ||
         `Sức mạnh nở rộ sau tuổi 35–40 khi Đường đời và Sứ mệnh hội tụ (Số ${val}).`
     };
   }
@@ -191,9 +194,9 @@ export class NumerologyCalculator {
     const val = reduceNumber(reduceNumber(this.day, false) + reduceNumber(nameSum, false), true);
     return {
       key: 'rationalThinking',
-      name: 'Số Tư Duy Lý Trí (Rational Thought)',
+      name: getChatIndicatorName('rationalThinking', this.locale) || 'Số Tư Duy Lý Trí (Rational Thought)',
       value: val,
-      meaning: getConciseIndicatorMeaning('rationalThinking', val) ||
+      meaning: getConciseIndicatorMeaning('rationalThinking', val, this.locale) ||
         `Cách bạn phân tích dữ kiện và đưa ra quyết định khi đứng trước các ngã rẽ (Số ${val}).`
     };
   }
@@ -206,9 +209,9 @@ export class NumerologyCalculator {
     const val = reduceNumber(rDay + rMonth + rYear, false); // nghiêm ngặt 1-9
     return {
       key: 'yearIndividual',
-      name: `Năm Cá Nhân ${targetYear} (Personal Year)`,
+      name: this.locale === 'en' ? `Personal Year ${targetYear}` : `Năm Cá Nhân ${targetYear} (Personal Year)`,
       value: val,
-      meaning: getConciseIndicatorMeaning('yearIndividual', val) ||
+      meaning: getConciseIndicatorMeaning('yearIndividual', val, this.locale) ||
         `Năm số ${val} trong chu kỳ 9 năm: ${getPersonalYearTheme(val)}`
     };
   }
@@ -220,9 +223,9 @@ export class NumerologyCalculator {
     const val = reduceNumber(rDay + rMonth, false);
     return {
       key: 'attitude',
-      name: 'Số Thái Độ (Attitude Number)',
+      name: getChatIndicatorName('attitude', this.locale) || 'Số Thái Độ (Attitude Number)',
       value: val,
-      meaning: getConciseIndicatorMeaning('attitude', val) ||
+      meaning: getConciseIndicatorMeaning('attitude', val, this.locale) ||
         `Phản xạ đầu tiên và tâm thế của bạn khi đối diện biến cố hay cơ hội (Số ${val}).`
     };
   }

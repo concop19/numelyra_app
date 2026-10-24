@@ -3,6 +3,7 @@ import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { PlaceBudget, PlaceCompanion, PlaceSearchPreferences } from '../../services/placeLocation';
 import ThreeDButton from '../ThreeDButton';
+import { useLocalization } from '../../i18n/LocalizationContext';
 
 interface Props {
   visible: boolean;
@@ -11,19 +12,8 @@ interface Props {
 }
 
 const distanceOptions = [2, 5, 10];
-const budgets: Array<{ value: PlaceBudget; label: string }> = [
-  { value: 'low', label: 'Tiết kiệm' },
-  { value: 'medium', label: 'Vừa phải' },
-  { value: 'flexible', label: 'Linh hoạt' },
-];
-const companions: Array<{ value: PlaceCompanion; label: string }> = [
-  { value: 'solo', label: 'Một mình' },
-  { value: 'date', label: 'Hẹn hò' },
-  { value: 'friends', label: 'Bạn bè' },
-  { value: 'family', label: 'Gia đình' },
-];
-
 export function PlaceSearchContextModal({ visible, onCancel, onUseCurrentLocation }: Props) {
+  const { locale, l } = useLocalization();
   const [maxDistanceKm, setMaxDistanceKm] = useState(5);
   const [budget, setBudget] = useState<PlaceBudget>('medium');
   const [companion, setCompanion] = useState<PlaceCompanion>('solo');
@@ -39,7 +29,9 @@ export function PlaceSearchContextModal({ visible, onCancel, onUseCurrentLocatio
     try {
       await onUseCurrentLocation(preferences);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Không lấy được vị trí. Bạn có thể nhập khu vực thay thế.');
+      setError(cause instanceof Error && locale === 'vi'
+        ? cause.message
+        : l('Không lấy được vị trí. Bạn có thể thử lại sau.', 'Unable to get your location. Please try again.'));
     } finally {
       setIsLocating(false);
     }
@@ -52,42 +44,42 @@ export function PlaceSearchContextModal({ visible, onCancel, onUseCurrentLocatio
           <View style={styles.headingRow}>
             <View style={styles.headingIcon}><Ionicons name="location-outline" size={20} color="#FFD28B" /></View>
             <View style={styles.headingCopy}>
-              <Text style={styles.title}>Dùng vị trí để tìm nơi phù hợp</Text>
-              <Text style={styles.subtitle}>Vị trí chỉ dùng cho lần tìm này, không lưu lại.</Text>
+              <Text style={styles.title}>{l('Dùng vị trí để tìm nơi phù hợp', 'Use location to find a suitable place')}</Text>
+              <Text style={styles.subtitle}>{l('Vị trí chỉ dùng cho lần tìm này, không lưu lại.', 'Your location is used only for this search and is not saved.')}</Text>
             </View>
           </View>
 
-          <Text style={styles.label}>Khoảng cách tối đa</Text>
+          <Text style={styles.label}>{l('Khoảng cách tối đa', 'Maximum distance')}</Text>
           <View style={styles.optionRow}>
             {distanceOptions.map((value) => (
               <ChoiceChip key={value} label={`${value} km`} active={maxDistanceKm === value} onPress={() => setMaxDistanceKm(value)} />
             ))}
           </View>
 
-          <Text style={styles.label}>Ngân sách</Text>
+          <Text style={styles.label}>{l('Ngân sách', 'Budget')}</Text>
           <View style={styles.optionRow}>
-            {budgets.map((item) => (
-              <ChoiceChip key={item.value} label={item.label} active={budget === item.value} onPress={() => setBudget(item.value)} />
+            {(['low', 'medium', 'flexible'] as PlaceBudget[]).map((value) => (
+              <ChoiceChip key={value} label={{ low: l('Tiết kiệm', 'Budget'), medium: l('Vừa phải', 'Moderate'), flexible: l('Linh hoạt', 'Flexible') }[value]} active={budget === value} onPress={() => setBudget(value)} />
             ))}
           </View>
 
-          <Text style={styles.label}>Đi cùng</Text>
+          <Text style={styles.label}>{l('Đi cùng', 'Going with')}</Text>
           <View style={styles.optionRow}>
-            {companions.map((item) => (
-              <ChoiceChip key={item.value} label={item.label} active={companion === item.value} onPress={() => setCompanion(item.value)} />
+            {(['solo', 'date', 'friends', 'family'] as PlaceCompanion[]).map((value) => (
+              <ChoiceChip key={value} label={{ solo: l('Một mình', 'Solo'), date: l('Hẹn hò', 'A date'), friends: l('Bạn bè', 'Friends'), family: l('Gia đình', 'Family') }[value]} active={companion === value} onPress={() => setCompanion(value)} />
             ))}
           </View>
 
           <TouchableOpacity style={styles.openNowRow} onPress={() => setOpenNow((value) => !value)} activeOpacity={0.8}>
             <Ionicons name={openNow ? 'checkbox' : 'square-outline'} size={20} color={openNow ? '#FFD28B' : '#B6ABC8'} />
-            <Text style={styles.openNowText}>Ưu tiên nơi đang mở</Text>
+            <Text style={styles.openNowText}>{l('Ưu tiên nơi đang mở', 'Prefer places open now')}</Text>
           </TouchableOpacity>
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <ThreeDButton
             fullWidth
-            label={isLocating ? 'Đang xác định vị trí' : 'Dùng vị trí hiện tại'}
+            label={isLocating ? l('Đang xác định vị trí', 'Locating…') : l('Dùng vị trí hiện tại', 'Use current location')}
             leadingIcon={<Ionicons name="navigate" size={17} color="#3B260D" />}
             loading={isLocating}
             onPress={chooseCurrentLocation}
@@ -96,7 +88,7 @@ export function PlaceSearchContextModal({ visible, onCancel, onUseCurrentLocatio
             variant="gold"
           />
           <TouchableOpacity style={styles.cancelButton} onPress={onCancel} activeOpacity={0.8}>
-            <Text style={styles.cancelButtonText}>Để sau</Text>
+            <Text style={styles.cancelButtonText}>{l('Để sau', 'Not now')}</Text>
           </TouchableOpacity>
         </View>
       </View>

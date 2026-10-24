@@ -1,6 +1,7 @@
 import React from 'react';
 import { Alert, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalization } from '../../i18n/LocalizationContext';
 
 export interface PlaceSuggestionsPayload {
   areaLabel: string;
@@ -19,15 +20,16 @@ export interface PlaceSuggestionsPayload {
   }>;
 }
 
-function formatPriceLevel(level: string | null): string | null {
-  if (level === 'PRICE_LEVEL_INEXPENSIVE') return 'Tiết kiệm';
-  if (level === 'PRICE_LEVEL_MODERATE') return 'Giá vừa';
-  if (level === 'PRICE_LEVEL_EXPENSIVE') return 'Cao cấp';
-  if (level === 'PRICE_LEVEL_VERY_EXPENSIVE') return 'Rất cao cấp';
+function formatPriceLevel(level: string | null, locale: 'vi' | 'en'): string | null {
+  if (level === 'PRICE_LEVEL_INEXPENSIVE') return locale === 'en' ? 'Budget' : 'Tiết kiệm';
+  if (level === 'PRICE_LEVEL_MODERATE') return locale === 'en' ? 'Moderate' : 'Giá vừa';
+  if (level === 'PRICE_LEVEL_EXPENSIVE') return locale === 'en' ? 'Upscale' : 'Cao cấp';
+  if (level === 'PRICE_LEVEL_VERY_EXPENSIVE') return locale === 'en' ? 'Premium' : 'Rất cao cấp';
   return null;
 }
 
 export function PlaceSuggestionsCard({ data }: { data?: PlaceSuggestionsPayload }) {
+  const { locale, l } = useLocalization();
   if (!data || !Array.isArray(data.places) || data.places.length === 0) return null;
 
   const openMap = async (url: string) => {
@@ -36,30 +38,30 @@ export function PlaceSuggestionsCard({ data }: { data?: PlaceSuggestionsPayload 
       if (!supported) throw new Error('unsupported');
       await Linking.openURL(url);
     } catch {
-      Alert.alert('Không mở được Google Maps', 'Bạn có thể thử lại sau.');
+      Alert.alert(l('Không mở được Google Maps', 'Unable to open Google Maps'), l('Bạn có thể thử lại sau.', 'Please try again later.'));
     }
   };
 
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <View style={styles.headerTitle}><Ionicons name="map-outline" size={16} color="#FFD28B" /><Text style={styles.title}>Địa điểm đã lọc</Text></View>
+        <View style={styles.headerTitle}><Ionicons name="map-outline" size={16} color="#FFD28B" /><Text style={styles.title}>{l('Địa điểm đã lọc', 'Filtered places')}</Text></View>
         <Text style={styles.area} numberOfLines={1}>{data.areaLabel}</Text>
       </View>
       {data.places.map((place, index) => {
         const distance = typeof place.distanceKm === 'number' && Number.isFinite(place.distanceKm)
           ? `${place.distanceKm.toFixed(1)} km`
           : null;
-        const price = formatPriceLevel(place.priceLevel ?? null);
+        const price = formatPriceLevel(place.priceLevel ?? null, locale);
 
         return (
-        <TouchableOpacity key={place.placeId ?? `${place.name}-${index}`} style={styles.placeRow} onPress={() => { void openMap(place.mapsUrl); }} activeOpacity={0.75} accessibilityRole="link" accessibilityLabel={`Mở ${place.name} trên Google Maps`}>
+        <TouchableOpacity key={place.placeId ?? `${place.name}-${index}`} style={styles.placeRow} onPress={() => { void openMap(place.mapsUrl); }} activeOpacity={0.75} accessibilityRole="link" accessibilityLabel={l(`Mở ${place.name} trên Google Maps`, `Open ${place.name} in Google Maps`)}>
           <View style={styles.marker}><Ionicons name="location" size={14} color="#2D173B" /></View>
           <View style={styles.placeCopy}>
             <Text style={styles.placeName} numberOfLines={2}>{place.name}</Text>
             {place.address ? <Text style={styles.address} numberOfLines={1}>{place.address}</Text> : null}
             {distance || price || place.openNow !== null && place.openNow !== undefined ? <Text style={styles.meta}>
-              {[distance, price, place.openNow === true ? 'Đang mở' : place.openNow === false ? 'Đã đóng' : null].filter(Boolean).join(' · ')}
+              {[distance, price, place.openNow === true ? l('Đang mở', 'Open now') : place.openNow === false ? l('Đã đóng', 'Closed') : null].filter(Boolean).join(' · ')}
             </Text> : null}
             {place.whySelected ? <Text style={styles.reason} numberOfLines={2}>{place.whySelected}</Text> : null}
           </View>
@@ -67,7 +69,7 @@ export function PlaceSuggestionsCard({ data }: { data?: PlaceSuggestionsPayload 
         </TouchableOpacity>
         );
       })}
-      <Text style={styles.attribution}>Nguồn địa điểm: Google Maps</Text>
+      <Text style={styles.attribution}>{l('Nguồn địa điểm: Google Maps', 'Place data: Google Maps')}</Text>
     </View>
   );
 }

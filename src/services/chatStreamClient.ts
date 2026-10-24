@@ -2,6 +2,7 @@ import { fetch } from 'expo/fetch';
 
 import { API_ENDPOINTS } from './apiConfig';
 import { supabase } from './supabaseClient';
+import type { AppLocale } from '../i18n/translations';
 
 export interface ChatStreamDoneEvent {
   done: true;
@@ -34,12 +35,14 @@ export async function streamContinuedChat(
     turnIndex: number;
     userMessageId: string;
     assistantMessageId: string;
+    locale: AppLocale;
     timeZone?: string;
   },
   onChunk: (fullText: string) => void
 ): Promise<{ text: string; done: ChatStreamDoneEvent }> {
   const { data } = supabase ? await supabase.auth.getSession() : { data: { session: null } };
-  if (!data.session?.access_token) throw new Error('Bạn cần đăng nhập để tiếp tục trò chuyện.');
+  const english = payload.locale === 'en';
+  if (!data.session?.access_token) throw new Error(english ? 'Sign in to continue this chat.' : 'Bạn cần đăng nhập để tiếp tục trò chuyện.');
 
   const controller = new AbortController();
   let timeout = setTimeout(() => controller.abort(), 45_000);
@@ -59,7 +62,7 @@ export async function streamContinuedChat(
       body: JSON.stringify(payload),
       signal: controller.signal,
     });
-    if (!response.body) throw new Error(`Không nhận được luồng trả lời (${response.status}).`);
+    if (!response.body) throw new Error(english ? `No answer stream was received (${response.status}).` : `Không nhận được luồng trả lời (${response.status}).`);
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
@@ -107,11 +110,11 @@ export async function streamContinuedChat(
     }
 
     const finalEvent = doneEvent as ChatStreamDoneEvent | null;
-    if (!finalEvent) throw new Error('Luồng trả lời kết thúc không hợp lệ.');
-    if (!response.ok && finalEvent.accepted) throw new Error(`Máy chủ trả về lỗi ${response.status}.`);
+    if (!finalEvent) throw new Error(english ? 'The answer stream ended unexpectedly.' : 'Luồng trả lời kết thúc không hợp lệ.');
+    if (!response.ok && finalEvent.accepted) throw new Error(english ? `The server returned error ${response.status}.` : `Máy chủ trả về lỗi ${response.status}.`);
     return { text, done: finalEvent };
   } catch (error) {
-    if (controller.signal.aborted) throw new Error('Kết nối trả lời đã hết thời gian chờ.');
+    if (controller.signal.aborted) throw new Error(english ? 'The answer connection timed out.' : 'Kết nối trả lời đã hết thời gian chờ.');
     throw error;
   } finally {
     clearTimeout(timeout);

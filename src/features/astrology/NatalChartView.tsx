@@ -18,10 +18,11 @@ import {
   astrologyUiStyles,
 } from './AstrologyUi';
 import {
-  PLANET_INFO,
   getPrecisionMessage,
   isPlanetId,
+  planetDescription,
   planetLabel,
+  planetThemes,
   zodiacLabel,
   type AstrologyDetailTarget,
 } from './astrologyPresentation';
@@ -45,7 +46,7 @@ export function NatalChartView({
   onOpenDetail,
 }: Props) {
   const insets = useSafeAreaInsets();
-  const { l } = useLocalization();
+  const { locale, l } = useLocalization();
 
   return (
     <AstrologyBackground variant="natal">
@@ -65,9 +66,9 @@ export function NatalChartView({
         />
 
         <View style={styles.birthChips}>
-          <View style={styles.birthChip}><Image contentFit="contain" source={ASTROLOGY_UI_ICONS.calendar} style={styles.birthChipIcon} /><Text style={styles.birthChipText}>{profile?.birthDate ?? 'Chưa có ngày sinh'}</Text></View>
-          <View style={styles.birthChip}><Image contentFit="contain" source={ASTROLOGY_UI_ICONS.clock} style={styles.birthChipIcon} /><Text style={styles.birthChipText}>{profile?.birthTime ?? 'Giờ tạm tính'}</Text></View>
-          <View style={styles.birthChip}><Image contentFit="contain" source={ASTROLOGY_UI_ICONS.location} style={styles.birthChipIcon} /><Text numberOfLines={1} style={styles.birthChipText}>{profile?.birthLocation?.userLabel ?? 'Chưa có nơi sinh'}</Text></View>
+          <View style={styles.birthChip}><Image contentFit="contain" source={ASTROLOGY_UI_ICONS.calendar} style={styles.birthChipIcon} /><Text style={styles.birthChipText}>{profile?.birthDate ?? l('Chưa có ngày sinh', 'No birth date')}</Text></View>
+          <View style={styles.birthChip}><Image contentFit="contain" source={ASTROLOGY_UI_ICONS.clock} style={styles.birthChipIcon} /><Text style={styles.birthChipText}>{profile?.birthTime ?? l('Giờ tạm tính', 'Estimated time')}</Text></View>
+          <View style={styles.birthChip}><Image contentFit="contain" source={ASTROLOGY_UI_ICONS.location} style={styles.birthChipIcon} /><Text numberOfLines={1} style={styles.birthChipText}>{profile?.birthLocation?.userLabel ?? l('Chưa có nơi sinh', 'No birth place')}</Text></View>
         </View>
 
         {!!calculationError && (
@@ -86,7 +87,7 @@ export function NatalChartView({
                 size={20}
                 color={metadata.birthDataPrecision === 'complete' ? '#5EEAD4' : ASTRO_COLORS.gold}
               />
-              <Text style={styles.precisionText}>{getPrecisionMessage(metadata)}</Text>
+              <Text style={styles.precisionText}>{getPrecisionMessage(metadata, locale)}</Text>
               {metadata.birthDataPrecision !== 'complete' && (
                 <TouchableOpacity onPress={onEditBirthData} style={styles.completeButton}>
                   <Text style={styles.completeButtonText}>{l('Bổ sung', 'Add details')}</Text>
@@ -130,11 +131,11 @@ export function NatalChartView({
                     <View style={styles.coreSymbol}><Image contentFit="contain" source={PLANET_SVG[planetName]} style={styles.coreSymbolImage} /></View>
                     <View style={styles.coreCopy}>
                       <View style={styles.coreTitleRow}>
-                        <Text style={styles.coreTitle}>{planetLabel(planetName)} ở {zodiacLabel(planet.sign)}</Text>
+                        <Text style={styles.coreTitle}>{planetLabel(planetName, locale)} {l('ở', 'in')} {zodiacLabel(planet.sign, locale)}</Text>
                         {!!house && <Text style={styles.houseBadge}>{l('Nhà', 'House')} {house}</Text>}
                       </View>
-                      <Text style={styles.coreMeta}>{planet.degreeInSign.toFixed(1)}° · {PLANET_INFO[planetName].themes.join(' · ')}</Text>
-                      <Text style={styles.coreDescription}>{PLANET_INFO[planetName].description}</Text>
+                      <Text style={styles.coreMeta}>{planet.degreeInSign.toFixed(1)}° · {planetThemes(planetName, locale).join(' · ')}</Text>
+                      <Text style={styles.coreDescription}>{planetDescription(planetName, locale)}</Text>
                     </View>
                     <Ionicons name="chevron-forward" size={19} color="#AFA2D4" />
                   </TouchableOpacity>
@@ -154,9 +155,9 @@ export function NatalChartView({
               <MysticCard style={styles.axisCard}>
                 <Text style={styles.axisEyebrow}>{l('TRỤC LÁ SỐ', 'CHART AXIS')} · PORPHYRY</Text>
                 <View style={styles.axisRow}>
-                  <View style={styles.axisItem}><Text style={styles.axisLabel}>{l('Cung Mọc', 'Ascendant')} · ASC</Text><Text style={styles.axisValue}>{zodiacLabelFromLongitude(metadata.natalContext.angles.ascendant)}</Text></View>
+                  <View style={styles.axisItem}><Text style={styles.axisLabel}>{l('Cung Mọc', 'Ascendant')} · ASC</Text><Text style={styles.axisValue}>{zodiacLabelFromLongitude(metadata.natalContext.angles.ascendant, locale)}</Text></View>
                   <View style={styles.axisDivider} />
-                  <View style={styles.axisItem}><Text style={styles.axisLabel}>{l('Thiên Đỉnh', 'Midheaven')} · MC</Text><Text style={styles.axisValue}>{zodiacLabelFromLongitude(metadata.natalContext.angles.midheaven)}</Text></View>
+                  <View style={styles.axisItem}><Text style={styles.axisLabel}>{l('Thiên Đỉnh', 'Midheaven')} · MC</Text><Text style={styles.axisValue}>{zodiacLabelFromLongitude(metadata.natalContext.angles.midheaven, locale)}</Text></View>
                 </View>
               </MysticCard>
             )}
@@ -173,8 +174,8 @@ export function NatalChartView({
                   style={[styles.placementRow, index > 0 && styles.placementBorder]}
                 >
                   <Image contentFit="contain" source={PLANET_SVG[planetId]} style={styles.placementSymbol} />
-                  <Text style={styles.placementPlanet}>{planetLabel(planetId)}</Text>
-                  <Text style={styles.placementValue}>{zodiacLabel(planet.sign)} · {planet.degreeInSign.toFixed(1)}°</Text>
+                  <Text style={styles.placementPlanet}>{planetLabel(planetId, locale)}</Text>
+                  <Text style={styles.placementValue}>{zodiacLabel(planet.sign, locale)} · {planet.degreeInSign.toFixed(1)}°</Text>
                   {!!metadata.natalContext?.planetHouses[planet.name] && (
                     <Text style={styles.placementHouse}>H{metadata.natalContext.planetHouses[planet.name]}</Text>
                   )}
@@ -188,9 +189,9 @@ export function NatalChartView({
   );
 }
 
-function zodiacLabelFromLongitude(longitude: number): string {
+function zodiacLabelFromLongitude(longitude: number, locale: 'vi' | 'en'): string {
   const signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
-  return zodiacLabel(signs[Math.floor(((longitude % 360) + 360) % 360 / 30)]);
+  return zodiacLabel(signs[Math.floor(((longitude % 360) + 360) % 360 / 30)], locale);
 }
 
 const styles = StyleSheet.create({

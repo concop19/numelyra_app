@@ -20,6 +20,7 @@ import type { MessageItem } from '../../../screens/ChatScreen';
 import { TAROT_AMBIENT_AUDIO } from '../../../services/tarotAssets';
 import { getLoveReadingViewModel } from './loveReadingModel';
 import { canSetAudioPlayerVolume } from '../../../services/audioPlatform';
+import { useLocalization } from '../../../i18n/LocalizationContext';
 
 const LOADING_BACKGROUND = require('../../../../assets/giao_dien/giaodien1/chat_detail/love/background/loading.png');
 const SUCCESS_BACKGROUND = require('../../../../assets/giao_dien/giaodien1/chat_detail/love/background/success.png');
@@ -27,7 +28,7 @@ const LOADING_ANIMATION = require('../../../../assets/giao_dien/giaodien1/chat_d
 const SUCCESS_ANIMATION = require('../../../../assets/giao_dien/giaodien1/chat_detail/love/animation/success.webp');
 const FAIL_ANIMATION = require('../../../../assets/giao_dien/giaodien1/chat_detail/love/animation/fail.webp');
 const ANIMATION_HORIZONTAL_OFFSET = 12;
-const LOADING_STEPS = [
+const LOADING_STEPS_VI = [
   'Đang đọc thông tin bạn nam',
   'Đang đọc thông tin bạn nữ',
   'Đang đối chiếu Tử Vi và Bát Tự',
@@ -66,6 +67,13 @@ export default function LoveCompatibilityFlow({
   onClose,
   onOpenDetail,
 }: Props) {
+  const { locale, l } = useLocalization();
+  const loadingSteps = locale === 'en' ? [
+    'Reading the first profile',
+    'Reading the second profile',
+    'Comparing Tu Vi and Bazi',
+    'Calculating the Liu He pattern',
+  ] : LOADING_STEPS_VI;
   const ambientPlayer = useAudioPlayer(TAROT_AMBIENT_AUDIO, { keepAudioSessionActive: true });
 
   useEffect(() => {
@@ -181,7 +189,7 @@ export default function LoveCompatibilityFlow({
     setPhase('revealing');
     setHasLockedScore(false);
 
-    const finalScoreText = score !== undefined ? `${score}%` : 'DUYÊN';
+    const finalScoreText = score !== undefined ? `${score}%` : locale === 'en' ? 'BOND' : 'DUYÊN';
 
     const showResult = (duration: number) => {
       if (cancelled) return;
@@ -354,6 +362,7 @@ export default function LoveCompatibilityFlow({
     resultOpacity,
     resultScale,
     ringScale,
+    locale,
     score,
     scoreOpacity,
     visible,
@@ -384,7 +393,7 @@ export default function LoveCompatibilityFlow({
         <View style={styles.header}>
           <TouchableOpacity
             accessibilityRole="button"
-            accessibilityLabel="Quay lại trò chuyện"
+            accessibilityLabel={l('Quay lại trò chuyện', 'Back to conversation')}
             onPress={onClose}
             style={styles.backButton}
           >
@@ -397,10 +406,10 @@ export default function LoveCompatibilityFlow({
         {phase === 'loading' ? (
           <View style={styles.loadingContent}>
             <View style={styles.loadingStatus}>
-              <Text style={styles.loadingPercent}>Đang lắng nghe duyên số</Text>
-              <Text style={styles.loadingTitle}>AI đang phân tích{`\n`}mối tương hợp của hai bạn...</Text>
+              <Text style={styles.loadingPercent}>{l('Đang lắng nghe duyên số', 'Listening to the relationship pattern')}</Text>
+              <Text style={styles.loadingTitle}>{l('AI đang phân tích\nmối tương hợp của hai bạn...', 'AI is analyzing\nyour compatibility…')}</Text>
               <View style={styles.progressCard}>
-                {LOADING_STEPS.map((step, index) => {
+                {loadingSteps.map((step, index) => {
                   const stepProgress = Math.max(0, Math.min(1,
                     (loadingElapsed - index * LOADING_STEP_DURATION) / LOADING_STEP_DURATION,
                   ));
@@ -431,11 +440,11 @@ export default function LoveCompatibilityFlow({
               style={styles.loadingAnimation}
               contentFit="contain"
               autoplay
-              accessibilityLabel="Hoạt ảnh AI đang phân tích tương hợp"
+              accessibilityLabel={l('Hoạt ảnh AI đang phân tích tương hợp', 'AI compatibility analysis animation')}
             />
             <View style={styles.loadingCaption}>
               <Text style={styles.loadingCaptionText}>
-                Đang đối chiếu Tử Vi, Bát Tự và những yếu tố tạo nên sự hòa hợp.
+                {l('Đang đối chiếu Tử Vi, Bát Tự và những yếu tố tạo nên sự hòa hợp.', 'Comparing Tu Vi, Bazi, and the factors that shape compatibility.')}
               </Text>
             </View>
           </View>
@@ -443,15 +452,15 @@ export default function LoveCompatibilityFlow({
           <View
             accessible
             accessibilityLabel={hasLockedScore
-              ? `Điểm tương hợp ${revealScoreText}`
-              : 'Đang tính điểm tương hợp'}
+              ? l(`Điểm tương hợp ${revealScoreText}`, `Compatibility score ${revealScoreText}`)
+              : l('Đang tính điểm tương hợp', 'Calculating compatibility score')}
             accessibilityLiveRegion="polite"
             style={styles.revealContent}
           >
             <View style={styles.revealHeading}>
-              <Text style={styles.revealEyebrow}>KẾT NỐI DUYÊN SỐ</Text>
+              <Text style={styles.revealEyebrow}>{l('KẾT NỐI DUYÊN SỐ', 'RELATIONSHIP CONNECTION')}</Text>
               <Text style={styles.revealTitle}>
-                {hasLockedScore ? 'Điểm tương hợp đã được hé lộ' : 'Đang hội tụ năng lượng của hai bạn'}
+                {hasLockedScore ? l('Điểm tương hợp đã được hé lộ', 'Your compatibility score is revealed') : l('Đang hội tụ năng lượng của hai bạn', 'Bringing both profiles together')}
               </Text>
             </View>
 
@@ -482,13 +491,13 @@ export default function LoveCompatibilityFlow({
                     <Text
                       style={[
                         styles.revealScore,
-                        revealScoreText === 'DUYÊN' && styles.revealScoreWord,
+                        (revealScoreText === 'DUYÊN' || revealScoreText === 'BOND') && styles.revealScoreWord,
                       ]}
                     >
                       {revealScoreText}
                     </Text>
                     <Text style={styles.revealScoreLabel}>
-                      {hasLockedScore ? 'ĐỘ TƯƠNG HỢP' : 'ĐANG TÍNH'}
+                      {hasLockedScore ? l('ĐỘ TƯƠNG HỢP', 'COMPATIBILITY') : l('ĐANG TÍNH', 'CALCULATING')}
                     </Text>
                   </Animated.View>
                 </Animated.View>
@@ -550,8 +559,8 @@ export default function LoveCompatibilityFlow({
               <Ionicons name="heart-circle" size={18} color="#FFD1E8" />
               <Text style={styles.revealCaptionText}>
                 {hasLockedScore
-                  ? 'Năng lượng tương hợp đã sẵn sàng để luận giải.'
-                  : 'AI đang chốt chỉ số cuối cùng từ Tử Vi và Bát Tự.'}
+                  ? l('Năng lượng tương hợp đã sẵn sàng để luận giải.', 'Your compatibility reading is ready.')
+                  : l('AI đang chốt chỉ số cuối cùng từ Tử Vi và Bát Tự.', 'AI is finalizing the Tu Vi and Bazi score.')}
               </Text>
             </View>
           </View>
@@ -572,20 +581,20 @@ export default function LoveCompatibilityFlow({
                 contentFit="contain"
                 autoplay
                 accessibilityLabel={score !== undefined && score < 50
-                  ? 'Hoạt ảnh mức tương hợp thấp'
-                  : 'Hoạt ảnh mức tương hợp'}
+                  ? l('Hoạt ảnh mức tương hợp thấp', 'Low compatibility animation')
+                  : l('Hoạt ảnh mức tương hợp', 'Compatibility animation')}
               />
               <View style={styles.scoreBadge}>
-                <Text style={styles.scoreText}>{score !== undefined ? `${score}%` : 'DUYÊN'}</Text>
+                <Text style={styles.scoreText}>{score !== undefined ? `${score}%` : l('DUYÊN', 'BOND')}</Text>
                 <Text style={styles.scoreCaption}>
-                  {score !== undefined && score < 50 ? 'Cần thấu hiểu nhau hơn' : 'Cùng vun đắp sự thấu hiểu'}
+                  {score !== undefined && score < 50 ? l('Cần thấu hiểu nhau hơn', 'More mutual understanding is needed') : l('Cùng vun đắp sự thấu hiểu', 'Grow understanding together')}
                 </Text>
               </View>
 
               <View style={styles.answerCard}>
-                <Text style={styles.answerHeading}>LUẬN GIẢI AI</Text>
+                <Text style={styles.answerHeading}>{l('LUẬN GIẢI AI', 'AI INTERPRETATION')}</Text>
                 <HighlightedAnswerText
-                  text={model?.answer || 'Hai bạn hãy chậm lại và lắng nghe điều trái tim đang muốn nói.'}
+                  text={model?.answer || l('Hai bạn hãy chậm lại và lắng nghe điều trái tim đang muốn nói.', 'Slow down and listen carefully to what each person is trying to express.')}
                   style={styles.answerText}
                   emphasisStyle={styles.answerEmphasis}
                 />
@@ -593,9 +602,9 @@ export default function LoveCompatibilityFlow({
             </ScrollView>
 
             <ThreeDButton
-              accessibilityLabel="Xem nguyên nhân tương hợp chi tiết"
+              accessibilityLabel={l('Xem nguyên nhân tương hợp chi tiết', 'View detailed compatibility factors')}
               disabled={!message}
-              label="Xem nguyên nhân chi tiết"
+              label={l('Xem nguyên nhân chi tiết', 'View detailed factors')}
               onPress={() => message && onOpenDetail(message, question)}
               shape="pill"
               style={styles.detailButton3d}

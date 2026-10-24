@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, View, Image, Animated, Platform, Pressable, Text } from 'react-native';
+import { useLocalization } from '../../i18n/LocalizationContext';
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
@@ -27,11 +28,15 @@ export function ChatMoonButton({
   onPress,
   style,
   attention = false,
-  attentionHint = 'Lời nhắn hôm nay ✨',
+  attentionHint,
   showAttentionHint = attention,
-  accessibilityLabel = 'Thông điệp hôm nay',
-  accessibilityHint = 'Chạm vào mặt trăng để xem thông điệp hôm nay',
+  accessibilityLabel,
+  accessibilityHint,
 }: ChatMoonButtonProps) {
+  const { l } = useLocalization();
+  const resolvedAttentionHint = attentionHint ?? l('Lời nhắn hôm nay ✨', "Today's message ✨");
+  const resolvedAccessibilityLabel = accessibilityLabel ?? l('Thông điệp hôm nay', "Today's message");
+  const resolvedAccessibilityHint = accessibilityHint ?? l('Chạm vào mặt trăng để xem thông điệp hôm nay', "Tap the moon to view today's message");
   const moonGlowAnim = useRef(new Animated.Value(0.92)).current;
   const moonFloatAnim = useRef(new Animated.Value(0)).current;
   const attentionPulseAnim = useRef(new Animated.Value(0)).current;
@@ -138,8 +143,8 @@ export function ChatMoonButton({
         onPress={onPress}
         disabled={!onPress}
         accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel}
-        accessibilityHint={accessibilityHint}
+        accessibilityLabel={resolvedAccessibilityLabel}
+        accessibilityHint={resolvedAccessibilityHint}
         style={({ pressed }) => [styles.moonButton, pressed && { opacity: 0.7 }]}
       >
         <Image source={MOON_TOP_LEFT} resizeMode="contain" style={styles.moonImage} />
@@ -206,7 +211,7 @@ export function ChatMoonButton({
           ]}
         >
           <View style={styles.moonAttentionHintArrow} />
-          <Text numberOfLines={2} style={styles.moonAttentionHintText}>{attentionHint}</Text>
+          <Text numberOfLines={2} style={styles.moonAttentionHintText}>{resolvedAttentionHint}</Text>
         </Animated.View>
       )}
     </Animated.View>

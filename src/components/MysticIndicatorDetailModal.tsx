@@ -9,7 +9,6 @@ import FlameCharacterSprite from './FlameCharacterSprite';
 import BottomFlameSprite from './BottomFlameSprite';
 import ThreeDButton from './ThreeDButton';
 import { useLocalization } from '../i18n/LocalizationContext';
-import { getEnglishIndicatorReading } from './IndicatorDetailModal';
 
 const BACKGROUND = require('../../assets/giao_dien/giaodien1/chat_detail/background/background.png');
 const MAT = require('../../assets/giao_dien/giaodien1/chat_detail/item/tham.png');
@@ -85,15 +84,15 @@ export function MysticIndicatorDetailModal({ visible, indicator, onClose }: Prop
     }
     setLoading(true);
     setShowFullArticle(false);
-    getIndicatorReading(indicator.key, indicator.value, indicator.nameVi)
+    getIndicatorReading(indicator.key, indicator.value, locale === 'en' ? indicator.nameEn : indicator.nameVi, locale)
       .then((result) => { if (mounted) setReading(result); })
       .catch((error) => console.warn('[DetailModal] Load reading error:', error))
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
-  }, [visible, indicator]);
+  }, [visible, indicator, locale]);
 
   if (!indicator) return null;
-  const visibleReading = locale === 'en' ? getEnglishIndicatorReading(indicator) : reading;
+  const visibleReading = reading;
 
   const isLandscape = viewportWidth > viewportHeight;
   const scale = isLandscape

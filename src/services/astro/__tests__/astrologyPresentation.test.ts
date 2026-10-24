@@ -14,7 +14,10 @@ import {
   getAstrologyRuleTopicSummaries,
   getTodaySummaryCards,
   PLANET_IDS,
+  planetLabel,
+  planetThemes,
   resolveDetailConstellation,
+  zodiacLabel,
   ZODIAC_IDS,
 } from '../../../features/astrology/astrologyPresentation';
 import type { DetectedAspect } from '../aspectCalculator';
@@ -166,6 +169,43 @@ describe('astrology presentation mapping', () => {
     expect(summary).toContain('Mặt Trăng');
   });
 
+  it('keeps the complete Planet Detail presentation English in English mode', () => {
+    const input = metadata();
+    const natalMoon = input.natalPlanets.find((planet) => planet.name === 'Moon');
+    const house = input.natalContext?.planetHouses.Moon;
+    const placement = buildPlanetPlacementInterpretation('Moon', natalMoon?.sign, house, 'natal', 'en');
+    const summary = buildPlanetModeSummary(input, 'Moon', 'transit', 'en');
+    const rules = [
+      ...getPlanetRuleInsights(input, 'Moon', 'natal', 'en'),
+      ...getPlanetRuleInsights(input, 'Moon', 'transit', 'en'),
+    ];
+    const aspect = transitAspect('Mars', 'Moon', 0.8, 0.4);
+    const natalDescription = describeNatalAspect({
+      planetA: 'Venus',
+      planetB: 'Saturn',
+      type: 'trine',
+      symbol: '△',
+      nameVi: 'Tam hợp',
+      targetAngle: 120,
+      actualAngle: 119.5,
+      orb: 0.5,
+      weight: 0.9,
+      nature: 'harmony',
+    }, 'en');
+    const visibleCopy = [
+      ...placement,
+      summary,
+      describeTransitAspect(aspect, 'en'),
+      natalDescription,
+      ...rules.flatMap((item) => [item.title, item.experience, item.challenge, item.supportiveExpression, item.advice]),
+    ].join(' ');
+
+    expect(visibleCopy).toContain('Moon represents');
+    expect(visibleCopy).toContain('In the natal chart');
+    expect(visibleCopy).toContain('Mars');
+    expect(visibleCopy).not.toMatch(/[ăâđêôơưàáạảãầấậẩẫằắặẳẵèéẹẻẽềếệểễìíịỉĩòóọỏõồốộổỗờớợởỡùúụủũừứựửữỳýỵỷỹ]/i);
+  });
+
   it('projects only relevant rules into a planet detail without exposing rule IDs', () => {
     const input = metadata();
     const moonNatal = getPlanetRuleInsights(input, 'Moon', 'natal');
@@ -193,6 +233,29 @@ describe('astrology presentation mapping', () => {
     }
   );
 
+  it('keeps generated Today content fully English in English mode', () => {
+    const input = metadata();
+    input.dominantSignal = 'balanced';
+    input.notableTransitAspects = [transitAspect('Mars', 'Moon', 0.8, 0.2)];
+    input.transitAspects = input.notableTransitAspects;
+
+    const cards = getTodaySummaryCards(input, 'en');
+    const guidance = getPlanetGuidanceItems(input, 'en');
+    const visibleCopy = [
+      ...cards.flatMap((card) => [card.title, card.value, card.detail]),
+      ...guidance.flatMap((item) => [item.aspectText, item.natureLabel]),
+      getPrecisionMessage(input, 'en'),
+      zodiacLabel('Aries', 'en'),
+      planetLabel('Sun', 'en'),
+      ...planetThemes('Sun', 'en'),
+    ].join(' ');
+
+    expect(visibleCopy).toContain('Mars square Moon');
+    expect(visibleCopy).toContain('Aries');
+    expect(visibleCopy).toContain('Identity');
+    expect(visibleCopy).not.toMatch(/[ăâđêôơưàáạảãầấậẩẫằắặẳẵèéẹẻẽềếệểễìíịỉĩòóọỏõồốộổỗờớợởỡùúụủũừứựửữỳýỵỷỹ]/i);
+  });
+
   it('filters Moon and Venus influences from real aspects', () => {
     const input = metadata();
     input.notableTransitAspects = [];
@@ -213,6 +276,7 @@ describe('astrology presentation mapping', () => {
     const dateOnly = generatePureAstroVector({ birthDate: '1998-10-20' }, new Date('2026-10-11T12:00:00.000Z')).metadata;
     expect(getPrecisionMessage(complete)).toContain('Porphyry');
     expect(getPrecisionMessage(dateOnly)).toContain('12:00 tạm tính');
+    expect(getPrecisionMessage(dateOnly, 'en')).toContain('Exact birth time is unavailable');
     expect(dateOnly.natalContext).toBeNull();
   });
 

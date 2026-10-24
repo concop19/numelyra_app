@@ -14,6 +14,7 @@ export type ColorId =
 export interface FengShuiColor {
   id: ColorId;
   name: string;
+  nameEn: string;
   hex: string;
 }
 
@@ -35,22 +36,22 @@ type TarotCardLike = {
 };
 
 const COLORS: Record<ColorId, FengShuiColor> = {
-  white: { id: 'white', name: 'Trắng', hex: '#F7F5F0' },
-  gray: { id: 'gray', name: 'Xám', hex: '#8A8D91' },
-  silver: { id: 'silver', name: 'Bạc', hex: '#C0C5C9' },
-  yellow: { id: 'yellow', name: 'Vàng', hex: '#E8C547' },
-  beige: { id: 'beige', name: 'Be', hex: '#D9C4A3' },
-  black: { id: 'black', name: 'Đen', hex: '#15171A' },
-  navy: { id: 'navy', name: 'Xanh đậm', hex: '#183A63' },
-  purple: { id: 'purple', name: 'Tím', hex: '#6D4C9B' },
-  green: { id: 'green', name: 'Xanh lá', hex: '#3C8D45' },
-  blue: { id: 'blue', name: 'Xanh lam', hex: '#2878B8' },
-  moss: { id: 'moss', name: 'Xanh rêu', hex: '#647A3C' },
-  red: { id: 'red', name: 'Đỏ', hex: '#C93434' },
-  orange: { id: 'orange', name: 'Cam', hex: '#E97824' },
-  pink: { id: 'pink', name: 'Hồng', hex: '#D85B8E' },
-  coral: { id: 'coral', name: 'Cam san hô', hex: '#F07D63' },
-  brown: { id: 'brown', name: 'Nâu', hex: '#7A4E32' },
+  white: { id: 'white', name: 'Trắng', nameEn: 'White', hex: '#F7F5F0' },
+  gray: { id: 'gray', name: 'Xám', nameEn: 'Gray', hex: '#8A8D91' },
+  silver: { id: 'silver', name: 'Bạc', nameEn: 'Silver', hex: '#C0C5C9' },
+  yellow: { id: 'yellow', name: 'Vàng', nameEn: 'Yellow', hex: '#E8C547' },
+  beige: { id: 'beige', name: 'Be', nameEn: 'Beige', hex: '#D9C4A3' },
+  black: { id: 'black', name: 'Đen', nameEn: 'Black', hex: '#15171A' },
+  navy: { id: 'navy', name: 'Xanh đậm', nameEn: 'Navy', hex: '#183A63' },
+  purple: { id: 'purple', name: 'Tím', nameEn: 'Purple', hex: '#6D4C9B' },
+  green: { id: 'green', name: 'Xanh lá', nameEn: 'Green', hex: '#3C8D45' },
+  blue: { id: 'blue', name: 'Xanh lam', nameEn: 'Blue', hex: '#2878B8' },
+  moss: { id: 'moss', name: 'Xanh rêu', nameEn: 'Moss green', hex: '#647A3C' },
+  red: { id: 'red', name: 'Đỏ', nameEn: 'Red', hex: '#C93434' },
+  orange: { id: 'orange', name: 'Cam', nameEn: 'Orange', hex: '#E97824' },
+  pink: { id: 'pink', name: 'Hồng', nameEn: 'Pink', hex: '#D85B8E' },
+  coral: { id: 'coral', name: 'Cam san hô', nameEn: 'Coral', hex: '#F07D63' },
+  brown: { id: 'brown', name: 'Nâu', nameEn: 'Brown', hex: '#7A4E32' },
 };
 
 const PALETTE_IDS: Record<FengShuiElement, readonly ColorId[]> = {

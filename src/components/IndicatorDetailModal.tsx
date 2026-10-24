@@ -40,26 +40,6 @@ interface IndicatorDetailModalProps {
   onClose: () => void;
 }
 
-export function getEnglishIndicatorReading(indicator: CalculatedIndicator): KnowledgeReadingResult {
-  const subject = indicator.nameEn;
-  const value = indicator.displayValue;
-  return {
-    title: `${subject} reading`,
-    source: 'offline-archetype',
-    overview: `${subject} is ${value}. In Pythagorean numerology, this result describes a pattern to observe in your natural tendencies, choices, and current stage of growth.`,
-    strengths: [
-      `Use the constructive qualities of ${subject} deliberately instead of waiting for them to appear under pressure.`,
-      'Notice the situations in which this pattern helps you act with clarity, confidence, or consistency.',
-    ],
-    challenges: [
-      'An overused strength can become rigid, while an ignored quality may feel underdeveloped.',
-      'Treat this reading as a reflection tool and compare it with your real experience.',
-    ],
-    advice: `Choose one small action this week that expresses the balanced side of ${subject}. Review the result with curiosity rather than judgment.`,
-    fullContent: '',
-  };
-}
-
 const ENGLISH_BAND_LABELS: Record<ReturnType<typeof getFrequencyBand>, string> = {
   missing: 'Missing',
   baseline: 'Foundation',
@@ -116,7 +96,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
     if (visible && indicator) {
       setLoading(true);
       setShowFullArticle(false);
-      getIndicatorReading(indicator.key, indicator.value, indicator.nameVi)
+      getIndicatorReading(indicator.key, indicator.value, locale === 'en' ? indicator.nameEn : indicator.nameVi, locale)
         .then((res) => {
           setReading(res);
         })
@@ -129,10 +109,10 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
     } else {
       setReading(null);
     }
-  }, [visible, indicator]);
+  }, [visible, indicator, locale]);
 
   if (!indicator) return null;
-  const visibleReading = locale === 'en' ? getEnglishIndicatorReading(indicator) : reading;
+  const visibleReading = reading;
 
   return (
     <Modal
@@ -320,11 +300,11 @@ function ChartDataSection({ indicator }: { indicator: CalculatedIndicator }) {
   useEffect(() => {
     let active = true;
     setDbReadings({});
-    getMatrixKnowledgeBundle(indicator).then((bundle) => {
+    getMatrixKnowledgeBundle(indicator, locale).then((bundle) => {
       if (active) setDbReadings(bundle);
     });
     return () => { active = false; };
-  }, [indicator]);
+  }, [indicator, locale]);
 
   if (!chartData) return null;
 
@@ -345,13 +325,13 @@ function ChartDataSection({ indicator }: { indicator: CalculatedIndicator }) {
     const fallback = getDigitReading(matrixInterpretationKey, number, count);
     const dbReading = dbReadings[getMatrixKnowledgeValue(number, band)];
     const merged = dbReading ? { ...fallback, ...dbReading } : fallback;
-    return locale === 'en' ? getEnglishDigitReading(number, count, merged) : merged;
+    return dbReading || locale === 'vi' ? merged : getEnglishDigitReading(number, count, merged);
   };
   const resolveArrowReading = (label: string, status: ArrowStatus) => {
     const fallback = getArrowReading(label, status);
     const dbReading = dbReadings[getArrowKnowledgeValue(label, status)];
     const merged = dbReading ? { ...fallback, ...dbReading } : fallback;
-    return locale === 'en' ? { ...merged, ...getEnglishArrowReading(status) } : merged;
+    return dbReading || locale === 'vi' ? merged : { ...merged, ...getEnglishArrowReading(status) };
   };
   const selectedDigitReading = selectedDigit === null
     ? null

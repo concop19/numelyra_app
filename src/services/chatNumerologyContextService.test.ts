@@ -56,6 +56,16 @@ describe('chatNumerologyContextService', () => {
     expect(reading!.fullContent).toBe(reading!.overview);
   });
 
+  it('returns dedicated English context instead of Vietnamese fallback copy', () => {
+    expect(getChatIndicatorName('walksOfLife', 'en')).toBe('Life Path');
+    const meaning = getConciseIndicatorMeaning('walksOfLife', 7, 'en');
+    expect(meaning).toContain('analysis, contemplation');
+    expect(meaning).not.toMatch(/[À-ỹ]/);
+    const reading = getConciseIndicatorReading('mission', 22, 'Destiny', 'en');
+    expect(reading?.title).toBe('Destiny 22');
+    expect(reading?.overview).toContain('Master Builder');
+  });
+
   it('returns undefined / null for unknown values safely', () => {
     expect(getConciseIndicatorMeaning('walksOfLife', 99)).toBeUndefined();
     expect(getConciseIndicatorReading('walksOfLife', 99)).toBeNull();

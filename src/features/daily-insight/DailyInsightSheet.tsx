@@ -351,7 +351,7 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
                   onPress={() => flipToPage(2)}
                   style={styles.pageFlipButton}
                 >
-                  <Text style={styles.pageFlipButtonText}>✦ Xem Chiêm Tinh & Vận Hạn</Text>
+                  <Text style={styles.pageFlipButtonText}>✦ {locale === 'en' ? 'View Astrology & Cycles' : 'Xem Chiêm Tinh & Vận Hạn'}</Text>
                   <Ionicons color="#553A82" name="arrow-forward" size={14} />
                 </TouchableOpacity>
 
@@ -390,10 +390,10 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
               >
                 {/* Page 2 Header */}
                 <View style={styles.p2EyebrowPill}>
-                  <Text style={styles.p2EyebrowText}>— CHIÊM TINH HÔM NAY —</Text>
+                  <Text style={styles.p2EyebrowText}>— {locale === 'en' ? 'ASTROLOGY TODAY' : 'CHIÊM TINH HÔM NAY'} —</Text>
                 </View>
 
-                <Text style={styles.p2Title}>Bản Đồ Năng Lượng</Text>
+                <Text style={styles.p2Title}>{locale === 'en' ? 'Energy Map' : 'Bản Đồ Năng Lượng'}</Text>
                 <Text style={styles.p2Subtitle}>{dateSubtitle}</Text>
 
                 {/* Lucky Color Sticky Note Banner */}
@@ -421,8 +421,8 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
                 {/* 4 Astro Metrics Grid */}
                 <View style={styles.metricsBox}>
                   <View style={styles.metricsHeaderRow}>
-                    <Text style={styles.metricsTitle}>Nhịp điệu 4 trụ cột</Text>
-                    <Text style={styles.metricsHint}>Chạm để xem góc chiếu</Text>
+                    <Text style={styles.metricsTitle}>{locale === 'en' ? 'Four-pillar rhythm' : 'Nhịp điệu 4 trụ cột'}</Text>
+                    <Text style={styles.metricsHint}>{locale === 'en' ? 'Tap to view aspects' : 'Chạm để xem góc chiếu'}</Text>
                   </View>
                   <View style={styles.metricsGrid}>
                     {(Object.keys(METRIC_PRESENTATION) as DailyAstroMetricId[]).map((id) => {
@@ -532,7 +532,7 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
                     style={styles.pageFlipBackButton}
                   >
                     <Ionicons color="#553A82" name="arrow-back" size={12} />
-                    <Text style={styles.pageFlipBackButtonText}>Quay lại thông điệp</Text>
+                    <Text style={styles.pageFlipBackButtonText}>{locale === 'en' ? 'Back to message' : 'Quay lại thông điệp'}</Text>
                   </TouchableOpacity>
                 </View>
 

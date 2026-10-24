@@ -67,10 +67,16 @@ async function hasNumerologyKnowledge(db: SQLite.SQLiteDatabase): Promise<boolea
       "SELECT count(*) as count FROM sqlite_master WHERE type='table' AND name='numerology_knowledge'"
     );
     if ((table?.count ?? 0) === 0) return false;
-    const rows = await db.getFirstAsync<{ count: number }>(
-      'SELECT count(*) as count FROM numerology_knowledge'
+    const localeColumn = await db.getFirstAsync<{ count: number }>(
+      "SELECT count(*) as count FROM pragma_table_info('numerology_knowledge') WHERE name='locale'"
     );
-    return (rows?.count ?? 0) >= NUMEROLOGY_KNOWLEDGE_REQUIRED_COUNT;
+    if ((localeColumn?.count ?? 0) === 0) return false;
+    const coverage = await db.getAllAsync<{ locale: string; count: number }>(
+      'SELECT locale, count(*) as count FROM numerology_knowledge GROUP BY locale'
+    );
+    return ['vi', 'en'].every((locale) =>
+      (coverage.find((row) => row.locale === locale)?.count ?? 0) >= NUMEROLOGY_KNOWLEDGE_REQUIRED_COUNT
+    );
   } catch {
     return false;
   }
@@ -97,8 +103,8 @@ async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
     const hasKnowledge = await hasNumerologyKnowledge(db);
     const version = await getDatabaseUserVersion(db);
 
-    // Version 3 phải có đủ toàn bộ luận giải theo knowledge contract hiện tại.
-    if (count > 0 && hasReps && hasVi && hasKnowledge && version >= 3) return db;
+    // Version 4 phải có đủ toàn bộ luận giải cho cả tiếng Việt và tiếng Anh.
+    if (count > 0 && hasReps && hasVi && hasKnowledge && version >= 4) return db;
   } catch {
     // Bản cài cũ có DB cũ hoặc thiếu bảng / thiếu cột biography_vi. Thay thế bản đó.
   }

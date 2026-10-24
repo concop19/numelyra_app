@@ -37,7 +37,17 @@ import { evaluateAgentDecision, AgentDecision } from '../services/agentDecisionE
 import { NumerologyCalculator, IndicatorInfo } from '../services/numerology24Service';
 import { CalculatedIndicator } from '../services/numerologyEngine';
 import { NUMEROLOGY_CARDS } from '../config/numerologyCards';
-import { drawCardsForSpread, DrawnCardResult, TAROT_SPREADS } from '../services/tarotService';
+import {
+  drawCardsForSpread,
+  DrawnCardResult,
+  getTarotCardName,
+  getTarotKeywords,
+  getTarotMeaning,
+  getTarotPositionDescription,
+  getTarotPositionName,
+  getTarotSpreadName,
+  TAROT_SPREADS,
+} from '../services/tarotService';
 import { createColorGuidance, isColorQuestion, type ColorGuidanceContext } from '../services/colorGuidanceService';
 import { computePersonTuViBazi, evaluateTuViBaziLove, TuViBaziSynastryResult } from '../services/tuViBaziService';
 import { API_ENDPOINTS, authenticatedFetch } from '../services/apiConfig';
@@ -1143,6 +1153,109 @@ export default function ChatScreen({
     const yearVal = indicators1.find(i => i.key === 'yearIndividual')?.value || 1;
     const ratVal = indicators1.find(i => i.key === 'rationalThinking')?.value || 5;
 
+    // Never leak Vietnamese prose from the offline engine into an English
+    // session. Historical messages remain untouched because they are stored
+    // as snapshots with their original locale.
+    if (locale === 'en') {
+      const cardPayload = (extra: Record<string, unknown> = {}) => ({
+        type: 'agent_synthesis', decision, profiles, indicators1, indicators2, drawnCards, ...extra,
+      });
+      const cardLabel = (item?: DrawnCardResult) => item ? getTarotCardName(item.card, 'en') : 'Tarot';
+      const cardMeaning = (item?: DrawnCardResult) => item ? getTarotMeaning(item.card, item.isReversed, 'en') : '';
+      const orientation = (item?: DrawnCardResult) => item?.isReversed ? 'reversed' : 'upright';
+      const indicatorLabel = (indicator: IndicatorInfo) => (
+        NUMEROLOGY_CARDS.find((entry) => entry.key === indicator.key)?.nameEn || indicator.key
+      );
+
+      if (decision.mode === 'compatibility' && p2) {
+        const chartA = computePersonTuViBazi(p1.fullName, p1.birthDate, p1.gender);
+        const chartB = computePersonTuViBazi(p2.fullName, p2.birthDate, p2.gender);
+        const tuViBazi = evaluateTuViBaziLove(chartA, chartB);
+        return {
+          text: [
+            `✦ OVERVIEW\nThe Bazi and Tu Vi compatibility score for ${p1.fullName} and ${p2.fullName} is ${tuViBazi.compatibilityScore}%. Traditional Can Chi and Nạp Âm names are preserved as proper terms.`,
+            `✦ FOUR PILLARS\n• ${p1.fullName}: year ${chartA.yearPillar.ganVi} ${chartA.yearPillar.zhiVi}; month ${chartA.monthPillar.ganVi} ${chartA.monthPillar.zhiVi}; day ${chartA.dayPillar.ganVi} ${chartA.dayPillar.zhiVi}. Day-master element: ${chartA.dayPillar.elementEn}.\n• ${p2.fullName}: year ${chartB.yearPillar.ganVi} ${chartB.yearPillar.zhiVi}; month ${chartB.monthPillar.ganVi} ${chartB.monthPillar.zhiVi}; day ${chartB.dayPillar.ganVi} ${chartB.dayPillar.zhiVi}. Day-master element: ${chartB.dayPillar.elementEn}.`,
+            '✦ PRACTICAL GUIDANCE\nTreat the score as a reflection framework rather than a verdict. Compare communication habits, boundaries, financial expectations, and long-term priorities directly, then agree on one shared practice for resolving tension.',
+          ].join('\n\n'),
+          card: cardPayload({ drawnCards: [], tuViBazi, compatibilityScore: tuViBazi.compatibilityScore }),
+        };
+      }
+
+      if (decision.intent === 'color_guidance' && colorGuidance) {
+        const chosen = colorGuidance.selectedColorIds
+          .map((id) => colorGuidance.palette.find((color) => color.id === id)?.nameEn || id)
+          .join(' and ');
+        const first = drawnCards[0];
+        return {
+          text: [
+            `✦ QUICK ANSWER\nFor today's ${colorGuidance.element} profile, prioritize ${chosen}. ${cardLabel(first)} suggests using these colors as intentional accents, not as a promise of luck.`,
+            `✦ WHY\nThe lunar year is ${colorGuidance.lunarYear}. ${cardLabel(first)} is ${orientation(first)}: ${cardMeaning(first)}`,
+            `✦ NEXT STEP\nUse one selected color near your face or on an item you use often, and keep the rest of the palette neutral.`,
+          ].join('\n\n'),
+          card: cardPayload({ indicators1: [], colorGuidance }),
+        };
+      }
+
+      if (decision.intent === 'two_choices') {
+        const optionAWeight = 65 + ((Number(ratVal) * 3) % 15);
+        const optionBWeight = 100 - optionAWeight;
+        const details = drawnCards.map((item) => (
+          `• ${getTarotPositionName(item.position, 'en')}: ${cardLabel(item)} (${orientation(item)}) — ${cardMeaning(item)}`
+        )).join('\n');
+        return {
+          text: [
+            `✦ QUICK ANSWER\nThe current spread leans toward option A (${optionAWeight}%) over option B (${optionBWeight}%). Use this as a prompt to test assumptions, not as a substitute for evidence.`,
+            `✦ FIVE-CARD COMPARISON\n${details}\n• Rational Thought ${ratVal}; Personal Year ${yearVal}.`,
+            '✦ NEXT STEP\nWrite down the cost, reversibility, and first seven-day experiment for each option before committing.',
+          ].join('\n\n'),
+          card: cardPayload({ optionSplit: { optionA: optionAWeight, optionB: optionBWeight } }),
+        };
+      }
+
+      if (decision.intent === 'core_personality' || !decision.needsTarot) {
+        const lines = indicators1.map((item) => `• ${indicatorLabel(item)} = ${item.value}`).join('\n');
+        return {
+          text: [
+            `✦ QUICK ANSWER\n${p1.fullName}'s numerology profile is best read as a combination of complementary patterns rather than a single defining number.`,
+            `✦ CORE INDICATORS\n${lines}`,
+            '✦ NEXT STEP\nChoose one strength to use deliberately and one recurring challenge to observe for the next seven days.',
+          ].join('\n\n'),
+          card: cardPayload({ drawnCards: [] }),
+        };
+      }
+
+      if (decision.intent === 'timing_trajectory' && drawnCards.length >= 3) {
+        const details = drawnCards.map((item) => (
+          `• ${getTarotPositionName(item.position, 'en')}: ${cardLabel(item)} (${orientation(item)}) — ${cardMeaning(item)}`
+        )).join('\n');
+        return {
+          text: [
+            '✦ QUICK ANSWER\nYou appear to be moving through a transition. The spread describes a direction, not a guaranteed event.',
+            `✦ PAST · PRESENT · NEAR FUTURE\n${details}\n• Personal Year ${yearVal} adds the broader cycle context.`,
+            '✦ NEXT STEP\nClose one unfinished obligation, protect your current priority, and review progress at a specific date.',
+          ].join('\n\n'),
+          card: cardPayload(),
+        };
+      }
+
+      const first = drawnCards[0];
+      const foodQuestion = /\b(food|eat|meal|drink|cook|breakfast|lunch|dinner|hungry)\b/i.test(prompt);
+      return {
+        text: foodQuestion
+          ? [
+              '✦ QUICK ANSWER\nChoose a fresh, balanced meal that feels easy to digest, such as a clear-broth noodle bowl, a colorful grain-and-vegetable bowl, or a simple dish you have wanted to try.',
+              `✦ TAROT REFLECTION\n${cardLabel(first)} (${orientation(first)}): ${cardMeaning(first)}`,
+              '✦ NEXT STEP\nEat slowly, include water, and let your actual appetite and health needs guide the final choice.',
+            ].join('\n\n')
+          : [
+              `✦ INTUITIVE MESSAGE\n${cardMeaning(first)}`,
+              `✦ WHY\n${cardLabel(first)} is ${orientation(first)}. Key themes: ${first ? getTarotKeywords(first.card, first.isReversed, 'en').join(' • ') : ''}. Life Path ${p1Lp} and Personal Year ${yearVal} provide the numerology context.`,
+              '✦ NEXT STEP\nPause, identify one action that is both grounded and reversible, then observe the result before making a larger commitment.',
+            ].join('\n\n'),
+        card: cardPayload(),
+      };
+    }
+
     // 1. GHÉP ĐÔI TÌNH DUYÊN (2 PROFILES: 100% THUẦN TỬ VI ĐẨU SỐ & BÁT TỰ TỨ TRỤ - KHÔNG DÙNG TAROT)
     if (decision.mode === 'compatibility' && p2) {
       const chartA = computePersonTuViBazi(p1.fullName, p1.birthDate, p1.gender);
@@ -1381,7 +1494,7 @@ export default function ChatScreen({
       }
     } catch {
       // Nếu offline hoặc lỗi mạng: dùng Local Decision Engine dự phòng
-      decision = evaluateAgentDecision(prompt, selectedProfiles);
+      decision = evaluateAgentDecision(prompt, selectedProfiles, locale);
     }
 
     // 3. Khóa màu lửa chính xác theo classification của AI Agent
@@ -1409,8 +1522,8 @@ export default function ChatScreen({
       appendMessage({
         id: `mascot-${Date.now()}`,
         sender: 'mascot',
-        text: decision.replyText || 'Câu hỏi của bạn chưa có chủ đề rõ ràng. Bạn có thể cho Tiểu Linh Miêu biết điều bạn đang muốn tìm hiểu không?',
-        time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        text: decision.replyText || l('Câu hỏi của bạn chưa có chủ đề rõ ràng. Bạn có thể cho Tiểu Linh Miêu biết điều bạn đang muốn tìm hiểu không?', 'Your question does not have a clear topic yet. What would you like to explore?'),
+        time: new Date().toLocaleTimeString(locale === 'en' ? 'en-US' : 'vi-VN', { hour: '2-digit', minute: '2-digit' }),
         turnId,
         createdAt: Date.now(),
         isTypingCompleted: false
@@ -1432,8 +1545,8 @@ export default function ChatScreen({
         appendMessage({
           id: `mascot-${Date.now()}`,
           sender: 'mascot',
-          text: '✦ TIỂU LINH MIÊU CẦN VỊ TRÍ HIỆN TẠI:\nĐể lọc địa điểm theo khoảng cách thực tế, bạn hãy cho phép dùng vị trí một lần nhé.',
-          time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+          text: l('✦ TIỂU LINH MIÊU CẦN VỊ TRÍ HIỆN TẠI:\nĐể lọc địa điểm theo khoảng cách thực tế, bạn hãy cho phép dùng vị trí một lần nhé.', '✦ LITTLE SPIRIT CAT NEEDS YOUR CURRENT LOCATION:\nAllow one-time location access so places can be filtered by real distance.'),
+          time: new Date().toLocaleTimeString(locale === 'en' ? 'en-US' : 'vi-VN', { hour: '2-digit', minute: '2-digit' }),
           turnId,
           createdAt: Date.now(),
           isTypingCompleted: false,
@@ -1447,18 +1560,18 @@ export default function ChatScreen({
     }
 
     // 2. Tính toán các chỉ số Thần số học mục tiêu
-    const calc1 = new NumerologyCalculator(selectedProfiles[0].fullName, selectedProfiles[0].birthDate);
+    const calc1 = new NumerologyCalculator(selectedProfiles[0].fullName, selectedProfiles[0].birthDate, locale);
     const indicators1 = calc1.getRequestedIndicators(decision.targetIndicators);
 
     let indicators2: IndicatorInfo[] | undefined;
     if (selectedProfiles.length >= 2) {
-      const calc2 = new NumerologyCalculator(selectedProfiles[1].fullName, selectedProfiles[1].birthDate);
+      const calc2 = new NumerologyCalculator(selectedProfiles[1].fullName, selectedProfiles[1].birthDate, locale);
       indicators2 = calc2.getRequestedIndicators(decision.targetIndicators);
     }
 
     // 3. Rút bài Tarot theo cấu hình trải bài
     const drawnCards: DrawnCardResult[] = decision.needsTarot && decision.spreadId
-      ? drawCardsForSpread(decision.spreadId)
+      ? drawCardsForSpread(decision.spreadId, locale)
       : [];
     const colorGuidance = decision.intent === 'color_guidance' && drawnCards[0]
       ? createColorGuidance(selectedProfiles[0].birthDate, drawnCards[0])
@@ -1664,7 +1777,7 @@ export default function ChatScreen({
                   onPress={() => handleOpenIndicator(ind)}
                   style={styles.indicatorChip}
                 >
-                  <Text style={styles.indicatorChipName}>{((ind.nameVi || ind.name || '').split('(')[0].trim())}:</Text>
+                  <Text style={styles.indicatorChipName}>{((locale === 'en' ? NUMEROLOGY_CARDS.find((entry) => entry.key === ind.key)?.nameEn : ind.nameVi) || ind.name || ind.key).split('(')[0].trim()}:</Text>
                   <Text style={styles.indicatorChipVal}>{ind.value}</Text>
                 </TouchableOpacity>
               ))}
@@ -1675,7 +1788,7 @@ export default function ChatScreen({
                   onPress={() => handleOpenIndicator(ind)}
                   style={[styles.indicatorChip, styles.indicatorChipP2]}
                 >
-                  <Text style={styles.indicatorChipName}>P2 {((ind.nameVi || ind.name || '').split('(')[0].trim())}:</Text>
+                  <Text style={styles.indicatorChipName}>P2 {((locale === 'en' ? NUMEROLOGY_CARDS.find((entry) => entry.key === ind.key)?.nameEn : ind.nameVi) || ind.name || ind.key).split('(')[0].trim()}:</Text>
                   <Text style={styles.indicatorChipVal}>{ind.value}</Text>
                 </TouchableOpacity>
               ))}
@@ -1815,7 +1928,7 @@ export default function ChatScreen({
                 <View style={[styles.splitBarB, { width: `${optionSplit.optionB}%` }]} />
               </View>
               <Text style={styles.splitVerdict}>
-                ✦ Phương án A được lá bài & năng lượng vũ trụ ủng hộ cao hơn
+                ✦ {l('Phương án A được lá bài & năng lượng vũ trụ ủng hộ cao hơn', 'The spread currently gives stronger support to option A')}
               </Text>
             </View>
           )}
@@ -1825,7 +1938,9 @@ export default function ChatScreen({
             <View style={styles.tarotSpreadPanel}>
               <View style={styles.spreadHeaderRow}>
                 <Text style={styles.spreadSectionTitle}>
-                  {decision.spreadId ? TAROT_SPREADS[decision.spreadId]?.nameVi : 'Thông Điệp Tarot'} ({drawnCards.length} lá)
+                  {decision.spreadId
+                    ? getTarotSpreadName(TAROT_SPREADS[decision.spreadId], locale)
+                    : l('Thông Điệp Tarot', 'Tarot Message')} ({drawnCards.length} {l('lá', 'cards')})
                 </Text>
                 <ThreeDButton
                   label={l('Lật tất cả', 'Reveal all')}
@@ -1870,7 +1985,7 @@ export default function ChatScreen({
                       <View style={[styles.colorSwatch, { backgroundColor: color.hex }, selected && styles.colorSwatchSelected]}>
                         {selected && <Text style={styles.colorSwatchCheck}>✓</Text>}
                       </View>
-                      <Text style={styles.colorSwatchName} numberOfLines={1}>{color.name}</Text>
+                      <Text style={styles.colorSwatchName} numberOfLines={1}>{locale === 'en' ? color.nameEn : color.name}</Text>
                       {selected && <Text style={styles.colorSwatchPriority}>{l('Lá bài ưu tiên', 'Card priority')}</Text>}
                     </View>
                   );
@@ -1896,8 +2011,12 @@ export default function ChatScreen({
                     <Text style={styles.numBadgeVal}>{ind.value}</Text>
                   </View>
                   <View style={styles.numTextWrap}>
-                    <Text style={styles.numName}>{ind.nameVi || ind.name} {ind.archetypeVi ? `• ${ind.archetypeVi}` : ''}</Text>
-                    <Text style={styles.numDesc}>{ind.summaryLine || ind.meaning}</Text>
+                    <Text style={styles.numName}>{locale === 'en'
+                      ? NUMEROLOGY_CARDS.find((entry) => entry.key === ind.key)?.nameEn || ind.key
+                      : `${ind.nameVi || ind.name} ${ind.archetypeVi ? `• ${ind.archetypeVi}` : ''}`}</Text>
+                    <Text style={styles.numDesc}>{locale === 'en'
+                      ? `Calculated value: ${ind.value}. Open this indicator for the complete English reading.`
+                      : ind.summaryLine || ind.meaning}</Text>
                   </View>
                 </View>
               ))}
@@ -1922,8 +2041,8 @@ export default function ChatScreen({
       return (
         <View style={[styles.cardContainer, { borderColor: '#F5BA5B' }]}>
           <Text style={[styles.cardBadge, { color: '#F5BA5B' }]}>🔮 {l('THÔNG ĐIỆP TAROT', 'TAROT MESSAGE')}</Text>
-          <Text style={styles.tarotCardName}>{firstCard.nameVi}</Text>
-          <Text style={styles.tarotMeaningText}>{firstCard.meaning}</Text>
+          <Text style={styles.tarotCardName}>{locale === 'en' ? firstCard.nameEn || firstCard.nameVi : firstCard.nameVi}</Text>
+          <Text style={styles.tarotMeaningText}>{locale === 'en' ? firstCard.meaningEn || firstCard.meaning : firstCard.meaning}</Text>
         </View>
       );
     }
@@ -1958,21 +2077,21 @@ export default function ChatScreen({
     };
 
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      if (window.confirm('Xóa toàn bộ lịch sử hội thoại trên thiết bị này?')) {
+      if (window.confirm(l('Xóa toàn bộ lịch sử hội thoại trên thiết bị này?', 'Delete all chat history for this account on this device?'))) {
         confirmClear();
       }
       return;
     }
 
     Alert.alert(
-      'Xóa lịch sử hội thoại?',
-      'Toàn bộ lịch sử của tài khoản hiện tại trên thiết bị này sẽ bị xóa.',
+      l('Xóa lịch sử hội thoại?', 'Delete chat history?'),
+      l('Toàn bộ lịch sử của tài khoản hiện tại trên thiết bị này sẽ bị xóa.', 'All history for the current account on this device will be deleted.'),
       [
-        { text: 'Hủy', style: 'cancel' },
-        { text: 'Xóa', style: 'destructive', onPress: confirmClear },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: l('Xóa', 'Delete'), style: 'destructive', onPress: confirmClear },
       ]
     );
-  }, [clearCurrentHistory]);
+  }, [clearCurrentHistory, l, t]);
 
   const isZeroState = messages.length === 0;
   const currentGlowColor = getFlameGlowColor(mascotCategory);
@@ -2322,7 +2441,7 @@ export default function ChatScreen({
               <View style={styles.zoomModalHeader}>
                 <View style={styles.zoomModalPosBadge}>
                   <Text style={styles.zoomModalPosText}>
-                    {zoomedCard.position?.nameVi || 'Lá Bài Tarot'}
+                    {zoomedCard.position ? getTarotPositionName(zoomedCard.position, zoomedCard.localeAtCreation ?? 'vi') : l('Lá Bài Tarot', 'Tarot Card')}
                   </Text>
                 </View>
                 <TouchableOpacity 
@@ -2360,22 +2479,22 @@ export default function ChatScreen({
                 </View>
 
                 {/* Card Title & Roman Numeral */}
-                <Text style={styles.zoomCardNameVi}>{locale === 'en' ? zoomedCard.card.nameEn : zoomedCard.card.nameVi}</Text>
+                <Text style={styles.zoomCardNameVi}>{getTarotCardName(zoomedCard.card, zoomedCard.localeAtCreation ?? 'vi')}</Text>
                 <Text style={styles.zoomCardNameEn}>
                   {`${l('Lá số', 'Card')} ${zoomedCard.card.number}${locale === 'vi' ? ` · ${zoomedCard.card.nameEn}` : ''}`}
                 </Text>
 
                 {/* Position Description */}
-                {zoomedCard.position?.descVi ? (
+                {zoomedCard.position ? (
                   <View style={styles.zoomPosDescBox}>
                     <Text style={styles.zoomPosDescLabel}>{l('Ý nghĩa vị trí này:', 'Meaning of this position:')}</Text>
-                    {locale === 'vi' && <Text style={styles.zoomPosDescText}>{zoomedCard.position.descVi}</Text>}
+                    <Text style={styles.zoomPosDescText}>{getTarotPositionDescription(zoomedCard.position, zoomedCard.localeAtCreation ?? 'vi')}</Text>
                   </View>
                 ) : null}
 
                 {/* Keywords */}
                 <View style={styles.zoomKeywordsWrap}>
-                  {(zoomedCard.isReversed ? zoomedCard.card.keywordsReversed : zoomedCard.card.keywordsUpright).map((kw, kIdx) => (
+                  {getTarotKeywords(zoomedCard.card, zoomedCard.isReversed, zoomedCard.localeAtCreation ?? 'vi').map((kw, kIdx) => (
                     <View key={kIdx} style={styles.zoomKeywordChip}>
                       <Text style={styles.zoomKeywordText}>#{kw}</Text>
                     </View>
@@ -2388,7 +2507,7 @@ export default function ChatScreen({
                     {zoomedCard.isReversed ? l('✦ Luận giải góc độ Lá Ngược:', '✦ Reversed interpretation:') : l('✦ Luận giải góc độ Lá Xuôi:', '✦ Upright interpretation:')}
                   </Text>
                   <Text style={styles.zoomMeaningBody}>
-                    {zoomedCard.isReversed ? zoomedCard.card.meaningReversed : zoomedCard.card.meaningUpright}
+                    {getTarotMeaning(zoomedCard.card, zoomedCard.isReversed, zoomedCard.localeAtCreation ?? 'vi')}
                   </Text>
                 </View>
               </ScrollView>

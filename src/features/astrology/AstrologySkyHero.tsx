@@ -43,6 +43,13 @@ export function AstrologySkyHero({
   const zodiacArtwork = metadata && isZodiacId(metadata.natalSunSign)
     ? ZODIAC_PNG[metadata.natalSunSign]
     : undefined;
+  const localizedVibe = metadata?.dominantSignal === 'tension'
+    ? l('Các góc ma sát đang trội hơn, phù hợp với việc rà soát lại kế hoạch.', 'Friction aspects are more prominent, making this a good time to review your plans.')
+    : metadata?.dominantSignal === 'harmony'
+      ? l('Các góc hỗ trợ đang chiếm ưu thế, thuận lợi cho việc triển khai dự định.', 'Supportive aspects are prominent, creating favorable conditions for moving plans forward.')
+      : metadata?.dominantSignal === 'conjunction'
+        ? l('Các nguồn lực đang hội tụ mạnh mẽ, tập trung vào trọng tâm cần đẩy nhanh.', 'Several currents are converging strongly; focus on the priority that needs momentum.')
+        : l('Các dòng tác động đan xen khá cân bằng, phù hợp để duy trì nhịp sống và quan sát tín hiệu mới.', 'The influences are fairly balanced, supporting a steady pace and attentive observation.');
 
   return (
     <View style={styles.hero}>
@@ -93,7 +100,7 @@ export function AstrologySkyHero({
           <View style={styles.profileCopy}>
             <Text numberOfLines={1} style={styles.profileName}>{profile.fullName}</Text>
             <Text numberOfLines={1} style={styles.profileMeta}>
-              {new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(`${profile.birthDate.split('T', 1)[0]}T12:00:00`))}{metadata ? ` · ${zodiacLabel(metadata.natalSunSign)}` : ''}
+              {new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(`${profile.birthDate.split('T', 1)[0]}T12:00:00`))}{metadata ? ` · ${zodiacLabel(metadata.natalSunSign, locale)}` : ''}
             </Text>
           </View>
           <Ionicons name="chevron-down" size={16} color={ASTRO_COLORS.muted} />
@@ -124,7 +131,7 @@ export function AstrologySkyHero({
           </View>
         ) : (
           <Text style={styles.quote}>
-            {fortune?.verse ?? metadata?.vibeSummary ?? l('Chạm để xem bức tranh năng lượng hôm nay.', "Tap to view today's energy landscape.")}
+            {fortune?.verse ?? (metadata ? localizedVibe : null) ?? l('Chạm để xem bức tranh năng lượng hôm nay.', "Tap to view today's energy landscape.")}
           </Text>
         )}
         <View style={styles.interpretRow}>

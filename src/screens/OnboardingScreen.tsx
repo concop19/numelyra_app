@@ -822,7 +822,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const startCheckout = async () => {
     setCheckoutLoading(true);
     try {
-      await beginCheckout('payos');
+      await beginCheckout('payos', locale);
       goTo(11);
     } catch (error) {
       Alert.alert(en ? 'Unable to open payment' : 'Chưa thể mở thanh toán', error instanceof Error ? error.message : (en ? 'Please try again later.' : 'Vui lòng thử lại sau.'));

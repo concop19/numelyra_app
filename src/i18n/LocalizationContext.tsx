@@ -23,6 +23,7 @@ interface LocalizationValue {
   l(vi: string, en: string): string;
   formatDate(date: Date, options?: Intl.DateTimeFormatOptions): string;
   formatTime(date: Date): string;
+  formatNumber(value: number, options?: Intl.NumberFormatOptions): string;
 }
 
 const LocalizationContext = createContext<LocalizationValue | null>(null);
@@ -65,6 +66,10 @@ export function LocalizationProvider({ children }: React.PropsWithChildren) {
     formatTime: (date) => new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'vi-VN', {
       hour: '2-digit', minute: '2-digit', hour12: locale === 'en',
     }).format(date),
+    formatNumber: (number, options) => new Intl.NumberFormat(
+      locale === 'en' ? 'en-US' : 'vi-VN',
+      options,
+    ).format(number),
   }), [locale, preference, ready, setPreference, t]);
 
   return <LocalizationContext.Provider value={value}>{children}</LocalizationContext.Provider>;

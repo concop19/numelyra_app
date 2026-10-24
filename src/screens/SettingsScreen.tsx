@@ -127,7 +127,7 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
     setBusy(true);
     setBillingError('');
     try {
-      await beginCheckout(provider);
+      await beginCheckout(provider, locale);
       await refreshBilling();
     } catch (error) {
       const message = error instanceof Error ? error.message : l('Không thể mở trang thanh toán.', 'Unable to open the payment page.');
