@@ -8,7 +8,6 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
-.env
 # Native
 .kotlin/
 *.orig.*
@@ -48,4 +47,3 @@ builds/
 
 # reference cloned mini games
 _cloned_games/
-

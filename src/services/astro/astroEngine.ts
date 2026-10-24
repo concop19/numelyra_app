@@ -414,7 +414,8 @@ export function calculateAngles(date: Date, latitude: number, longitude: number)
     + 360.985_647_366_29 * (julianDate - 2_451_545)
     + 0.000_387_933 * centuries * centuries
     - centuries * centuries * centuries / 38_710_000;
-  const sidereal = positiveModulo(gmst + longitude, 360) * Math.PI / 180;
+  const siderealDegrees = positiveModulo(gmst + longitude, 360);
+  const sidereal = siderealDegrees * Math.PI / 180;
   const obliquity = (
     23.439_291_111
       - 0.013_004_167 * centuries
@@ -426,14 +427,27 @@ export function calculateAngles(date: Date, latitude: number, longitude: number)
     Math.sin(sidereal),
     Math.cos(sidereal) * Math.cos(obliquity)
   ) * 180 / Math.PI;
-  const ascendant = Math.atan2(
+  const horizonIntersection = Math.atan2(
     -Math.cos(sidereal),
     Math.sin(sidereal) * Math.cos(obliquity)
       + Math.tan(latitudeRadians) * Math.sin(obliquity)
   ) * 180 / Math.PI;
-  // atan2 expression above resolves the western intersection; the Ascendant
-  // is the eastern intersection, exactly 180° opposite on the ecliptic.
-  const asc = positiveModulo(ascendant + 180, 360);
+  // The atan2 branch is not consistently the eastern intersection at polar
+  // latitudes. Select between the two antipodal horizon intersections by
+  // hour angle: the eastern/rising intersection has a negative hour angle.
+  const firstIntersection = positiveModulo(horizonIntersection, 360);
+  const firstIntersectionRadians = firstIntersection * Math.PI / 180;
+  const firstRightAscension = positiveModulo(Math.atan2(
+    Math.sin(firstIntersectionRadians) * Math.cos(obliquity),
+    Math.cos(firstIntersectionRadians)
+  ) * 180 / Math.PI, 360);
+  const firstHourAngle = positiveModulo(
+    siderealDegrees - firstRightAscension + 180,
+    360
+  ) - 180;
+  const asc = firstHourAngle <= 0
+    ? firstIntersection
+    : positiveModulo(firstIntersection + 180, 360);
   const mc = positiveModulo(midheaven, 360);
   return {
     ascendant: rounded(asc),

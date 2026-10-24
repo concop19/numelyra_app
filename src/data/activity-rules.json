@@ -1,0 +1,380 @@
+﻿{
+  "version": "1.1.0",
+  "activities": [
+    {
+      "key": "hop_hanh",
+      "vi": "Họp hành, bàn việc",
+      "en": "Meetings & negotiations",
+      "category": "work",
+      "icon": "🤝",
+      "trucYi": ["Kiến","Mãn","Định","Thành","Khai","Bình"],
+      "trucJi": []
+    },
+    {
+      "key": "ky_ket",
+      "vi": "Ký kết hợp đồng",
+      "en": "Sign contracts",
+      "category": "work",
+      "icon": "📝",
+      "trucYi": ["Định","Thành","Khai","Kiến"],
+      "trucJi": ["Phá","Nguy","Bế"]
+    },
+    {
+      "key": "nham_chuc",
+      "vi": "Nhận chức, bổ nhiệm",
+      "en": "Start a new role",
+      "category": "work",
+      "icon": "🏅",
+      "trucYi": ["Kiến","Thành","Khai"],
+      "trucJi": ["Mãn","Bế","Phá"]
+    },
+    {
+      "key": "khai_truong",
+      "vi": "Khai trương, ra mắt",
+      "en": "Launch or grand opening",
+      "category": "work",
+      "icon": "🏪",
+      "trucYi": ["Kiến","Mãn","Thành","Khai"],
+      "trucJi": ["Phá","Nguy","Bế"]
+    },
+    {
+      "key": "lap_ke_hoach",
+      "vi": "Lập kế hoạch, nghiên cứu",
+      "en": "Planning & research",
+      "category": "work",
+      "icon": "📋",
+      "trucYi": ["Chấp","Bế","Thu","Bình"],
+      "trucJi": []
+    },
+    {
+      "key": "xuat_hanh_cong",
+      "vi": "Công tác, xuất hành xa",
+      "en": "Business travel",
+      "category": "work",
+      "icon": "✈️",
+      "trucYi": ["Kiến","Khai","Bình"],
+      "trucJi": ["Nguy","Bế","Phá"]
+    },
+    {
+      "key": "mua_ban",
+      "vi": "Mua bán, giao dịch",
+      "en": "Trade & transactions",
+      "category": "finance",
+      "icon": "💰",
+      "trucYi": ["Thu","Bình","Định","Mãn"],
+      "trucJi": ["Phá","Nguy"]
+    },
+    {
+      "key": "nap_tai",
+      "vi": "Thu tài, nhận tiền",
+      "en": "Collect revenue",
+      "category": "finance",
+      "icon": "💵",
+      "trucYi": ["Thu","Mãn","Khai"],
+      "trucJi": ["Phá","Bế"]
+    },
+    {
+      "key": "dau_tu",
+      "vi": "Đầu tư, mở rộng",
+      "en": "Invest & expand",
+      "category": "finance",
+      "icon": "📈",
+      "trucYi": ["Thành","Kiến","Khai"],
+      "trucJi": ["Phá","Nguy","Bế"]
+    },
+    {
+      "key": "tich_tru",
+      "vi": "Tích lũy, tiết kiệm",
+      "en": "Save & build reserves",
+      "category": "finance",
+      "icon": "🏦",
+      "trucYi": ["Thu","Chấp","Bình"],
+      "trucJi": []
+    },
+    {
+      "key": "tranh_tung",
+      "vi": "Tranh tụng, kiện cáo",
+      "en": "Legal disputes",
+      "category": "finance",
+      "icon": "⚖️",
+      "trucYi": [],
+      "trucJi": ["Kiến","Định","Mãn","Thành","Khai","Thu"]
+    },
+    {
+      "key": "cuoi_hoi",
+      "vi": "Cưới hỏi, hôn lễ",
+      "en": "Wedding & engagement",
+      "category": "love",
+      "icon": "💍",
+      "trucYi": ["Kiến","Định","Thành"],
+      "trucJi": ["Phá","Nguy","Bế","Trừ"]
+    },
+    {
+      "key": "gap_go",
+      "vi": "Hẹn hò, gặp gỡ thân nhân",
+      "en": "Dates & family reunion",
+      "category": "love",
+      "icon": "👨‍👩‍👧",
+      "trucYi": ["Kiến","Thành","Mãn","Bình","Định"],
+      "trucJi": []
+    },
+    {
+      "key": "nhap_trach",
+      "vi": "Nhập trạch, về nhà mới",
+      "en": "Move into a new home",
+      "category": "love",
+      "icon": "🏠",
+      "trucYi": ["Thành","Khai","Kiến"],
+      "trucJi": ["Phá","Nguy","Bế"]
+    },
+    {
+      "key": "giai_quyet_mau_thuan",
+      "vi": "Giải quyết mâu thuẫn",
+      "en": "Resolve conflicts",
+      "category": "love",
+      "icon": "🕊️",
+      "trucYi": ["Trừ","Bình"],
+      "trucJi": []
+    },
+    {
+      "key": "cau_an",
+      "vi": "Cầu an, tĩnh dưỡng",
+      "en": "Rest & wellbeing",
+      "category": "health",
+      "icon": "🙏",
+      "trucYi": ["Trừ","Nguy","Chấp","Bình"],
+      "trucJi": []
+    },
+    {
+      "key": "chua_benh",
+      "vi": "Khám sức khỏe, chăm sóc y tế",
+      "en": "Health checkups & medical care",
+      "category": "health",
+      "icon": "🏥",
+      "trucYi": ["Trừ","Chấp","Phá"],
+      "trucJi": []
+    },
+    {
+      "key": "tap_luyen",
+      "vi": "Tập luyện thể thao",
+      "en": "Exercise & sports",
+      "category": "health",
+      "icon": "🏃",
+      "trucYi": ["Kiến","Thành","Mãn","Khai","Bình"],
+      "trucJi": []
+    },
+    {
+      "key": "tinh_tam",
+      "vi": "Thiền định, nghỉ sâu",
+      "en": "Meditation & deep rest",
+      "category": "health",
+      "icon": "🧘",
+      "trucYi": ["Bế","Nguy","Chấp"],
+      "trucJi": []
+    },
+    {
+      "key": "hoc_tap",
+      "vi": "Học tập, thi cử",
+      "en": "Study & exams",
+      "category": "learning",
+      "icon": "📚",
+      "trucYi": ["Thành","Định","Khai","Mãn","Bình"],
+      "trucJi": []
+    },
+    {
+      "key": "sang_tao",
+      "vi": "Sáng tác, ra mắt tác phẩm",
+      "en": "Creative work & publishing",
+      "category": "learning",
+      "icon": "🎨",
+      "trucYi": ["Thành","Khai","Mãn","Kiến"],
+      "trucJi": []
+    },
+    {
+      "key": "day_hoc",
+      "vi": "Giảng dạy, truyền nghề",
+      "en": "Teaching & mentoring",
+      "category": "learning",
+      "icon": "👨‍🏫",
+      "trucYi": ["Định","Thành","Bình"],
+      "trucJi": []
+    },
+    {
+      "key": "dong_tho",
+      "vi": "Động thổ, khởi công",
+      "en": "Break ground / construction",
+      "category": "travel",
+      "icon": "🏗️",
+      "trucYi": ["Chấp"],
+      "trucJi": ["Kiến","Mãn","Bình","Thành","Khai","Nguy"]
+    },
+    {
+      "key": "sua_chua",
+      "vi": "Sửa chữa nhà cửa",
+      "en": "Home repairs & renovation",
+      "category": "travel",
+      "icon": "🔧",
+      "trucYi": ["Chấp","Bình","Thu"],
+      "trucJi": []
+    },
+    {
+      "key": "di_chuyen",
+      "vi": "Di chuyển, du lịch",
+      "en": "Travel & commute",
+      "category": "travel",
+      "icon": "🚗",
+      "trucYi": ["Kiến","Bình","Khai"],
+      "trucJi": ["Nguy","Bế"]
+    },
+    {
+      "key": "don_dep",
+      "vi": "Dọn dẹp, vứt đồ cũ",
+      "en": "Declutter & clear space",
+      "category": "travel",
+      "icon": "🧹",
+      "trucYi": ["Trừ","Phá"],
+      "trucJi": []
+    },
+    {
+      "key": "an_tang",
+      "vi": "An táng, tang lễ",
+      "en": "Funeral arrangements",
+      "category": "travel",
+      "icon": "🕯️",
+      "trucYi": [],
+      "trucJi": ["Khai","Thu","Thành","Kiến"]
+    }
+  ],
+  "layers": {
+    "nguyetKy": {
+      "description": "Nguyệt Kỵ: mùng 5, 14, 23 âm lịch — phạt việc khởi sự",
+      "blockedKeys": [
+        "khai_truong","ky_ket","nham_chuc","cuoi_hoi",
+        "nhap_trach","dong_tho","dau_tu","xuat_hanh_cong",
+        "mua_ban","nap_tai","hop_hanh"
+      ],
+      "delta": -4,
+      "reasonVi": "Ngày Nguyệt Kỵ — hạn chế khởi sự lớn",
+      "reasonEn": "Nguyet Ky day — avoid major starts"
+    },
+    "tamNuong": {
+      "description": "Tam Nương: mùng 3, 7, 13, 18, 22, 27 âm — phạt nặng hơn cho hôn lễ/khai trương",
+      "blockedKeys": ["cuoi_hoi","khai_truong","nham_chuc","nhap_trach","dong_tho"],
+      "delta": -5,
+      "reasonVi": "Ngày Tam Nương — kiêng hôn lễ, khai trương",
+      "reasonEn": "Tam Nuong day — avoid weddings and openings"
+    },
+    "hoangDao": {
+      "description": "Ngày Hoàng đạo: khuếch đại việc quan trọng",
+      "boostedKeys": [
+        "khai_truong","ky_ket","cuoi_hoi","nham_chuc",
+        "dau_tu","nhap_trach","hop_hanh","hoc_tap","sang_tao"
+      ],
+      "delta": 2,
+      "reasonVi": "Ngày Hoàng đạo {label} — thêm thuận lợi",
+      "reasonEn": "Auspicious day ({label}) — added advantage"
+    },
+    "hacDao": {
+      "description": "Ngày Hắc đạo: giảm việc quan trọng",
+      "penalizedKeys": [
+        "khai_truong","ky_ket","cuoi_hoi","nham_chuc",
+        "dau_tu","nhap_trach","mua_ban","nap_tai"
+      ],
+      "delta": -2,
+      "reasonVi": "Ngày Hắc đạo {label} — cần thận trọng",
+      "reasonEn": "Inauspicious day ({label}) — caution advised"
+    },
+    "trucQuality": {
+      "description": "Việc hợp Trực có nền +1; chất lượng cộng thêm Tốt +2 / Bình +0 / Xấu +0",
+      "trucModifiers": {
+        "Tốt": 2,
+        "Bình": 0,
+        "Xấu": 0
+      },
+      "yiBase": 1,
+      "reasonTemplateYiVi": "Trực {truc} ({quality}) hỗ trợ việc này",
+      "reasonTemplateYiEn": "{truc} officer ({quality}) supports this",
+      "reasonTemplateJiVi": "Trực {truc} kiêng việc này",
+      "reasonTemplateJiEn": "{truc} officer — avoid this today",
+      "penaltyJi": -3
+    },
+    "canElementBoost": {
+      "description": "Can ngày → Ngũ hành → điều chỉnh nhẹ +1 cho nhóm phù hợp",
+      "canToElement": {
+        "0": "Mộc", "1": "Mộc",
+        "2": "Hỏa", "3": "Hỏa",
+        "4": "Thổ", "5": "Thổ",
+        "6": "Kim",  "7": "Kim",
+        "8": "Thủy", "9": "Thủy"
+      },
+      "elementToCategories": {
+        "Mộc": ["love","learning"],
+        "Hỏa": ["work","learning","love"],
+        "Thổ": ["finance"],
+        "Kim":  ["work","finance","travel"],
+        "Thủy": ["health","travel"]
+      },
+      "delta": 1,
+      "reasonTemplateVi": "Can ngày {element} hỗ trợ {categoryVi}",
+      "reasonTemplateEn": "Day stem {element} boosts {categoryEn}"
+    },
+    "zodiacClash": {
+      "description": "Tuổi xung với Địa Chi ngày: phạt việc lớn mạnh hơn",
+      "sensitiveKeys": [
+        "cuoi_hoi","khai_truong","ky_ket","nham_chuc",
+        "nhap_trach","dau_tu","mua_ban","nap_tai"
+      ],
+      "deltaImportant": -3,
+      "deltaOther": -1,
+      "reasonTemplateVi": "Ngày xung tuổi {zodiac} — hạn chế việc lớn",
+      "reasonTemplateEn": "Day clashes with your zodiac ({zodiac})"
+    }
+  },
+  "hourLayers": {
+    "quality": {
+      "description": "Giờ Hoàng/Hắc đạo chỉ điều chỉnh các việc nhạy theo thời điểm khởi sự",
+      "sensitiveKeys": [
+        "hop_hanh", "ky_ket", "nham_chuc", "khai_truong",
+        "xuat_hanh_cong", "mua_ban", "nap_tai", "dau_tu",
+        "cuoi_hoi", "gap_go", "nhap_trach", "hoc_tap",
+        "sang_tao", "dong_tho", "sua_chua", "di_chuyen"
+      ],
+      "hoangDaoDelta": 2,
+      "hacDaoDelta": -2,
+      "hoangDaoReasonVi": "Giờ {label} hỗ trợ khởi sự",
+      "hoangDaoReasonEn": "The {label} hour supports new starts",
+      "hacDaoReasonVi": "Giờ {label} cần thận trọng",
+      "hacDaoReasonEn": "The {label} hour calls for caution"
+    },
+    "zodiacClash": {
+      "description": "Giờ xung tuổi là veto cho các việc nhạy theo giờ",
+      "delta": -4,
+      "reasonVi": "Giờ {hour} xung tuổi {zodiac} — tránh việc lớn",
+      "reasonEn": "The {hour} hour clashes with your zodiac ({zodiac}) — avoid major starts"
+    },
+    "dayClash": {
+      "description": "Nhật Phá làm giảm độ thuận của việc khởi sự nhưng không phải veto tuyệt đối",
+      "delta": -3,
+      "reasonVi": "Giờ {hour} phạm Nhật Phá",
+      "reasonEn": "The {hour} hour conflicts with the day"
+    },
+    "lyThuanPhong": {
+      "description": "Lý Thuần Phong chỉ dùng cho công tác, xuất hành và di chuyển",
+      "travelKeys": ["xuat_hanh_cong", "di_chuyen"],
+      "goodDelta": 2,
+      "badDelta": -2,
+      "goodReasonVi": "Lý Thuần Phong {name} thuận cho xuất hành",
+      "goodReasonEn": "Ly Thuan Phong {name} favors travel",
+      "badReasonVi": "Lý Thuần Phong {name} không thuận cho xuất hành",
+      "badReasonEn": "Ly Thuan Phong {name} is unfavorable for travel"
+    }
+  },
+  "categoryLabels": {
+    "work":     { "vi": "Công việc",         "en": "Work" },
+    "finance":  { "vi": "Tài chính",         "en": "Finance" },
+    "love":     { "vi": "Tình cảm",          "en": "Relationships" },
+    "health":   { "vi": "Sức khỏe",          "en": "Health" },
+    "learning": { "vi": "Học tập",           "en": "Learning" },
+    "travel":   { "vi": "Đi lại & Nhà cửa", "en": "Travel & Home" }
+  }
+}

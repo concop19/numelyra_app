@@ -1,13 +1,22 @@
-import React, { useMemo } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import type { DrawnCardResult } from '../services/tarotService';
-import { getTarotCardImage } from '../services/tarotAssets';
+import { getTarotCardImage, TAROT_AMBIENT_AUDIO } from '../services/tarotAssets';
 import HighlightedAnswerText from '../components/chat/HighlightedAnswerText';
 import LoveCompatibilityDetail from '../components/chat/love/LoveCompatibilityDetail';
 import { getLoveReadingViewModel } from '../components/chat/love/loveReadingModel';
+import { canSetAudioPlayerVolume } from '../services/audioPlatform';
+import {
+  getLocalChatMessages,
+  initChatDatabase,
+  type LocalChatMessage,
+  type LocalChatSession,
+} from '../db/chatDatabaseService';
+import { hydrateChatSessionFromSupabase } from '../services/chatSessionSyncService';
 import type { MessageItem } from './ChatScreen';
 
 export type ChatReadingDetailParams = {
@@ -15,7 +24,13 @@ export type ChatReadingDetailParams = {
   previousQuestion?: string;
 };
 
-type Props = NativeStackScreenProps<{ ChatReadingDetail: ChatReadingDetailParams }, 'ChatReadingDetail'>;
+type ChatReadingDetailStackParamList = {
+  Main: undefined;
+  ChatReadingDetail: ChatReadingDetailParams;
+  ChatContinuation: { sessionId: string; title?: string };
+};
+
+type Props = NativeStackScreenProps<ChatReadingDetailStackParamList, 'ChatReadingDetail'>;
 
 const withoutQuickConclusionHeading = (text: string) => text
   .replace(/^\s*[✦★✨•-]*\s*KẾT\s+LUẬN\s+NHANH\s*:\s*/i, '')
@@ -37,6 +52,34 @@ const getDrawnCards = (card: unknown): DrawnCardResult[] => {
 
 export default function ChatReadingDetailScreen({ navigation, route }: Props) {
   const { message, previousQuestion } = route.params;
+  const ambientPlayer = useAudioPlayer(TAROT_AMBIENT_AUDIO, { keepAudioSessionActive: true });
+  const conversationLoadedRef = useRef(false);
+  const [conversationOpen, setConversationOpen] = useState(false);
+  const [conversationLoading, setConversationLoading] = useState(false);
+  const [conversationError, setConversationError] = useState<string | null>(null);
+  const [conversationSession, setConversationSession] = useState<LocalChatSession | null>(null);
+  const [conversationMessages, setConversationMessages] = useState<LocalChatMessage[]>([]);
+  const [expandedMessages, setExpandedMessages] = useState<Set<string>>(() => new Set());
+
+  useEffect(() => {
+    try {
+      void setAudioModeAsync({
+        playsInSilentMode: true,
+        interruptionMode: 'mixWithOthers',
+      }).catch(() => undefined);
+      ambientPlayer.loop = true;
+      if (canSetAudioPlayerVolume()) ambientPlayer.volume = 0.09;
+      void ambientPlayer.seekTo(0).catch(() => undefined);
+      ambientPlayer.play();
+    } catch {}
+
+    return () => {
+      try {
+        ambientPlayer.pause();
+      } catch {}
+    };
+  }, [ambientPlayer]);
+
   const cards = useMemo(() => getDrawnCards(message.card), [message.card]);
   const loveReading = useMemo(
     () => getLoveReadingViewModel(message.card, message.text, previousQuestion),
@@ -45,12 +88,70 @@ export default function ChatReadingDetailScreen({ navigation, route }: Props) {
   const question = typeof (message.card as { questionText?: unknown } | undefined)?.questionText === 'string'
     ? (message.card as { questionText: string }).questionText
     : previousQuestion;
+  const sessionId = typeof (message.card as { sessionId?: unknown } | undefined)?.sessionId === 'string'
+    ? (message.card as { sessionId: string }).sessionId
+    : undefined;
+  const canContinue = Boolean(sessionId && (message.card as { canContinue?: unknown } | undefined)?.canContinue);
+  const continueReading = canContinue && sessionId
+    ? () => navigation.navigate('ChatContinuation', { sessionId, title: question })
+    : undefined;
+
+  const loadConversation = useCallback(async () => {
+    if (!sessionId || conversationLoadedRef.current) return;
+    conversationLoadedRef.current = true;
+    setConversationLoading(true);
+    setConversationError(null);
+    try {
+      await initChatDatabase();
+      const localMessages = await getLocalChatMessages(sessionId);
+      if (localMessages.length > 0) setConversationMessages(localMessages);
+
+      const remote = await hydrateChatSessionFromSupabase(sessionId);
+      if (remote) {
+        setConversationSession(remote.session);
+        setConversationMessages(remote.messages);
+      } else if (localMessages.length === 0) {
+        setConversationError('Chưa tải được lịch sử của phiên trò chuyện này.');
+      }
+    } catch (error) {
+      console.warn('[ChatReadingDetailScreen] Could not load conversation:', error);
+      setConversationError('Không thể tải toàn bộ cuộc trò chuyện lúc này.');
+      conversationLoadedRef.current = false;
+    } finally {
+      setConversationLoading(false);
+    }
+  }, [sessionId]);
+
+  const toggleConversation = useCallback(() => {
+    setConversationOpen((open) => {
+      const next = !open;
+      if (next) void loadConversation();
+      return next;
+    });
+  }, [loadConversation]);
+
+  const toggleMessage = useCallback((messageId: string) => {
+    setExpandedMessages((current) => {
+      const next = new Set(current);
+      if (next.has(messageId)) next.delete(messageId);
+      else next.add(messageId);
+      return next;
+    });
+  }, []);
+  const close = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+    navigation.navigate('Main');
+  };
 
   if (loveReading) {
     return (
       <LoveCompatibilityDetail
         model={loveReading}
-        onClose={() => navigation.goBack()}
+        onClose={close}
+        onContinue={continueReading}
       />
     );
   }
@@ -59,7 +160,7 @@ export default function ChatReadingDetailScreen({ navigation, route }: Props) {
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={close}
           style={styles.backButton}
           accessibilityRole="button"
           accessibilityLabel="Quay lại trò chuyện"
@@ -112,6 +213,100 @@ export default function ChatReadingDetailScreen({ navigation, route }: Props) {
             emphasisStyle={styles.answerEmphasis}
           />
         </View>
+
+        {sessionId ? (
+          <View style={styles.conversationSection}>
+            <TouchableOpacity
+              activeOpacity={0.84}
+              onPress={toggleConversation}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: conversationOpen }}
+              accessibilityLabel="Xem toàn bộ cuộc trò chuyện"
+              style={styles.conversationToggle}
+            >
+              <View style={styles.conversationIcon}>
+                <Ionicons name="chatbubbles-outline" size={20} color="#F7D183" />
+              </View>
+              <View style={styles.conversationToggleCopy}>
+                <Text style={styles.conversationToggleTitle}>
+                  {conversationOpen ? 'Thu gọn cuộc trò chuyện' : 'Xem toàn bộ cuộc trò chuyện'}
+                </Text>
+                <Text style={styles.conversationToggleSubtitle}>
+                  {conversationSession
+                    ? `${conversationSession.questionCount}/${conversationSession.maxQuestions} câu tiếp nối`
+                    : 'Bài đọc gốc và các câu hỏi tiếp nối'}
+                </Text>
+              </View>
+              <Ionicons name={conversationOpen ? 'chevron-up' : 'chevron-down'} size={21} color="#E8DDF5" />
+            </TouchableOpacity>
+
+            {conversationOpen ? (
+              <View style={styles.conversationPanel}>
+                {conversationLoading ? (
+                  <View style={styles.conversationLoading}>
+                    <ActivityIndicator size="small" color="#D69BFF" />
+                    <Text style={styles.conversationLoadingText}>Đang tải cuộc trò chuyện…</Text>
+                  </View>
+                ) : null}
+
+                {!conversationLoading && conversationError ? (
+                  <Text style={styles.conversationError}>{conversationError}</Text>
+                ) : null}
+
+                {conversationMessages.map((chatMessage) => {
+                  const expanded = expandedMessages.has(chatMessage.id);
+                  const canExpand = chatMessage.text.length > 180;
+                  const isUser = chatMessage.sender === 'user';
+                  return (
+                    <TouchableOpacity
+                      key={chatMessage.id}
+                      activeOpacity={canExpand ? 0.8 : 1}
+                      onPress={canExpand ? () => toggleMessage(chatMessage.id) : undefined}
+                      accessibilityRole={canExpand ? 'button' : undefined}
+                      accessibilityState={canExpand ? { expanded } : undefined}
+                      style={[styles.historyMessage, isUser ? styles.historyUserMessage : styles.historyMascotMessage]}
+                    >
+                      <View style={styles.historyMessageHeader}>
+                        <Text style={[styles.historySender, isUser && styles.historyUserSender]}>
+                          {chatMessage.turnIndex === 0
+                            ? (isUser ? 'Câu hỏi gốc' : 'Numelyra · Bài đọc gốc')
+                            : (isUser ? `Bạn · Câu ${chatMessage.turnIndex}` : `Numelyra · Lượt ${chatMessage.turnIndex}`)}
+                        </Text>
+                        {canExpand ? (
+                          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color="#CDBDE0" />
+                        ) : null}
+                      </View>
+                      <Text numberOfLines={expanded ? undefined : 3} style={styles.historyMessageText}>
+                        {chatMessage.text}
+                      </Text>
+                      {canExpand ? (
+                        <Text style={styles.historyExpandText}>{expanded ? 'Thu gọn' : 'Xem đầy đủ'}</Text>
+                      ) : null}
+                    </TouchableOpacity>
+                  );
+                })}
+
+                {!conversationLoading && !conversationError && conversationMessages.length === 0 ? (
+                  <Text style={styles.conversationEmpty}>Phiên này chưa có tin nhắn tiếp nối.</Text>
+                ) : null}
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
+        {continueReading ? (
+          <TouchableOpacity
+            activeOpacity={0.84}
+            onPress={continueReading}
+            accessibilityRole="button"
+            accessibilityLabel="Tiếp tục trò chuyện về bài luận giải này"
+            style={styles.continueButton}
+          >
+            <Ionicons name="chatbubble-ellipses-outline" size={20} color="#FFF8E7" />
+            <Text style={styles.continueButtonText}>Tiếp tục trò chuyện</Text>
+            <Ionicons name="arrow-forward" size={18} color="#FFF8E7" />
+          </TouchableOpacity>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -146,4 +341,38 @@ const styles = StyleSheet.create({
   senderName: { color: '#D64F6A', fontSize: 15, fontWeight: '800' },
   answerText: { color: '#301934', fontSize: 16, lineHeight: 25 },
   answerEmphasis: { color: '#7C305A', fontWeight: '900' },
+  conversationSection: { gap: 10 },
+  conversationToggle: {
+    minHeight: 66, borderRadius: 20, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#25143C', borderWidth: 1, borderColor: 'rgba(214, 155, 255, 0.3)',
+  },
+  conversationIcon: {
+    width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(126, 65, 170, 0.34)', marginRight: 11,
+  },
+  conversationToggleCopy: { flex: 1, paddingRight: 8 },
+  conversationToggleTitle: { color: '#FFF8EA', fontSize: 14, fontWeight: '900' },
+  conversationToggleSubtitle: { color: '#AA9BBC', fontSize: 10.5, marginTop: 4 },
+  conversationPanel: {
+    gap: 10, borderRadius: 20, padding: 11, backgroundColor: 'rgba(25, 13, 45, 0.84)',
+    borderWidth: 1, borderColor: 'rgba(214, 155, 255, 0.18)',
+  },
+  conversationLoading: { minHeight: 70, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
+  conversationLoadingText: { color: '#CBBBDD', fontSize: 12 },
+  conversationError: { color: '#F1B5B5', fontSize: 12, lineHeight: 18, textAlign: 'center', paddingVertical: 12 },
+  conversationEmpty: { color: '#B8AAC8', fontSize: 12, textAlign: 'center', paddingVertical: 14 },
+  historyMessage: { borderRadius: 15, paddingHorizontal: 13, paddingVertical: 11, borderWidth: 1 },
+  historyUserMessage: { backgroundColor: '#30223F', borderColor: 'rgba(255,255,255,0.08)' },
+  historyMascotMessage: { backgroundColor: '#59298A', borderColor: 'rgba(224, 176, 255, 0.28)' },
+  historyMessageHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 },
+  historySender: { flex: 1, color: '#F5D48D', fontSize: 10.5, fontWeight: '900', letterSpacing: 0.3 },
+  historyUserSender: { color: '#D8CDDF' },
+  historyMessageText: { color: '#FBF8FF', fontSize: 13, lineHeight: 20 },
+  historyExpandText: { color: '#E2BAFF', fontSize: 10.5, fontWeight: '800', marginTop: 7 },
+  continueButton: {
+    minHeight: 52, borderRadius: 26, paddingHorizontal: 20, flexDirection: 'row',
+    alignItems: 'center', justifyContent: 'center', gap: 9, backgroundColor: '#7440A5',
+    borderWidth: 1, borderColor: 'rgba(255, 226, 160, 0.72)',
+  },
+  continueButtonText: { flex: 1, color: '#FFF8E7', fontSize: 15, fontWeight: '900', textAlign: 'center' },
 });

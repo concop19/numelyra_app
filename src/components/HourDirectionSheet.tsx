@@ -19,6 +19,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { DayActivities, DayDirection, HourInfo } from '../services/lunarService';
+import { buildHourlyActivities } from '../services/activityRuleEngine';
+import { useLocalization } from '../i18n/LocalizationContext';
 
 const HERO_BACKGROUND = require('../../assets/giao_dien/giaodien1/calender_asset/hoursDetailAsset/Celestial Moonlit Mountain Lake.png');
 const SHEET_BACKGROUND = require('../../assets/giao_dien/giaodien1/setting/background.webp');
@@ -87,6 +89,7 @@ export default function HourDirectionSheet({
 }: Props) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const { t, l, locale } = useLocalization();
   const [selectedHour, setSelectedHour] = useState<HourInfo | null>(() => getDefaultHour(hours, bestHour));
   const [activitiesExpanded, setActivitiesExpanded] = useState(false);
   const sheetWidth = Math.min(width, 720);
@@ -113,17 +116,46 @@ export default function HourDirectionSheet({
     onPanResponderRelease: (_event, gesture) => onSheetDragEnd(Math.max(0, gesture.dy), gesture.vy),
     onPanResponderTerminate: () => onSheetDragEnd(0, 0),
   }), [onSheetDragEnd, onSheetDragMove, onSheetDragStart]);
+  const activeHour = selectedHour ?? getDefaultHour(hours, bestHour);
+  const hourlyActivities = useMemo(() => {
+    if (!activeHour || !activities?.rated?.all?.length) return null;
+    return buildHourlyActivities(activities.rated.all, {
+      hourName: activeHour.name,
+      canChi: activeHour.canChi,
+      range: activeHour.range,
+      isHoangDao: activeHour.isHoangDao,
+      hourLabel: activeHour.label,
+      isClash: activeHour.isClash,
+      isDayClash: activeHour.isDayClash,
+      lyThuanPhong: activeHour.lyThuanPhong,
+      isLyThuanPhongGood: activeHour.isLyThuanPhongGood,
+      userZodiac,
+      locale,
+    });
+  }, [activeHour, activities?.rated?.all, locale, userZodiac]);
 
   if (!visible) return null;
 
-  const activeHour = selectedHour ?? getDefaultHour(hours, bestHour);
   const activeAsset = activeHour ? HOUR_ASSETS[activeHour.name] : undefined;
   const isBestHour = sameHour(activeHour, bestHour);
+  const activityQualityLabel = activities
+    ? locale === 'en'
+      ? ({ Tốt: 'Good', Bình: 'Neutral', Xấu: 'Caution' } as const)[activities.trucQuality]
+      : activities.trucQuality
+    : '';
   const heroTitle = isBestHour
-    ? 'GIỜ XUẤT HÀNH ĐẠI CÁT'
+    ? l('GIỜ XUẤT HÀNH ĐẠI CÁT', 'BEST DEPARTURE HOUR')
     : activeHour?.isHoangDao
-      ? 'GIỜ HOÀNG ĐẠO'
-      : 'GIỜ HẮC ĐẠO';
+      ? l('GIỜ HOÀNG ĐẠO', 'FAVORABLE HOUR')
+      : l('GIỜ HẮC ĐẠO', 'CAUTIOUS HOUR');
+  const displayedRecommended = hourlyActivities?.recommended ?? activities?.rated?.recommended;
+  const displayedAvoid = hourlyActivities?.avoid ?? activities?.rated?.avoid;
+  const activitiesTitle = hourlyActivities
+    ? l('CÁT HUNG TRONG GIỜ', 'GUIDANCE FOR SELECTED HOUR')
+    : l('CÁT HUNG TRONG NGÀY', 'DAILY GUIDANCE');
+  const activitiesSubtitle = hourlyActivities && activeHour
+    ? `${activeHour.canChi} · ${activeHour.range.replace('-', ' – ')} · ${l('Trực', 'Day officer')} ${activities?.trucName}`
+    : `${l('Trực', 'Day officer')} ${activities?.trucName ?? ''} · ${activityQualityLabel}`;
 
   const closeWithFeedback = () => {
     void Haptics.selectionAsync();
@@ -147,7 +179,7 @@ export default function HourDirectionSheet({
     >
       <View style={styles.overlay}>
         <Animated.View pointerEvents="none" style={[styles.backdrop, { opacity: sheetProgress }]} />
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Đóng chi tiết giờ" />
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel={l('Đóng chi tiết giờ', 'Close hour details')} />
 
         <Animated.View
           style={[
@@ -183,7 +215,7 @@ export default function HourDirectionSheet({
               onPress={closeWithFeedback}
               style={styles.headerButton}
               accessibilityRole="button"
-              accessibilityLabel="Quay lại lịch"
+              accessibilityLabel={t('common.back')}
             >
               <Ionicons name="chevron-back" size={24} color="#FFE8BB" />
             </TouchableOpacity>
@@ -192,7 +224,7 @@ export default function HourDirectionSheet({
               <Ionicons name="moon" size={28} color="#FFD78A" />
               <View>
                 <Text style={styles.headerEyebrow}>NUMELYRA CALENDAR</Text>
-                <Text style={styles.headerTitle}>Hoàng lịch & Cát hung</Text>
+                <Text style={styles.headerTitle}>{l('Hoàng lịch & Cát hung', 'Almanac & daily fortune')}</Text>
               </View>
             </View>
 
@@ -201,7 +233,7 @@ export default function HourDirectionSheet({
               onPress={closeWithFeedback}
               style={styles.closeButton}
               accessibilityRole="button"
-              accessibilityLabel="Đóng chi tiết"
+              accessibilityLabel={t('common.close')}
             >
               <Ionicons name="close" size={22} color="#FFE8BB" />
             </TouchableOpacity>
@@ -234,7 +266,7 @@ export default function HourDirectionSheet({
                     <View style={styles.heroStarRow}>
                       <Ionicons name="sparkles" size={17} color="#82396F" />
                       <View style={styles.heroStarCopy}>
-                        <Text style={styles.heroStar}>Sao {activeHour.label}</Text>
+                        <Text style={styles.heroStar}>{l('Sao', 'Star')} {activeHour.label}</Text>
                         <Text style={styles.heroFortune}>{activeHour.lyThuanPhong} · Lý Thuần Phong</Text>
                       </View>
                     </View>
@@ -242,7 +274,7 @@ export default function HourDirectionSheet({
                       <View style={styles.heroWarningPill}>
                         <Ionicons name="warning" size={12} color="#8B1E45" />
                         <Text style={styles.heroWarningText}>
-                          {activeHour.isClash ? `Xung tuổi ${userZodiac}` : 'Nhật Phá'}
+                          {activeHour.isClash ? `${l('Xung tuổi', 'Clashes with')} ${userZodiac}` : l('Nhật Phá', 'Day clash')}
                         </Text>
                       </View>
                     ) : null}
@@ -257,7 +289,7 @@ export default function HourDirectionSheet({
                         <Ionicons name="compass-outline" size={21} color="#6D347C" />
                       </View>
                       <View>
-                        <Text style={styles.directionLabel}>Hỷ Thần</Text>
+                        <Text style={styles.directionLabel}>{l('Hỷ Thần', 'Joy direction')}</Text>
                         <Text style={styles.directionValue}>{direction.hyThan}</Text>
                       </View>
                     </View>
@@ -267,14 +299,14 @@ export default function HourDirectionSheet({
                         <Ionicons name="sunny-outline" size={21} color="#9A5C17" />
                       </View>
                       <View>
-                        <Text style={styles.directionLabel}>Tài Thần</Text>
+                        <Text style={styles.directionLabel}>{l('Tài Thần', 'Wealth direction')}</Text>
                         <Text style={styles.directionValue}>{direction.taiThan}</Text>
                       </View>
                     </View>
                     <View style={styles.hacThanRow}>
                       <Ionicons name={direction.hacThan ? 'alert-circle-outline' : 'shield-checkmark-outline'} size={13} color={direction.hacThan ? '#A13A57' : '#377A5D'} />
                       <Text style={[styles.hacThanText, !direction.hacThan && styles.hacThanSafe]}>
-                        {direction.hacThan ? `Tránh Hạc Thần hướng ${direction.hacThan}` : 'Hạc Thần tại thiên · Không có hướng cần tránh'}
+                        {direction.hacThan ? `${l('Tránh Hạc Thần hướng', 'Avoid the harmful direction')} ${direction.hacThan}` : l('Hạc Thần tại thiên · Không có hướng cần tránh', 'No direction needs to be avoided')}
                       </Text>
                     </View>
                   </View>
@@ -283,8 +315,8 @@ export default function HourDirectionSheet({
             ) : null}
 
             <View style={styles.sectionHeading}>
-              <Text style={styles.sectionTitle}>12 CON GIÁP</Text>
-              <Text style={styles.sectionHint}>Chọn giờ để xem chi tiết →</Text>
+              <Text style={styles.sectionTitle}>{l('12 CON GIÁP', '12 ZODIAC HOURS')}</Text>
+              <Text style={styles.sectionHint}>{l('Chọn giờ để xem chi tiết →', 'Choose an hour for details →')}</Text>
             </View>
 
             <View style={styles.hourGrid}>
@@ -305,7 +337,7 @@ export default function HourDirectionSheet({
                         ]}
                         accessibilityRole="button"
                         accessibilityState={{ selected }}
-                        accessibilityLabel={`${hour.canChi}, ${hour.range}, ${hour.isHoangDao ? 'giờ tốt' : 'giờ xấu'}${hour.isClash ? `, xung tuổi ${userZodiac}` : ''}${hour.isDayClash ? ', Nhật Phá' : ''}`}
+                        accessibilityLabel={`${hour.canChi}, ${hour.range}, ${hour.isHoangDao ? l('giờ tốt', 'favorable hour') : l('giờ xấu', 'cautious hour')}${hour.isClash ? `, ${l('xung tuổi', 'clashes with')} ${userZodiac}` : ''}${hour.isDayClash ? `, ${l('Nhật Phá', 'day clash')}` : ''}`}
                       >
                         <LinearGradient
                           colors={hour.isHoangDao
@@ -322,7 +354,7 @@ export default function HourDirectionSheet({
                           <Text style={styles.cardName}>{hour.name}</Text>
                           <Text style={styles.cardRange}>{hour.range.replace('-', ' – ')}</Text>
                           <View style={[styles.statusBadge, hour.isHoangDao ? styles.statusGood : styles.statusBad]}>
-                            <Text style={styles.statusText}>{hour.isHoangDao ? 'Tốt' : 'Xấu'}</Text>
+                            <Text style={styles.statusText}>{hour.isHoangDao ? l('Tốt', 'Good') : l('Xấu', 'Caution')}</Text>
                           </View>
                         </LinearGradient>
                       </TouchableOpacity>
@@ -343,15 +375,15 @@ export default function HourDirectionSheet({
                   style={styles.activitiesToggle}
                   accessibilityRole="button"
                   accessibilityState={{ expanded: activitiesExpanded }}
-                  accessibilityLabel={`${activitiesExpanded ? 'Thu gọn' : 'Mở'} việc nên làm và kiêng cữ`}
+                  accessibilityLabel={`${activitiesExpanded ? l('Thu gọn', 'Collapse') : l('Mở', 'Open')} ${l('việc nên làm và kiêng cữ', 'favorable and unfavorable activities')}${hourlyActivities && activeHour ? ` · ${activeHour.canChi}, ${activeHour.range}` : ''}`}
                 >
                   <View style={styles.activitiesTitleWrap}>
                     <View style={styles.activitiesIcon}>
                       <Ionicons name="calendar-outline" size={17} color="#442058" />
                     </View>
                     <View style={styles.activitiesCopy}>
-                      <Text style={styles.activitiesTitle}>CÁT HUNG TRONG NGÀY</Text>
-                      <Text style={styles.activitiesSubtitle}>Trực {activities.trucName} · {activities.trucQuality}</Text>
+                      <Text style={styles.activitiesTitle}>{activitiesTitle}</Text>
+                      <Text style={styles.activitiesSubtitle}>{activitiesSubtitle}</Text>
                     </View>
                   </View>
                   <Ionicons name={activitiesExpanded ? 'chevron-up' : 'chevron-down'} size={20} color="#F4CD85" />
@@ -362,17 +394,46 @@ export default function HourDirectionSheet({
                     <View style={styles.activityColumn}>
                       <View style={styles.activityHeader}>
                         <Ionicons name="checkmark-circle" size={17} color="#62E3AA" />
-                        <Text style={styles.activityGoodTitle}>NÊN LÀM</Text>
+                        <Text style={styles.activityGoodTitle}>{l('NÊN LÀM', 'FAVORABLE')}</Text>
                       </View>
-                      {activities.yi.map((item, index) => <Text key={`${index}-${item}`} style={styles.activityGoodItem}>• {item}</Text>)}
+                      {displayedRecommended?.length ? displayedRecommended.map((item) => (
+                        <View key={item.key} style={styles.activityItem}>
+                          <Text style={styles.activityGoodItem}>• {locale === 'en' ? item.en : item.vi}</Text>
+                          {!!item.reason && <Text style={styles.activityReason}>{item.reason}</Text>}
+                        </View>
+                      )) : activities.yi.length ? activities.yi.map((item, index) => (
+                        <Text key={`${index}-${item}`} style={styles.activityGoodItem}>• {item}</Text>
+                      )) : (
+                        <Text style={styles.activityEmpty}>{l('Không có gợi ý nổi bật.', 'No standout recommendation.')}</Text>
+                      )}
                     </View>
                     <View style={[styles.activityColumn, !compact && styles.activityBadColumn]}>
                       <View style={styles.activityHeader}>
                         <Ionicons name="close-circle" size={17} color="#F58AA8" />
-                        <Text style={styles.activityBadTitle}>KIÊNG CỮ</Text>
+                        <Text style={styles.activityBadTitle}>{l('KIÊNG CỮ', 'AVOID')}</Text>
                       </View>
-                      {activities.ji.map((item, index) => <Text key={`${index}-${item}`} style={styles.activityBadItem}>• {item}</Text>)}
+                      {displayedAvoid?.length ? displayedAvoid.map((item) => (
+                        <View key={item.key} style={styles.activityItem}>
+                          <Text style={styles.activityBadItem}>• {locale === 'en' ? item.en : item.vi}</Text>
+                          {!!item.reason && <Text style={styles.activityReason}>{item.reason}</Text>}
+                        </View>
+                      )) : activities.ji.length ? activities.ji.map((item, index) => (
+                        <Text key={`${index}-${item}`} style={styles.activityBadItem}>• {item}</Text>
+                      )) : (
+                        <Text style={styles.activityEmpty}>{l('Không có kiêng cữ nổi bật.', 'No notable restriction.')}</Text>
+                      )}
                     </View>
+                    <Text style={styles.activitiesDisclaimer}>
+                      {hourlyActivities
+                        ? l(
+                          'Gợi ý tham khảo kết hợp Trực, ngày kỵ, giờ Hoàng/Hắc đạo, Lý Thuần Phong và tuổi xung.',
+                          'Reference guidance combining the day officer, caution days, favorable or cautious hours, Ly Thuan Phong, and zodiac clashes.',
+                        )
+                        : l(
+                          'Gợi ý tham khảo từ Trực, Hoàng/Hắc đạo, ngày kỵ và tuổi xung.',
+                          'Reference guidance based on the day officer, day quality, traditional caution days, and zodiac clash.',
+                        )}
+                    </Text>
                   </View>
                 ) : null}
               </View>
@@ -463,7 +524,7 @@ const styles = StyleSheet.create({
   activitiesCopy: { flex: 1 },
   activitiesTitle: { color: '#F7D996', fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
   activitiesSubtitle: { color: '#BFA8D2', fontSize: 10, marginTop: 2, textTransform: 'capitalize' },
-  activitiesBody: { padding: 14, paddingTop: 4, flexDirection: 'row', gap: 16, borderTopWidth: 1, borderTopColor: 'rgba(211,165,249,0.12)' },
+  activitiesBody: { padding: 14, paddingTop: 4, flexDirection: 'row', flexWrap: 'wrap', gap: 16, borderTopWidth: 1, borderTopColor: 'rgba(211,165,249,0.12)' },
   activitiesBodyCompact: { flexDirection: 'column' },
   activityColumn: { flex: 1 },
   activityBadColumn: { paddingLeft: 16, borderLeftWidth: 1, borderLeftColor: 'rgba(207,168,235,0.16)' },
@@ -472,4 +533,8 @@ const styles = StyleSheet.create({
   activityBadTitle: { color: '#F58AA8', fontSize: 11, fontWeight: '900' },
   activityGoodItem: { color: '#C8F6DF', fontSize: 11, lineHeight: 17, marginBottom: 3 },
   activityBadItem: { color: '#FFD0DB', fontSize: 11, lineHeight: 17, marginBottom: 3 },
+  activityItem: { marginBottom: 7 },
+  activityReason: { color: '#BFA8D2', fontSize: 9, lineHeight: 13, marginLeft: 9 },
+  activityEmpty: { color: '#BFA8D2', fontSize: 10, lineHeight: 15, fontStyle: 'italic' },
+  activitiesDisclaimer: { width: '100%', color: '#9E87B2', fontSize: 9, lineHeight: 13, textAlign: 'center', marginTop: 4 },
 });

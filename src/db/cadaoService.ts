@@ -5,6 +5,13 @@
  * Database được chép từ bundle vào vùng SQLite ở lần chạy đầu tiên.
  */
 import * as SQLite from 'expo-sqlite';
+import { NUMEROLOGY_KNOWLEDGE_REQUIRED_COUNT } from '../services/numerologyKnowledgeContract';
+import {
+  buildContextualCaDaoSqlQuery,
+  type CaDaoContextQuery,
+} from './cadaoQuery';
+
+export type { CaDaoContextQuery } from './cadaoQuery';
 
 export interface CaDaoItem {
   id: number;
@@ -12,12 +19,6 @@ export interface CaDaoItem {
   content: string;
   category: string;
   url: string;
-}
-
-export interface CaDaoContextQuery {
-  categories: string[];
-  keywords: string[];
-  seed: string;
 }
 
 const DATABASE_NAME = 'cadao.db';
@@ -69,7 +70,7 @@ async function hasNumerologyKnowledge(db: SQLite.SQLiteDatabase): Promise<boolea
     const rows = await db.getFirstAsync<{ count: number }>(
       'SELECT count(*) as count FROM numerology_knowledge'
     );
-    return (rows?.count ?? 0) >= 304;
+    return (rows?.count ?? 0) >= NUMEROLOGY_KNOWLEDGE_REQUIRED_COUNT;
   } catch {
     return false;
   }
@@ -96,7 +97,7 @@ async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
     const hasKnowledge = await hasNumerologyKnowledge(db);
     const version = await getDatabaseUserVersion(db);
 
-    // Version 3 bổ sung 320 luận giải thần số học cục bộ.
+    // Version 3 phải có đủ toàn bộ luận giải theo knowledge contract hiện tại.
     if (count > 0 && hasReps && hasVi && hasKnowledge && version >= 3) return db;
   } catch {
     // Bản cài cũ có DB cũ hoặc thiếu bảng / thiếu cột biography_vi. Thay thế bản đó.
@@ -200,15 +201,6 @@ export async function getDailyCaDao(date: Date): Promise<CaDaoItem | null> {
   }
 }
 
-function stablePositiveSeed(value: string): number {
-  let hash = 2_166_136_261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16_777_619);
-  }
-  return hash >>> 0;
-}
-
 /**
  * Chọn ca dao theo nhóm chủ đề và từ khóa chiêm tinh, nhưng vẫn ổn định trong
  * cùng một ngày/ngữ cảnh để cache và giao diện không thay đổi ngẫu nhiên.
@@ -217,30 +209,28 @@ export async function getContextualDailyCaDao(
   date: Date,
   query: CaDaoContextQuery
 ): Promise<CaDaoItem | null> {
-  const categories = [...new Set(query.categories.filter(Boolean))].slice(0, 4);
-  const keywords = [...new Set(query.keywords.map((item) => item.trim()).filter(Boolean))].slice(0, 10);
-  if (categories.length === 0) return null;
+  const querySpec = buildContextualCaDaoSqlQuery(date, query);
+  if (!querySpec) return null;
 
   try {
     const db = await openCaDaoDatabase();
-    const categorySlots = categories.map(() => '?').join(', ');
-    const relevance = keywords.length > 0
-      ? keywords.map(() => '(CASE WHEN title LIKE ? OR content LIKE ? THEN 1 ELSE 0 END)').join(' + ')
-      : '0';
-    const keywordParameters = keywords.flatMap((keyword) => [`%${keyword}%`, `%${keyword}%`]);
-    const dateKey = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
-    const seed = stablePositiveSeed(`${dateKey}|${query.seed}`);
-    return await db.getFirstAsync<CaDaoItem>(
-      `SELECT id, title, content, category, url
-       FROM cadao
-       WHERE category IN (${categorySlots})
-         AND length(trim(content)) BETWEEN 20 AND 600
-       ORDER BY (${relevance}) DESC,
-         abs(((id * 1103515245) + ?) % 2147483647),
-         id
-       LIMIT 1`,
-      [...categories, ...keywordParameters, seed]
+    const result = await db.getFirstAsync<CaDaoItem>(
+      querySpec.sql,
+      querySpec.parameters
     );
+    if (result) return result;
+
+    if ((query.excludeIds?.length ?? 0) > 0 || (query.excludeContents?.length ?? 0) > 0) {
+      const relaxedQuery = buildContextualCaDaoSqlQuery(date, {
+        categories: query.categories,
+        keywords: query.keywords,
+        seed: query.seed,
+      });
+      if (relaxedQuery) {
+        return await db.getFirstAsync<CaDaoItem>(relaxedQuery.sql, relaxedQuery.parameters);
+      }
+    }
+    return null;
   } catch {
     return null;
   }

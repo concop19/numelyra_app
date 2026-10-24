@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Bảng thử font tiếng Việt cho NUMELYRA." />
+  <title>NUMELYRA — Bảng thử font</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Dancing+Script:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
+    :root {
+      color-scheme: light;
+      --cream: #f7f0e2;
+      --card: #fffaf1;
+      --ink: #1c0a3c;
+      --muted: #755b7c;
+      --gold: #9d6900;
+      --gold-soft: #d9bd82;
+      --line: #ddc894;
+      --shadow: 0 18px 45px rgba(75, 47, 19, 0.07);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 4% 4%, rgba(224, 194, 135, 0.22), transparent 26rem),
+        linear-gradient(180deg, #faf5ea 0%, var(--cream) 100%);
+      font-family: 'Be Vietnam Pro', sans-serif;
+    }
+
+    .page {
+      width: min(980px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 42px 0 70px;
+    }
+
+    .masthead {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 28px;
+      margin-bottom: 28px;
+      padding: 0 6px;
+    }
+
+    .brand {
+      margin: 0 0 10px;
+      color: var(--gold);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 720px;
+      margin: 0;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(42px, 7vw, 70px);
+      line-height: 0.95;
+      font-weight: 600;
+      letter-spacing: -0.035em;
+    }
+
+    .intro {
+      max-width: 300px;
+      margin: 0 0 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+      padding: 0 6px;
+    }
+
+    .legend a {
+      padding: 8px 13px;
+      border: 1px solid rgba(157, 105, 0, 0.27);
+      border-radius: 999px;
+      color: var(--ink);
+      background: rgba(255, 250, 241, 0.66);
+      font-size: 10px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .stack { display: grid; gap: 18px; }
+
+    .font-card {
+      position: relative;
+      overflow: hidden;
+      min-height: 426px;
+      padding: 29px 31px 30px;
+      border: 1px solid var(--line);
+      border-radius: 25px;
+      background: rgba(255, 250, 241, 0.91);
+      box-shadow: var(--shadow);
+    }
+
+    .font-card::after {
+      content: attr(data-index);
+      position: absolute;
+      right: 23px;
+      bottom: -32px;
+      color: rgba(157, 105, 0, 0.055);
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 160px;
+      line-height: 1;
+      font-weight: 700;
+      pointer-events: none;
+    }
+
+    .card-head {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 21px;
+    }
+
+    .font-name {
+      margin: 0;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 20px;
+      line-height: 1.2;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .badge {
+      flex: 0 0 auto;
+      padding: 7px 14px;
+      border: 1px solid #a66f00;
+      border-radius: 999px;
+      color: #966500;
+      background: rgba(255, 250, 241, 0.78);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .sample-title,
+    .numbers,
+    .sample-quote,
+    .usage { position: relative; z-index: 1; }
+
+    .sample-title {
+      max-width: 850px;
+      margin: 0;
+      color: var(--ink);
+      font-size: clamp(40px, 6.2vw, 67px);
+      line-height: 1.08;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .numbers {
+      margin-top: 16px;
+      color: var(--gold);
+      font-size: clamp(34px, 5vw, 52px);
+      line-height: 1;
+      word-spacing: 0.18em;
+    }
+
+    .sample-quote {
+      margin: 22px 0 0;
+      color: #574267;
+      font-size: clamp(17px, 2.7vw, 24px);
+      line-height: 1.45;
+    }
+
+    .usage {
+      margin: 17px 0 0;
+      color: #81538d;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .usage strong { color: var(--ink); font-weight: 600; }
+
+    .dancing .sample-title,
+    .dancing .numbers,
+    .dancing .sample-quote { font-family: 'Dancing Script', cursive; }
+    .dancing .sample-title { font-weight: 600; }
+    .dancing .sample-quote { font-weight: 500; }
+
+    .cormorant .sample-title,
+    .cormorant .numbers,
+    .cormorant .sample-quote { font-family: 'Cormorant Garamond', serif; }
+    .cormorant .sample-title { font-weight: 600; }
+    .cormorant .sample-quote { font-style: italic; font-weight: 500; }
+
+    .bevietnam .sample-title,
+    .bevietnam .numbers,
+    .bevietnam .sample-quote { font-family: 'Be Vietnam Pro', sans-serif; }
+    .bevietnam .sample-title { font-weight: 700; line-height: 1.14; }
+    .bevietnam .numbers { font-weight: 500; letter-spacing: -0.04em; }
+    .bevietnam .sample-quote { font-size: clamp(14px, 2vw, 18px); font-weight: 400; line-height: 1.7; }
+
+    .lora .sample-title,
+    .lora .numbers,
+    .lora .sample-quote { font-family: 'Lora', serif; }
+    .lora .sample-title { font-weight: 600; line-height: 1.16; }
+    .lora .numbers { font-weight: 500; }
+    .lora .sample-quote { font-style: italic; font-weight: 400; }
+
+    .recommendation {
+      margin-top: 28px;
+      padding: 31px;
+      border-radius: 25px;
+      color: #fff9ed;
+      background:
+        radial-gradient(circle at 85% 20%, rgba(210, 160, 76, 0.23), transparent 17rem),
+        linear-gradient(145deg, #21103e, #120824 72%);
+      box-shadow: 0 24px 60px rgba(39, 18, 57, 0.20);
+    }
+
+    .recommendation .brand { color: #eac777; }
+
+    .pairing-grid {
+      display: grid;
+      grid-template-columns: 1.08fr 0.92fr;
+      gap: 35px;
+      align-items: center;
+    }
+
+    .pairing-title {
+      margin: 0;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(43px, 6.5vw, 70px);
+      line-height: 0.94;
+      font-weight: 600;
+      letter-spacing: -0.035em;
+    }
+
+    .pairing-title em { color: #f0cf7e; font-weight: 500; }
+
+    .pairing-copy {
+      margin: 17px 0 0;
+      color: #d5c5e2;
+      font-size: 13px;
+      line-height: 1.75;
+    }
+
+    .ui-sample {
+      padding: 21px;
+      border: 1px solid rgba(240, 207, 126, 0.22);
+      border-radius: 19px;
+      background: rgba(255,255,255,0.055);
+    }
+
+    .ui-label {
+      color: #f0cf7e;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .ui-title {
+      margin: 9px 0 5px;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 31px;
+      line-height: 1;
+      font-weight: 600;
+    }
+
+    .ui-body {
+      margin: 0;
+      color: #d1c1df;
+      font-size: 11px;
+      line-height: 1.65;
+    }
+
+    .ui-button {
+      width: 100%;
+      margin-top: 15px;
+      padding: 11px 14px;
+      border: 0;
+      border-radius: 12px;
+      color: #28163e;
+      background: #edca78;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    footer {
+      padding: 22px 7px 0;
+      color: #8b7183;
+      font-size: 10px;
+      line-height: 1.6;
+      text-align: center;
+    }
+
+    @media (max-width: 700px) {
+      .page { width: min(100% - 18px, 540px); padding-top: 26px; }
+      .masthead { display: block; }
+      .intro { max-width: none; margin-top: 15px; }
+      .font-card { min-height: 390px; padding: 25px 24px 26px; border-radius: 22px; }
+      .sample-title { font-size: clamp(37px, 10vw, 52px); }
+      .numbers { word-spacing: 0.08em; }
+      .pairing-grid { grid-template-columns: 1fr; gap: 24px; }
+      .recommendation { padding: 25px 23px; }
+    }
+
+    @media (max-width: 420px) {
+      .font-name { font-size: 16px; }
+      .badge { padding: 6px 11px; font-size: 10px; }
+      .sample-title { font-size: 38px; }
+      .sample-quote { font-size: 17px; }
+      .usage { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="masthead">
+      <div>
+        <p class="brand">NUMELYRA · Font study</p>
+        <h1>Chọn một giọng chữ cho thế giới huyền nhiệm.</h1>
+      </div>
+      <p class="intro">Bảng thử tập trung vào chữ, dấu tiếng Việt, hàng số và đúng tình huống sử dụng trong app.</p>
+    </header>
+
+    <nav class="legend" aria-label="Đi tới mẫu font">
+      <a href="#dancing">Dancing Script</a>
+      <a href="#cormorant">Cormorant Garamond</a>
+      <a href="#be-vietnam">Be Vietnam Pro</a>
+      <a href="#lora">Lora</a>
+    </nav>
+
+    <div class="stack">
+      <section class="font-card dancing" id="dancing" data-index="1">
+        <div class="card-head">
+          <h2 class="font-name">Dancing Script</h2>
+          <span class="badge">Có dấu</span>
+        </div>
+        <p class="sample-title">Lá bài The Moon – Con đường của trực giác</p>
+        <div class="numbers" aria-label="Các chữ số từ một đến chín">1 2 3 4 5 6 7 8 9</div>
+        <p class="sample-quote">Mỗi con số mang một rung động riêng, mỗi lá bài kể một câu chuyện.</p>
+        <p class="usage"><strong>Dùng cho:</strong> Lời nhắn, câu trích, tiêu đề tarot ngắn</p>
+      </section>
+
+      <section class="font-card cormorant" id="cormorant" data-index="2">
+        <div class="card-head">
+          <h2 class="font-name">Cormorant Garamond</h2>
+          <span class="badge">Có dấu</span>
+        </div>
+        <p class="sample-title">Lá bài The Moon – Con đường của trực giác</p>
+        <div class="numbers" aria-label="Các chữ số từ một đến chín">1 2 3 4 5 6 7 8 9</div>
+        <p class="sample-quote">Mỗi con số mang một rung động riêng, mỗi lá bài kể một câu chuyện.</p>
+        <p class="usage"><strong>Dùng cho:</strong> Tiêu đề màn hình, tên lá bài, tên cung hoàng đạo</p>
+      </section>
+
+      <section class="font-card bevietnam" id="be-vietnam" data-index="3">
+        <div class="card-head">
+          <h2 class="font-name">Be Vietnam Pro</h2>
+          <span class="badge">Tối ưu tiếng Việt</span>
+        </div>
+        <p class="sample-title">Lá bài The Moon – Con đường của trực giác</p>
+        <div class="numbers" aria-label="Các chữ số từ một đến chín">1 2 3 4 5 6 7 8 9</div>
+        <p class="sample-quote">Mỗi con số mang một rung động riêng, mỗi lá bài kể một câu chuyện. Hãy lắng nghe trực giác và dành cho mình một khoảng lặng thật dịu dàng.</p>
+        <p class="usage"><strong>Dùng cho:</strong> Nội dung, nút bấm, menu, biểu mẫu và chú thích</p>
+      </section>
+
+      <section class="font-card lora" id="lora" data-index="4">
+        <div class="card-head">
+          <h2 class="font-name">Lora</h2>
+          <span class="badge">Có dấu</span>
+        </div>
+        <p class="sample-title">Lá bài The Moon – Con đường của trực giác</p>
+        <div class="numbers" aria-label="Các chữ số từ một đến chín">1 2 3 4 5 6 7 8 9</div>
+        <p class="sample-quote">Mỗi con số mang một rung động riêng, mỗi lá bài kể một câu chuyện.</p>
+        <p class="usage"><strong>Dùng cho:</strong> Bài luận giải dài, nhật ký, nội dung mang sắc thái biên tập</p>
+      </section>
+    </div>
+
+    <section class="recommendation">
+      <p class="brand">Cặp đề xuất cho app</p>
+      <div class="pairing-grid">
+        <div>
+          <h2 class="pairing-title">Cormorant Garamond <em>×</em> Be Vietnam Pro</h2>
+          <p class="pairing-copy">Cormorant tạo phần tiêu đề có khí chất và chiều sâu. Be Vietnam Pro giữ phần nội dung rõ ràng, hiện đại, không mỏi mắt khi đọc lâu.</p>
+        </div>
+        <div class="ui-sample">
+          <div class="ui-label">Thông điệp hôm nay</div>
+          <h3 class="ui-title">Hãy tin vào nhịp điệu của riêng bạn</h3>
+          <p class="ui-body">Đừng vội đi tìm câu trả lời ở bên ngoài. Sự sáng rõ đang hình thành từ những điều bạn cảm nhận.</p>
+          <button class="ui-button" type="button">Xem luận giải đầy đủ</button>
+        </div>
+      </div>
+    </section>
+
+    <footer>Bản thử typography độc lập · Chưa thay đổi mã nguồn giao diện chính của ứng dụng.</footer>
+  </main>
+</body>
+</html>

@@ -25,6 +25,7 @@ import {
   zodiacLabel,
   type AstrologyDetailTarget,
 } from './astrologyPresentation';
+import { useLocalization } from '../../i18n/LocalizationContext';
 
 interface Props {
   profile: UserProfile | null;
@@ -44,6 +45,7 @@ export function NatalChartView({
   onOpenDetail,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { l } = useLocalization();
 
   return (
     <AstrologyBackground variant="natal">
@@ -53,10 +55,10 @@ export function NatalChartView({
       >
         <AstrologyHeader
           title="Natal Chart"
-          subtitle="Bản đồ vũ trụ của riêng bạn"
+          subtitle={l('Bản đồ vũ trụ của riêng bạn', 'Your personal map of the sky')}
           onBack={onBack}
           right={
-            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Sửa dữ liệu sinh" onPress={onEditBirthData} style={styles.editButton}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel={l('Sửa dữ liệu sinh', 'Edit birth data')} onPress={onEditBirthData} style={styles.editButton}>
               <Ionicons name="create-outline" size={20} color={ASTRO_COLORS.gold} />
             </TouchableOpacity>
           }
@@ -71,7 +73,7 @@ export function NatalChartView({
         {!!calculationError && (
           <MysticCard style={styles.errorCard}>
             <Ionicons name="alert-circle-outline" size={24} color="#FF9EAE" />
-            <Text style={styles.errorTitle}>Không thể dựng Natal Chart</Text>
+            <Text style={styles.errorTitle}>{l('Không thể dựng Natal Chart', 'Unable to build the natal chart')}</Text>
             <Text style={astrologyUiStyles.emptyText}>{calculationError}</Text>
           </MysticCard>
         )}
@@ -87,7 +89,7 @@ export function NatalChartView({
               <Text style={styles.precisionText}>{getPrecisionMessage(metadata)}</Text>
               {metadata.birthDataPrecision !== 'complete' && (
                 <TouchableOpacity onPress={onEditBirthData} style={styles.completeButton}>
-                  <Text style={styles.completeButtonText}>Bổ sung</Text>
+                  <Text style={styles.completeButtonText}>{l('Bổ sung', 'Add details')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -101,17 +103,17 @@ export function NatalChartView({
                 />
                 <NatalChartWheel metadata={metadata} onOpenDetail={onOpenDetail} />
                 <View style={styles.aspectLegend}>
-                  <View style={styles.legendItem}><View style={[styles.legendLine, { backgroundColor: '#52E2D0' }]} /><Text style={styles.legendText}>Hỗ trợ</Text></View>
-                  <View style={styles.legendItem}><View style={[styles.legendLine, { backgroundColor: '#FF7B9C' }]} /><Text style={styles.legendText}>Thử thách</Text></View>
-                  <View style={styles.legendItem}><View style={[styles.legendLine, { backgroundColor: '#FFD166' }]} /><Text style={styles.legendText}>Hội tụ</Text></View>
+                  <View style={styles.legendItem}><View style={[styles.legendLine, { backgroundColor: '#52E2D0' }]} /><Text style={styles.legendText}>{l('Hỗ trợ', 'Supportive')}</Text></View>
+                  <View style={styles.legendItem}><View style={[styles.legendLine, { backgroundColor: '#FF7B9C' }]} /><Text style={styles.legendText}>{l('Thử thách', 'Challenging')}</Text></View>
+                  <View style={styles.legendItem}><View style={[styles.legendLine, { backgroundColor: '#FFD166' }]} /><Text style={styles.legendText}>{l('Hội tụ', 'Conjunction')}</Text></View>
                 </View>
                 {!metadata.natalContext && (
-                  <Text style={styles.noHouseNote}>Vòng 12 nhà, ASC và MC được ẩn vì dữ liệu sinh chưa đủ chính xác.</Text>
+                  <Text style={styles.noHouseNote}>{l('Vòng 12 nhà, ASC và MC được ẩn vì dữ liệu sinh chưa đủ chính xác.', 'The 12 houses, ASC and MC are hidden because the birth data is not precise enough.')}</Text>
                 )}
               </View>
             </MysticCard>
 
-            <SectionHeading title="Năng lượng cốt lõi" eyebrow="Core Energies" />
+            <SectionHeading title={l('Năng lượng cốt lõi', 'Core energies')} eyebrow="Core Energies" />
             <View style={styles.coreList}>
               {(['Sun', 'Moon'] as const).map((planetName) => {
                 const planet = metadata.natalPlanets.find((item) => item.name === planetName);
@@ -129,7 +131,7 @@ export function NatalChartView({
                     <View style={styles.coreCopy}>
                       <View style={styles.coreTitleRow}>
                         <Text style={styles.coreTitle}>{planetLabel(planetName)} ở {zodiacLabel(planet.sign)}</Text>
-                        {!!house && <Text style={styles.houseBadge}>Nhà {house}</Text>}
+                        {!!house && <Text style={styles.houseBadge}>{l('Nhà', 'House')} {house}</Text>}
                       </View>
                       <Text style={styles.coreMeta}>{planet.degreeInSign.toFixed(1)}° · {PLANET_INFO[planetName].themes.join(' · ')}</Text>
                       <Text style={styles.coreDescription}>{PLANET_INFO[planetName].description}</Text>
@@ -141,25 +143,25 @@ export function NatalChartView({
               <MysticCard style={styles.temperamentCard}>
                 <View style={styles.temperamentIcon}><Ionicons name="color-palette-outline" size={22} color={ASTRO_COLORS.gold} /></View>
                 <View style={styles.coreCopy}>
-                  <Text style={styles.coreTitle}>Khí chất nổi trội</Text>
+                  <Text style={styles.coreTitle}>{l('Khí chất nổi trội', 'Dominant temperament')}</Text>
                   <Text style={styles.temperamentValue}>{metadata.temperament.dominantElement} · {metadata.temperament.dominantModality}</Text>
-                  <Text style={styles.coreDescription}>Tổng hợp từ phân bố nguyên tố và tính chất của 10 hành tinh bản mệnh.</Text>
+                  <Text style={styles.coreDescription}>{l('Tổng hợp từ phân bố nguyên tố và tính chất của 10 hành tinh bản mệnh.', 'Synthesized from the element and modality distribution of your 10 natal planets.')}</Text>
                 </View>
               </MysticCard>
             </View>
 
             {metadata.natalContext && (
               <MysticCard style={styles.axisCard}>
-                <Text style={styles.axisEyebrow}>TRỤC LÁ SỐ · PORPHYRY</Text>
+                <Text style={styles.axisEyebrow}>{l('TRỤC LÁ SỐ', 'CHART AXIS')} · PORPHYRY</Text>
                 <View style={styles.axisRow}>
-                  <View style={styles.axisItem}><Text style={styles.axisLabel}>Cung Mọc · ASC</Text><Text style={styles.axisValue}>{zodiacLabelFromLongitude(metadata.natalContext.angles.ascendant)}</Text></View>
+                  <View style={styles.axisItem}><Text style={styles.axisLabel}>{l('Cung Mọc', 'Ascendant')} · ASC</Text><Text style={styles.axisValue}>{zodiacLabelFromLongitude(metadata.natalContext.angles.ascendant)}</Text></View>
                   <View style={styles.axisDivider} />
-                  <View style={styles.axisItem}><Text style={styles.axisLabel}>Thiên Đỉnh · MC</Text><Text style={styles.axisValue}>{zodiacLabelFromLongitude(metadata.natalContext.angles.midheaven)}</Text></View>
+                  <View style={styles.axisItem}><Text style={styles.axisLabel}>{l('Thiên Đỉnh', 'Midheaven')} · MC</Text><Text style={styles.axisValue}>{zodiacLabelFromLongitude(metadata.natalContext.angles.midheaven)}</Text></View>
                 </View>
               </MysticCard>
             )}
 
-            <SectionHeading title="Vị trí hành tinh" eyebrow="Natal Placements" />
+            <SectionHeading title={l('Vị trí hành tinh', 'Planetary placements')} eyebrow="Natal Placements" />
             <MysticCard style={styles.placementsCard}>
               {metadata.natalPlanets.map((planet, index) => {
                 if (!isPlanetId(planet.name)) return null;

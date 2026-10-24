@@ -27,6 +27,7 @@ type AuthContextValue = {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName?: string) => Promise<SignUpResult>;
   signInWithGoogle: () => Promise<void>;
+  signInWithFacebook: () => Promise<void>;
   signOut: () => Promise<void>;
   syncLocalProfiles: () => Promise<void>;
 };
@@ -161,6 +162,79 @@ async function syncProfilesForUser(user: User): Promise<void> {
   }
 }
 
+async function performOAuthSignIn(provider: 'google' | 'facebook'): Promise<void> {
+  if (!supabase) throw configurationError();
+
+  const queryParams = provider === 'google'
+    ? {
+        access_type: 'offline',
+        prompt: 'consent',
+      }
+    : undefined;
+
+  if (Platform.OS === 'web') {
+    const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo,
+        ...(queryParams ? { queryParams } : {}),
+      },
+    });
+    if (error) throw error;
+  } else {
+    // Dynamic redirect URL: works in Expo Go (exp://...), dev client, and standalone (numelyra://...)
+    const redirectUrl = Linking.createURL('auth-callback');
+    console.log(`[Auth] ${provider} OAuth redirectUrl:`, redirectUrl);
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: redirectUrl,
+        skipBrowserRedirect: true,
+        ...(queryParams ? { queryParams } : {}),
+      },
+    });
+    if (error) throw error;
+    if (data?.url) {
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+      if (result.type === 'success' && result.url) {
+        const url = result.url;
+        console.log(`[Auth] ${provider} OAuth callback URL received:`, url);
+        const hash = url.includes('#') ? url.split('#')[1] : '';
+        const query = url.includes('?') ? url.split('?')[1].split('#')[0] : '';
+        const params = new URLSearchParams(hash || query);
+
+        // 1. If PKCE flow (returns code)
+        const code = params.get('code');
+        if (code) {
+          const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
+          if (sessionError) throw sessionError;
+          if (sessionData.user) {
+            await syncProfilesForUser(sessionData.user);
+          }
+          return;
+        }
+
+        // 2. If Implicit flow (returns access_token & refresh_token)
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+
+        if (accessToken && refreshToken) {
+          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (sessionError) throw sessionError;
+          if (sessionData.user) {
+            await syncProfilesForUser(sessionData.user);
+          }
+        }
+      }
+    }
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isReady, setIsReady] = useState(!isSupabaseConfigured);
@@ -217,75 +291,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
     },
     async signInWithGoogle() {
-      if (!supabase) throw configurationError();
-
-      if (Platform.OS === 'web') {
-        const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined;
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo,
-            queryParams: {
-              access_type: 'offline',
-              prompt: 'consent',
-            },
-          },
-        });
-        if (error) throw error;
-      } else {
-        // Dynamic redirect URL: works in Expo Go (exp://...), dev client, and standalone (numelyra://...)
-        const redirectUrl = Linking.createURL('auth-callback');
-        console.log('[Auth] Google OAuth redirectUrl:', redirectUrl);
-
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: redirectUrl,
-            skipBrowserRedirect: true,
-            queryParams: {
-              access_type: 'offline',
-              prompt: 'consent',
-            },
-          },
-        });
-        if (error) throw error;
-        if (data?.url) {
-          const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
-          if (result.type === 'success' && result.url) {
-            const url = result.url;
-            console.log('[Auth] OAuth callback URL received:', url);
-            const hash = url.includes('#') ? url.split('#')[1] : '';
-            const query = url.includes('?') ? url.split('?')[1].split('#')[0] : '';
-            const params = new URLSearchParams(hash || query);
-
-            // 1. If PKCE flow (returns code)
-            const code = params.get('code');
-            if (code) {
-              const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
-              if (sessionError) throw sessionError;
-              if (sessionData.user) {
-                await syncProfilesForUser(sessionData.user);
-              }
-              return;
-            }
-
-            // 2. If Implicit flow (returns access_token & refresh_token)
-            const accessToken = params.get('access_token');
-            const refreshToken = params.get('refresh_token');
-
-            if (accessToken && refreshToken) {
-              const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken,
-              });
-              if (sessionError) throw sessionError;
-              if (sessionData.user) {
-                await syncProfilesForUser(sessionData.user);
-              }
-            }
-          }
-        }
-      }
+      await performOAuthSignIn('google');
+    },
+    async signInWithFacebook() {
+      await performOAuthSignIn('facebook');
     },
     async syncLocalProfiles() {
       if (session?.user) await syncProfilesForUser(session.user);

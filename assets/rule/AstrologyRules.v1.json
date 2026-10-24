@@ -1862,19 +1862,19 @@
   "payloadTemplates": {
     "temperament": {
       "experience": "Tỷ trọng {dimension} có thể làm nổi bật {theme} trong cách bạn xử lý trải nghiệm.",
-      "challenge": "Khi phần này chiếm nhiều năng lượng, bạn có thể {challenge}.",
+      "challenge": "Khi phần này chiếm nhiều năng lượng, bạn {challenge}.",
       "supportiveExpression": "Bạn có thể dùng mặt hỗ trợ của xu hướng này để {support}.",
       "advice": "{advice}."
     },
     "planet_sign": {
       "experience": "{planetCore}; sắc thái {signStyle} có thể cho thấy cách chức năng này được biểu đạt.",
-      "challenge": "Khi căng thẳng, có thể {signChallenge}.",
+      "challenge": "Khi căng thẳng, {signChallenge}.",
       "supportiveExpression": "Mặt hỗ trợ là {planetSupport}.",
       "advice": "{signPractice}."
     },
     "planet_house": {
-      "experience": "{planetCore} thường được chú ý trong lĩnh vực {houseTheme}.",
-      "challenge": "Ở lĩnh vực này, có thể {houseChallenge}.",
+      "experience": "{planetCore} thường được chú ý khi nói về {houseTheme}.",
+      "challenge": "Ở lĩnh vực này, {houseChallenge}.",
       "supportiveExpression": "Bạn có thể {houseSupport}.",
       "advice": "{houseAdvice}."
     },
@@ -1885,8 +1885,8 @@
       "advice": "{aspectAdvice}."
     },
     "transit_house": {
-      "experience": "Trong giai đoạn này, {transitCore} có thể làm nổi bật lĩnh vực {houseTheme}.",
-      "challenge": "Bạn có thể {houseChallenge}.",
+      "experience": "Trong giai đoạn này, {transitCore} có thể làm nổi bật {houseTheme}.",
+      "challenge": "Bạn {houseChallenge}.",
       "supportiveExpression": "Đây là cơ hội quan sát hoặc điều chỉnh cách bạn đang tiếp cận lĩnh vực này.",
       "advice": "{houseAdvice}."
     },

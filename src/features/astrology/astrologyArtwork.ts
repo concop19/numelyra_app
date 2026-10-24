@@ -113,6 +113,14 @@ export const ASTROLOGY_ARTWORK = {
   saturn: PLANET_PNG.Saturn,
 };
 
+export const ASTROLOGY_TODAY_ARTWORK = {
+  catSleeping: require('../../../assets/giao_dien/giaodien1/astrology/today/cat_sleeping.png'),
+  wavesWatercolor: require('../../../assets/giao_dien/giaodien1/astrology/today/waves_watercolor.png'),
+  heartFlower: require('../../../assets/giao_dien/giaodien1/astrology/today/heart_flower.png'),
+  compassMap: require('../../../assets/giao_dien/giaodien1/astrology/today/compass_map.png'),
+};
+
 export function getGuidanceArtwork(planet: string): number {
   return PLANET_PNG[planet as PlanetId] ?? ASTROLOGY_BACKGROUNDS.today;
 }
+

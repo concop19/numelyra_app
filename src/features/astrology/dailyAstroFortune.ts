@@ -30,6 +30,11 @@ export interface RefreshedAstroFortune {
   metadataChanged: boolean;
 }
 
+export interface RecentAstroCaDao {
+  id?: number;
+  content: string;
+}
+
 export function refreshCachedAstroMetadata(
   fortune: AstroFortuneSlip,
   metadata: PureAstroFeatureMetadata
@@ -204,6 +209,50 @@ export async function loadRecentAstroAdvice(
   }
 
   return recentAdvice.slice(0, limit);
+}
+
+export async function loadRecentAstroCaDao(
+  storage: KeyValueStorage,
+  date: Date,
+  profile?: AstroProfileIdentity | null,
+  limit = 14,
+  locale: AppLocale = 'vi',
+): Promise<RecentAstroCaDao[]> {
+  const recentCaDao: RecentAstroCaDao[] = [];
+  const seen = new Set<string>();
+
+  for (let offset = 1; offset <= limit; offset += 1) {
+    const previousDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - offset);
+    const candidateKeys = [
+      getAstroFortuneStorageKey(previousDate, profile, locale),
+      getAstroFortuneV5StorageKey(previousDate, profile),
+      getAstroFortuneV4StorageKey(previousDate, profile),
+      getAstroFortuneV3StorageKey(previousDate, profile),
+      getAstroFortuneV2StorageKey(previousDate, profile),
+    ];
+
+    for (const key of candidateKeys) {
+      try {
+        const stored = await storage.getItem(key);
+        if (!stored) continue;
+        const parsed: unknown = JSON.parse(stored);
+        if (!isAstroFortuneSlip(parsed)) continue;
+        const content = parsed.anchorCaDao.content.trim();
+        const identity = typeof parsed.anchorCaDao.id === 'number'
+          ? `id:${parsed.anchorCaDao.id}`
+          : `content:${content.toLocaleLowerCase('vi-VN')}`;
+        if (content && !seen.has(identity)) {
+          seen.add(identity);
+          recentCaDao.push({ id: parsed.anchorCaDao.id, content });
+        }
+        break;
+      } catch {
+        // Continue with the next compatible history key.
+      }
+    }
+  }
+
+  return recentCaDao.slice(0, limit);
 }
 
 export async function saveCachedAstroFortune(

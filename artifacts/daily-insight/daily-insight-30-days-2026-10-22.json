@@ -1,0 +1,1014 @@
+{
+  "generatedAt": "2026-10-22T03:39:26.318Z",
+  "purpose": "Đánh giá chất lượng và độ đa dạng của thông điệp năng lượng trong 30 ngày liên tiếp.",
+  "profile": {
+    "fullName": "Daily Insight Audit User",
+    "birthDate": "1998-06-15",
+    "gender": "female"
+  },
+  "startDate": "2026-10-22",
+  "endDate": "2026-11-20",
+  "dayCount": 30,
+  "uniqueMessageCount": 15,
+  "entries": [
+    {
+      "day": 1,
+      "dayOffset": 0,
+      "date": "2026-10-22",
+      "message": "Trực giác đang nhạy; khoảng lặng sẽ giúp bạn nghe rõ tín hiệu bên trong. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 7,
+        "endHour": 9,
+        "range": "07h–09h",
+        "canChi": "Mậu Thìn",
+        "label": "Tư Mệnh"
+      },
+      "directions": {
+        "joy": "Đông Bắc",
+        "wealth": "Chính Nam"
+      },
+      "recommended": [
+        "Học tập, thi cử",
+        "Họp hành, bàn việc",
+        "Sáng tác, ra mắt tác phẩm",
+        "Thu tài, nhận tiền",
+        "Tích lũy, tiết kiệm"
+      ],
+      "avoid": [
+        "Động thổ, khởi công",
+        "Cưới hỏi, hôn lễ",
+        "Khai trương, ra mắt",
+        "Nhập trạch, về nhà mới"
+      ],
+      "warning": "⚠️ Ngày Tam Nương — không nên cưới hỏi, khai trương",
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Kim · Hải Vương",
+      "canChiEvidence": "Ngày Kỷ Tỵ · Trực Nguy · Ngày Hoàng đạo (Minh Đường)",
+      "canChiDay": "Kỷ Tỵ"
+    },
+    {
+      "day": 2,
+      "dayOffset": 1,
+      "date": "2026-10-23",
+      "message": "Trực giác đang nhạy; khoảng lặng sẽ giúp bạn nghe rõ tín hiệu bên trong. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 17,
+        "endHour": 19,
+        "range": "17h–19h",
+        "canChi": "Ất Dậu",
+        "label": "Minh Đường"
+      },
+      "directions": {
+        "joy": "Tây Bắc",
+        "wealth": "Tây Nam"
+      },
+      "recommended": [
+        "Giảng dạy, truyền nghề",
+        "Hẹn hò, gặp gỡ thân nhân",
+        "Học tập, thi cử",
+        "Tập luyện thể thao",
+        "Di chuyển, du lịch"
+      ],
+      "avoid": [
+        "Động thổ, khởi công",
+        "Mua bán, giao dịch",
+        "Thu tài, nhận tiền",
+        "Cưới hỏi, hôn lễ"
+      ],
+      "warning": "⚠️ Ngày Nguyệt Kỵ — nên hạn chế khởi sự việc lớn",
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Kim · Hải Vương",
+      "canChiEvidence": "Ngày Canh Ngọ · Trực Thành · Ngày Hắc đạo (Thiên Hình)",
+      "canChiDay": "Canh Ngọ"
+    },
+    {
+      "day": 3,
+      "dayOffset": 2,
+      "date": "2026-10-24",
+      "message": "Cảm xúc nghiêng về hành động trực tiếp và quyết đoán. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 19,
+        "endHour": 21,
+        "range": "19h–21h",
+        "canChi": "Mậu Tuất",
+        "label": "Thanh Long"
+      },
+      "directions": {
+        "joy": "Tây Nam",
+        "wealth": "Tây Nam"
+      },
+      "recommended": [
+        "Lập kế hoạch, nghiên cứu",
+        "Sửa chữa nhà cửa",
+        "Tích lũy, tiết kiệm",
+        "Di chuyển, du lịch",
+        "Họp hành, bàn việc"
+      ],
+      "avoid": [
+        "An táng, tang lễ",
+        "Cưới hỏi, hôn lễ",
+        "Nhập trạch, về nhà mới",
+        "Tranh tụng, kiện cáo"
+      ],
+      "warning": null,
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Kim · Sao Thổ",
+      "canChiEvidence": "Ngày Tân Mùi · Trực Thu · Ngày Hắc đạo (Chu Tước)",
+      "canChiDay": "Tân Mùi"
+    },
+    {
+      "day": 4,
+      "dayOffset": 3,
+      "date": "2026-10-25",
+      "message": "Cảm xúc nghiêng về hành động trực tiếp và quyết đoán. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 9,
+        "endHour": 11,
+        "range": "09h–11h",
+        "canChi": "Ất Tỵ",
+        "label": "Thiên Đức"
+      },
+      "directions": {
+        "joy": "Chính Nam",
+        "wealth": "Chính Tây"
+      },
+      "recommended": [
+        "Học tập, thi cử",
+        "Họp hành, bàn việc",
+        "Sáng tác, ra mắt tác phẩm",
+        "Di chuyển, du lịch",
+        "Tập luyện thể thao"
+      ],
+      "avoid": [
+        "Tranh tụng, kiện cáo",
+        "An táng, tang lễ",
+        "Động thổ, khởi công",
+        "Mua bán, giao dịch"
+      ],
+      "warning": null,
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trời · Hải Vương",
+      "canChiEvidence": "Ngày Nhâm Thân · Trực Khai · Ngày Hoàng đạo (Kim Quỹ)",
+      "canChiDay": "Nhâm Thân"
+    },
+    {
+      "day": 5,
+      "dayOffset": 4,
+      "date": "2026-10-26",
+      "message": "Bạn cần một nhịp ổn định và cảm giác an toàn để phát huy tốt nhất. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 11,
+        "endHour": 13,
+        "range": "11h–13h",
+        "canChi": "Mậu Ngọ",
+        "label": "Kim Quỹ"
+      },
+      "directions": {
+        "joy": "Đông Nam",
+        "wealth": "Tây Bắc"
+      },
+      "recommended": [
+        "Học tập, thi cử",
+        "Họp hành, bàn việc",
+        "Sáng tác, ra mắt tác phẩm",
+        "An táng, tang lễ",
+        "Cầu an, tĩnh dưỡng"
+      ],
+      "avoid": [
+        "Thu tài, nhận tiền",
+        "Công tác, xuất hành xa",
+        "Di chuyển, du lịch"
+      ],
+      "warning": null,
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Hải Vương",
+      "canChiEvidence": "Ngày Quý Dậu · Trực Bế · Ngày Hoàng đạo (Thiên Đức)",
+      "canChiDay": "Quý Dậu"
+    },
+    {
+      "day": 6,
+      "dayOffset": 5,
+      "date": "2026-10-27",
+      "message": "Bạn cần một nhịp ổn định và cảm giác an toàn để phát huy tốt nhất. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 9,
+        "endHour": 11,
+        "range": "09h–11h",
+        "canChi": "Kỷ Tỵ",
+        "label": "Minh Đường"
+      },
+      "directions": {
+        "joy": "Đông Bắc",
+        "wealth": "Đông Nam"
+      },
+      "recommended": [
+        "Hẹn hò, gặp gỡ thân nhân",
+        "Sáng tác, ra mắt tác phẩm",
+        "Di chuyển, du lịch",
+        "Họp hành, bàn việc",
+        "Tập luyện thể thao"
+      ],
+      "avoid": [
+        "Động thổ, khởi công",
+        "Khai trương, ra mắt",
+        "Nhận chức, bổ nhiệm",
+        "An táng, tang lễ"
+      ],
+      "warning": "⚠️ Ngày Tam Nương — không nên cưới hỏi, khai trương",
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Sao Kim",
+      "canChiEvidence": "Ngày Giáp Tuất · Trực Kiến · Ngày Hắc đạo (Bạch Hổ)",
+      "canChiDay": "Giáp Tuất"
+    },
+    {
+      "day": 7,
+      "dayOffset": 6,
+      "date": "2026-10-28",
+      "message": "Tâm trí muốn trao đổi, đặt câu hỏi và cập nhật điều mới. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 7,
+        "endHour": 9,
+        "range": "07h–09h",
+        "canChi": "Canh Thìn",
+        "label": "Tư Mệnh"
+      },
+      "directions": {
+        "joy": "Tây Bắc",
+        "wealth": "Đông Nam"
+      },
+      "recommended": [
+        "Giải quyết mâu thuẫn",
+        "Cầu an, tĩnh dưỡng",
+        "Khám chữa bệnh, phẫu thuật",
+        "Dọn dẹp, vứt đồ cũ",
+        "Học tập, thi cử"
+      ],
+      "avoid": [],
+      "warning": null,
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Hải Vương",
+      "canChiEvidence": "Ngày Ất Hợi · Trực Trừ · Ngày Hoàng đạo (Ngọc Đường)",
+      "canChiDay": "Ất Hợi"
+    },
+    {
+      "day": 8,
+      "dayOffset": 7,
+      "date": "2026-10-29",
+      "message": "Tâm trí muốn trao đổi, đặt câu hỏi và cập nhật điều mới. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 17,
+        "endHour": 19,
+        "range": "17h–19h",
+        "canChi": "Đinh Dậu",
+        "label": "Minh Đường"
+      },
+      "directions": {
+        "joy": "Tây Nam",
+        "wealth": "Chính Đông"
+      },
+      "recommended": [
+        "Hẹn hò, gặp gỡ thân nhân",
+        "Học tập, thi cử",
+        "Họp hành, bàn việc",
+        "Sáng tác, ra mắt tác phẩm",
+        "Tập luyện thể thao"
+      ],
+      "avoid": [
+        "Nhận chức, bổ nhiệm",
+        "Động thổ, khởi công",
+        "Tranh tụng, kiện cáo",
+        "Đầu tư, mở rộng"
+      ],
+      "warning": null,
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Thủy · Sao Kim",
+      "canChiEvidence": "Ngày Bính Tý · Trực Mãn · Ngày Hắc đạo (Thiên Lao)",
+      "canChiDay": "Bính Tý"
+    },
+    {
+      "day": 9,
+      "dayOffset": 8,
+      "date": "2026-10-30",
+      "message": "Cảm xúc cần sự gần gũi và một không gian đủ an toàn để mở lòng. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 19,
+        "endHour": 21,
+        "range": "19h–21h",
+        "canChi": "Canh Tuất",
+        "label": "Thanh Long"
+      },
+      "directions": {
+        "joy": "Chính Nam",
+        "wealth": "Chính Đông"
+      },
+      "recommended": [
+        "Giảng dạy, truyền nghề",
+        "Hẹn hò, gặp gỡ thân nhân",
+        "Giải quyết mâu thuẫn",
+        "Học tập, thi cử",
+        "Họp hành, bàn việc"
+      ],
+      "avoid": [
+        "Động thổ, khởi công",
+        "Đầu tư, mở rộng",
+        "Thu tài, nhận tiền"
+      ],
+      "warning": null,
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Sao Thủy",
+      "canChiEvidence": "Ngày Đinh Sửu · Trực Bình · Ngày Hắc đạo (Huyền Vũ)",
+      "canChiDay": "Đinh Sửu"
+    },
+    {
+      "day": 10,
+      "dayOffset": 9,
+      "date": "2026-10-31",
+      "message": "Cảm xúc cần sự gần gũi và một không gian đủ an toàn để mở lòng. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 9,
+        "endHour": 11,
+        "range": "09h–11h",
+        "canChi": "Đinh Tỵ",
+        "label": "Thiên Đức"
+      },
+      "directions": {
+        "joy": "Đông Nam",
+        "wealth": "Chính Bắc"
+      },
+      "recommended": [
+        "Học tập, thi cử",
+        "Họp hành, bàn việc",
+        "Ký kết hợp đồng",
+        "Mua bán, giao dịch",
+        "Đầu tư, mở rộng"
+      ],
+      "avoid": [
+        "Động thổ, khởi công",
+        "Khám chữa bệnh, phẫu thuật",
+        "Khai trương, ra mắt",
+        "Nhận chức, bổ nhiệm"
+      ],
+      "warning": "⚠️ Ngày Tam Nương — không nên cưới hỏi, khai trương",
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Hỏa · Sao Kim",
+      "canChiEvidence": "Ngày Mậu Dần · Trực Định · Ngày Hoàng đạo (Tư Mệnh)",
+      "canChiDay": "Mậu Dần"
+    },
+    {
+      "day": 11,
+      "dayOffset": 10,
+      "date": "2026-11-01",
+      "message": "Bạn dễ tỏa sáng khi được thể hiện điều mình thật sự trân trọng. Năng lượng hôm nay mạnh và nhạy; chậm lại một nhịp sẽ giúp bạn phản ứng sáng suốt hơn.",
+      "luckyTime": {
+        "startHour": 11,
+        "endHour": 13,
+        "range": "11h–13h",
+        "canChi": "Canh Ngọ",
+        "label": "Kim Quỹ"
+      },
+      "directions": {
+        "joy": "Đông Bắc",
+        "wealth": "Chính Nam"
+      },
+      "recommended": [
+        "Tích lũy, tiết kiệm",
+        "Cầu an, tĩnh dưỡng",
+        "Khám chữa bệnh, phẫu thuật",
+        "Lập kế hoạch, nghiên cứu",
+        "Sửa chữa nhà cửa"
+      ],
+      "avoid": [
+        "Cưới hỏi, hôn lễ",
+        "Khai trương, ra mắt",
+        "Ký kết hợp đồng",
+        "Nhận chức, bổ nhiệm"
+      ],
+      "warning": "⚠️ Ngày Nguyệt Kỵ — nên hạn chế khởi sự việc lớn",
+      "astroEvidence": "Tín hiệu chủ đạo: tension · Chủ đề nổi bật: Mặt Trăng · Sao Thổ",
+      "canChiEvidence": "Ngày Kỷ Mão · Trực Chấp · Ngày Hắc đạo (Câu Trận)",
+      "canChiDay": "Kỷ Mão"
+    },
+    {
+      "day": 12,
+      "dayOffset": 11,
+      "date": "2026-11-02",
+      "message": "Bạn dễ tỏa sáng khi được thể hiện điều mình thật sự trân trọng. Năng lượng hôm nay mạnh và nhạy; chậm lại một nhịp sẽ giúp bạn phản ứng sáng suốt hơn.",
+      "luckyTime": {
+        "startHour": 9,
+        "endHour": 11,
+        "range": "09h–11h",
+        "canChi": "Tân Tỵ",
+        "label": "Minh Đường"
+      },
+      "directions": {
+        "joy": "Tây Bắc",
+        "wealth": "Tây Nam"
+      },
+      "recommended": [
+        "Họp hành, bàn việc",
+        "Học tập, thi cử",
+        "Sáng tác, ra mắt tác phẩm",
+        "An táng, tang lễ",
+        "Di chuyển, du lịch"
+      ],
+      "avoid": [
+        "Khám chữa bệnh, phẫu thuật",
+        "Mua bán, giao dịch",
+        "Thu tài, nhận tiền",
+        "Công tác, xuất hành xa"
+      ],
+      "warning": null,
+      "astroEvidence": "Tín hiệu chủ đạo: tension · Chủ đề nổi bật: Sao Hỏa · Sao Kim",
+      "canChiEvidence": "Ngày Canh Thìn · Trực Phá · Ngày Hoàng đạo (Thanh Long)",
+      "canChiDay": "Canh Thìn"
+    },
+    {
+      "day": 13,
+      "dayOffset": 12,
+      "date": "2026-11-03",
+      "message": "Bạn dễ tỏa sáng khi được thể hiện điều mình thật sự trân trọng. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 7,
+        "endHour": 9,
+        "range": "07h–09h",
+        "canChi": "Nhâm Thìn",
+        "label": "Tư Mệnh"
+      },
+      "directions": {
+        "joy": "Tây Nam",
+        "wealth": "Tây Nam"
+      },
+      "recommended": [
+        "Họp hành, bàn việc",
+        "Nhận chức, bổ nhiệm",
+        "Học tập, thi cử",
+        "Sáng tác, ra mắt tác phẩm",
+        "An táng, tang lễ"
+      ],
+      "avoid": [
+        "Di chuyển, du lịch",
+        "Động thổ, khởi công",
+        "Mua bán, giao dịch",
+        "Công tác, xuất hành xa"
+      ],
+      "warning": null,
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Mặt Trăng",
+      "canChiEvidence": "Ngày Tân Tỵ · Trực Nguy · Ngày Hoàng đạo (Minh Đường)",
+      "canChiDay": "Tân Tỵ"
+    },
+    {
+      "day": 14,
+      "dayOffset": 13,
+      "date": "2026-11-04",
+      "message": "Sự rõ ràng đến từ việc sắp xếp lại chi tiết và nhịp sinh hoạt. Năng lượng hôm nay mạnh và nhạy; chậm lại một nhịp sẽ giúp bạn phản ứng sáng suốt hơn.",
+      "luckyTime": {
+        "startHour": 17,
+        "endHour": 19,
+        "range": "17h–19h",
+        "canChi": "Kỷ Dậu",
+        "label": "Minh Đường"
+      },
+      "directions": {
+        "joy": "Chính Nam",
+        "wealth": "Chính Tây"
+      },
+      "recommended": [
+        "Tập luyện thể thao",
+        "Giảng dạy, truyền nghề",
+        "Hẹn hò, gặp gỡ thân nhân",
+        "Học tập, thi cử",
+        "Họp hành, bàn việc"
+      ],
+      "avoid": [
+        "Tranh tụng, kiện cáo",
+        "An táng, tang lễ",
+        "Động thổ, khởi công",
+        "Mua bán, giao dịch"
+      ],
+      "warning": null,
+      "astroEvidence": "Tín hiệu chủ đạo: tension · Chủ đề nổi bật: Sao Thủy · Thiên Vương",
+      "canChiEvidence": "Ngày Nhâm Ngọ · Trực Thành · Ngày Hắc đạo (Thiên Hình)",
+      "canChiDay": "Nhâm Ngọ"
+    },
+    {
+      "day": 15,
+      "dayOffset": 14,
+      "date": "2026-11-05",
+      "message": "Sự rõ ràng đến từ việc sắp xếp lại chi tiết và nhịp sinh hoạt. Năng lượng hôm nay mạnh và nhạy; chậm lại một nhịp sẽ giúp bạn phản ứng sáng suốt hơn.",
+      "luckyTime": {
+        "startHour": 19,
+        "endHour": 21,
+        "range": "19h–21h",
+        "canChi": "Nhâm Tuất",
+        "label": "Thanh Long"
+      },
+      "directions": {
+        "joy": "Đông Nam",
+        "wealth": "Tây Bắc"
+      },
+      "recommended": [
+        "Sửa chữa nhà cửa",
+        "Cầu an, tĩnh dưỡng",
+        "Khám chữa bệnh, phẫu thuật",
+        "Di chuyển, du lịch",
+        "Lập kế hoạch, nghiên cứu"
+      ],
+      "avoid": [
+        "Cưới hỏi, hôn lễ",
+        "Khai trương, ra mắt",
+        "Nhận chức, bổ nhiệm",
+        "Nhập trạch, về nhà mới"
+      ],
+      "warning": "⚠️ Ngày Tam Nương — không nên cưới hỏi, khai trương",
+      "astroEvidence": "Tín hiệu chủ đạo: tension · Chủ đề nổi bật: Mặt Trăng · Mặt Trời",
+      "canChiEvidence": "Ngày Quý Mùi · Trực Thu · Ngày Hắc đạo (Chu Tước)",
+      "canChiDay": "Quý Mùi"
+    },
+    {
+      "day": 16,
+      "dayOffset": 15,
+      "date": "2026-11-06",
+      "message": "Bạn nhạy hơn với sự công bằng, cách đối thoại và chất lượng kết nối. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 9,
+        "endHour": 11,
+        "range": "09h–11h",
+        "canChi": "Kỷ Tỵ",
+        "label": "Thiên Đức"
+      },
+      "directions": {
+        "joy": "Đông Bắc",
+        "wealth": "Đông Nam"
+      },
+      "recommended": [
+        "Học tập, thi cử",
+        "Sáng tác, ra mắt tác phẩm",
+        "Họp hành, bàn việc",
+        "Nhập trạch, về nhà mới",
+        "Đầu tư, mở rộng"
+      ],
+      "avoid": [
+        "An táng, tang lễ",
+        "Động thổ, khởi công",
+        "Tranh tụng, kiện cáo",
+        "Mua bán, giao dịch"
+      ],
+      "warning": null,
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Kim · Mặt Trời",
+      "canChiEvidence": "Ngày Giáp Thân · Trực Khai · Ngày Hoàng đạo (Kim Quỹ)",
+      "canChiDay": "Giáp Thân"
+    },
+    {
+      "day": 17,
+      "dayOffset": 16,
+      "date": "2026-11-07",
+      "message": "Bạn nhạy hơn với sự công bằng, cách đối thoại và chất lượng kết nối. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 11,
+        "endHour": 13,
+        "range": "11h–13h",
+        "canChi": "Nhâm Ngọ",
+        "label": "Kim Quỹ"
+      },
+      "directions": {
+        "joy": "Tây Bắc",
+        "wealth": "Đông Nam"
+      },
+      "recommended": [
+        "Học tập, thi cử",
+        "Sáng tác, ra mắt tác phẩm",
+        "Họp hành, bàn việc",
+        "Hẹn hò, gặp gỡ thân nhân",
+        "Giải quyết mâu thuẫn"
+      ],
+      "avoid": [
+        "Di chuyển, du lịch",
+        "Thu tài, nhận tiền",
+        "Công tác, xuất hành xa"
+      ],
+      "warning": null,
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Kim · Mặt Trời",
+      "canChiEvidence": "Ngày Ất Dậu · Trực Bế · Ngày Hoàng đạo (Thiên Đức)",
+      "canChiDay": "Ất Dậu"
+    },
+    {
+      "day": 18,
+      "dayOffset": 17,
+      "date": "2026-11-08",
+      "message": "Cảm xúc có chiều sâu; thành thật với điều cốt lõi sẽ giúp bạn nhẹ hơn. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 9,
+        "endHour": 11,
+        "range": "09h–11h",
+        "canChi": "Quý Tỵ",
+        "label": "Minh Đường"
+      },
+      "directions": {
+        "joy": "Tây Nam",
+        "wealth": "Chính Đông"
+      },
+      "recommended": [
+        "Hẹn hò, gặp gỡ thân nhân",
+        "Họp hành, bàn việc",
+        "Sáng tác, ra mắt tác phẩm",
+        "Công tác, xuất hành xa",
+        "Di chuyển, du lịch"
+      ],
+      "avoid": [
+        "An táng, tang lễ",
+        "Động thổ, khởi công",
+        "Tranh tụng, kiện cáo",
+        "Mua bán, giao dịch"
+      ],
+      "warning": null,
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Hải Vương",
+      "canChiEvidence": "Ngày Bính Tuất · Trực Kiến · Ngày Hắc đạo (Bạch Hổ)",
+      "canChiDay": "Bính Tuất"
+    },
+    {
+      "day": 19,
+      "dayOffset": 18,
+      "date": "2026-11-09",
+      "message": "Cảm xúc có chiều sâu; thành thật với điều cốt lõi sẽ giúp bạn nhẹ hơn. Năng lượng hôm nay mạnh và nhạy; chậm lại một nhịp sẽ giúp bạn phản ứng sáng suốt hơn.",
+      "luckyTime": {
+        "startHour": 13,
+        "endHour": 15,
+        "range": "13h–15h",
+        "canChi": "Đinh Mùi",
+        "label": "Minh Đường"
+      },
+      "directions": {
+        "joy": "Chính Nam",
+        "wealth": "Chính Đông"
+      },
+      "recommended": [
+        "Cưới hỏi, hôn lễ",
+        "Họp hành, bàn việc",
+        "Khai trương, ra mắt",
+        "Nhập trạch, về nhà mới",
+        "Sáng tác, ra mắt tác phẩm"
+      ],
+      "avoid": [
+        "An táng, tang lễ",
+        "Động thổ, khởi công",
+        "Tranh tụng, kiện cáo"
+      ],
+      "warning": null,
+      "astroEvidence": "Tín hiệu chủ đạo: tension · Chủ đề nổi bật: Sao Kim · Mặt Trời",
+      "canChiEvidence": "Ngày Đinh Hợi · Trực Kiến · Ngày Hoàng đạo (Thiên Đức)",
+      "canChiDay": "Đinh Hợi"
+    },
+    {
+      "day": 20,
+      "dayOffset": 19,
+      "date": "2026-11-10",
+      "message": "Cảm xúc có chiều sâu; thành thật với điều cốt lõi sẽ giúp bạn nhẹ hơn. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 17,
+        "endHour": 19,
+        "range": "17h–19h",
+        "canChi": "Tân Dậu",
+        "label": "Minh Đường"
+      },
+      "directions": {
+        "joy": "Đông Nam",
+        "wealth": "Chính Bắc"
+      },
+      "recommended": [
+        "Cầu an, tĩnh dưỡng",
+        "Khám chữa bệnh, phẫu thuật",
+        "Dọn dẹp, vứt đồ cũ",
+        "Giải quyết mâu thuẫn",
+        "Tích lũy, tiết kiệm"
+      ],
+      "avoid": [
+        "Cưới hỏi, hôn lễ",
+        "Khai trương, ra mắt",
+        "Ký kết hợp đồng",
+        "Nhận chức, bổ nhiệm"
+      ],
+      "warning": null,
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Mặt Trăng",
+      "canChiEvidence": "Ngày Mậu Tý · Trực Trừ · Ngày Hắc đạo (Bạch Hổ)",
+      "canChiDay": "Mậu Tý"
+    },
+    {
+      "day": 21,
+      "dayOffset": 20,
+      "date": "2026-11-11",
+      "message": "Bạn cần một góc nhìn rộng hơn, chút dịch chuyển hoặc cảm hứng mới. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 9,
+        "endHour": 11,
+        "range": "09h–11h",
+        "canChi": "Kỷ Tỵ",
+        "label": "Ngọc Đường"
+      },
+      "directions": {
+        "joy": "Đông Bắc",
+        "wealth": "Chính Nam"
+      },
+      "recommended": [
+        "Học tập, thi cử",
+        "Họp hành, bàn việc",
+        "Sáng tác, ra mắt tác phẩm",
+        "Mua bán, giao dịch",
+        "Thu tài, nhận tiền"
+      ],
+      "avoid": [
+        "Động thổ, khởi công",
+        "Nhận chức, bổ nhiệm",
+        "Cưới hỏi, hôn lễ",
+        "Nhập trạch, về nhà mới"
+      ],
+      "warning": "⚠️ Ngày Tam Nương — không nên cưới hỏi, khai trương",
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trời · Sao Kim",
+      "canChiEvidence": "Ngày Kỷ Sửu · Trực Mãn · Ngày Hoàng đạo (Ngọc Đường)",
+      "canChiDay": "Kỷ Sửu"
+    },
+    {
+      "day": 22,
+      "dayOffset": 21,
+      "date": "2026-11-12",
+      "message": "Bạn cần một góc nhìn rộng hơn, chút dịch chuyển hoặc cảm hứng mới. Năng lượng hôm nay mạnh và nhạy; chậm lại một nhịp sẽ giúp bạn phản ứng sáng suốt hơn.",
+      "luckyTime": {
+        "startHour": 7,
+        "endHour": 9,
+        "range": "07h–09h",
+        "canChi": "Canh Thìn",
+        "label": "Kim Quỹ"
+      },
+      "directions": {
+        "joy": "Tây Bắc",
+        "wealth": "Tây Nam"
+      },
+      "recommended": [
+        "Di chuyển, du lịch",
+        "Họp hành, bàn việc",
+        "Lập kế hoạch, nghiên cứu",
+        "Sửa chữa nhà cửa",
+        "Tích lũy, tiết kiệm"
+      ],
+      "avoid": [
+        "Cưới hỏi, hôn lễ",
+        "Động thổ, khởi công",
+        "Nhập trạch, về nhà mới"
+      ],
+      "warning": null,
+      "astroEvidence": "Tín hiệu chủ đạo: tension · Chủ đề nổi bật: Mặt Trời · Sao Kim",
+      "canChiEvidence": "Ngày Canh Dần · Trực Bình · Ngày Hắc đạo (Thiên Lao)",
+      "canChiDay": "Canh Dần"
+    },
+    {
+      "day": 23,
+      "dayOffset": 22,
+      "date": "2026-11-13",
+      "message": "Năng lượng hợp với việc xác định mục tiêu và tiến từng bước có cấu trúc. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 13,
+        "endHour": 15,
+        "range": "13h–15h",
+        "canChi": "Ất Mùi",
+        "label": "Thiên Đức"
+      },
+      "directions": {
+        "joy": "Tây Nam",
+        "wealth": "Tây Nam"
+      },
+      "recommended": [
+        "Giảng dạy, truyền nghề",
+        "Hẹn hò, gặp gỡ thân nhân",
+        "Học tập, thi cử",
+        "An táng, tang lễ",
+        "Di chuyển, du lịch"
+      ],
+      "avoid": [
+        "Nhập trạch, về nhà mới",
+        "Đầu tư, mở rộng",
+        "Khai trương, ra mắt",
+        "Thu tài, nhận tiền"
+      ],
+      "warning": "⚠️ Ngày Nguyệt Kỵ — nên hạn chế khởi sự việc lớn",
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trời · Sao Kim",
+      "canChiEvidence": "Ngày Tân Mão · Trực Định · Ngày Hắc đạo (Huyền Vũ)",
+      "canChiDay": "Tân Mão"
+    },
+    {
+      "day": 24,
+      "dayOffset": 23,
+      "date": "2026-11-14",
+      "message": "Năng lượng hợp với việc xác định mục tiêu và tiến từng bước có cấu trúc. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 7,
+        "endHour": 9,
+        "range": "07h–09h",
+        "canChi": "Giáp Thìn",
+        "label": "Thanh Long"
+      },
+      "directions": {
+        "joy": "Chính Nam",
+        "wealth": "Chính Tây"
+      },
+      "recommended": [
+        "Cầu an, tĩnh dưỡng",
+        "Khám chữa bệnh, phẫu thuật",
+        "Cưới hỏi, hôn lễ",
+        "Đầu tư, mở rộng",
+        "Động thổ, khởi công"
+      ],
+      "avoid": [],
+      "warning": null,
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Kim · Mặt Trời",
+      "canChiEvidence": "Ngày Nhâm Thìn · Trực Chấp · Ngày Hoàng đạo (Tư Mệnh)",
+      "canChiDay": "Nhâm Thìn"
+    },
+    {
+      "day": 25,
+      "dayOffset": 24,
+      "date": "2026-11-15",
+      "message": "Năng lượng hợp với việc xác định mục tiêu và tiến từng bước có cấu trúc. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 13,
+        "endHour": 15,
+        "range": "13h–15h",
+        "canChi": "Kỷ Mùi",
+        "label": "Minh Đường"
+      },
+      "directions": {
+        "joy": "Đông Nam",
+        "wealth": "Tây Bắc"
+      },
+      "recommended": [
+        "An táng, tang lễ",
+        "Cầu an, tĩnh dưỡng",
+        "Di chuyển, du lịch",
+        "Tập luyện thể thao",
+        "Dọn dẹp, vứt đồ cũ"
+      ],
+      "avoid": [
+        "Cưới hỏi, hôn lễ",
+        "Khai trương, ra mắt",
+        "Nhận chức, bổ nhiệm",
+        "Nhập trạch, về nhà mới"
+      ],
+      "warning": "⚠️ Ngày Tam Nương — không nên cưới hỏi, khai trương",
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Kim · Mặt Trời",
+      "canChiEvidence": "Ngày Quý Tỵ · Trực Phá · Ngày Hắc đạo (Câu Trận)",
+      "canChiDay": "Quý Tỵ"
+    },
+    {
+      "day": 26,
+      "dayOffset": 25,
+      "date": "2026-11-16",
+      "message": "Ý tưởng khác biệt và kết nối cộng đồng có thể mở ra hướng đi mới. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 11,
+        "endHour": 13,
+        "range": "11h–13h",
+        "canChi": "Canh Ngọ",
+        "label": "Tư Mệnh"
+      },
+      "directions": {
+        "joy": "Đông Bắc",
+        "wealth": "Đông Nam"
+      },
+      "recommended": [
+        "Học tập, thi cử",
+        "Sáng tác, ra mắt tác phẩm",
+        "Họp hành, bàn việc",
+        "Nhận chức, bổ nhiệm",
+        "Hẹn hò, gặp gỡ thân nhân"
+      ],
+      "avoid": [
+        "Di chuyển, du lịch",
+        "Động thổ, khởi công",
+        "Mua bán, giao dịch",
+        "Công tác, xuất hành xa"
+      ],
+      "warning": null,
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Thiên Vương",
+      "canChiEvidence": "Ngày Giáp Ngọ · Trực Nguy · Ngày Hoàng đạo (Thanh Long)",
+      "canChiDay": "Giáp Ngọ"
+    },
+    {
+      "day": 27,
+      "dayOffset": 26,
+      "date": "2026-11-17",
+      "message": "Ý tưởng khác biệt và kết nối cộng đồng có thể mở ra hướng đi mới. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 9,
+        "endHour": 11,
+        "range": "09h–11h",
+        "canChi": "Tân Tỵ",
+        "label": "Ngọc Đường"
+      },
+      "directions": {
+        "joy": "Tây Bắc",
+        "wealth": "Đông Nam"
+      },
+      "recommended": [
+        "Cưới hỏi, hôn lễ",
+        "Học tập, thi cử",
+        "Nhập trạch, về nhà mới",
+        "Sáng tác, ra mắt tác phẩm",
+        "Đầu tư, mở rộng"
+      ],
+      "avoid": [
+        "An táng, tang lễ",
+        "Động thổ, khởi công",
+        "Tranh tụng, kiện cáo"
+      ],
+      "warning": null,
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Sao Kim",
+      "canChiEvidence": "Ngày Ất Mùi · Trực Thành · Ngày Hoàng đạo (Minh Đường)",
+      "canChiDay": "Ất Mùi"
+    },
+    {
+      "day": 28,
+      "dayOffset": 27,
+      "date": "2026-11-18",
+      "message": "Trực giác đang nhạy; khoảng lặng sẽ giúp bạn nghe rõ tín hiệu bên trong. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 7,
+        "endHour": 9,
+        "range": "07h–09h",
+        "canChi": "Nhâm Thìn",
+        "label": "Kim Quỹ"
+      },
+      "directions": {
+        "joy": "Tây Nam",
+        "wealth": "Chính Đông"
+      },
+      "recommended": [
+        "Lập kế hoạch, nghiên cứu"
+      ],
+      "avoid": [
+        "Đầu tư, mở rộng",
+        "An táng, tang lễ",
+        "Cưới hỏi, hôn lễ",
+        "Khai trương, ra mắt"
+      ],
+      "warning": null,
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trời · Sao Mộc",
+      "canChiEvidence": "Ngày Bính Thân · Trực Thu · Ngày Hắc đạo (Thiên Hình)",
+      "canChiDay": "Bính Thân"
+    },
+    {
+      "day": 29,
+      "dayOffset": 28,
+      "date": "2026-11-19",
+      "message": "Trực giác đang nhạy; khoảng lặng sẽ giúp bạn nghe rõ tín hiệu bên trong. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 13,
+        "endHour": 15,
+        "range": "13h–15h",
+        "canChi": "Đinh Mùi",
+        "label": "Thiên Đức"
+      },
+      "directions": {
+        "joy": "Chính Nam",
+        "wealth": "Chính Đông"
+      },
+      "recommended": [
+        "Học tập, thi cử",
+        "Họp hành, bàn việc",
+        "Sáng tác, ra mắt tác phẩm",
+        "Công tác, xuất hành xa",
+        "Di chuyển, du lịch"
+      ],
+      "avoid": [
+        "An táng, tang lễ",
+        "Động thổ, khởi công",
+        "Tranh tụng, kiện cáo",
+        "Mua bán, giao dịch"
+      ],
+      "warning": null,
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Sao Hỏa",
+      "canChiEvidence": "Ngày Đinh Dậu · Trực Khai · Ngày Hắc đạo (Chu Tước)",
+      "canChiDay": "Đinh Dậu"
+    },
+    {
+      "day": 30,
+      "dayOffset": 29,
+      "date": "2026-11-20",
+      "message": "Trực giác đang nhạy; khoảng lặng sẽ giúp bạn nghe rõ tín hiệu bên trong. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyTime": {
+        "startHour": 9,
+        "endHour": 11,
+        "range": "09h–11h",
+        "canChi": "Đinh Tỵ",
+        "label": "Minh Đường"
+      },
+      "directions": {
+        "joy": "Đông Nam",
+        "wealth": "Chính Bắc"
+      },
+      "recommended": [
+        "Học tập, thi cử",
+        "Họp hành, bàn việc",
+        "Sáng tác, ra mắt tác phẩm",
+        "Mua bán, giao dịch",
+        "Tích lũy, tiết kiệm"
+      ],
+      "avoid": [
+        "Di chuyển, du lịch",
+        "Công tác, xuất hành xa",
+        "Thu tài, nhận tiền"
+      ],
+      "warning": null,
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Sao Thủy",
+      "canChiEvidence": "Ngày Mậu Tuất · Trực Bế · Ngày Hoàng đạo (Kim Quỹ)",
+      "canChiDay": "Mậu Tuất"
+    }
+  ]
+}

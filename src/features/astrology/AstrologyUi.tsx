@@ -16,6 +16,7 @@ import {
   ASTROLOGY_DECORATIONS,
   type AstrologyBackgroundVariant,
 } from './astrologyArtwork';
+import { useLocalization } from '../../i18n/LocalizationContext';
 
 export const ASTRO_COLORS = {
   deep: '#080C43',
@@ -89,11 +90,12 @@ interface HeaderProps {
 }
 
 export function AstrologyHeader({ title, subtitle, onBack, right }: HeaderProps) {
+  const { t } = useLocalization();
   return (
     <View style={styles.header}>
       <TouchableOpacity
         accessibilityRole="button"
-        accessibilityLabel="Quay lại"
+        accessibilityLabel={t('common.back')}
         activeOpacity={0.78}
         onPress={onBack}
         style={styles.iconButton}

@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import ThreeDButton from '../../components/ThreeDButton';
 import {
   resolveBirthLocation,
   resolveBirthPlaceSuggestion,
@@ -22,6 +23,7 @@ import {
 } from '../../services/astro/birthLocation';
 import type { UserProfile } from '../../store/userProfile';
 import { useBirthPlaceSuggestions } from './useBirthPlaceSuggestions';
+import { useLocalization } from '../../i18n/LocalizationContext';
 
 interface Props {
   visible: boolean;
@@ -38,6 +40,7 @@ function isValidBirthTime(value: string): boolean {
 
 export function BirthDataModal({ visible, profile, onSave, onClose }: Props) {
   const insets = useSafeAreaInsets();
+  const { t, l } = useLocalization();
   const [place, setPlace] = useState(profile.birthPlace ?? profile.birthLocation?.userLabel ?? '');
   const [knowsBirthTime, setKnowsBirthTime] = useState(
     profile.birthTimeAccuracy === 'exact' || (!profile.birthTimeAccuracy && !!profile.birthTime)
@@ -67,11 +70,11 @@ export function BirthDataModal({ visible, profile, onSave, onClose }: Props) {
   const handleSave = async () => {
     const normalizedPlace = place.trim();
     if (normalizedPlace.length < 3) {
-      setError('Vui lòng nhập thành phố hoặc khu vực nơi bạn sinh ra.');
+      setError(l('Vui lòng nhập thành phố hoặc khu vực nơi bạn sinh ra.', 'Enter the city or region where you were born.'));
       return;
     }
     if (knowsBirthTime && !isValidBirthTime(birthTime)) {
-      setError('Giờ sinh cần đúng định dạng HH:mm, ví dụ 14:30.');
+      setError(l('Giờ sinh cần đúng định dạng HH:mm, ví dụ 14:30.', 'Birth time must use the HH:mm format, for example 14:30.'));
       return;
     }
 
@@ -95,7 +98,7 @@ export function BirthDataModal({ visible, profile, onSave, onClose }: Props) {
       });
       onClose();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Không thể lưu dữ liệu nơi sinh.');
+      setError(caught instanceof Error ? caught.message : l('Không thể lưu dữ liệu nơi sinh.', 'Unable to save birth-place data.'));
     } finally {
       setSaving(false);
     }
@@ -121,10 +124,10 @@ export function BirthDataModal({ visible, profile, onSave, onClose }: Props) {
           <View style={styles.handle} />
           <View style={styles.header}>
             <View style={styles.titleBlock}>
-              <Text style={styles.eyebrow}>HOÀN THIỆN LÁ SỐ</Text>
-              <Text style={styles.title}>Nơi sinh & giờ sinh</Text>
+              <Text style={styles.eyebrow}>{l('HOÀN THIỆN LÁ SỐ', 'COMPLETE YOUR BIRTH CHART')}</Text>
+              <Text style={styles.title}>{l('Nơi sinh & giờ sinh', 'Birth place & time')}</Text>
             </View>
-            <TouchableOpacity accessibilityLabel="Đóng" style={styles.closeButton} onPress={onClose}>
+            <TouchableOpacity accessibilityLabel={t('common.close')} style={styles.closeButton} onPress={onClose}>
               <Ionicons name="close" size={22} color="#ECF9FF" />
             </TouchableOpacity>
           </View>
@@ -137,7 +140,7 @@ export function BirthDataModal({ visible, profile, onSave, onClose }: Props) {
               </Text>
             </View>
 
-            <Text style={styles.label}>Nơi sinh</Text>
+            <Text style={styles.label}>{l('Nơi sinh', 'Birth place')}</Text>
             <View style={styles.inputWrap}>
               <Ionicons name="location-outline" size={20} color="#78DDF5" />
               <TextInput
@@ -148,7 +151,7 @@ export function BirthDataModal({ visible, profile, onSave, onClose }: Props) {
                   setError(null);
                 }}
                 style={styles.input}
-                placeholder="Ví dụ: Hà Nội, Việt Nam"
+                placeholder={l('Ví dụ: Hà Nội, Việt Nam', 'For example: London, United Kingdom')}
                 placeholderTextColor="#70819E"
                 autoCapitalize="words"
                 autoCorrect={false}
@@ -156,9 +159,9 @@ export function BirthDataModal({ visible, profile, onSave, onClose }: Props) {
                 returnKeyType="done"
               />
             </View>
-            <Text style={styles.hint}>Ghi thêm tỉnh hoặc quốc gia nếu có nhiều địa danh trùng tên.</Text>
+            <Text style={styles.hint}>{l('Ghi thêm tỉnh hoặc quốc gia nếu có nhiều địa danh trùng tên.', 'Add a region or country when several places share the same name.')}</Text>
             {Platform.OS === 'web' && !profile.birthLocation && (
-              <Text style={styles.webNotice}>Hãy bổ sung nơi sinh trên iOS hoặc Android; phiên bản web chưa có dịch vụ phân giải địa điểm.</Text>
+              <Text style={styles.webNotice}>{l('Hãy bổ sung nơi sinh trên iOS hoặc Android; phiên bản web chưa có dịch vụ phân giải địa điểm.', 'Add your birth place on iOS or Android; place resolution is not available on the web version yet.')}</Text>
             )}
 
             {(searching || suggestions.length > 0 || searchError) && (
@@ -166,7 +169,7 @@ export function BirthDataModal({ visible, profile, onSave, onClose }: Props) {
                 {searching && (
                   <View style={styles.searchStatus}>
                     <ActivityIndicator size="small" color="#71E7FF" />
-                    <Text style={styles.searchStatusText}>Đang tìm địa điểm…</Text>
+                    <Text style={styles.searchStatusText}>{l('Đang tìm địa điểm…', 'Searching places…')}</Text>
                   </View>
                 )}
                 {!searching && suggestions.map((suggestion) => (
@@ -193,29 +196,29 @@ export function BirthDataModal({ visible, profile, onSave, onClose }: Props) {
                 {!searching && !!searchError && (
                   <Text style={styles.searchError}>{searchError}</Text>
                 )}
-                <Text style={styles.nativeGeocoderNote}>Đề xuất từ dịch vụ địa điểm của thiết bị</Text>
+                <Text style={styles.nativeGeocoderNote}>{l('Đề xuất từ dịch vụ địa điểm của thiết bị', 'Suggestions from your device location service')}</Text>
               </View>
             )}
 
-            <Text style={styles.label}>Bạn có biết chính xác giờ sinh?</Text>
+            <Text style={styles.label}>{l('Bạn có biết chính xác giờ sinh?', 'Do you know your exact birth time?')}</Text>
             <View style={styles.choiceRow}>
               <TouchableOpacity
                 style={[styles.choiceButton, knowsBirthTime && styles.choiceButtonActive]}
                 onPress={() => setKnowsBirthTime(true)}
               >
-                <Text style={[styles.choiceText, knowsBirthTime && styles.choiceTextActive]}>Có</Text>
+                <Text style={[styles.choiceText, knowsBirthTime && styles.choiceTextActive]}>{l('Có', 'Yes')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.choiceButton, !knowsBirthTime && styles.choiceButtonActive]}
                 onPress={() => setKnowsBirthTime(false)}
               >
-                <Text style={[styles.choiceText, !knowsBirthTime && styles.choiceTextActive]}>Không rõ</Text>
+                <Text style={[styles.choiceText, !knowsBirthTime && styles.choiceTextActive]}>{l('Không rõ', 'Not sure')}</Text>
               </TouchableOpacity>
             </View>
 
             {knowsBirthTime && (
               <>
-                <Text style={styles.label}>Giờ sinh (24 giờ)</Text>
+                <Text style={styles.label}>{l('Giờ sinh (24 giờ)', 'Birth time (24-hour)')}</Text>
                 <View style={styles.inputWrap}>
                   <Ionicons name="time-outline" size={20} color="#78DDF5" />
                   <TextInput
@@ -239,24 +242,21 @@ export function BirthDataModal({ visible, profile, onSave, onClose }: Props) {
               </View>
             )}
 
-            <TouchableOpacity
-              accessibilityRole="button"
-              activeOpacity={0.82}
+            <ThreeDButton
               disabled={saving}
-              style={[styles.saveButton, saving && styles.disabled]}
+              fullWidth
+              label={saving ? l('Đang dựng dữ liệu lá số…', 'Building your birth chart…') : l('Lưu và phân tích lại', 'Save and recalculate')}
+              leadingIcon={<Ionicons name="sparkles" size={19} color="#FFFFFF" />}
+              loading={saving}
               onPress={() => void handleSave()}
-            >
-              {saving ? (
-                <ActivityIndicator color="#061126" />
-              ) : (
-                <Ionicons name="sparkles" size={19} color="#061126" />
-              )}
-              <Text style={styles.saveText}>{saving ? 'Đang dựng dữ liệu lá số…' : 'Lưu và phân tích lại'}</Text>
-            </TouchableOpacity>
+              shape="pill"
+              style={styles.saveButton3d}
+              variant="purple"
+            />
 
             {!profile.birthLocation && (
               <TouchableOpacity disabled={saving} style={styles.laterButton} onPress={onClose}>
-                <Text style={styles.laterText}>Để sau — dùng phân tích theo ngày sinh</Text>
+                <Text style={styles.laterText}>{l('Để sau — dùng phân tích theo ngày sinh', 'Do this later — use a date-only reading')}</Text>
               </TouchableOpacity>
             )}
           </ScrollView>
@@ -302,9 +302,7 @@ const styles = StyleSheet.create({
   choiceTextActive: { color: '#F1FCFF' },
   errorBox: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', marginTop: 14, padding: 12, borderRadius: 13, backgroundColor: 'rgba(122,31,55,0.28)' },
   errorText: { flex: 1, color: '#FFD1D8', fontSize: 12, lineHeight: 18 },
-  saveButton: { marginTop: 22, height: 52, borderRadius: 26, backgroundColor: '#6FE5FF', flexDirection: 'row', gap: 9, alignItems: 'center', justifyContent: 'center', shadowColor: '#36CCFF', shadowOpacity: 0.35, shadowRadius: 10, elevation: 5 },
-  saveText: { color: '#061126', fontSize: 14, fontWeight: '900' },
-  disabled: { opacity: 0.65 },
+  saveButton3d: { marginTop: 22 },
   laterButton: { alignSelf: 'center', paddingVertical: 15, paddingHorizontal: 10 },
   laterText: { color: '#91A8C0', fontSize: 12, fontWeight: '600' },
 });

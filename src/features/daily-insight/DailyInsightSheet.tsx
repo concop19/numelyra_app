@@ -1,163 +1,1263 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
-  Modal, SafeAreaView, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View,
+  Animated,
+  Easing,
+  Modal,
+  PanResponder,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import type { AstroFortuneSlip } from '../../services/astro/astroFortuneService';
 import type { DailyInsight } from './dailyInsight';
+import type { DailyAstroMetricId } from '../../services/astro/dailyMetricEngine';
 import { useLocalization } from '../../i18n/LocalizationContext';
+
+const JOURNAL_TEMPLATE = require('../../../assets/Dreamy Purple Lined Journal Template.png');
+const FLAME_MASCOT = require('../../../assets/giao_dien/daily-insight/flame-dreamy-mascot.png');
+const TITLE_ENERGY_ART = require('../../../assets/giao_dien/daily-insight/title-energy-art.png');
+const BADGE_VERSE = require('../../../assets/giao_dien/daily-insight/badge-verse.png');
+const BADGE_MIRROR = require('../../../assets/giao_dien/daily-insight/badge-mirror.png');
+
+const METRIC_PRESENTATION = {
+  energy: { labelKey: 'daily.metric.energy', icon: 'flash-outline', color: '#FF9E40' },
+  emotion: { labelKey: 'daily.metric.emotion', icon: 'water-outline', color: '#4EA8DE' },
+  focus: { labelKey: 'daily.metric.focus', icon: 'eye-outline', color: '#9D4EDD' },
+  connection: { labelKey: 'daily.metric.connection', icon: 'heart-outline', color: '#E05780' },
+} as const;
+
+const PLANET_NAMES_VI: Record<string, string> = {
+  Sun: 'Mặt Trời', Moon: 'Mặt Trăng', Mercury: 'Sao Thủy', Venus: 'Sao Kim', Mars: 'Sao Hỏa',
+  Jupiter: 'Sao Mộc', Saturn: 'Sao Thổ', Uranus: 'Thiên Vương', Neptune: 'Hải Vương', Pluto: 'Diêm Vương',
+};
 
 interface Props {
   visible: boolean;
   insight: DailyInsight;
+  fortune?: AstroFortuneSlip | null;
   onClose(): void;
   onAsk(question: string): void;
-  onOpenAstrology(): void;
-  onOpenCalendar(): void;
 }
 
-function EvidenceRow({ title, value }: { title: string; value: string }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <TouchableOpacity activeOpacity={0.78} onPress={() => setOpen((current) => !current)} style={styles.evidence}>
-      <View style={styles.row}>
-        <Text style={styles.evidenceTitle}>{title}</Text>
-        <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={17} color="#CDBAFF" />
-      </View>
-      {open && <Text style={styles.evidenceText}>{value}</Text>}
-    </TouchableOpacity>
-  );
-}
-
-export default function DailyInsightSheet({
-  visible, insight, onClose, onAsk, onOpenAstrology, onOpenCalendar,
-}: Props) {
+export default function DailyInsightSheet({ visible, insight, fortune, onClose, onAsk }: Props) {
   const { t, formatDate, locale } = useLocalization();
-  const date = new Date(`${insight.dateKey}T12:00:00`);
-  const shareInsight = async () => {
-    const message = [
-      `✦ ${t('daily.cardTitle')} · ${insight.canChiDay}`,
-      insight.personality,
-      `${t('daily.luckyTime')}: ${insight.luckyTime?.range ?? t('daily.noLuckyTime')}`,
-      `${t('daily.joyDirection')}: ${insight.directions.joy}`,
-      `${t('daily.wealthDirection')}: ${insight.directions.wealth}`,
-      `${t('daily.avoid')}: ${insight.avoid.join(', ')}`,
-      'NUMELYRA',
-    ].join('\n');
-    await Share.share({ title: t('daily.cardTitle'), message }).catch(() => {});
+  const { height, width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const [currentPage, setCurrentPage] = useState<1 | 2>(1);
+  const [selectedMetric, setSelectedMetric] = useState<DailyAstroMetricId | null>(null);
+
+  // 3D Flip animation value (0 = Page 1, 1 = Page 2)
+  const flipAnim = useRef(new Animated.Value(0)).current;
+
+  const flipToPage = (target: 1 | 2) => {
+    if (target === currentPage) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    Animated.timing(flipAnim, {
+      toValue: target === 2 ? 1 : 0,
+      duration: 420,
+      easing: Easing.bezier(0.33, 1, 0.68, 1),
+      useNativeDriver: true,
+    }).start(() => {
+      setCurrentPage(target);
+    });
   };
 
+  // Swipe gesture handler
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        Math.abs(gestureState.dx) > 30 && Math.abs(gestureState.dy) < 30,
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dx < -50 && currentPage === 1) {
+          flipToPage(2);
+        } else if (gestureState.dx > 50 && currentPage === 2) {
+          flipToPage(1);
+        }
+      },
+    })
+  ).current;
+
+  const date = new Date(`${insight.dateKey}T12:00:00`);
+  const selectedMetricData = selectedMetric ? insight.astroMetrics.metrics[selectedMetric] : null;
+
+  const formattedDate = formatDate(date, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'numeric',
+    year: 'numeric',
+  });
+  const dateSubtitle = `${formattedDate} · Ngày ${insight.canChiDay}`;
+
+  const isCompact = height < 750 || width < 360;
+  const sheetWidth = Math.min(width - 24, 430);
+  const availableHeight = height - insets.top - insets.bottom - 24;
+  const sheetHeight = Math.min(availableHeight, sheetWidth * (1672 / 941));
+  const paperTopInset = Math.max(24, Math.round(sheetHeight * 0.055));
+  const paperBottomInset = Math.max(28, Math.round(sheetHeight * 0.07));
+
+  // Page 1 3D transform (flips leftwards)
+  const page1RotateY = flipAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: ['0deg', '-90deg', '-90deg'],
+  });
+  const page1Opacity = flipAnim.interpolate({
+    inputRange: [0, 0.48, 0.5],
+    outputRange: [1, 1, 0],
+  });
+
+  // Page 2 3D transform (opens from right)
+  const page2RotateY = flipAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: ['90deg', '90deg', '0deg'],
+  });
+  const page2Opacity = flipAnim.interpolate({
+    inputRange: [0, 0.5, 0.52, 1],
+    outputRange: [0, 0, 1, 1],
+  });
+
   return (
-    <Modal animationType="slide" onRequestClose={onClose} transparent visible={visible}>
-      <View style={styles.overlay}>
-        <TouchableOpacity accessibilityLabel={t('common.close')} onPress={onClose} style={styles.backdrop} />
-        <LinearGradient colors={['#21135A', '#10113B', '#090A28']} style={styles.sheet}>
-          <SafeAreaView style={styles.safe}>
-            <View style={styles.handle} />
-            <View style={styles.header}>
-              <View style={styles.headerCopy}>
-                <Text style={styles.eyebrow}>{t('daily.cardEyebrow')}</Text>
-                <Text style={styles.title}>{t('daily.cardTitle')}</Text>
-                <Text style={styles.date}>{formatDate(date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · {insight.canChiDay}</Text>
-              </View>
-              <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('common.close')} onPress={onClose} style={styles.close}>
-                <Ionicons name="close" size={22} color="#FFFFFF" />
-              </TouchableOpacity>
+    <Modal
+      animationType="fade"
+      onRequestClose={onClose}
+      presentationStyle="overFullScreen"
+      statusBarTranslucent
+      transparent
+      visible={visible}
+    >
+      <View
+        accessibilityViewIsModal
+        style={[
+          styles.overlay,
+          { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12 },
+        ]}
+      >
+        <TouchableOpacity
+          accessibilityLabel={t('common.close')}
+          activeOpacity={1}
+          onPress={onClose}
+          style={styles.backdrop}
+        />
+
+        <View style={[styles.sheetFrame, { width: sheetWidth, height: sheetHeight }]}>
+          {/* Background Notebook Template */}
+          <Image
+            accessible={false}
+            contentFit="fill"
+            pointerEvents="none"
+            source={JOURNAL_TEMPLATE}
+            style={StyleSheet.absoluteFill}
+          />
+
+          {/* Close button touch target over template's circular X button */}
+          <TouchableOpacity
+            accessibilityLabel={t('common.close')}
+            accessibilityRole="button"
+            activeOpacity={0.7}
+            hitSlop={12}
+            onPress={onClose}
+            style={styles.closeTarget}
+          >
+            <View style={styles.closeInner}>
+              <Ionicons color="#3E2468" name="close" size={20} />
             </View>
+          </TouchableOpacity>
 
-            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-              <View style={styles.personalityCard}>
-                <Ionicons name="sparkles" size={21} color="#FFE29A" />
-                <View style={styles.flex}>
-                  <Text style={styles.sectionEyebrow}>{t('daily.personality')}</Text>
-                  <Text style={styles.personality}>{insight.personality}</Text>
-                </View>
-              </View>
-
-              <View style={styles.stats}>
-                {[
-                  ['time-outline', t('daily.luckyTime'), insight.luckyTime?.range ?? t('daily.noLuckyTime')],
-                  ['heart-outline', t('daily.joyDirection'), insight.directions.joy],
-                  ['cash-outline', t('daily.wealthDirection'), insight.directions.wealth],
-                ].map(([icon, label, value]) => (
-                  <View key={label} style={styles.stat}>
-                    <Ionicons name={icon as React.ComponentProps<typeof Ionicons>['name']} size={18} color="#FFD783" />
-                    <Text style={styles.statLabel}>{label}</Text>
-                    <Text style={styles.statValue}>{value}</Text>
+          {/* 3D Flippable Page Container */}
+          <View style={styles.pageFlipperWrapper} {...panResponder.panHandlers}>
+            {/* TRANG 1: THÔNG ĐIỆP SỔ TAY */}
+            <Animated.View
+              pointerEvents={currentPage === 1 ? 'auto' : 'none'}
+              style={[
+                styles.pageWrapper,
+                {
+                  opacity: page1Opacity,
+                  transform: [{ perspective: 1400 }, { rotateY: page1RotateY }],
+                  zIndex: currentPage === 1 ? 2 : 1,
+                },
+              ]}
+            >
+              <ScrollView
+                bounces={false}
+                contentContainerStyle={[
+                  styles.contentContainer,
+                  isCompact && styles.contentContainerCompact,
+                  styles.page1ContentContainer,
+                ]}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                style={[
+                  styles.pageScroll,
+                  { marginTop: paperTopInset, marginBottom: paperBottomInset },
+                ]}
+              >
+                {/* Header: Eyebrow Badge */}
+                <View style={styles.eyebrowRow}>
+                  <View style={styles.eyebrowPillFallback}>
+                    <Text style={styles.eyebrowRay}>˗ˏˋ</Text>
+                    <Text style={styles.eyebrowTextFallback}>{t('daily.cardEyebrow').toUpperCase()}</Text>
+                    <Text style={styles.eyebrowRay}>ˎˊ˗</Text>
                   </View>
-                ))}
-              </View>
-
-              <View style={styles.guidanceRow}>
-                <View style={[styles.guidance, styles.good]}>
-                  <Text style={styles.guidanceTitle}>✓ {t('daily.recommended')}</Text>
-                  {insight.recommended.map((item) => <Text key={item} style={styles.guidanceText}>• {item}</Text>)}
                 </View>
-                <View style={[styles.guidance, styles.avoid]}>
-                  <Text style={styles.guidanceTitle}>× {t('daily.avoid')}</Text>
-                  {insight.avoid.map((item) => <Text key={item} style={styles.guidanceText}>• {item}</Text>)}
+
+                {/* Header: Title "Năng lượng hôm nay" */}
+                <View style={styles.titleRow}>
+                  {locale === 'vi' ? (
+                    <Image
+                      accessible={false}
+                      contentFit="contain"
+                      source={TITLE_ENERGY_ART}
+                      style={[styles.titleArt, isCompact && styles.titleArtCompact]}
+                    />
+                  ) : (
+                    <View style={styles.titleFallbackRow}>
+                      <Text style={styles.titleFallbackPurple}>{t('daily.cardTitle')}</Text>
+                      <Text style={styles.titleHeartDoodle}> ♡</Text>
+                    </View>
+                  )}
                 </View>
-              </View>
 
-              {!!insight.warning && locale === 'vi' && <Text style={styles.warning}>{insight.warning}</Text>}
-              <EvidenceRow title={t('daily.astroBasis')} value={insight.astroEvidence} />
-              <EvidenceRow title={t('daily.canchiBasis')} value={insight.canChiEvidence} />
+                {/* Header: Date Subtitle */}
+                <View style={styles.dateRow}>
+                  <Ionicons color="#7B56C7" name="star" size={10} style={styles.dateStar} />
+                  <Text style={[styles.dateText, isCompact && styles.dateTextCompact]}>
+                    {dateSubtitle}
+                  </Text>
+                </View>
 
-              <TouchableOpacity activeOpacity={0.84} onPress={() => onAsk(insight.suggestedQuestions[0])} style={styles.askButton}>
-                <Ionicons name="chatbubble-ellipses" size={18} color="#211344" />
-                <Text style={styles.askText}>{t('daily.ask')}</Text>
-              </TouchableOpacity>
-              <View style={styles.actions}>
-                <TouchableOpacity onPress={onOpenAstrology} style={styles.action}><Text style={styles.actionText}>{t('daily.viewAstrology')}</Text></TouchableOpacity>
-                <TouchableOpacity onPress={onOpenCalendar} style={styles.action}><Text style={styles.actionText}>{t('daily.viewCalendar')}</Text></TouchableOpacity>
-                <TouchableOpacity onPress={() => { void shareInsight(); }} style={styles.action}><Text style={styles.actionText}>{t('daily.share')}</Text></TouchableOpacity>
-              </View>
-              <Text style={styles.disclaimer}>{t('daily.disclaimer')}</Text>
-            </ScrollView>
-          </SafeAreaView>
-        </LinearGradient>
+                {/* Date Hand-drawn Underline with loop */}
+                <View style={styles.flourishLineContainer}>
+                  <View style={styles.flourishLine} />
+                  <Text style={styles.flourishHeart}>♡</Text>
+                </View>
+
+                {/* Mascot Character Illustration */}
+                <View style={[styles.mascotStage, isCompact && styles.mascotStageCompact]}>
+                  <Image
+                    accessibilityLabel="Flame Spirit Mascot"
+                    contentFit="contain"
+                    source={FLAME_MASCOT}
+                    style={styles.mascotImage}
+                  />
+                </View>
+
+                {/* Section 1: LỜI THƠ HÔM NAY */}
+                <View style={styles.verseSection}>
+                  <View style={styles.badgeRow}>
+                    {locale === 'vi' ? (
+                      <Image
+                        accessible={false}
+                        contentFit="contain"
+                        source={BADGE_VERSE}
+                        style={styles.badgeImage}
+                      />
+                    ) : (
+                      <View style={styles.badgeFallbackPill}>
+                        <Text style={styles.badgeFallbackText}>{t('daily.verse').toUpperCase()}</Text>
+                        <Ionicons color="#7B56C7" name="leaf-outline" size={13} style={{ marginLeft: 6 }} />
+                      </View>
+                    )}
+                  </View>
+
+                  <Text style={[styles.verseText, isCompact && styles.verseTextCompact]}>
+                    {fortune?.verse || insight.personality}
+                  </Text>
+                  <Text style={styles.verseHeartDoodle}>♡</Text>
+                </View>
+
+                {/* Section 2: LỜI NHẮN DÀNH CHO BẠN */}
+                <View style={styles.mirrorSection}>
+                  <View style={styles.badgeRow}>
+                    {locale === 'vi' ? (
+                      <Image
+                        accessible={false}
+                        contentFit="contain"
+                        source={BADGE_MIRROR}
+                        style={styles.badgeMirrorImage}
+                      />
+                    ) : (
+                      <View style={[styles.badgeFallbackPill, styles.badgeMirrorFallback]}>
+                        <Text style={styles.badgeMirrorFallbackText}>♡ {t('daily.mirror').toUpperCase()}</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <Text style={[styles.mirrorText, isCompact && styles.mirrorTextCompact]}>
+                    {fortune?.mirror || insight.personality}
+                  </Text>
+                </View>
+
+                {/* Section 3: Bottom 3 Sticky Note Memo Cards */}
+                <View style={styles.stickyNotesRow}>
+                  {/* Note 1: Giờ tốt */}
+                  <View style={[styles.stickyNote, styles.notePurple]}>
+                    <View style={[styles.noteTape, styles.tapePurple]} />
+                    <View style={styles.noteHeader}>
+                      <View style={[styles.noteIconCircle, styles.iconCirclePurple]}>
+                        <Ionicons color="#6141A8" name="time-outline" size={12} />
+                      </View>
+                      <Text numberOfLines={1} style={[styles.noteLabel, styles.labelPurple]}>
+                        {t('daily.luckyTime')}:
+                      </Text>
+                    </View>
+                    <Text numberOfLines={1} style={styles.noteValue}>
+                      {insight.luckyTime?.range ?? t('daily.noLuckyTime')}
+                    </Text>
+                  </View>
+
+                  {/* Note 2: Hướng vui */}
+                  <View style={[styles.stickyNote, styles.notePink]}>
+                    <View style={[styles.noteTape, styles.tapePink]} />
+                    <View style={styles.noteHeader}>
+                      <View style={[styles.noteIconCircle, styles.iconCirclePink]}>
+                        <Ionicons color="#A33663" name="navigate-outline" size={11} />
+                      </View>
+                      <Text numberOfLines={1} style={[styles.noteLabel, styles.labelPink]}>
+                        {t('daily.joyDirection')}:
+                      </Text>
+                    </View>
+                    <Text numberOfLines={1} style={styles.noteValue}>
+                      {insight.directions.joy}
+                    </Text>
+                  </View>
+
+                  {/* Note 3: Hướng tài lộc */}
+                  <View style={[styles.stickyNote, styles.noteYellow]}>
+                    <View style={[styles.noteTape, styles.tapeYellow]} />
+                    <View style={styles.noteHeader}>
+                      <View style={[styles.noteIconCircle, styles.iconCircleYellow]}>
+                        <Ionicons color="#946312" name="cash-outline" size={12} />
+                      </View>
+                      <Text numberOfLines={1} style={[styles.noteLabel, styles.labelYellow]}>
+                        {t('daily.wealthDirection')}:
+                      </Text>
+                    </View>
+                    <Text numberOfLines={1} style={styles.noteValue}>
+                      {insight.directions.wealth}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Flip to Page 2 Bookmark Button */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => flipToPage(2)}
+                  style={styles.pageFlipButton}
+                >
+                  <Text style={styles.pageFlipButtonText}>✦ Xem Chiêm Tinh & Vận Hạn</Text>
+                  <Ionicons color="#553A82" name="arrow-forward" size={14} />
+                </TouchableOpacity>
+
+                {/* Pagination Dots */}
+                <View style={styles.paginationRow}>
+                  <View style={[styles.paginationDot, styles.dotActive]} />
+                  <TouchableOpacity hitSlop={10} onPress={() => flipToPage(2)}>
+                    <View style={[styles.paginationDot, styles.dotInactive]} />
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </Animated.View>
+
+            {/* TRANG 2: CHIÊM TINH & VẬN HẠN */}
+            <Animated.View
+              pointerEvents={currentPage === 2 ? 'auto' : 'none'}
+              style={[
+                styles.pageWrapper,
+                {
+                  opacity: page2Opacity,
+                  transform: [{ perspective: 1400 }, { rotateY: page2RotateY }],
+                  zIndex: currentPage === 2 ? 2 : 1,
+                },
+              ]}
+            >
+              <ScrollView
+                bounces={false}
+                contentContainerStyle={[
+                  styles.contentContainer,
+                  isCompact && styles.contentContainerCompact,
+                  styles.page2ContentContainer,
+                ]}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                style={styles.pageScroll}
+              >
+                {/* Page 2 Header */}
+                <View style={styles.p2EyebrowPill}>
+                  <Text style={styles.p2EyebrowText}>— CHIÊM TINH HÔM NAY —</Text>
+                </View>
+
+                <Text style={styles.p2Title}>Bản Đồ Năng Lượng</Text>
+                <Text style={styles.p2Subtitle}>{dateSubtitle}</Text>
+
+                {/* Lucky Color Sticky Note Banner */}
+                <View style={styles.luckyColorCard}>
+                  <View style={styles.tapeMint} />
+                  <View style={styles.luckyColorRow}>
+                    <View style={[styles.luckyColorDot, { backgroundColor: insight.luckyColor.hex }]} />
+                    <View style={styles.luckyColorTextCol}>
+                      <Text style={styles.luckyColorTitle}>
+                        {t('daily.luckyColor')}:{' '}
+                        <Text style={[styles.luckyColorName, { color: insight.luckyColor.hex }]}>
+                          {insight.luckyColor.name}
+                        </Text>
+                      </Text>
+                      {!!insight.luckyColor.evidence && (
+                        <Text numberOfLines={1} style={styles.luckyColorEvidence}>
+                          ✦ {insight.luckyColor.evidence}
+                        </Text>
+                      )}
+                    </View>
+                    <Ionicons color="#6A4E94" name="sparkles" size={14} style={{ opacity: 0.6 }} />
+                  </View>
+                </View>
+
+                {/* 4 Astro Metrics Grid */}
+                <View style={styles.metricsBox}>
+                  <View style={styles.metricsHeaderRow}>
+                    <Text style={styles.metricsTitle}>Nhịp điệu 4 trụ cột</Text>
+                    <Text style={styles.metricsHint}>Chạm để xem góc chiếu</Text>
+                  </View>
+                  <View style={styles.metricsGrid}>
+                    {(Object.keys(METRIC_PRESENTATION) as DailyAstroMetricId[]).map((id) => {
+                      const presentation = METRIC_PRESENTATION[id];
+                      const metric = insight.astroMetrics.metrics[id];
+                      const selected = selectedMetric === id;
+                      return (
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          key={id}
+                          onPress={() => setSelectedMetric((curr) => (curr === id ? null : id))}
+                          style={[
+                            styles.metricCard,
+                            selected && {
+                              borderColor: presentation.color,
+                              backgroundColor: `${presentation.color}18`,
+                            },
+                          ]}
+                        >
+                          <View style={styles.metricTop}>
+                            <Ionicons color={presentation.color} name={presentation.icon} size={15} />
+                            <Text style={[styles.metricScore, { color: presentation.color }]}>
+                              {metric.score}
+                            </Text>
+                          </View>
+                          <Text style={styles.metricName}>{t(presentation.labelKey)}</Text>
+                          <View style={styles.metricTrack}>
+                            <View
+                              style={[
+                                styles.metricFill,
+                                { backgroundColor: presentation.color, width: `${metric.score}%` },
+                              ]}
+                            />
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  {/* Selected Metric Detail Box */}
+                  {!!selectedMetric && !!selectedMetricData && (
+                    <View style={styles.metricDetailBox}>
+                      <Text style={styles.metricDetailSummary}>{selectedMetricData.summary}</Text>
+                      {selectedMetricData.evidence.map((item) => (
+                        <Text
+                          key={`${item.transitPlanet}-${item.natalPlanet}-${item.aspectType}`}
+                          style={styles.metricEvidenceItem}
+                        >
+                          •{' '}
+                          {locale === 'vi'
+                            ? PLANET_NAMES_VI[item.transitPlanet] ?? item.transitPlanet
+                            : item.transitPlanet}{' '}
+                          {item.aspectName}{' '}
+                          {locale === 'vi'
+                            ? PLANET_NAMES_VI[item.natalPlanet] ?? item.natalPlanet
+                            : item.natalPlanet}{' '}
+                          ({item.orb.toFixed(1)}°)
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+                </View>
+
+                {/* Recommended & Avoid Guidance */}
+                <View style={styles.guidanceRow}>
+                  <View style={[styles.guidanceCard, styles.guidanceGood]}>
+                    <Text style={styles.guidanceGoodTitle}>✓ {t('daily.recommended')}</Text>
+                    {insight.recommended.slice(0, 3).map((item) => (
+                      <Text key={item} numberOfLines={2} style={styles.guidanceItemText}>
+                        • {item}
+                      </Text>
+                    ))}
+                  </View>
+                  <View style={[styles.guidanceCard, styles.guidanceAvoid]}>
+                    <Text style={styles.guidanceAvoidTitle}>× {t('daily.avoid')}</Text>
+                    {insight.avoid.slice(0, 3).map((item) => (
+                      <Text key={item} numberOfLines={2} style={styles.guidanceItemText}>
+                        • {item}
+                      </Text>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Evidence Basis: Can Chi */}
+                <View style={styles.evidenceBox}>
+                  <Text style={styles.evidenceLabel}>✦ {t('daily.canchiBasis')}</Text>
+                  <Text style={styles.evidenceDesc}>{insight.canChiEvidence}</Text>
+                </View>
+
+                <View style={styles.page2ActionsRow}>
+                  <TouchableOpacity
+                    accessibilityLabel={t('daily.ask')}
+                    accessibilityRole="button"
+                    activeOpacity={0.8}
+                    onPress={() => onAsk(insight.suggestedQuestions[0])}
+                    style={[styles.pageFlipBackButton, styles.askButton]}
+                  >
+                    <Ionicons color="#735118" name="chatbubble-ellipses" size={12} />
+                    <Text style={[styles.pageFlipBackButtonText, styles.askButtonText]}>
+                      {t('daily.ask')}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => flipToPage(1)}
+                    style={styles.pageFlipBackButton}
+                  >
+                    <Ionicons color="#553A82" name="arrow-back" size={12} />
+                    <Text style={styles.pageFlipBackButtonText}>Quay lại thông điệp</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Pagination Dots */}
+                <View style={styles.paginationRow}>
+                  <TouchableOpacity hitSlop={10} onPress={() => flipToPage(1)}>
+                    <View style={[styles.paginationDot, styles.dotInactive]} />
+                  </TouchableOpacity>
+                  <View style={[styles.paginationDot, styles.dotActive]} />
+                </View>
+
+                <Text style={styles.disclaimerText}>{t('daily.disclaimer')}</Text>
+              </ScrollView>
+            </Animated.View>
+          </View>
+        </View>
       </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(3,2,18,0.64)' },
-  backdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
-  sheet: { maxHeight: '92%', minHeight: '74%', borderTopLeftRadius: 30, borderTopRightRadius: 30, borderWidth: 1, borderColor: 'rgba(218,192,255,0.34)', overflow: 'hidden' },
-  safe: { flex: 1 },
-  handle: { width: 45, height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.3)', alignSelf: 'center', marginTop: 9 },
-  header: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 20, paddingTop: 14, paddingBottom: 12 },
-  headerCopy: { flex: 1 },
-  eyebrow: { color: '#FFD783', fontSize: 10, fontWeight: '900', letterSpacing: 1.4 },
-  title: { color: '#FFFFFF', fontFamily: 'serif', fontSize: 25, fontWeight: '900', marginTop: 3 },
-  date: { color: '#BEB3DE', fontSize: 11, marginTop: 5 },
-  close: { width: 39, height: 39, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.1)' },
-  content: { paddingHorizontal: 16, paddingBottom: 34, gap: 11 },
-  personalityCard: { flexDirection: 'row', gap: 11, padding: 15, borderRadius: 21, backgroundColor: 'rgba(126,82,217,0.25)', borderWidth: 1, borderColor: 'rgba(255,220,148,0.3)' },
-  flex: { flex: 1 },
-  sectionEyebrow: { color: '#FFD783', fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
-  personality: { color: '#FFFFFF', fontSize: 14, lineHeight: 21, fontWeight: '600', marginTop: 5 },
-  stats: { flexDirection: 'row', gap: 7 },
-  stat: { flex: 1, minHeight: 100, padding: 10, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
-  statLabel: { color: '#BEB3DE', fontSize: 9, fontWeight: '700', marginTop: 7 },
-  statValue: { color: '#FFFFFF', fontSize: 12, fontWeight: '900', marginTop: 4 },
-  guidanceRow: { flexDirection: 'row', gap: 8 },
-  guidance: { flex: 1, minHeight: 132, padding: 12, borderRadius: 18, borderWidth: 1 },
-  good: { backgroundColor: 'rgba(48,164,127,0.13)', borderColor: 'rgba(91,231,185,0.25)' },
-  avoid: { backgroundColor: 'rgba(218,86,122,0.12)', borderColor: 'rgba(255,137,165,0.24)' },
-  guidanceTitle: { color: '#FFFFFF', fontSize: 11, fontWeight: '900', marginBottom: 7 },
-  guidanceText: { color: '#D9D4E8', fontSize: 10, lineHeight: 16 },
-  warning: { color: '#FFD3A1', fontSize: 11, lineHeight: 17, paddingHorizontal: 3 },
-  evidence: { padding: 14, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.06)' },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  evidenceTitle: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
-  evidenceText: { color: '#CFC8E0', fontSize: 11, lineHeight: 17, marginTop: 8 },
-  askButton: { minHeight: 50, borderRadius: 25, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFD783' },
-  askText: { color: '#211344', fontSize: 13, fontWeight: '900' },
-  actions: { flexDirection: 'row', gap: 7 },
-  action: { flex: 1, minHeight: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.09)' },
-  actionText: { color: '#EDE8FA', fontSize: 10, fontWeight: '800', textAlign: 'center' },
-  disclaimer: { color: '#8F87A8', fontSize: 9, textAlign: 'center', marginTop: 3 },
+  overlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(12, 6, 32, 0.78)',
+  },
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  sheetFrame: {
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: 24,
+    shadowColor: '#8C4BF5',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 12,
+  },
+  closeTarget: {
+    position: 'absolute',
+    top: '4.8%',
+    right: '7.2%',
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 20,
+  },
+  closeInner: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#301852',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.22,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+
+  // 3D Flip Wrapper
+  pageFlipperWrapper: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  pageWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backfaceVisibility: 'hidden',
+  },
+  pageScroll: {
+    flex: 1,
+    minHeight: 0,
+    overflow: 'hidden',
+  },
+
+  contentContainer: {
+    paddingLeft: '13.5%', // Clearance for spiral binder ring punch holes
+    paddingRight: '7.5%',
+    paddingTop: '6.5%',
+    paddingBottom: '8%',
+    alignItems: 'center',
+  },
+  contentContainerCompact: {
+    paddingTop: '5%',
+    paddingBottom: '10%',
+  },
+  page1ContentContainer: {
+    flexGrow: 1,
+    paddingTop: 12,
+    paddingBottom: 36,
+  },
+  page2ContentContainer: {
+    flexGrow: 1,
+    justifyContent: 'space-between',
+  },
+
+  // Eyebrow Badge
+  eyebrowRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+    marginBottom: 2,
+  },
+  eyebrowPillFallback: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EDE7F6',
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 14,
+  },
+  eyebrowRay: {
+    color: '#7E57C2',
+    fontSize: 12,
+    marginHorizontal: 4,
+  },
+  eyebrowTextFallback: {
+    color: '#513C7B',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+  },
+
+  // Title "Năng lượng hôm nay"
+  titleRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -2,
+    marginBottom: 0,
+  },
+  titleArt: {
+    width: 290,
+    height: 54,
+  },
+  titleArtCompact: {
+    width: 260,
+    height: 48,
+  },
+  titleFallbackRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  titleFallbackPurple: {
+    fontFamily: 'serif',
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#5A3896',
+    fontStyle: 'italic',
+  },
+  titleHeartDoodle: {
+    fontSize: 20,
+    color: '#7E57C2',
+  },
+
+  // Date Subtitle
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  dateStar: {
+    marginRight: 5,
+  },
+  dateText: {
+    fontFamily: 'serif',
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#362452',
+    letterSpacing: 0.2,
+  },
+  dateTextCompact: {
+    fontSize: 11,
+  },
+  flourishLineContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '78%',
+    marginTop: 2,
+    marginBottom: 2,
+  },
+  flourishLine: {
+    flex: 1,
+    height: 1.2,
+    backgroundColor: 'rgba(123, 86, 199, 0.45)',
+    borderRadius: 1,
+  },
+  flourishHeart: {
+    color: '#7B56C7',
+    fontSize: 11,
+    marginLeft: 3,
+  },
+
+  // Mascot Stage
+  mascotStage: {
+    width: '100%',
+    height: 185,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 1,
+  },
+  mascotStageCompact: {
+    height: 155,
+  },
+  mascotImage: {
+    width: '100%',
+    height: '100%',
+  },
+
+  // Section 1: Lời thơ
+  verseSection: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  badgeRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  badgeImage: {
+    width: 175,
+    height: 28,
+  },
+  badgeMirrorImage: {
+    width: 250,
+    height: 28,
+  },
+  badgeFallbackPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EDE7F6',
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 14,
+  },
+  badgeFallbackText: {
+    color: '#513C7B',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  verseText: {
+    fontFamily: 'serif',
+    fontSize: 14.5,
+    lineHeight: 22.5,
+    fontStyle: 'italic',
+    fontWeight: '700',
+    textAlign: 'center',
+    color: '#261742',
+    paddingHorizontal: 10,
+  },
+  verseTextCompact: {
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  verseHeartDoodle: {
+    alignSelf: 'flex-end',
+    marginRight: 16,
+    color: '#8E67D1',
+    fontSize: 12,
+    marginTop: -4,
+  },
+
+  // Section 2: Lời nhắn
+  mirrorSection: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  badgeMirrorFallback: {
+    backgroundColor: '#FDE4EA',
+  },
+  badgeMirrorFallbackText: {
+    color: '#9E3663',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  mirrorText: {
+    fontSize: 11.5,
+    lineHeight: 18,
+    color: '#34264A',
+    textAlign: 'center',
+    paddingHorizontal: 12,
+    fontWeight: '500',
+  },
+  mirrorTextCompact: {
+    fontSize: 10.5,
+    lineHeight: 16.5,
+  },
+
+  // Bottom 3 Sticky Notes
+  stickyNotesRow: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 7,
+    marginTop: 2,
+    marginBottom: 8,
+  },
+  stickyNote: {
+    flex: 1,
+    minHeight: 64,
+    borderRadius: 11,
+    paddingVertical: 7,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    shadowColor: '#3B1863',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  noteTape: {
+    position: 'absolute',
+    top: -5,
+    width: 26,
+    height: 8,
+    borderRadius: 2,
+    zIndex: 1,
+  },
+  notePurple: {
+    backgroundColor: '#ECE8FB',
+    borderColor: '#DDD4F5',
+  },
+  tapePurple: {
+    backgroundColor: 'rgba(189, 169, 230, 0.72)',
+  },
+  notePink: {
+    backgroundColor: '#FCEBF0',
+    borderColor: '#F6D2DC',
+  },
+  tapePink: {
+    backgroundColor: 'rgba(238, 178, 198, 0.72)',
+  },
+  noteYellow: {
+    backgroundColor: '#FEF6D8',
+    borderColor: '#F7E7B6',
+  },
+  tapeYellow: {
+    backgroundColor: 'rgba(240, 212, 134, 0.72)',
+  },
+  noteHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 3,
+  },
+  noteIconCircle: {
+    width: 17,
+    height: 17,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconCirclePurple: {
+    backgroundColor: '#E0D8F7',
+  },
+  iconCirclePink: {
+    backgroundColor: '#F9D5E2',
+  },
+  iconCircleYellow: {
+    backgroundColor: '#F9E7AD',
+  },
+  noteLabel: {
+    fontSize: 9.5,
+    fontWeight: '700',
+  },
+  labelPurple: {
+    color: '#553E7E',
+  },
+  labelPink: {
+    color: '#7D3352',
+  },
+  labelYellow: {
+    color: '#735118',
+  },
+  noteValue: {
+    fontSize: 11.5,
+    fontWeight: '900',
+    color: '#1D1137',
+    textAlign: 'center',
+  },
+
+  // Lucky Color Card
+  luckyColorCard: {
+    width: '100%',
+    backgroundColor: '#F3FBF7',
+    borderColor: '#CCEADF',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginTop: 2,
+    marginBottom: 10,
+    alignItems: 'center',
+    position: 'relative',
+    shadowColor: '#204B3E',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  tapeMint: {
+    position: 'absolute',
+    top: -5,
+    width: 32,
+    height: 8,
+    borderRadius: 2,
+    backgroundColor: 'rgba(164, 222, 198, 0.75)',
+    zIndex: 1,
+  },
+  luckyColorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    gap: 8,
+  },
+  luckyColorDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  luckyColorTextCol: {
+    flex: 1,
+  },
+  luckyColorTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#315447',
+  },
+  luckyColorName: {
+    fontWeight: '900',
+    fontSize: 12,
+  },
+  luckyColorEvidence: {
+    fontSize: 9.5,
+    color: '#4B7363',
+    marginTop: 1,
+  },
+
+  // Page 1 Flip Button
+  pageFlipButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(237, 231, 246, 0.85)',
+    borderColor: '#D1C4E9',
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  pageFlipButtonText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#553A82',
+  },
+
+  page2ActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    gap: 8,
+    marginVertical: 4,
+  },
+  pageFlipBackButton: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(237, 231, 246, 0.85)',
+    borderColor: '#D1C4E9',
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 7,
+    paddingHorizontal: 6,
+  },
+  askButton: {
+    backgroundColor: 'rgba(254, 246, 216, 0.9)',
+    borderColor: '#F0D486',
+  },
+  pageFlipBackButtonText: {
+    flexShrink: 1,
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#553A82',
+    textAlign: 'center',
+  },
+
+  // Pagination Dots
+  paginationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginVertical: 4,
+  },
+  paginationDot: {
+    height: 6,
+    borderRadius: 3,
+  },
+  dotActive: {
+    width: 18,
+    backgroundColor: '#7E57C2',
+  },
+  dotInactive: {
+    width: 6,
+    backgroundColor: '#D1C4E9',
+  },
+
+  // PAGE 2 STYLES
+  p2EyebrowPill: {
+    backgroundColor: '#EDE7F6',
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 14,
+    marginTop: 4,
+    marginBottom: 6,
+  },
+  p2EyebrowText: {
+    color: '#513C7B',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+  },
+  p2Title: {
+    fontFamily: 'serif',
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#5A3896',
+    fontStyle: 'italic',
+    marginBottom: 2,
+  },
+  p2Subtitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#4B3A64',
+    marginBottom: 10,
+  },
+
+  metricsBox: {
+    width: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.65)',
+    borderRadius: 14,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(123, 86, 199, 0.22)',
+    marginBottom: 10,
+  },
+  metricsHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  metricsTitle: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#3C2665',
+  },
+  metricsHint: {
+    fontSize: 9,
+    color: '#7E6B9B',
+    fontStyle: 'italic',
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  metricCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 7,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(123, 86, 199, 0.15)',
+  },
+  metricTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  metricScore: {
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  metricName: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#4A356E',
+    marginTop: 2,
+  },
+  metricTrack: {
+    width: '100%',
+    height: 3,
+    backgroundColor: '#E8E1F5',
+    borderRadius: 2,
+    marginTop: 4,
+    overflow: 'hidden',
+  },
+  metricFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  metricDetailBox: {
+    marginTop: 8,
+    padding: 8,
+    backgroundColor: '#F7F3FD',
+    borderRadius: 8,
+  },
+  metricDetailSummary: {
+    fontSize: 10,
+    lineHeight: 15,
+    color: '#3F2C5C',
+    fontWeight: '600',
+  },
+  metricEvidenceItem: {
+    fontSize: 9,
+    color: '#6E5692',
+    marginTop: 3,
+  },
+
+  // Guidance Row
+  guidanceRow: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 7,
+    marginBottom: 10,
+  },
+  guidanceCard: {
+    flex: 1,
+    borderRadius: 12,
+    padding: 8,
+    borderWidth: 1,
+  },
+  guidanceGood: {
+    backgroundColor: '#EFFBF7',
+    borderColor: '#B6E8D6',
+  },
+  guidanceAvoid: {
+    backgroundColor: '#FDF2F7',
+    borderColor: '#F3C5D9',
+  },
+  guidanceGoodTitle: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#15835C',
+    marginBottom: 4,
+  },
+  guidanceAvoidTitle: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#B02A62',
+    marginBottom: 4,
+  },
+  guidanceItemText: {
+    fontSize: 9.5,
+    lineHeight: 14,
+    color: '#3A2E4B',
+  },
+
+  // Evidence Box
+  evidenceBox: {
+    width: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.65)',
+    borderRadius: 10,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(123, 86, 199, 0.20)',
+    marginBottom: 10,
+  },
+  evidenceLabel: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#523B7C',
+    marginBottom: 2,
+  },
+  evidenceDesc: {
+    fontSize: 9,
+    lineHeight: 14,
+    color: '#4B3A64',
+  },
+
+  // Ask Button
+  askButtonText: {
+    color: '#735118',
+  },
+
+  disclaimerText: {
+    fontSize: 8.5,
+    lineHeight: 12,
+    color: '#7E6B9B',
+    textAlign: 'center',
+    marginTop: 4,
+  },
 });

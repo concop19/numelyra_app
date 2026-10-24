@@ -37,7 +37,6 @@
     "expo-video": "~57.0.5",
     "expo-web-browser": "^57.0.3",
     "fbjs": "^3.0.5",
-    "jotai": "^3.0.0",
     "lottie-react-native": "~7.3.8",
     "pusher-js": "^8.6.0",
     "react": "19.2.3",
@@ -50,8 +49,7 @@
     "react-native-web": "^0.21.2",
     "react-native-worklets": "0.10.1",
     "svg-path-properties": "^2.1.0",
-    "tz-lookup": "^6.1.25",
-    "zustand": "^5.0.15"
+    "tz-lookup": "^6.1.25"
   },
   "devDependencies": {
     "@types/jest": "29.5.14",
@@ -65,16 +63,14 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "jest --runInBand",
+    "audit:daily-insight-30d": "jest --runInBand --testRegex=dailyInsightThirtyDayAudit\\.test\\.ts$ --cacheDirectory=.jest-cache",
     "test:numerology-db": "python scripts/auditNumerologyKnowledgeSqlite.py",
     "sync:numerology-db": "python scripts/syncNumerologyKnowledgeToCadao.py",
     "typecheck": "tsc --noEmit"
   },
   "jest": {
     "preset": "jest-expo",
-    "testRegex": "(src/games/(gameHub|lua-ga/engine|zip/game/(logic|generator)|arrow-escape/src/(levels/levels|space_game/engine/spaceEngine)|sudoku/src/utils/sudokuLogic)|src/services/(chatNumerologyContextService|colorGuidance|chatHistoryStorage|dailyNotifications|ttsService|lunarService|numerologyKnowledge|numerologySummaryService|astro/.*)|src/db/numerologyKnowledgeService|src/features/constellation/constellationGeometry|src/features/astrology/dailyAstroFortune|src/features/daily-insight/dailyInsight|src/i18n/LocalizationContext)\\.test\\.ts$",
-    "modulePathIgnorePatterns": [
-      "<rootDir>/src/games/zip/router-source/"
-    ]
+    "testRegex": "(src/services/(chatNumerologyContextService|colorGuidance|chatHistoryStorage|chatStreamClient|dailyNotifications|ttsService|lunarService|numerologyKnowledge|numerologySummaryService|astro/.*|activityRuleEngine)|src/db/numerologyKnowledgeService|src/features/constellation/constellationGeometry|src/features/astrology/dailyAstroFortune|src/features/daily-insight/dailyInsight|src/components/chat/mascotVisualLayout|src/i18n/LocalizationContext)\\.test\\.ts$"
   },
   "private": true
 }

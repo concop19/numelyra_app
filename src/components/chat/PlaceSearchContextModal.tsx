@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { PlaceBudget, PlaceCompanion, PlaceSearchPreferences } from '../../services/placeLocation';
+import ThreeDButton from '../ThreeDButton';
 
 interface Props {
   visible: boolean;
@@ -84,10 +85,16 @@ export function PlaceSearchContextModal({ visible, onCancel, onUseCurrentLocatio
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          <TouchableOpacity style={[styles.primaryButton, isLocating && styles.disabledButton]} onPress={chooseCurrentLocation} disabled={isLocating} activeOpacity={0.8}>
-            {isLocating ? <ActivityIndicator color="#2D173B" /> : <Ionicons name="navigate" size={17} color="#2D173B" />}
-            <Text style={styles.primaryButtonText}>{isLocating ? 'Đang xác định vị trí' : 'Dùng vị trí hiện tại'}</Text>
-          </TouchableOpacity>
+          <ThreeDButton
+            fullWidth
+            label={isLocating ? 'Đang xác định vị trí' : 'Dùng vị trí hiện tại'}
+            leadingIcon={<Ionicons name="navigate" size={17} color="#3B260D" />}
+            loading={isLocating}
+            onPress={chooseCurrentLocation}
+            shape="pill"
+            style={styles.primaryButton3d}
+            variant="gold"
+          />
           <TouchableOpacity style={styles.cancelButton} onPress={onCancel} activeOpacity={0.8}>
             <Text style={styles.cancelButtonText}>Để sau</Text>
           </TouchableOpacity>
@@ -122,9 +129,7 @@ const styles = StyleSheet.create({
   openNowRow: { flexDirection: 'row', alignItems: 'center', marginTop: 16, gap: 8 },
   openNowText: { color: '#E8E0F0', fontSize: 13, fontWeight: '600' },
   error: { color: '#FCA5A5', fontSize: 12, lineHeight: 17, marginTop: 12 },
-  primaryButton: { minHeight: 48, borderRadius: 14, backgroundColor: '#FFD28B', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 18 },
-  disabledButton: { opacity: 0.65 },
-  primaryButtonText: { color: '#2D173B', fontSize: 14, fontWeight: '800' },
+  primaryButton3d: { marginTop: 18 },
   cancelButton: { alignItems: 'center', paddingVertical: 13 },
   cancelButtonText: { color: '#A99EBA', fontSize: 13, fontWeight: '600' },
 });

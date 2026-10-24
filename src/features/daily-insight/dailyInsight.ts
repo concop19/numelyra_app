@@ -1,11 +1,17 @@
 import type { UserProfile } from '../../store/userProfile';
 import { formatLocalDateKey, getAstrologyProfileFingerprint } from '../astrology/dailyAstroFortune';
-import { generatePureAstroVector, type AstroDominantSignal, type PureAstroFeatureMetadata } from '../../services/astro/astroVectorEngine';
+import { generatePureAstroVector, type PureAstroFeatureMetadata } from '../../services/astro/astroVectorEngine';
 import { makeDaySnapshot, type HourInfo, type LunarDaySnapshot } from '../../services/lunarService';
+import type { RatedActivity } from '../../services/activityRuleEngine';
 import { ASTRO_ENGINE_VERSION } from '../../services/astro/astroVersion';
+import { computeTransitChart } from '../../services/astro/astroEngine';
 import { translate, type AppLocale } from '../../i18n/translations';
+import {
+  buildDailyAstroMetricsFromMetadata,
+  type DailyAstroMetrics,
+} from '../../services/astro/dailyMetricEngine';
 
-export const DAILY_INSIGHT_ENGINE_VERSION = `daily-insight-v1:${ASTRO_ENGINE_VERSION}`;
+export const DAILY_INSIGHT_ENGINE_VERSION = `daily-insight-v4:${ASTRO_ENGINE_VERSION}`;
 export const DAILY_INSIGHT_QUIET_START = 7;
 export const DAILY_INSIGHT_QUIET_END = 22;
 
@@ -17,6 +23,14 @@ export interface DailyInsightLuckyTime {
   label: string;
 }
 
+export interface DailyInsightLuckyColor {
+  moonSign: string;
+  moonSignLabel: string;
+  name: string;
+  hex: string;
+  evidence: string;
+}
+
 export interface DailyInsight {
   dateKey: string;
   profileKey: string;
@@ -24,10 +38,18 @@ export interface DailyInsight {
   timeZone: string;
   personality: string;
   luckyTime: DailyInsightLuckyTime | null;
+  luckyColor: DailyInsightLuckyColor;
   directions: { joy: string; wealth: string };
+  /** Backward-compat: tên hoạt động có kèm lý do ("Ký kết — Trực Định (Tốt)") */
   recommended: string[];
   avoid: string[];
+  /** Full rated data — UI dùng khi muốn hiển thị icon, category, reason riêng */
+  ratedActivities?: {
+    recommended: RatedActivity[];
+    avoid: RatedActivity[];
+  };
   warning: string | null;
+  astroMetrics: DailyAstroMetrics;
   astroEvidence: string;
   canChiEvidence: string;
   canChiDay: string;
@@ -87,8 +109,179 @@ export function chooseLuckyAwakeHour(
   })[0];
 }
 
-function personalityFor(signal: AstroDominantSignal, locale: AppLocale): string {
-  return translate(locale, `daily.personality.${signal}`);
+type LocalizedDailyCopy = Record<AppLocale, string>;
+
+interface MoonSignLuckyColorDefinition {
+  hex: string;
+  signLabel: LocalizedDailyCopy;
+  colorName: LocalizedDailyCopy;
+}
+
+export const MOON_SIGN_LUCKY_COLORS: Record<string, MoonSignLuckyColorDefinition> = {
+  Aries: {
+    hex: '#EF4444',
+    signLabel: { vi: 'Bạch Dương', en: 'Aries' },
+    colorName: { vi: 'Đỏ tươi', en: 'Bright red' },
+  },
+  Taurus: {
+    hex: '#F3E6C8',
+    signLabel: { vi: 'Kim Ngưu', en: 'Taurus' },
+    colorName: { vi: 'Trắng ngà', en: 'Ivory' },
+  },
+  Gemini: {
+    hex: '#65C466',
+    signLabel: { vi: 'Song Tử', en: 'Gemini' },
+    colorName: { vi: 'Xanh lá sáng', en: 'Bright green' },
+  },
+  Cancer: {
+    hex: '#C5CED8',
+    signLabel: { vi: 'Cự Giải', en: 'Cancer' },
+    colorName: { vi: 'Bạc', en: 'Silver' },
+  },
+  Leo: {
+    hex: '#F59E0B',
+    signLabel: { vi: 'Sư Tử', en: 'Leo' },
+    colorName: { vi: 'Cam', en: 'Orange' },
+  },
+  Virgo: {
+    hex: '#7A8B3A',
+    signLabel: { vi: 'Xử Nữ', en: 'Virgo' },
+    colorName: { vi: 'Xanh olive', en: 'Olive green' },
+  },
+  Libra: {
+    hex: '#F29BC2',
+    signLabel: { vi: 'Thiên Bình', en: 'Libra' },
+    colorName: { vi: 'Hồng phấn', en: 'Blush pink' },
+  },
+  Scorpio: {
+    hex: '#7F1D3F',
+    signLabel: { vi: 'Bọ Cạp', en: 'Scorpio' },
+    colorName: { vi: 'Đỏ rượu', en: 'Burgundy' },
+  },
+  Sagittarius: {
+    hex: '#F4C542',
+    signLabel: { vi: 'Nhân Mã', en: 'Sagittarius' },
+    colorName: { vi: 'Vàng', en: 'Yellow' },
+  },
+  Capricorn: {
+    hex: '#4B5563',
+    signLabel: { vi: 'Ma Kết', en: 'Capricorn' },
+    colorName: { vi: 'Xám than', en: 'Charcoal gray' },
+  },
+  Aquarius: {
+    hex: '#315C9B',
+    signLabel: { vi: 'Bảo Bình', en: 'Aquarius' },
+    colorName: { vi: 'Xanh dương đậm', en: 'Deep blue' },
+  },
+  Pisces: {
+    hex: '#7CC7D9',
+    signLabel: { vi: 'Song Ngư', en: 'Pisces' },
+    colorName: { vi: 'Xanh biển nhạt', en: 'Light sea blue' },
+  },
+};
+
+export function getLuckyColorForMoonSign(
+  moonSign: string,
+  locale: AppLocale = 'vi',
+): DailyInsightLuckyColor {
+  const definition = MOON_SIGN_LUCKY_COLORS[moonSign];
+  if (!definition) throw new Error(`Unsupported Moon sign: ${moonSign}`);
+  const moonSignLabel = definition.signLabel[locale];
+  return {
+    moonSign,
+    moonSignLabel,
+    name: definition.colorName[locale],
+    hex: definition.hex,
+    evidence: locale === 'vi'
+      ? `Mặt Trăng ở ${moonSignLabel} hôm nay`
+      : `Moon in ${moonSignLabel} today`,
+  };
+}
+
+export function buildDailyLuckyColor(
+  date = new Date(),
+  locale: AppLocale = 'vi',
+): DailyInsightLuckyColor {
+  const localNoon = new Date(date);
+  localNoon.setHours(12, 0, 0, 0);
+  const moonSign = computeTransitChart(localNoon).planets.Moon?.sign;
+  if (!moonSign) throw new Error('Moon position is unavailable');
+  return getLuckyColorForMoonSign(moonSign, locale);
+}
+
+const TRANSIT_MOON_TONES: Record<string, LocalizedDailyCopy> = {
+  Aries: {
+    vi: 'Cảm xúc nghiêng về hành động trực tiếp và quyết đoán.',
+    en: 'Your emotions lean toward direct, decisive action.',
+  },
+  Taurus: {
+    vi: 'Bạn cần một nhịp ổn định và cảm giác an toàn để phát huy tốt nhất.',
+    en: 'A steady pace and a sense of security help you work at your best.',
+  },
+  Gemini: {
+    vi: 'Tâm trí muốn trao đổi, đặt câu hỏi và cập nhật điều mới.',
+    en: 'Your mind wants conversation, questions, and fresh information.',
+  },
+  Cancer: {
+    vi: 'Cảm xúc cần sự gần gũi và một không gian đủ an toàn để mở lòng.',
+    en: 'Your feelings need closeness and a safe space in which to open up.',
+  },
+  Leo: {
+    vi: 'Bạn dễ tỏa sáng khi được thể hiện điều mình thật sự trân trọng.',
+    en: 'You shine more easily when expressing what you genuinely value.',
+  },
+  Virgo: {
+    vi: 'Sự rõ ràng đến từ việc sắp xếp lại chi tiết và nhịp sinh hoạt.',
+    en: 'Clarity comes from organizing details and restoring your routine.',
+  },
+  Libra: {
+    vi: 'Bạn nhạy hơn với sự công bằng, cách đối thoại và chất lượng kết nối.',
+    en: 'You are more sensitive to fairness, dialogue, and the quality of connection.',
+  },
+  Scorpio: {
+    vi: 'Cảm xúc có chiều sâu; thành thật với điều cốt lõi sẽ giúp bạn nhẹ hơn.',
+    en: 'Feelings run deep; honesty about what matters most can bring relief.',
+  },
+  Sagittarius: {
+    vi: 'Bạn cần một góc nhìn rộng hơn, chút dịch chuyển hoặc cảm hứng mới.',
+    en: 'You need a wider perspective, some movement, or a fresh source of inspiration.',
+  },
+  Capricorn: {
+    vi: 'Năng lượng hợp với việc xác định mục tiêu và tiến từng bước có cấu trúc.',
+    en: 'Your energy favors clear goals and structured, deliberate progress.',
+  },
+  Aquarius: {
+    vi: 'Ý tưởng khác biệt và kết nối cộng đồng có thể mở ra hướng đi mới.',
+    en: 'Unconventional ideas and community connections can reveal a new direction.',
+  },
+  Pisces: {
+    vi: 'Trực giác đang nhạy; khoảng lặng sẽ giúp bạn nghe rõ tín hiệu bên trong.',
+    en: 'Your intuition is heightened; quiet moments help you hear your inner signals.',
+  },
+};
+
+const ACTIVATED_HOUSE_FOCUS: Record<number, LocalizedDailyCopy> = {
+  1: { vi: 'Ưu tiên cách bạn hiện diện và chủ động bắt đầu.', en: 'Prioritize how you show up and take initiative.' },
+  2: { vi: 'Ưu tiên giá trị cá nhân và cách bạn quản lý nguồn lực.', en: 'Prioritize personal values and how you manage resources.' },
+  3: { vi: 'Ưu tiên giao tiếp rõ ràng, học hỏi và các kết nối gần.', en: 'Prioritize clear communication, learning, and nearby connections.' },
+  4: { vi: 'Ưu tiên gia đình, nền tảng cảm xúc và cảm giác thuộc về.', en: 'Prioritize family, emotional foundations, and a sense of belonging.' },
+  5: { vi: 'Ưu tiên sáng tạo, niềm vui và cách bạn bày tỏ tình cảm.', en: 'Prioritize creativity, joy, and how you express affection.' },
+  6: { vi: 'Ưu tiên thói quen, sức bền và những việc nhỏ cần hoàn thiện.', en: 'Prioritize routines, stamina, and small tasks that need completion.' },
+  7: { vi: 'Ưu tiên sự cân bằng trong quan hệ và những cam kết đôi bên.', en: 'Prioritize balance in relationships and mutual commitments.' },
+  8: { vi: 'Ưu tiên ranh giới, nguồn lực chung và điều cần chuyển hóa.', en: 'Prioritize boundaries, shared resources, and what needs transformation.' },
+  9: { vi: 'Ưu tiên học hỏi, khám phá và mở rộng góc nhìn.', en: 'Prioritize learning, exploration, and a broader perspective.' },
+  10: { vi: 'Ưu tiên mục tiêu dài hạn, trách nhiệm và hướng phát triển sự nghiệp.', en: 'Prioritize long-term goals, responsibility, and career direction.' },
+  11: { vi: 'Ưu tiên bạn bè, cộng đồng và kế hoạch cho tương lai.', en: 'Prioritize friends, community, and plans for the future.' },
+  12: { vi: 'Ưu tiên nghỉ ngơi, khép lại việc cũ và lắng nghe nội tâm.', en: 'Prioritize rest, closure, and listening inward.' },
+};
+
+function personalityFor(metadata: PureAstroFeatureMetadata, locale: AppLocale): string {
+  const base = translate(locale, `daily.personality.${metadata.dominantSignal}`);
+  const moonTone = TRANSIT_MOON_TONES[metadata.transitMoonSign]?.[locale];
+  const activeHouse = metadata.dailyContext?.activatedHouses[0]?.house;
+  const houseFocus = activeHouse ? ACTIVATED_HOUSE_FOCUS[activeHouse]?.[locale] : undefined;
+  // Put the fast-moving Moon tone first so compact one-line cards also feel current.
+  return [moonTone, houseFocus, base].filter(Boolean).join(' ');
 }
 
 function buildAstroEvidence(metadata: PureAstroFeatureMetadata, locale: AppLocale): string {
@@ -144,6 +337,7 @@ export function buildDailyInsight(
     birthDate: profile.birthDate,
     currentHour: 0,
     timeZone: -date.getTimezoneOffset() / 60,
+    locale,
   });
   const metadata = generatePureAstroVector({
     birthDate: profile.birthDate,
@@ -152,15 +346,27 @@ export function buildDailyInsight(
     birthTimeAccuracy: profile.birthTimeAccuracy,
     resolvedBirthLocation: profile.birthLocation,
   }, date).metadata;
+  const astroMetrics = buildDailyAstroMetricsFromMetadata(metadata, date, locale);
+  const luckyColor = buildDailyLuckyColor(date, locale);
   const bestHour = chooseLuckyAwakeHour(snapshot.hours);
-  const recommended = localizeActivities(snapshot.activities.yi, locale).slice(0, 3);
-  const avoid = localizeActivities(snapshot.activities.ji, locale).slice(0, 3);
+
+  // --- Nên làm / Kiêng cữ ---
+  // Ưu tiên engine đa lớp (rated); fallback về bảng 12 Trực tĩnh nếu rated không có.
+  const ratedData = snapshot.activities.rated;
+
+  const recommended = ratedData
+    ? ratedData.recommended.map((r) => (locale === 'en' ? r.en : r.vi))
+    : localizeActivities(snapshot.activities.yi, locale).slice(0, 5);
+
+  const avoid = ratedData
+    ? ratedData.avoid.map((r) => (locale === 'en' ? r.en : r.vi))
+    : localizeActivities(snapshot.activities.ji, locale).slice(0, 4);
   const base: DailyInsight = {
     dateKey: formatLocalDateKey(date),
     profileKey: getAstrologyProfileFingerprint(profile),
     locale,
     timeZone,
-    personality: personalityFor(metadata.dominantSignal, locale),
+    personality: personalityFor(metadata, locale),
     luckyTime: bestHour ? {
       startHour: bestHour.startHour,
       endHour: (bestHour.startHour + 2) % 24,
@@ -168,13 +374,19 @@ export function buildDailyInsight(
       canChi: bestHour.canChi,
       label: bestHour.label,
     } : null,
+    luckyColor,
     directions: {
       joy: localizeDirection(snapshot.direction.hyThan, locale),
       wealth: localizeDirection(snapshot.direction.taiThan, locale),
     },
     recommended,
     avoid,
+    ratedActivities: ratedData ? {
+      recommended: ratedData.recommended,
+      avoid: ratedData.avoid,
+    } : undefined,
     warning: snapshot.warning,
+    astroMetrics,
     astroEvidence: buildAstroEvidence(metadata, locale),
     canChiEvidence: buildCanChiEvidence(snapshot, locale),
     canChiDay: snapshot.canChiDay,
@@ -185,7 +397,7 @@ export function buildDailyInsight(
 }
 
 export function getDailyInsightCacheKey(insight: Pick<DailyInsight, 'dateKey' | 'profileKey' | 'locale' | 'timeZone'>): string {
-  return `@numelyra:daily-insight:v1:${insight.dateKey}:${insight.profileKey}:${insight.locale}:${insight.timeZone}`;
+  return `@numelyra:daily-insight:v4:${insight.dateKey}:${insight.profileKey}:${insight.locale}:${insight.timeZone}`;
 }
 
 export interface DailyInsightStorage {
@@ -210,6 +422,7 @@ export async function readCachedDailyInsight(
       && parsed.profileKey === identity.profileKey
       && parsed.locale === identity.locale
       && parsed.timeZone === identity.timeZone
+      && !!parsed.luckyColor
       ? parsed as DailyInsight
       : null;
   } catch {

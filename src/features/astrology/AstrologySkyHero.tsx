@@ -15,6 +15,7 @@ import {
 } from './astrologyArtwork';
 import { ASTRO_COLORS } from './AstrologyUi';
 import { isZodiacId, zodiacLabel } from './astrologyPresentation';
+import { useLocalization } from '../../i18n/LocalizationContext';
 
 interface Props {
   profile: UserProfile;
@@ -28,13 +29,6 @@ interface Props {
   onShare(): void;
 }
 
-function formatBirthDate(value: string): string {
-  const parts = value.split('T', 1)[0].split('-').map(Number);
-  if (parts.length !== 3 || parts.some((part) => !Number.isFinite(part))) return value;
-  return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
-    .format(new Date(parts[0], parts[1] - 1, parts[2]));
-}
-
 export function AstrologySkyHero({
   profile,
   metadata,
@@ -45,6 +39,7 @@ export function AstrologySkyHero({
   onInterpretationPress,
   onShare,
 }: Props) {
+  const { locale, t, l } = useLocalization();
   const zodiacArtwork = metadata && isZodiacId(metadata.natalSunSign)
     ? ZODIAC_PNG[metadata.natalSunSign]
     : undefined;
@@ -74,7 +69,7 @@ export function AstrologySkyHero({
 
       <View style={styles.profileRow}>
         <TouchableOpacity
-          accessibilityLabel="Quay lại"
+          accessibilityLabel={t('common.back')}
           accessibilityRole="button"
           onPress={onBack}
           style={styles.roundButton}
@@ -82,7 +77,7 @@ export function AstrologySkyHero({
           <Ionicons name="arrow-back" size={21} color={ASTRO_COLORS.star} />
         </TouchableOpacity>
         <TouchableOpacity
-          accessibilityLabel={`Đổi hồ sơ, hiện tại là ${profile.fullName}`}
+          accessibilityLabel={`${l('Đổi hồ sơ, hiện tại là', 'Change profile, currently')} ${profile.fullName}`}
           accessibilityRole="button"
           activeOpacity={0.82}
           onPress={onProfilePress}
@@ -98,13 +93,13 @@ export function AstrologySkyHero({
           <View style={styles.profileCopy}>
             <Text numberOfLines={1} style={styles.profileName}>{profile.fullName}</Text>
             <Text numberOfLines={1} style={styles.profileMeta}>
-              {formatBirthDate(profile.birthDate)}{metadata ? ` · ${zodiacLabel(metadata.natalSunSign)}` : ''}
+              {new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(`${profile.birthDate.split('T', 1)[0]}T12:00:00`))}{metadata ? ` · ${zodiacLabel(metadata.natalSunSign)}` : ''}
             </Text>
           </View>
           <Ionicons name="chevron-down" size={16} color={ASTRO_COLORS.muted} />
         </TouchableOpacity>
         <TouchableOpacity
-          accessibilityLabel="Chia sẻ luận giải hôm nay"
+          accessibilityLabel={l('Chia sẻ luận giải hôm nay', "Share today's reading")}
           accessibilityRole="button"
           disabled={!fortune || loading}
           onPress={onShare}
@@ -115,25 +110,25 @@ export function AstrologySkyHero({
       </View>
 
       <TouchableOpacity
-        accessibilityLabel="Mở luận giải hôm nay"
+        accessibilityLabel={l('Mở luận giải hôm nay', "Open today's reading")}
         accessibilityRole="button"
         activeOpacity={0.9}
         onPress={onInterpretationPress}
         style={styles.quoteArea}
       >
-        <Text style={styles.quoteEyebrow}>THÔNG ĐIỆP HÔM NAY</Text>
+        <Text style={styles.quoteEyebrow}>{l('THÔNG ĐIỆP HÔM NAY', "TODAY'S MESSAGE")}</Text>
         {loading && !fortune ? (
           <View style={styles.loadingRow}>
             <ActivityIndicator size="small" color={ASTRO_COLORS.gold} />
-            <Text style={styles.loadingText}>Đang đọc bầu trời của bạn…</Text>
+            <Text style={styles.loadingText}>{l('Đang đọc bầu trời của bạn…', 'Reading your sky…')}</Text>
           </View>
         ) : (
           <Text style={styles.quote}>
-            {fortune?.verse ?? metadata?.vibeSummary ?? 'Chạm để xem bức tranh năng lượng hôm nay.'}
+            {fortune?.verse ?? metadata?.vibeSummary ?? l('Chạm để xem bức tranh năng lượng hôm nay.', "Tap to view today's energy landscape.")}
           </Text>
         )}
         <View style={styles.interpretRow}>
-          <Text style={styles.interpretText}>Xem luận giải</Text>
+          <Text style={styles.interpretText}>{l('Xem luận giải', 'View reading')}</Text>
           <Ionicons name="arrow-forward" size={15} color={ASTRO_COLORS.gold} />
         </View>
       </TouchableOpacity>

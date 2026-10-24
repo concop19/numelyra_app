@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   AppState,
   Image,
@@ -20,6 +19,7 @@ import * as Haptics from 'expo-haptics';
 import { useFocusEffect } from '@react-navigation/native';
 
 import FlameMascot from '../components/chat/FlameMascot';
+import ThreeDButton from '../components/ThreeDButton';
 import { useAuth } from '../store/authContext';
 import { beginCheckout, getBillingStatus, type BillingProvider, type BillingStatus } from '../services/billingService';
 import {
@@ -56,7 +56,7 @@ type SettingItemProps = {
 export default function SettingsScreen({ profile, onBack, onRequestLogin }: Props) {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { user, isConfigured, signOut, syncLocalProfiles } = useAuth();
-  const { locale, preference, setPreference, t } = useLocalization();
+  const { locale, preference, setPreference, t, l } = useLocalization();
   const [busy, setBusy] = useState(false);
   const [billing, setBilling] = useState<BillingStatus | null>(null);
   const [billingError, setBillingError] = useState('');
@@ -73,9 +73,9 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
       setBillingError('');
       setBilling(await getBillingStatus());
     } catch (error) {
-      setBillingError(error instanceof Error ? error.message : 'Không thể tải trạng thái gói Pro.');
+      setBillingError(error instanceof Error ? error.message : l('Không thể tải trạng thái gói Pro.', 'Unable to load your Pro plan status.'));
     }
-  }, [user]);
+  }, [l, user]);
 
   useFocusEffect(useCallback(() => {
     void refreshBilling();
@@ -98,7 +98,7 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
     try {
       await signOut();
     } catch (error) {
-      Alert.alert('Không thể đăng xuất', error instanceof Error ? error.message : 'Vui lòng thử lại.');
+      Alert.alert(l('Không thể đăng xuất', 'Unable to sign out'), error instanceof Error ? error.message : l('Vui lòng thử lại.', 'Please try again.'));
     } finally {
       setBusy(false);
     }
@@ -109,9 +109,9 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
     try {
       await syncLocalProfiles();
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Đã đồng bộ', 'Hồ sơ trên thiết bị đã được liên kết với tài khoản của bạn.');
+      Alert.alert(l('Đã đồng bộ', 'Sync complete'), l('Hồ sơ trên thiết bị đã được liên kết với tài khoản của bạn.', 'The profiles on this device are now linked to your account.'));
     } catch (error) {
-      Alert.alert('Không thể đồng bộ', error instanceof Error ? error.message : 'Vui lòng thử lại.');
+      Alert.alert(l('Không thể đồng bộ', 'Unable to sync'), error instanceof Error ? error.message : l('Vui lòng thử lại.', 'Please try again.'));
     } finally {
       setBusy(false);
     }
@@ -130,7 +130,7 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
       await beginCheckout(provider);
       await refreshBilling();
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Không thể mở trang thanh toán.';
+      const message = error instanceof Error ? error.message : l('Không thể mở trang thanh toán.', 'Unable to open the payment page.');
       if (/sign in|đăng nhập|not_authenticated/i.test(message)) onRequestLogin();
       else setBillingError(message);
     } finally {
@@ -142,7 +142,7 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
     const saved = await saveDailyReminderSettings(next, { profile, locale });
     setDailyReminder(saved);
     if (next.enabled && !saved.enabled) {
-      Alert.alert('Chưa bật thông báo', 'Bạn có thể bật lại quyền thông báo trong Cài đặt thiết bị bất kỳ lúc nào.');
+      Alert.alert(l('Chưa bật thông báo', 'Notifications are off'), l('Bạn có thể bật lại quyền thông báo trong Cài đặt thiết bị bất kỳ lúc nào.', 'You can enable notification permission later in your device settings.'));
     }
   };
 
@@ -152,8 +152,8 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
     : null;
   const handle = user?.email ? `@${user.email.split('@')[0]}` : '@numelyra';
   const planDetail = isPro
-    ? `Premium${activeUntil ? ` đến ${activeUntil}` : ''}`
-    : 'Khám phá gói Premium';
+    ? `Premium${activeUntil ? ` ${l('đến', 'until')} ${activeUntil}` : ''}`
+    : l('Khám phá gói Premium', 'Explore Premium');
 
   const openAccountActions = () => {
     void Haptics.selectionAsync();
@@ -162,12 +162,12 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
       return;
     }
     Alert.alert(
-      'Thông tin cá nhân',
-      user.email ?? 'Tài khoản NUMELYRA',
+      t('settings.personal'),
+      user.email ?? l('Tài khoản NUMELYRA', 'NUMELYRA account'),
       [
-        { text: 'Đồng bộ hồ sơ', onPress: () => { void sync(); } },
-        { text: 'Đăng xuất', style: 'destructive', onPress: () => { void handleSignOut(); } },
-        { text: 'Đóng', style: 'cancel' },
+        { text: l('Đồng bộ hồ sơ', 'Sync profiles'), onPress: () => { void sync(); } },
+        { text: l('Đăng xuất', 'Sign out'), style: 'destructive', onPress: () => { void handleSignOut(); } },
+        { text: t('common.close'), style: 'cancel' },
       ],
     );
   };
@@ -179,25 +179,25 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
       return;
     }
     if (isPro) {
-      Alert.alert('Gói Premium', activeUntil ? `Gói của bạn có hiệu lực đến ${activeUntil}.` : 'Gói Premium đang hoạt động.', [
-        { text: 'Cập nhật trạng thái', onPress: () => { void refreshBilling(); } },
-        { text: 'Đóng', style: 'cancel' },
+      Alert.alert(l('Gói Premium', 'Premium plan'), activeUntil ? l(`Gói của bạn có hiệu lực đến ${activeUntil}.`, `Your plan is active until ${activeUntil}.`) : l('Gói Premium đang hoạt động.', 'Your Premium plan is active.'), [
+        { text: l('Cập nhật trạng thái', 'Refresh status'), onPress: () => { void refreshBilling(); } },
+        { text: t('common.close'), style: 'cancel' },
       ]);
       return;
     }
-    Alert.alert('Nâng cấp Premium', 'Chọn phương thức thanh toán', [
+    Alert.alert(l('Nâng cấp Premium', 'Upgrade to Premium'), l('Chọn phương thức thanh toán', 'Choose a payment method'), [
       { text: 'VietQR / PayOS', onPress: () => { void upgrade('payos'); } },
       { text: 'PayPal', onPress: () => { void upgrade('paypal'); } },
-      { text: 'Để sau', style: 'cancel' },
+      { text: l('Để sau', 'Not now'), style: 'cancel' },
     ]);
   };
 
   const chooseReminderTime = () => {
     if (!canUseNativeNotifications) {
-      Alert.alert('Nhắc hằng ngày', 'Tính năng này khả dụng trên bản phát hành cài trên thiết bị.');
+      Alert.alert(t('settings.dailyReminder'), l('Tính năng này khả dụng trên bản phát hành cài trên thiết bị.', 'This feature is available in the installed mobile app.'));
       return;
     }
-    Alert.alert('Chọn giờ nhắc', 'NUMELYRA sẽ nhẹ nhàng nhắc bạn mỗi ngày.', [8, 20, 21].map((hour) => ({
+    Alert.alert(l('Chọn giờ nhắc', 'Choose reminder time'), l('NUMELYRA sẽ nhẹ nhàng nhắc bạn mỗi ngày.', 'NUMELYRA will send you a gentle daily reminder.'), [8, 20, 21].map((hour) => ({
       text: `${String(hour).padStart(2, '0')}:00`,
       onPress: () => { void updateDailyReminder({ ...dailyReminder, hour, minute: 0 }); },
     })));
@@ -231,7 +231,7 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
         <StatusBar style="light" />
         <TouchableOpacity
           accessibilityRole="button"
-          accessibilityLabel="Quay lại"
+          accessibilityLabel={t('common.back')}
           activeOpacity={0.75}
           onPress={onBack}
           style={styles.backButton}
@@ -276,7 +276,7 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
               iconColor="#5D238B"
               iconBackground="#FFEADB"
               label={t('settings.personal')}
-              detail={user?.email ?? (isConfigured ? 'Đăng nhập để đồng bộ hồ sơ' : 'Tài khoản khách')}
+              detail={user?.email ?? (isConfigured ? l('Đăng nhập để đồng bộ hồ sơ', 'Sign in to sync profiles') : l('Tài khoản khách', 'Guest account'))}
               onPress={openAccountActions}
             />
             <SettingItem
@@ -302,7 +302,7 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
               label={t('settings.notifications')}
               trailing={(
                 <Switch
-                  accessibilityLabel="Bật thông báo"
+                  accessibilityLabel={t('settings.notifications')}
                   disabled={!canUseNativeNotifications}
                   value={dailyReminder.enabled}
                   onValueChange={(enabled) => { void updateDailyReminder({ ...dailyReminder, enabled }); }}
@@ -343,22 +343,22 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
               iconColor="#6B32B2"
               iconBackground="#FFDCE4"
               label={t('settings.activity')}
-              detail="Lịch sử trải bài, lịch sử hỏi AI"
-              onPress={() => Alert.alert('Hoạt động của bạn', '12 lượt xem tarot tháng này\n8 lần xem chiêm tinh\n5 ngày mở lịch liên tiếp')}
+              detail={l('Lịch sử trải bài, lịch sử hỏi AI', 'Card readings and AI question history')}
+              onPress={() => Alert.alert(t('settings.activity'), l('12 lượt xem tarot tháng này\n8 lần xem chiêm tinh\n5 ngày mở lịch liên tiếp', '12 tarot readings this month\n8 astrology views\n5 consecutive calendar days'))}
             />
             <SettingItem
               icon="lock-closed"
               iconColor="#5D35C5"
               iconBackground="#F1DBED"
               label={t('settings.privacy')}
-              onPress={() => Alert.alert('Quyền riêng tư', 'Dữ liệu cá nhân của bạn được lưu và đồng bộ theo trạng thái tài khoản.')}
+              onPress={() => Alert.alert(t('settings.privacy'), l('Dữ liệu cá nhân của bạn được lưu và đồng bộ theo trạng thái tài khoản.', 'Your personal data is stored and synced according to your account status.'))}
             />
             <SettingItem
               icon="help-circle"
               iconColor="#6D218B"
               iconBackground="#FBE1E4"
               label={t('settings.help')}
-              onPress={() => Alert.alert('Trợ giúp', 'Nếu bạn cần hỗ trợ, hãy gửi phản hồi từ trang NUMELYRA.')}
+              onPress={() => Alert.alert(t('settings.help'), l('Nếu bạn cần hỗ trợ, hãy gửi phản hồi từ trang NUMELYRA.', 'If you need help, send feedback from the NUMELYRA page.'))}
               last
             />
           </View>
@@ -371,10 +371,10 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
           >
             <Ionicons name="diamond" size={24} color="#F777E5" />
             <View style={styles.activityCopy}>
-              <Text style={styles.activityTitle}>Hoạt động gần đây</Text>
-              <Text style={styles.activityLine}>•  12 lượt xem tarot tháng này</Text>
-              <Text style={styles.activityLine}>•  8 lần xem chiêm tinh</Text>
-              <Text style={styles.activityLine}>•  5 ngày mở lịch liên tiếp</Text>
+              <Text style={styles.activityTitle}>{l('Hoạt động gần đây', 'Recent activity')}</Text>
+              <Text style={styles.activityLine}>•  {l('12 lượt xem tarot tháng này', '12 tarot readings this month')}</Text>
+              <Text style={styles.activityLine}>•  {l('8 lần xem chiêm tinh', '8 astrology views')}</Text>
+              <Text style={styles.activityLine}>•  {l('5 ngày mở lịch liên tiếp', '5 consecutive calendar days')}</Text>
             </View>
             <Ionicons name="sparkles" size={18} color="#FFE473" style={styles.activitySparkle} />
             <View pointerEvents="none" style={styles.activityMoon}>
@@ -387,33 +387,22 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
             </View>
           </LinearGradient>
 
-          <TouchableOpacity
-            accessibilityRole="button"
-            activeOpacity={0.86}
+          <ThreeDButton
             disabled={busy}
+            fullWidth
+            label={isPro ? l('Quản lý gói Premium', 'Manage Premium') : l('Quản lý gói', 'Manage plan')}
+            leadingIcon={<Ionicons name="diamond" size={22} color="#FFF5BE" />}
+            loading={busy}
             onPress={openPackageActions}
-            style={[styles.packageButtonShadow, busy && styles.disabled]}
-          >
-            <LinearGradient
-              colors={['#FF7B85', '#B75BC6', '#7048E1']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.packageButton}
-            >
-              {busy ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <>
-                  <Ionicons name="diamond" size={22} color="#FFF5BE" />
-                  <Text style={styles.packageButtonText}>{isPro ? 'Quản lý gói Premium' : 'Quản lý gói'}</Text>
-                  <Ionicons name="chevron-forward" size={25} color="#FFFFFF" />
-                </>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
+            shape="pill"
+            size="lg"
+            style={styles.packageButton3d}
+            trailingIcon={<Ionicons name="chevron-forward" size={24} color="#FFFFFF" />}
+            variant="purple"
+          />
 
           {!!billing?.checkoutPending && (
-            <Text style={styles.warning}>Bạn có một yêu cầu PayPal chưa hoàn tất. Hãy hoàn tất hoặc hủy yêu cầu trước khi thử lại.</Text>
+            <Text style={styles.warning}>{l('Bạn có một yêu cầu PayPal chưa hoàn tất. Hãy hoàn tất hoặc hủy yêu cầu trước khi thử lại.', 'You have an unfinished PayPal request. Complete or cancel it before trying again.')}</Text>
           )}
           {!!billingError && <Text accessibilityRole="alert" style={styles.error}>{billingError}</Text>}
         </ScrollView>
@@ -538,16 +527,7 @@ const styles = StyleSheet.create({
     position: 'absolute', bottom: -2, borderRadius: 40, backgroundColor: '#A849C3', shadowColor: '#F675C0',
     shadowOffset: { width: 0, height: -5 }, shadowOpacity: 0.55, shadowRadius: 8,
   },
-  packageButtonShadow: {
-    height: 64, marginTop: 12, borderRadius: 20, shadowColor: '#E54EAE',
-    shadowOffset: { width: 0, height: 7 }, shadowOpacity: 0.46, shadowRadius: 12, elevation: 10,
-  },
-  packageButton: {
-    flex: 1, borderRadius: 20, borderWidth: 1.5, borderColor: '#FFD6C7', paddingHorizontal: 22,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-  },
-  packageButtonText: { flex: 1, color: '#FFFFFF', fontSize: 17, fontWeight: '900', textAlign: 'center' },
-  disabled: { opacity: 0.58 },
+  packageButton3d: { marginTop: 12 },
   warning: { color: '#FFE27B', fontSize: 12, lineHeight: 18, marginTop: 10, textAlign: 'center' },
   error: { color: '#FFD1DC', fontSize: 12, lineHeight: 18, marginTop: 10, textAlign: 'center' },
 });

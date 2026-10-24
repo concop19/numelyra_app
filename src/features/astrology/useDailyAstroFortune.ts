@@ -16,6 +16,7 @@ import {
   formatLocalDateKey,
   loadCachedAstroFortune,
   loadRecentAstroAdvice,
+  loadRecentAstroCaDao,
   refreshCachedAstroMetadata,
   saveCachedAstroFortune,
 } from './dailyAstroFortune';
@@ -107,18 +108,16 @@ export function useDailyAstroFortune(profile?: UserProfile | null): DailyAstroFo
         }
       }
 
-      const recentAdvice = await loadRecentAstroAdvice(
-        AsyncStorage,
-        currentDate,
-        profile,
-        7,
-        locale,
-      );
+      const [recentAdvice, recentCaDao] = await Promise.all([
+        loadRecentAstroAdvice(AsyncStorage, currentDate, profile, 7, locale),
+        loadRecentAstroCaDao(AsyncStorage, currentDate, profile, 14, locale),
+      ]);
       const result = await requestAstroFortuneSlip({
         locale,
         astroMetadata: metadata,
         caDaoMode: 'daily',
         recentAdvice,
+        recentCaDao,
       });
       result.astroMetadata = metadata;
       try {

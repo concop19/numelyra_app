@@ -221,9 +221,10 @@ function AccordionDetails({ section, model }: { section: AccordionData; model: L
   );
 }
 
-export default function LoveCompatibilityDetail({ model, onClose }: {
+export default function LoveCompatibilityDetail({ model, onClose, onContinue }: {
   model: LoveReadingViewModel;
   onClose: () => void;
+  onContinue?: () => void;
 }) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(() => new Set());
   const sections = useMemo(() => buildAccordionData(model), [model]);
@@ -405,6 +406,19 @@ export default function LoveCompatibilityDetail({ model, onClose }: {
               </View>
             );
           })}
+          {onContinue ? (
+            <TouchableOpacity
+              activeOpacity={0.84}
+              onPress={onContinue}
+              accessibilityRole="button"
+              accessibilityLabel="Tiếp tục trò chuyện về bài luận giải này"
+              style={styles.continueButton}
+            >
+              <Ionicons name="chatbubble-ellipses-outline" size={20} color="#FFF8E7" />
+              <Text style={styles.continueButtonText}>Tiếp tục trò chuyện</Text>
+              <Ionicons name="arrow-forward" size={18} color="#FFF8E7" />
+            </TouchableOpacity>
+          ) : null}
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -539,6 +553,12 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(132, 226, 194, 0.24)',
   },
   warningBox: { backgroundColor: 'rgba(255, 135, 130, 0.11)', borderColor: 'rgba(255, 153, 148, 0.28)' },
+  continueButton: {
+    minHeight: 52, borderRadius: 26, paddingHorizontal: 20, flexDirection: 'row',
+    alignItems: 'center', justifyContent: 'center', gap: 9, backgroundColor: '#7440A5',
+    borderWidth: 1, borderColor: 'rgba(255, 226, 160, 0.72)',
+  },
+  continueButtonText: { flex: 1, color: '#FFF8E7', fontSize: 15, fontWeight: '900', textAlign: 'center' },
   sectionLabel: { color: '#FFE2A7', fontSize: 10, lineHeight: 14, fontWeight: '900', letterSpacing: 0.7, marginBottom: 5 },
   bodyText: { color: '#F4F6FA', fontSize: 12.5, lineHeight: 19 },
 });

@@ -7,6 +7,9 @@ import { getIndicatorReading, KnowledgeReadingResult } from '../services/numerol
 import CandleFlameSprite from './CandleFlameSprite';
 import FlameCharacterSprite from './FlameCharacterSprite';
 import BottomFlameSprite from './BottomFlameSprite';
+import ThreeDButton from './ThreeDButton';
+import { useLocalization } from '../i18n/LocalizationContext';
+import { getEnglishIndicatorReading } from './IndicatorDetailModal';
 
 const BACKGROUND = require('../../assets/giao_dien/giaodien1/chat_detail/background/background.png');
 const MAT = require('../../assets/giao_dien/giaodien1/chat_detail/item/tham.png');
@@ -67,6 +70,7 @@ function Decor({ scale, active, paperLayout }: { scale: number; active: boolean;
 }
 
 export function MysticIndicatorDetailModal({ visible, indicator, onClose }: Props) {
+  const { locale, l } = useLocalization();
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const [loading, setLoading] = useState(false);
   const [reading, setReading] = useState<KnowledgeReadingResult | null>(null);
@@ -89,6 +93,7 @@ export function MysticIndicatorDetailModal({ visible, indicator, onClose }: Prop
   }, [visible, indicator]);
 
   if (!indicator) return null;
+  const visibleReading = locale === 'en' ? getEnglishIndicatorReading(indicator) : reading;
 
   const isLandscape = viewportWidth > viewportHeight;
   const scale = isLandscape
@@ -120,38 +125,43 @@ export function MysticIndicatorDetailModal({ visible, indicator, onClose }: Prop
     <View style={styles.scene}>
       <ImageBackground source={BACKGROUND} resizeMode="stretch" style={[styles.canvas, { left: canvasLeft, top: canvasTop, width: canvasWidth, height: canvasHeight }]}>
       <Decor scale={scale} active={visible} paperLayout={paperLayout} />
-      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Đóng luận giải chi tiết" activeOpacity={0.75} onPress={onClose} style={[styles.closeButton, { left: 856 * scale, top: 46 * scale, width: 48 * scale, height: 48 * scale, borderRadius: 24 * scale }]}>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel={l('Đóng luận giải chi tiết', 'Close detailed reading')} activeOpacity={0.75} onPress={onClose} style={[styles.closeButton, { left: 856 * scale, top: 46 * scale, width: 48 * scale, height: 48 * scale, borderRadius: 24 * scale }]}>
         <Ionicons name="close" size={22} color="#FFF5DF" />
       </TouchableOpacity>
 
       <ScrollView style={[styles.paperReading, readingFrame]} contentContainerStyle={styles.paperReadingContent} showsVerticalScrollIndicator={false} bounces={false}>
-        <Text style={styles.kicker}>BẢN ĐỒ BẢN MỆNH · #{indicator.number}</Text>
-        <Text style={styles.title}>{indicator.nameVi}</Text>
-        <Text style={styles.subtitle}>{indicator.nameEn}</Text>
+        <Text style={styles.kicker}>{l('BẢN ĐỒ BẢN MỆNH', 'SOUL MAP')} · #{indicator.number}</Text>
+        <Text style={styles.title}>{locale === 'en' ? indicator.nameEn : indicator.nameVi}</Text>
+        {locale !== 'en' && <Text style={styles.subtitle}>{indicator.nameEn}</Text>}
         <View style={styles.valueRow}>
-          <Text style={styles.valueLabel}>Chỉ số của bạn</Text>
+          <Text style={styles.valueLabel}>{l('Chỉ số của bạn', 'Your number')}</Text>
           <Text style={styles.value}>{indicator.displayValue}</Text>
           {indicator.isMaster ? <Text style={styles.master}>MASTER</Text> : null}
         </View>
-        <Text style={styles.description}>{indicator.description}</Text>
+        <Text style={styles.description}>{locale === 'en' ? indicator.descriptionEn || `A Pythagorean numerology reading for ${indicator.nameEn}.` : indicator.description}</Text>
 
-        {loading ? <Text style={styles.loadingText}>Đang mở trang luận giải…</Text> : reading ? <View style={styles.reading}>
-          <Section title="Bản chất cốt lõi" body={reading.overview} />
-          {reading.strengths.length > 0 ? <Bullets title="Điểm mạnh tự nhiên" items={reading.strengths} /> : null}
-          {reading.challenges.length > 0 ? <Bullets title="Điều cần lưu ý" items={reading.challenges} /> : null}
-          {reading.advice ? <Section title="Lời khuyên" body={reading.advice} accent /> : null}
-          {reading.fullContent && reading.fullContent.length > 300 ? <View style={styles.articleToggleWrap}>
+        {loading ? <Text style={styles.loadingText}>{l('Đang mở trang luận giải…', 'Opening your reading…')}</Text> : visibleReading ? <View style={styles.reading}>
+          <Section title={l('Bản chất cốt lõi', 'Core nature')} body={visibleReading.overview} />
+          {visibleReading.strengths.length > 0 ? <Bullets title={l('Điểm mạnh tự nhiên', 'Natural strengths')} items={visibleReading.strengths} /> : null}
+          {visibleReading.challenges.length > 0 ? <Bullets title={l('Điều cần lưu ý', 'Points to notice')} items={visibleReading.challenges} /> : null}
+          {visibleReading.advice ? <Section title={l('Lời khuyên', 'Guidance')} body={visibleReading.advice} accent /> : null}
+          {visibleReading.fullContent && visibleReading.fullContent.length > 300 ? <View style={styles.articleToggleWrap}>
             <TouchableOpacity activeOpacity={0.7} onPress={() => { void Haptics.selectionAsync(); setShowFullArticle((current) => !current); }} style={styles.articleToggle}>
-              <Text style={styles.articleToggleText}>{showFullArticle ? 'Thu gọn tư liệu' : 'Đọc tư liệu gốc'}</Text>
+              <Text style={styles.articleToggleText}>{showFullArticle ? l('Thu gọn tư liệu', 'Collapse source text') : l('Đọc tư liệu gốc', 'Read source text')}</Text>
               <Ionicons name={showFullArticle ? 'chevron-up' : 'chevron-down'} size={15} color="#7A3E39" />
             </TouchableOpacity>
-            {showFullArticle ? <Text style={styles.fullArticle}>{reading.fullContent}</Text> : null}
+            {showFullArticle ? <Text style={styles.fullArticle}>{visibleReading.fullContent}</Text> : null}
           </View> : null}
-        </View> : <Text style={styles.loadingText}>Chưa có tư liệu chi tiết cho chỉ số này.</Text>}
+        </View> : <Text style={styles.loadingText}>{l('Chưa có tư liệu chi tiết cho chỉ số này.', 'No detailed reference is available for this number yet.')}</Text>}
 
-        <TouchableOpacity activeOpacity={0.8} onPress={() => { void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); onClose(); }} style={styles.doneButton}>
-          <Text style={styles.doneButtonText}>Đã hiểu · quay lại</Text>
-        </TouchableOpacity>
+        <ThreeDButton
+          label={l('Đã hiểu · quay lại', 'Got it · go back')}
+          onPress={() => { void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); onClose(); }}
+          shape="pill"
+          size="sm"
+          style={styles.doneButton3d}
+          variant="gold"
+        />
       </ScrollView>
     </ImageBackground>
     </View>
@@ -188,6 +198,5 @@ const styles = StyleSheet.create({
   articleToggleWrap: { borderTopWidth: 1, borderTopColor: 'rgba(113, 56, 51, 0.2)', paddingTop: 6 },
   articleToggle: { flexDirection: 'row', alignItems: 'center', alignSelf: 'center', gap: 3, paddingVertical: 5, paddingHorizontal: 8 },
   articleToggleText: { color: '#7A3E39', fontSize: 12, fontWeight: '800' }, fullArticle: { color: '#5D403B', fontSize: 12, lineHeight: 18, fontWeight: '600', marginTop: 4 },
-  doneButton: { alignSelf: 'center', borderRadius: 15, backgroundColor: '#7A3E39', paddingHorizontal: 16, paddingVertical: 8, marginTop: 16 },
-  doneButtonText: { color: '#FFF4D6', fontSize: 12, fontWeight: '800' },
+  doneButton3d: { alignSelf: 'center', marginTop: 16 },
 });

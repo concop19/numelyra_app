@@ -14,7 +14,7 @@ import {
   StyleSheet, View, Text, TextInput, TouchableOpacity,
   FlatList, KeyboardAvoidingView, Platform, Keyboard,
   Animated, Easing, Image, Alert, ScrollView, Modal, Linking,
-  ActivityIndicator, type ImageSourcePropType
+  ActivityIndicator, useWindowDimensions, type ImageSourcePropType
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -26,6 +26,7 @@ import { UserProfile, ProfileItem, getActiveProfile } from '../store/userProfile
 import { useAuth } from '../store/authContext';
 import { startVoiceListening, stopVoiceListening, isVoiceSupported } from '../services/voiceService';
 import ProfilePickerModal from '../components/ProfilePickerModal';
+import ThreeDButton from '../components/ThreeDButton';
 import { NumerologyCardsModal } from '../components/NumerologyCardsModal';
 import { MysticIndicatorDetailModal } from '../components/MysticIndicatorDetailModal';
 import TarotCardFlipView from '../components/TarotCardFlipView';
@@ -48,6 +49,7 @@ import FlameMascot, {
   FLAME_COLOR_PALETTES,
 } from '../components/chat/FlameMascot';
 import MeteorShower from '../components/chat/MeteorShower';
+import FloatingWallpaperCloud from '../components/FloatingWallpaperCloud';
 import ChatInputBar from '../components/chat/ChatInputBar';
 import HighlightedAnswerText from '../components/chat/HighlightedAnswerText';
 import { PlaceSearchContextModal } from '../components/chat/PlaceSearchContextModal';
@@ -58,12 +60,14 @@ import {
   clearChatHistory,
   loadChatHistory,
   MAX_STORED_CHAT_MESSAGES,
+  orderChatHistoryMessages,
   saveChatHistory,
 } from '../services/chatHistoryStorage';
 import { useLocalization } from '../i18n/LocalizationContext';
 import { buildDailyInsight, cacheDailyInsight } from '../features/daily-insight/dailyInsight';
-import DailyInsightCard from '../features/daily-insight/DailyInsightCard';
 import DailyInsightSheet from '../features/daily-insight/DailyInsightSheet';
+import { formatLocalDateKey } from '../features/astrology/dailyAstroFortune';
+import { useDailyAstroFortune } from '../features/astrology/useDailyAstroFortune';
 
 const VIP_ACCOUNT_ICON = require('../../assets/giao_dien/vip.png');
 const AMBIENT_GLOW_IMG = require('../../assets/giao_dien/ambient_glow.png');
@@ -77,6 +81,8 @@ export interface MessageItem {
   sender: 'user' | 'mascot';
   text: string;
   time: string;
+  turnId?: string;
+  createdAt?: number;
   card?: any;
   isTypingCompleted?: boolean;
 }
@@ -102,8 +108,18 @@ type AmbientMascotState = 'idle' | 'thinking' | 'answer';
 
 const CHAT_MASCOT_SIZE = 175;
 const THINKING_MASCOT_SIZE = 185;
+const CHAT_MASCOT_SIDE_UI_GUTTER = 52;
+const CHAT_MASCOT_MAX_WIDTH_RATIO = 1.9;
 const SPECIAL_MASCOT_DURATION_MS = 10_000;
 const SPECIAL_MASCOT_IDLE_REST_MS = 3_000;
+
+const getMascotMaxVisualWidth = (size: number, viewportWidth: number) => Math.max(
+  size,
+  Math.min(
+    size * CHAT_MASCOT_MAX_WIDTH_RATIO,
+    viewportWidth - (CHAT_MASCOT_SIDE_UI_GUTTER * 2)
+  )
+);
 
 interface Props {
   profile?: UserProfile;
@@ -112,8 +128,8 @@ interface Props {
   onOpenCalendar?: () => void;
   onOpenAstrology?: () => void;
   onOpenWallpaper?: () => void;
-  onOpenGameHub?: () => void;
   onOpenRawReading?: (message: MessageItem, previousQuestion?: string) => void;
+  onContinueReading?: (sessionId: string, title?: string) => void;
 }
 
 interface SceneActionButtonProps {
@@ -163,7 +179,6 @@ const SceneActionButton: React.FC<SceneActionButtonProps> = ({
 );
 
 interface ChatSceneActionsProps {
-  alignWithCenter: boolean;
   onOpenCalendar?: () => void;
   onOpenAstrology?: () => void;
   onOpenWallpaper?: () => void;
@@ -171,7 +186,6 @@ interface ChatSceneActionsProps {
 }
 
 const ChatSceneActions: React.FC<ChatSceneActionsProps> = ({
-  alignWithCenter,
   onOpenCalendar,
   onOpenAstrology,
   onOpenWallpaper,
@@ -181,10 +195,7 @@ const ChatSceneActions: React.FC<ChatSceneActionsProps> = ({
   return (
   <View
     pointerEvents="box-none"
-    style={[
-      styles.sceneActionsOverlay,
-      alignWithCenter ? styles.sceneActionsCentered : styles.sceneActionsBottom,
-    ]}
+    style={[styles.sceneActionsOverlay, styles.sceneActionsBottom]}
   >
     <View style={styles.sceneActionRail} pointerEvents="box-none">
       <SceneActionButton
@@ -238,6 +249,7 @@ interface AssistantPreviewBubbleProps {
   message: MessageItem;
   onFinishTyping: (messageId: string) => void;
   onOpen: () => void;
+  onContinue?: () => void;
 }
 
 /** A compact history-safe preview. The complete reading belongs to raw detail. */
@@ -245,7 +257,9 @@ const AssistantPreviewBubble: React.FC<AssistantPreviewBubbleProps> = ({
   message,
   onFinishTyping,
   onOpen,
+  onContinue,
 }) => {
+  const { l } = useLocalization();
   const text = withoutQuickConclusionHeading(message.text);
   const canOpenDetail = !!message.isTypingCompleted || isCompatibilityMessage(message);
   const [shownLength, setShownLength] = useState(message.isTypingCompleted ? text.length : 0);
@@ -276,18 +290,32 @@ const AssistantPreviewBubble: React.FC<AssistantPreviewBubbleProps> = ({
 
   return (
     <View style={styles.assistantBubbleRow}>
-      <TouchableOpacity
-        activeOpacity={0.82}
-        onPress={canOpenDetail ? onOpen : undefined}
-        accessibilityRole="button"
-        accessibilityLabel="Mở lời giải chi tiết"
-        style={styles.assistantBubble}
-      >
-        <Text numberOfLines={3} style={styles.assistantBubbleText}>
-          {displayText}
-          {!message.isTypingCompleted ? <Text style={styles.assistantTypingCursor}> ▌</Text> : null}
-        </Text>
-      </TouchableOpacity>
+      <View style={styles.assistantBubble}>
+        <TouchableOpacity
+          activeOpacity={0.82}
+          onPress={canOpenDetail ? onOpen : undefined}
+          accessibilityRole="button"
+          accessibilityLabel={l('Mở lời giải chi tiết', 'Open detailed reading')}
+          style={styles.assistantReadingTouch}
+        >
+          <Text numberOfLines={3} style={styles.assistantBubbleText}>
+            {displayText}
+            {!message.isTypingCompleted ? <Text style={styles.assistantTypingCursor}> ▌</Text> : null}
+          </Text>
+        </TouchableOpacity>
+        {message.isTypingCompleted && onContinue ? (
+          <TouchableOpacity
+            activeOpacity={0.82}
+            onPress={onContinue}
+            accessibilityRole="button"
+            accessibilityLabel={l('Tiếp tục trò chuyện về bài đọc này', 'Continue chatting about this reading')}
+            style={styles.continueReadingButton}
+          >
+            <Ionicons name="chatbubble-ellipses-outline" size={17} color="#FFF8E7" />
+            <Text style={styles.continueReadingText}>{l('Tiếp tục trò chuyện', 'Continue conversation')}</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
     </View>
   );
 };
@@ -429,6 +457,7 @@ const TypewriterMessage: React.FC<TypewriterMessageProps> = ({
   onScrollRequest,
   onDoublePress,
 }) => {
+  const { l } = useLocalization();
   const [displayedLength, setDisplayedLength] = useState(isAlreadyFinished ? text.length : 0);
   const [isWaiting, setIsWaiting] = useState(!isAlreadyFinished && hasTarot && !isCardsFlipped);
   const [isDone, setIsDone] = useState(isAlreadyFinished);
@@ -570,10 +599,10 @@ const TypewriterMessage: React.FC<TypewriterMessageProps> = ({
             {!isDone && <Text style={styles.typewriterCursor}> ▌</Text>}
           </HighlightedAnswerText>
           {!isDone && (
-            <Text style={styles.skipHintText}>✦ Chạm để hiện nhanh toàn bộ</Text>
+            <Text style={styles.skipHintText}>✦ {l('Chạm để hiện nhanh toàn bộ', 'Tap to reveal the full message')}</Text>
           )}
           {isDone && onDoublePress && (
-            <Text style={styles.analysisTapHint}>Nhấn đúp để xem căn cứ luận giải</Text>
+            <Text style={styles.analysisTapHint}>{l('Nhấn đúp để xem căn cứ luận giải', 'Double-tap to view the reading basis')}</Text>
           )}
         </View>
       )}
@@ -588,26 +617,21 @@ export default function ChatScreen({
   onOpenCalendar,
   onOpenAstrology,
   onOpenWallpaper,
-  onOpenGameHub,
   onOpenRawReading,
+  onContinueReading,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { width: viewportWidth } = useWindowDimensions();
   const { user } = useAuth();
-  const { locale, t } = useLocalization();
+  const { locale, t, l } = useLocalization();
+  const chatMascotMaxVisualWidth = getMascotMaxVisualWidth(CHAT_MASCOT_SIZE, viewportWidth);
+  const thinkingMascotMaxVisualWidth = getMascotMaxVisualWidth(THINKING_MASCOT_SIZE, viewportWidth);
   const chatHistoryOwner = user?.id || 'guest';
   const [isPro, setIsPro] = useState(false);
   const [dailyClock, setDailyClock] = useState(() => new Date());
   const [dailySheetVisible, setDailySheetVisible] = useState(false);
+  const [isDailyInsightUnseen, setIsDailyInsightUnseen] = useState(false);
   const [suggestionOffset, setSuggestionOffset] = useState(0);
-
-  const dailyInsight = useMemo(() => {
-    if (!profile) return null;
-    const linkedDate = openDailyDate && /^\d{4}-\d{2}-\d{2}$/.test(openDailyDate)
-      ? new Date(`${openDailyDate}T12:00:00`)
-      : dailyClock;
-    try { return buildDailyInsight(profile, linkedDate, locale); }
-    catch { return null; }
-  }, [dailyClock, locale, openDailyDate, profile]);
 
   const refreshPlan = useCallback(async () => {
     try {
@@ -637,18 +661,46 @@ export default function ChatScreen({
   const [isPlaceContextModalOpen, setIsPlaceContextModalOpen] = useState(false);
   const placeContextResolverRef = useRef<((context: PlaceSearchContext | null) => void) | null>(null);
 
-  const activeTargetProfile: ProfileItem | { fullName: string; birthDate: string } | null = useMemo(() => {
+  const activeTargetProfile: ProfileItem | UserProfile | null = useMemo(() => {
     if (selectedProfiles && selectedProfiles.length > 0) return selectedProfiles[0];
-    if (profile && profile.fullName) {
-      return {
-        id: 'default-profile',
-        fullName: profile.fullName,
-        birthDate: profile.birthDate,
-        gender: profile.gender,
-      };
-    }
+    if (profile && profile.fullName) return profile;
     return null;
   }, [selectedProfiles, profile]);
+
+  const dailyProfile = useMemo<UserProfile | null>(() => {
+    const selected = selectedProfiles[0];
+    if (!selected) return profile ?? null;
+    return {
+      fullName: selected.fullName,
+      birthDate: selected.birthDate,
+      gender: selected.gender ?? profile?.gender ?? 'female',
+      birthTime: selected.birthTime,
+      birthPlace: selected.birthPlace,
+      birthLocation: selected.birthLocation,
+      birthTimeAccuracy: selected.birthTimeAccuracy,
+    };
+  }, [profile, selectedProfiles]);
+
+  const dailyInsight = useMemo(() => {
+    if (!dailyProfile) return null;
+    const linkedDate = openDailyDate && /^\d{4}-\d{2}-\d{2}$/.test(openDailyDate)
+      ? new Date(`${openDailyDate}T12:00:00`)
+      : dailyClock;
+    try { return buildDailyInsight(dailyProfile, linkedDate, locale); }
+    catch { return null; }
+  }, [dailyClock, dailyProfile, locale, openDailyDate]);
+
+  const {
+    currentDate: dailyFortuneDate,
+    fortune: dailyFortune,
+  } = useDailyAstroFortune(dailyProfile);
+  const fortuneForDailyInsight = useMemo(() => {
+    if (!dailyInsight || !dailyFortune) return null;
+    if (formatLocalDateKey(dailyFortuneDate) !== dailyInsight.dateKey) return null;
+    if (dailyFortune.astroMetadata?.birthDate
+      && dailyFortune.astroMetadata.birthDate !== dailyProfile?.birthDate) return null;
+    return dailyFortune;
+  }, [dailyFortune, dailyFortuneDate, dailyInsight, dailyProfile?.birthDate]);
 
   const handleMascotPress = () => {
     if (!activeTargetProfile || !activeTargetProfile.fullName || !activeTargetProfile.birthDate) {
@@ -687,6 +739,7 @@ export default function ChatScreen({
 
   // Messages & States
   const [messages, setMessages] = useState<MessageItem[]>([]);
+  const chatTurnSequenceRef = useRef(0);
   const [loveCompatibilityFlow, setLoveCompatibilityFlow] = useState<LoveCompatibilityFlowState | null>(null);
   const loveCompatibilityFlowDismissedRef = useRef(false);
   const [visibleMessageCount, setVisibleMessageCount] = useState(1);
@@ -720,22 +773,45 @@ export default function ChatScreen({
   }, []);
 
   useEffect(() => {
-    if (!dailyInsight || !isHistoryReady) return;
+    if (!dailyInsight || !isHistoryReady) {
+      setIsDailyInsightUnseen(false);
+      return;
+    }
     let active = true;
+    setIsDailyInsightUnseen(false);
     void cacheDailyInsight(AsyncStorage, dailyInsight).catch(() => undefined);
     const seenKey = `@numelyra:daily-insight-seen:${dailyInsight.profileKey}:${dailyInsight.dateKey}`;
     if (openDailyDate) {
       setDailySheetVisible(true);
+      setIsDailyInsightUnseen(false);
       void AsyncStorage.setItem(seenKey, '1');
       return;
     }
     AsyncStorage.getItem(seenKey).then((seen) => {
-      if (!active || seen) return;
-      setDailySheetVisible(true);
-      return AsyncStorage.setItem(seenKey, '1');
+      if (!active) return;
+      setIsDailyInsightUnseen(!seen);
     }).catch(() => undefined);
     return () => { active = false; };
   }, [dailyInsight?.dateKey, dailyInsight?.profileKey, isHistoryReady, openDailyDate]);
+
+  const handleOpenTodayMessage = useCallback(() => {
+    void Haptics.selectionAsync();
+    if (!dailyInsight) {
+      if (!dailyProfile || !dailyProfile.birthDate) {
+        setProfilePromptNotice(
+          locale === 'vi'
+            ? 'Vui lòng chọn hoặc hoàn thiện hồ sơ ngày sinh để xem thông điệp hôm nay.'
+            : 'Please select or complete your birth date profile to view today’s message.'
+        );
+        setIsProfileModalOpen(true);
+      }
+      return;
+    }
+    setDailySheetVisible(true);
+    setIsDailyInsightUnseen(false);
+    const seenKey = `@numelyra:daily-insight-seen:${dailyInsight.profileKey}:${dailyInsight.dateKey}`;
+    void AsyncStorage.setItem(seenKey, '1').catch(() => undefined);
+  }, [dailyInsight, dailyProfile, locale]);
 
   // Theo dõi trạng thái hiển thị bàn phím để tự động thu gọn Mascot và tối ưu không gian cho ô soạn thảo
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
@@ -816,7 +892,7 @@ export default function ChatScreen({
   }, []);
 
   const appendMessage = useCallback((message: MessageItem) => {
-    setMessages(prev => [...prev, message].slice(-MAX_STORED_CHAT_MESSAGES));
+    setMessages(prev => orderChatHistoryMessages([...prev, message]).slice(-MAX_STORED_CHAT_MESSAGES));
     setVisibleMessageCount(message.sender === 'mascot' ? 2 : 1);
   }, []);
 
@@ -855,7 +931,7 @@ export default function ChatScreen({
       onStopped: () => setSpeakingMessageId((current) => current === messageId ? null : current),
       onError: () => {
         setSpeakingMessageId((current) => current === messageId ? null : current);
-        Alert.alert('Không thể phát giọng đọc', 'Hãy kiểm tra cài đặt giọng nói tiếng Việt trên thiết bị rồi thử lại.');
+        Alert.alert(l('Không thể phát giọng đọc', 'Unable to play speech'), l('Hãy kiểm tra cài đặt giọng nói tiếng Việt trên thiết bị rồi thử lại.', 'Check the English speech settings on your device and try again.'));
       },
     });
   }, [locale]);
@@ -1024,7 +1100,7 @@ export default function ChatScreen({
       if (Platform.OS === 'web') {
         alert('Trình duyệt của bạn chưa hỗ trợ Web Speech API hoặc chưa cấp quyền Micro.');
       } else {
-        Alert.alert('Thông báo', 'Tính năng nhận diện giọng nói hỗ trợ tốt nhất trên nền tảng Web / trình duyệt.');
+        Alert.alert(l('Thông báo', 'Notice'), l('Tính năng nhận diện giọng nói hỗ trợ tốt nhất trên nền tảng Web / trình duyệt.', 'Speech recognition currently works best on the web version in a browser.'));
       }
       return;
     }
@@ -1250,11 +1326,16 @@ export default function ChatScreen({
       setIsListening(false);
     }
 
+    const turnCreatedAt = Date.now();
+    const turnSequence = chatTurnSequenceRef.current++;
+    const turnId = `turn-${turnCreatedAt}-${turnSequence}`;
     const userMsg: MessageItem = {
-      id: `user-${Date.now()}`,
+      id: `user-${turnCreatedAt}-${turnSequence}`,
       sender: 'user',
       text: prompt,
-      time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+      time: new Date(turnCreatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+      turnId,
+      createdAt: turnCreatedAt,
     };
 
     appendMessage(userMsg);
@@ -1330,6 +1411,8 @@ export default function ChatScreen({
         sender: 'mascot',
         text: decision.replyText || 'Câu hỏi của bạn chưa có chủ đề rõ ràng. Bạn có thể cho Tiểu Linh Miêu biết điều bạn đang muốn tìm hiểu không?',
         time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        turnId,
+        createdAt: Date.now(),
         isTypingCompleted: false
       });
       setLoading(false);
@@ -1351,6 +1434,8 @@ export default function ChatScreen({
           sender: 'mascot',
           text: '✦ TIỂU LINH MIÊU CẦN VỊ TRÍ HIỆN TẠI:\nĐể lọc địa điểm theo khoảng cách thực tế, bạn hãy cho phép dùng vị trí một lần nhé.',
           time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+          turnId,
+          createdAt: Date.now(),
           isTypingCompleted: false,
         });
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
@@ -1382,7 +1467,8 @@ export default function ChatScreen({
     // Start the ritual immediately. The cards are already fixed locally and
     // travel to the API with this request, so the user can reveal them while
     // the personalized interpretation is still being generated.
-    const tarotMessageId = `mascot-${Date.now()}`;
+    const tarotMessageCreatedAt = Date.now();
+    const tarotMessageId = `mascot-${tarotMessageCreatedAt}-${turnSequence}`;
     if (drawnCards.length > 0) {
       waitsForTarotReveal = true;
       setPendingTarotReveal({ messageId: tarotMessageId, cards: drawnCards });
@@ -1447,6 +1533,8 @@ export default function ChatScreen({
           drawnCards: serverCardPayload.drawnCards?.length
             ? serverCardPayload.drawnCards
             : drawnCards,
+          sessionId: typeof data.data.sessionId === 'string' ? data.data.sessionId : undefined,
+          canContinue: Boolean(data.data.canContinue && data.data.sessionId),
         };
         const mascotMsg: MessageItem = {
           id: tarotMessageId,
@@ -1454,6 +1542,8 @@ export default function ChatScreen({
           text: data.data.replyText,
           card: cardPayload,
           time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+          turnId,
+          createdAt: tarotMessageCreatedAt,
           isTypingCompleted: decision.mode === 'compatibility' || drawnCards.length > 0
         };
         appendMessage(mascotMsg);
@@ -1490,6 +1580,8 @@ export default function ChatScreen({
         text: synthesis.text,
         card: synthesis.card ? { ...synthesis.card, questionText: prompt } : { questionText: prompt },
         time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        turnId,
+        createdAt: tarotMessageCreatedAt,
         isTypingCompleted: decision.mode === 'compatibility' || drawnCards.length > 0
       };
       appendMessage(mascotMsg);
@@ -1537,7 +1629,7 @@ export default function ChatScreen({
           <View style={styles.thoughtHeaderRow}>
             <View style={styles.thoughtTitleWrap}>
               <Text style={styles.thoughtIcon}>🧠</Text>
-              <Text style={styles.thoughtTitle}>TIỂU LINH MIÊU ĐIỀU PHỐI</Text>
+              <Text style={styles.thoughtTitle}>{l('TIỂU LINH MIÊU ĐIỀU PHỐI', 'SPIRIT CAT ORCHESTRATION')}</Text>
             </View>
             <View style={styles.modeBadge}>
               <Text style={styles.modeBadgeText}>
@@ -1563,7 +1655,7 @@ export default function ChatScreen({
 
           {/* Danh sách các chỉ số được AI Agent chọn lọc */}
           {decision.intent !== 'color_guidance' && <View style={styles.indicatorChipsWrap}>
-            <Text style={styles.chipsLabel}>Chỉ số mục tiêu (tối đa 5):</Text>
+            <Text style={styles.chipsLabel}>{l('Chỉ số mục tiêu (tối đa 5):', 'Target indicators (up to 5):')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
               {indicators1.map((ind: any, idx) => (
                 <TouchableOpacity
@@ -1594,7 +1686,7 @@ export default function ChatScreen({
           {tuViBazi && (
             <View style={styles.tuViContainer}>
               <View style={styles.tuViHeaderRow}>
-                <Text style={styles.tuViHeaderTitle}>☯ TỬ VI ĐẨU SỐ & BÁT TỰ TỨ TRỤ</Text>
+                <Text style={styles.tuViHeaderTitle}>☯ {l('TỬ VI ĐẨU SỐ & BÁT TỰ TỨ TRỤ', 'BAZI & FOUR PILLARS')}</Text>
                 <View style={styles.tuViScoreBadge}>
                   <Text style={styles.tuViScoreVal}>{tuViBazi.compatibilityScore}%</Text>
                 </View>
@@ -1614,22 +1706,22 @@ export default function ChatScreen({
                   </View>
                   <View style={styles.tuViPillarsGrid}>
                     <View style={styles.tuViPillarCell}>
-                      <Text style={styles.tuViPillarLabel}>Năm</Text>
+                      <Text style={styles.tuViPillarLabel}>{l('Năm', 'Year')}</Text>
                       <Text style={styles.tuViPillarVal}>{tuViBazi.personA.yearPillar.ganVi} {tuViBazi.personA.yearPillar.zhiVi}</Text>
                     </View>
                     <View style={styles.tuViPillarCell}>
-                      <Text style={styles.tuViPillarLabel}>Tháng</Text>
+                      <Text style={styles.tuViPillarLabel}>{l('Tháng', 'Month')}</Text>
                       <Text style={styles.tuViPillarVal}>{tuViBazi.personA.monthPillar.ganVi} {tuViBazi.personA.monthPillar.zhiVi}</Text>
                     </View>
                     <View style={styles.tuViPillarCell}>
-                      <Text style={styles.tuViPillarLabel}>Ngày</Text>
+                      <Text style={styles.tuViPillarLabel}>{l('Ngày', 'Day')}</Text>
                       <Text style={styles.tuViPillarVal}>{tuViBazi.personA.dayPillar.ganVi} {tuViBazi.personA.dayPillar.zhiVi}</Text>
                     </View>
                   </View>
                   <View style={styles.tuViKeyRow}>
-                    <Text style={styles.tuViKeyText}>Nhật Chủ: <Text style={styles.tuViGoldText}>{tuViBazi.personA.dayMaster} ({tuViBazi.personA.dayMasterElement})</Text></Text>
-                    <Text style={styles.tuViKeyText}>Cung Phu Thê: <Text style={styles.tuViGoldText}>{tuViBazi.personA.spousalPalace}</Text></Text>
-                    <Text style={styles.tuViKeyText}>Quái Mệnh: <Text style={styles.tuViGoldText}>{tuViBazi.personA.cungPhi} ({tuViBazi.personA.cungPhiElement})</Text></Text>
+                    <Text style={styles.tuViKeyText}>{l('Nhật Chủ', 'Day Master')}: <Text style={styles.tuViGoldText}>{tuViBazi.personA.dayMaster} ({tuViBazi.personA.dayMasterElement})</Text></Text>
+                    <Text style={styles.tuViKeyText}>{l('Cung Phu Thê', 'Spouse Palace')}: <Text style={styles.tuViGoldText}>{tuViBazi.personA.spousalPalace}</Text></Text>
+                    <Text style={styles.tuViKeyText}>{l('Quái Mệnh', 'Life Trigram')}: <Text style={styles.tuViGoldText}>{tuViBazi.personA.cungPhi} ({tuViBazi.personA.cungPhiElement})</Text></Text>
                   </View>
                 </View>
 
@@ -1641,22 +1733,22 @@ export default function ChatScreen({
                   </View>
                   <View style={styles.tuViPillarsGrid}>
                     <View style={styles.tuViPillarCell}>
-                      <Text style={styles.tuViPillarLabel}>Năm</Text>
+                      <Text style={styles.tuViPillarLabel}>{l('Năm', 'Year')}</Text>
                       <Text style={styles.tuViPillarVal}>{tuViBazi.personB.yearPillar.ganVi} {tuViBazi.personB.yearPillar.zhiVi}</Text>
                     </View>
                     <View style={styles.tuViPillarCell}>
-                      <Text style={styles.tuViPillarLabel}>Tháng</Text>
+                      <Text style={styles.tuViPillarLabel}>{l('Tháng', 'Month')}</Text>
                       <Text style={styles.tuViPillarVal}>{tuViBazi.personB.monthPillar.ganVi} {tuViBazi.personB.monthPillar.zhiVi}</Text>
                     </View>
                     <View style={styles.tuViPillarCell}>
-                      <Text style={styles.tuViPillarLabel}>Ngày</Text>
+                      <Text style={styles.tuViPillarLabel}>{l('Ngày', 'Day')}</Text>
                       <Text style={styles.tuViPillarVal}>{tuViBazi.personB.dayPillar.ganVi} {tuViBazi.personB.dayPillar.zhiVi}</Text>
                     </View>
                   </View>
                   <View style={styles.tuViKeyRow}>
-                    <Text style={styles.tuViKeyText}>Nhật Chủ: <Text style={styles.tuViGoldText}>{tuViBazi.personB.dayMaster} ({tuViBazi.personB.dayMasterElement})</Text></Text>
-                    <Text style={styles.tuViKeyText}>Cung Phu Thê: <Text style={styles.tuViGoldText}>{tuViBazi.personB.spousalPalace}</Text></Text>
-                    <Text style={styles.tuViKeyText}>Quái Mệnh: <Text style={styles.tuViGoldText}>{tuViBazi.personB.cungPhi} ({tuViBazi.personB.cungPhiElement})</Text></Text>
+                    <Text style={styles.tuViKeyText}>{l('Nhật Chủ', 'Day Master')}: <Text style={styles.tuViGoldText}>{tuViBazi.personB.dayMaster} ({tuViBazi.personB.dayMasterElement})</Text></Text>
+                    <Text style={styles.tuViKeyText}>{l('Cung Phu Thê', 'Spouse Palace')}: <Text style={styles.tuViGoldText}>{tuViBazi.personB.spousalPalace}</Text></Text>
+                    <Text style={styles.tuViKeyText}>{l('Quái Mệnh', 'Life Trigram')}: <Text style={styles.tuViGoldText}>{tuViBazi.personB.cungPhi} ({tuViBazi.personB.cungPhiElement})</Text></Text>
                   </View>
                 </View>
               </View>
@@ -1664,31 +1756,31 @@ export default function ChatScreen({
               {/* Tương tác Cung Phu Thê, Thiên Can, Bát Trạch, Nạp Âm & Con Giáp */}
               <View style={styles.tuViHighlightsWrap}>
                 <View style={styles.tuViHighlightBadge}>
-                  <Text style={styles.tuViHighlightLabel}>Phu Thê:</Text>
-                  <Text style={styles.tuViHighlightVal}>{tuViBazi.spousalInteraction.labelVi}</Text>
+                  <Text style={styles.tuViHighlightLabel}>{l('Phu Thê', 'Spouses')}:</Text>
+                  <Text style={styles.tuViHighlightVal}>{locale === 'en' ? 'Calculated' : tuViBazi.spousalInteraction.labelVi}</Text>
                 </View>
                 <View style={styles.tuViHighlightBadge}>
-                  <Text style={styles.tuViHighlightLabel}>Thiên Can:</Text>
-                  <Text style={styles.tuViHighlightVal}>{tuViBazi.stemInteraction.labelVi}</Text>
+                  <Text style={styles.tuViHighlightLabel}>{l('Thiên Can', 'Heavenly stems')}:</Text>
+                  <Text style={styles.tuViHighlightVal}>{locale === 'en' ? 'Calculated' : tuViBazi.stemInteraction.labelVi}</Text>
                 </View>
                 {tuViBazi.cungPhiBatTrach && (
                   <View style={[styles.tuViHighlightBadge, !tuViBazi.cungPhiBatTrach.isAuspicious && styles.tuViHighlightWarning]}>
-                    <Text style={styles.tuViHighlightLabel}>Bát Trạch:</Text>
+                    <Text style={styles.tuViHighlightLabel}>{l('Bát Trạch', 'Eight Mansions')}:</Text>
                     <Text style={[styles.tuViHighlightVal, !tuViBazi.cungPhiBatTrach.isAuspicious && { color: '#F87171' }]}>
-                      {tuViBazi.cungPhiBatTrach.labelVi}
+                      {locale === 'en' ? (tuViBazi.cungPhiBatTrach.isAuspicious ? 'Favorable' : 'Challenging') : tuViBazi.cungPhiBatTrach.labelVi}
                     </Text>
                   </View>
                 )}
                 {tuViBazi.napAmHarmony && (
                   <View style={styles.tuViHighlightBadge}>
-                    <Text style={styles.tuViHighlightLabel}>Nạp Âm:</Text>
-                    <Text style={styles.tuViHighlightVal}>{tuViBazi.napAmHarmony.labelVi}</Text>
+                    <Text style={styles.tuViHighlightLabel}>{l('Nạp Âm', 'Na Yin')}:</Text>
+                    <Text style={styles.tuViHighlightVal}>{locale === 'en' ? 'Element interaction' : tuViBazi.napAmHarmony.labelVi}</Text>
                   </View>
                 )}
                 {tuViBazi.yearAnimalHarmony && (
                   <View style={styles.tuViHighlightBadge}>
-                    <Text style={styles.tuViHighlightLabel}>Con Giáp:</Text>
-                    <Text style={styles.tuViHighlightVal}>{tuViBazi.yearAnimalHarmony.labelVi}</Text>
+                    <Text style={styles.tuViHighlightLabel}>{l('Con Giáp', 'Zodiac')}:</Text>
+                    <Text style={styles.tuViHighlightVal}>{locale === 'en' ? 'Zodiac interaction' : tuViBazi.yearAnimalHarmony.labelVi}</Text>
                   </View>
                 )}
               </View>
@@ -1699,7 +1791,7 @@ export default function ChatScreen({
           {!tuViBazi && compatibilityScore && (
             <View style={styles.compatibilityPanel}>
               <View style={styles.compatTopRow}>
-                <Text style={styles.compatTitle}>Độ Hòa Hợp Tình Duyên</Text>
+                <Text style={styles.compatTitle}>{l('Độ Hòa Hợp Tình Duyên', 'Relationship Compatibility')}</Text>
                 <Text style={styles.compatScoreText}>{compatibilityScore}%</Text>
               </View>
               <View style={styles.progressBarTrack}>
@@ -1715,8 +1807,8 @@ export default function ChatScreen({
           {optionSplit && (
             <View style={styles.splitPanel}>
               <View style={styles.splitLabelsRow}>
-                <Text style={styles.splitOptALabel}>Phương Án A ({optionSplit.optionA}%)</Text>
-                <Text style={styles.splitOptBLabel}>Phương Án B ({optionSplit.optionB}%)</Text>
+                <Text style={styles.splitOptALabel}>{l('Phương Án', 'Option')} A ({optionSplit.optionA}%)</Text>
+                <Text style={styles.splitOptBLabel}>{l('Phương Án', 'Option')} B ({optionSplit.optionB}%)</Text>
               </View>
               <View style={styles.splitBarTrack}>
                 <View style={[styles.splitBarA, { width: `${optionSplit.optionA}%` }]} />
@@ -1735,13 +1827,14 @@ export default function ChatScreen({
                 <Text style={styles.spreadSectionTitle}>
                   {decision.spreadId ? TAROT_SPREADS[decision.spreadId]?.nameVi : 'Thông Điệp Tarot'} ({drawnCards.length} lá)
                 </Text>
-                <TouchableOpacity
-                  style={styles.flipAllButton}
+                <ThreeDButton
+                  label={l('Lật tất cả', 'Reveal all')}
+                  leadingIcon={<Ionicons name="sparkles" size={15} color="#3B260D" />}
                   onPress={() => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); handleFlipAllCards(messageId, drawnCards.length); }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="sparkles" size={16} color="#FFF0BB" /><Text style={styles.flipAllButtonText}>Lật tất cả</Text>
-                </TouchableOpacity>
+                  shape="pill"
+                  size="sm"
+                  variant="gold"
+                />
               </View>
 
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tarotCardsScroll}>
@@ -1765,7 +1858,7 @@ export default function ChatScreen({
 
           {colorGuidance && colorPanelUnlocked && (
             <View style={styles.colorGuidancePanel}>
-              <Text style={styles.colorGuidanceTitle}>🎨 Màu hợp mệnh</Text>
+              <Text style={styles.colorGuidanceTitle}>🎨 {l('Màu hợp mệnh', 'Harmonious colors')}</Text>
               <Text style={styles.colorGuidanceFormula}>
                 Năm âm {colorGuidance.lunarYear} → mệnh {colorGuidance.element}
               </Text>
@@ -1778,17 +1871,17 @@ export default function ChatScreen({
                         {selected && <Text style={styles.colorSwatchCheck}>✓</Text>}
                       </View>
                       <Text style={styles.colorSwatchName} numberOfLines={1}>{color.name}</Text>
-                      {selected && <Text style={styles.colorSwatchPriority}>Lá bài ưu tiên</Text>}
+                      {selected && <Text style={styles.colorSwatchPriority}>{l('Lá bài ưu tiên', 'Card priority')}</Text>}
                     </View>
                   );
                 })}
               </View>
-              <Text style={styles.colorGuidanceNote}>Mệnh lấy từ chữ số cuối của năm âm; lá Tarot chỉ ưu tiên hai màu trong bảng màu hợp mệnh.</Text>
+              <Text style={styles.colorGuidanceNote}>{l('Mệnh lấy từ chữ số cuối của năm âm; lá Tarot chỉ ưu tiên hai màu trong bảng màu hợp mệnh.', 'The element is derived from the final digit of the lunar year; the Tarot card prioritizes two colors from the harmonious palette.')}</Text>
               <TouchableOpacity
                 accessibilityRole="link"
                 onPress={() => { void Linking.openURL(colorGuidance.sourceUrl); }}
               >
-                <Text style={styles.colorGuidanceSource}>Xem nguồn phong thủy ↗</Text>
+                <Text style={styles.colorGuidanceSource}>{l('Xem nguồn phong thủy ↗', 'View feng shui source ↗')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -1796,7 +1889,7 @@ export default function ChatScreen({
           {/* Nếu thuần 24 chỉ số Thần số học (0 lá Tarot): Hiển thị bản đồ chỉ số */}
           {drawnCards.length === 0 && (
             <View style={styles.numerologyDetailPanel}>
-              <Text style={styles.spreadSectionTitle}>📜 Bản Đồ 24 Chỉ Số Pythagoras</Text>
+              <Text style={styles.spreadSectionTitle}>📜 {l('Bản Đồ 24 Chỉ Số Pythagoras', '24 Pythagorean Indicators')}</Text>
               {indicators1.map((ind: any, idx) => (
                 <View key={idx} style={styles.numDetailRow}>
                   <View style={styles.numBadge}>
@@ -1818,9 +1911,9 @@ export default function ChatScreen({
     if (card.type === 'lunar_guidance') {
       return (
         <View style={styles.cardContainer}>
-          <Text style={styles.cardBadge}>⛩️ XUẤT HÀNH</Text>
+          <Text style={styles.cardBadge}>⛩️ {l('XUẤT HÀNH', 'DEPARTURE')}</Text>
           <Text style={styles.highlightValue}>{card.suggestedDepartureTime}</Text>
-          <Text style={styles.infoValue}>Nên: {(card.yi || []).slice(0, 3).join(' • ')}</Text>
+          <Text style={styles.infoValue}>{l('Nên', 'Favorable')}: {(card.yi || []).slice(0, 3).join(' • ')}</Text>
         </View>
       );
     }
@@ -1828,7 +1921,7 @@ export default function ChatScreen({
       const firstCard = card.cards?.[0] || {};
       return (
         <View style={[styles.cardContainer, { borderColor: '#F5BA5B' }]}>
-          <Text style={[styles.cardBadge, { color: '#F5BA5B' }]}>🔮 THÔNG ĐIỆP TAROT</Text>
+          <Text style={[styles.cardBadge, { color: '#F5BA5B' }]}>🔮 {l('THÔNG ĐIỆP TAROT', 'TAROT MESSAGE')}</Text>
           <Text style={styles.tarotCardName}>{firstCard.nameVi}</Text>
           <Text style={styles.tarotMeaningText}>{firstCard.meaning}</Text>
         </View>
@@ -1842,7 +1935,7 @@ export default function ChatScreen({
 
     const didClear = await clearChatHistory(chatHistoryOwner);
     if (!didClear) {
-      Alert.alert('Không thể xóa lịch sử', 'Vui lòng thử lại.');
+      Alert.alert(l('Không thể xóa lịch sử', 'Unable to clear history'), l('Vui lòng thử lại.', 'Please try again.'));
       return;
     }
 
@@ -1940,6 +2033,9 @@ export default function ChatScreen({
     ? messages.findIndex((message) => message.id === readingTraceMessageId)
     : -1;
   const readingTraceMessage = readingTraceIndex >= 0 ? messages[readingTraceIndex] : null;
+  const activeReadingMessage = liveTarotReading
+    ? messages.find((message) => message.id === liveTarotReading.id) || null
+    : readingTraceMessage;
   const previousReadingQuestion = readingTraceIndex >= 0
     ? messages.slice(0, readingTraceIndex).reverse().find((message) => message.sender === 'user')?.text
     : undefined;
@@ -1961,6 +2057,16 @@ export default function ChatScreen({
     <View style={styles.outerScreenWrap}>
       {/* 🌟 1. BỐI CẢNH ĐÊM 3 LỚP PARALLAX + MOON + STARS */}
       <ChatSceneBackground />
+      <View pointerEvents="none" style={styles.chatCloudLayer}>
+        <FloatingWallpaperCloud
+          width={210}
+          topRatio={0.12}
+          minTop={72}
+          driftDurationMs={26_000}
+          pauseDurationMs={18_000}
+          opacity={0.42}
+        />
+      </View>
       <MeteorShower
         burstKey={meteorBurstKey}
         color={activeMascotPalette.outline}
@@ -1995,10 +2101,6 @@ export default function ChatScreen({
           </TouchableOpacity>
         </View>
 
-        {!isKeyboardVisible && dailyInsight ? (
-          <DailyInsightCard insight={dailyInsight} onPress={() => setDailySheetVisible(true)} />
-        ) : null}
-
         {/* Một luồng chat duy nhất: tin mới nhất ở đầu, kéo xuống để nạp tin cũ. */}
         <View style={styles.chatTimeline}>
           <FlatList
@@ -2025,13 +2127,15 @@ export default function ChatScreen({
                 message={item}
                 onFinishTyping={markMessageTypingCompleted}
                 onOpen={() => openRawReading(item)}
+                onContinue={item.card?.canContinue && typeof item.card?.sessionId === 'string' && onContinueReading
+                  ? () => onContinueReading(item.card.sessionId, item.card.questionText)
+                  : undefined}
               />
             )}
           />
 
           {!isKeyboardVisible ? (
             <ChatSceneActions
-              alignWithCenter={isZeroState}
               onOpenCalendar={onOpenCalendar}
               onOpenAstrology={onOpenAstrology}
               onOpenWallpaper={onOpenWallpaper}
@@ -2040,21 +2144,9 @@ export default function ChatScreen({
           ) : null}
 
           {isZeroState && !loading && !isKeyboardVisible ? (
-            <View style={styles.emptyMascotStage} pointerEvents="box-none">
+            <View style={styles.emptyWelcomeStage} pointerEvents="none">
               <Text style={styles.welcomeHeading}>{t('chat.welcomeHeading')}</Text>
               <Text style={styles.welcomeParagraph}>{t('chat.welcomeParagraph')}</Text>
-              <TouchableOpacity
-                onPress={handleMascotPress}
-                accessibilityLabel={t('chat.openCards')}
-              >
-                <FlameMascot
-                  state={ambientMascotState}
-                  size={CHAT_MASCOT_SIZE}
-                  paletteIndex={mascotPaletteIndex}
-                  specialAnimationActive={showSpecialMascotAnimation}
-                  specialAnimationIndex={specialMascotAnimationIndex}
-                />
-              </TouchableOpacity>
             </View>
           ) : null}
 
@@ -2063,12 +2155,14 @@ export default function ChatScreen({
               <FlameMascot
                 state="thinking"
                 size={THINKING_MASCOT_SIZE}
+                glowVariant="candle"
                 paletteIndex={mascotPaletteIndex}
+                maxVisualWidth={thinkingMascotMaxVisualWidth}
               />
             </View>
           ) : null}
 
-          {!isZeroState && !loading && !isKeyboardVisible ? (
+          {!loading && !isKeyboardVisible ? (
             <View style={styles.restingMascotStage} pointerEvents="box-none">
               <TouchableOpacity
                 activeOpacity={0.7}
@@ -2079,9 +2173,11 @@ export default function ChatScreen({
                 <FlameMascot
                   state={speakingMessageId ? 'speaking' : ambientMascotState}
                   size={CHAT_MASCOT_SIZE}
+                  glowVariant="candle"
                   paletteIndex={mascotPaletteIndex}
                   specialAnimationActive={showSpecialMascotAnimation}
                   specialAnimationIndex={specialMascotAnimationIndex}
+                  maxVisualWidth={chatMascotMaxVisualWidth}
                 />
               </TouchableOpacity>
             </View>
@@ -2137,18 +2233,15 @@ export default function ChatScreen({
         <DailyInsightSheet
           visible={dailySheetVisible}
           insight={dailyInsight}
-          onClose={() => setDailySheetVisible(false)}
+          fortune={fortuneForDailyInsight}
+          onClose={() => {
+            setDailySheetVisible(false);
+            setIsDailyInsightUnseen(false);
+          }}
           onAsk={(question) => {
             setInputVal(question);
             setDailySheetVisible(false);
-          }}
-          onOpenAstrology={() => {
-            setDailySheetVisible(false);
-            onOpenAstrology?.();
-          }}
-          onOpenCalendar={() => {
-            setDailySheetVisible(false);
-            onOpenCalendar?.();
+            setIsDailyInsightUnseen(false);
           }}
         />
       )}
@@ -2160,6 +2253,20 @@ export default function ChatScreen({
         liveReading={liveTarotReading}
         revealedCount={pendingFlippedCount}
         onRevealNext={revealNextLiveTarotCard}
+        onContinue={activeReadingMessage?.card?.canContinue
+          && typeof activeReadingMessage.card.sessionId === 'string'
+          && onContinueReading
+          ? () => {
+              const sessionId = activeReadingMessage.card.sessionId as string;
+              const title = typeof activeReadingMessage.card.questionText === 'string'
+                ? activeReadingMessage.card.questionText
+                : liveTarotReading?.question || previousReadingQuestion;
+              setLiveTarotReading(null);
+              setPendingTarotReveal(null);
+              setReadingTraceMessageId(null);
+              onContinueReading(sessionId, title);
+            }
+          : undefined}
         onClose={() => {
           if (liveTarotReading) {
             if (liveTarotReading.status === 'revealed') {
@@ -2247,22 +2354,22 @@ export default function ChatScreen({
                     zoomedCard.isReversed ? styles.tagReversed : styles.tagUpright
                   ]}>
                     <Text style={styles.zoomOrientationText}>
-                      {zoomedCard.isReversed ? '↷ LÁ NGƯỢC (Reversed)' : '↾ LÁ XUÔI (Upright)'}
+                    {zoomedCard.isReversed ? l('↷ LÁ NGƯỢC', '↷ REVERSED') : l('↾ LÁ XUÔI', '↾ UPRIGHT')}
                     </Text>
                   </View>
                 </View>
 
                 {/* Card Title & Roman Numeral */}
-                <Text style={styles.zoomCardNameVi}>{zoomedCard.card.nameVi}</Text>
+                <Text style={styles.zoomCardNameVi}>{locale === 'en' ? zoomedCard.card.nameEn : zoomedCard.card.nameVi}</Text>
                 <Text style={styles.zoomCardNameEn}>
-                  {`Lá số ${zoomedCard.card.number} · ${zoomedCard.card.nameEn}`}
+                  {`${l('Lá số', 'Card')} ${zoomedCard.card.number}${locale === 'vi' ? ` · ${zoomedCard.card.nameEn}` : ''}`}
                 </Text>
 
                 {/* Position Description */}
                 {zoomedCard.position?.descVi ? (
                   <View style={styles.zoomPosDescBox}>
-                    <Text style={styles.zoomPosDescLabel}>Ý nghĩa vị trí này:</Text>
-                    <Text style={styles.zoomPosDescText}>{zoomedCard.position.descVi}</Text>
+                    <Text style={styles.zoomPosDescLabel}>{l('Ý nghĩa vị trí này:', 'Meaning of this position:')}</Text>
+                    {locale === 'vi' && <Text style={styles.zoomPosDescText}>{zoomedCard.position.descVi}</Text>}
                   </View>
                 ) : null}
 
@@ -2278,7 +2385,7 @@ export default function ChatScreen({
                 {/* Detailed Meaning */}
                 <View style={styles.zoomMeaningBox}>
                   <Text style={styles.zoomMeaningHeading}>
-                    {zoomedCard.isReversed ? '✦ Luận giải góc độ Lá Ngược:' : '✦ Luận giải góc độ Lá Xuôi:'}
+                    {zoomedCard.isReversed ? l('✦ Luận giải góc độ Lá Ngược:', '✦ Reversed interpretation:') : l('✦ Luận giải góc độ Lá Xuôi:', '✦ Upright interpretation:')}
                   </Text>
                   <Text style={styles.zoomMeaningBody}>
                     {zoomedCard.isReversed ? zoomedCard.card.meaningReversed : zoomedCard.card.meaningUpright}
@@ -2303,60 +2410,55 @@ export default function ChatScreen({
               <View style={styles.mascotPromptEmblem}>
                 <Ionicons name="flame" size={20} color="#F2BB57" />
               </View>
-              <Text style={styles.mascotPromptTitle}>Linh Vật Ngọn Lửa</Text>
+              <Text style={styles.mascotPromptTitle}>{l('Linh Vật Ngọn Lửa', 'Flame Guide')}</Text>
             </View>
 
             <View style={styles.mascotPromptBody}>
               <Text style={styles.mascotPromptText}>
-                ✦ Chào <Text style={styles.mascotPromptName}>{activeTargetProfile?.fullName}</Text>! Bạn có muốn mở{' '}
-                <Text style={styles.mascotPromptHighlight}>Bản đồ 24 Lá Bài Thần Số Học</Text> để khám phá trọn vẹn bản mệnh không?
+                ✦ {l('Chào', 'Hi')} <Text style={styles.mascotPromptName}>{activeTargetProfile?.fullName}</Text>! {l('Bạn có muốn mở', 'Would you like to open')}{' '}
+                <Text style={styles.mascotPromptHighlight}>{l('Bản đồ 24 Lá Bài Thần Số Học', 'the 24 Numerology Card map')}</Text> {l('để khám phá trọn vẹn bản mệnh không?', 'to explore your full profile?')}
               </Text>
               <View style={styles.mascotPromptMeta}>
                 <Ionicons name="calendar-outline" size={13} color="#B9ACC6" />
                 <Text style={styles.mascotPromptSub}>
-                  {activeTargetProfile?.birthDate}  ·  24 chỉ số Pythagoras
+                  {activeTargetProfile?.birthDate}  ·  24 {l('chỉ số Pythagoras', 'Pythagorean indicators')}
                 </Text>
               </View>
             </View>
 
             <View style={styles.mascotPromptActions}>
-              <TouchableOpacity
-                activeOpacity={0.7}
+              <ThreeDButton
+                accessibilityLabel={l('Để sau', 'Not now')}
+                label={l('Để sau', 'Not now')}
                 onPress={() => setShowMascotPrompt(false)}
-                style={styles.mascotPromptCancelBtn}
-                accessibilityRole="button"
-                accessibilityLabel="Để sau"
-              >
-                <Text style={styles.mascotPromptCancelText}>Để sau</Text>
-              </TouchableOpacity>
-              <View style={styles.mascotPromptConfirmShadow}>
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    setShowMascotPrompt(false);
-                    setIsCardsModalOpen(true);
-                  }}
-                  style={styles.mascotPromptConfirmBtn}
-                  accessibilityRole="button"
-                  accessibilityLabel="Mở 24 Lá Bài"
-                >
-                  <LinearGradient
-                    colors={['#FFE39A', '#F4BA56', '#E9A642']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.mascotPromptConfirmGradient}
-                  >
-                    <Ionicons name="sparkles" size={17} color="#271A32" />
-                    <Text style={styles.mascotPromptConfirmText}>Mở 24 Lá Bài</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
+                style={styles.mascotPromptCancel3d}
+                variant="light"
+              />
+              <ThreeDButton
+                accessibilityLabel={l('Mở 24 Lá Bài', 'Open 24 cards')}
+                label={l('Mở 24 Lá Bài', 'Open 24 cards')}
+                leadingIcon={<Ionicons name="sparkles" size={17} color="#3B260D" />}
+                onPress={() => {
+                  setShowMascotPrompt(false);
+                  setIsCardsModalOpen(true);
+                }}
+                style={styles.mascotPromptConfirm3d}
+                variant="gold"
+              />
             </View>
           </View>
         </View>
       </Modal>
 
-      <ChatMoonButton onPress={onOpenGameHub} />
+      <ChatMoonButton
+        onPress={handleOpenTodayMessage}
+        attention
+        attentionHint={l('Lời nhắn hôm nay ✨', "Today's message ✨")}
+        showAttentionHint={!isKeyboardVisible}
+        style={{ top: insets.top > 0 ? insets.top + 4 : 14 }}
+        accessibilityLabel={t('daily.cardEyebrow')}
+        accessibilityHint={l('Chạm vào mặt trăng để xem thông điệp hôm nay', 'Tap the moon to view today’s message')}
+      />
 
       <LoveCompatibilityFlow
         visible={!!loveCompatibilityFlow}
@@ -2388,6 +2490,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent',
+    overflow: 'hidden',
+    zIndex: 2,
+  },
+  chatCloudLayer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     overflow: 'hidden',
     zIndex: 1,
   },
@@ -2500,10 +2611,6 @@ const styles = StyleSheet.create({
     zIndex: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
-  },
-  sceneActionsCentered: {
-    alignItems: 'center',
-    paddingBottom: 6,
   },
   sceneActionsBottom: {
     alignItems: 'flex-end',
@@ -2626,6 +2733,10 @@ const styles = StyleSheet.create({
     paddingLeft: 28,
     paddingRight: 21,
   },
+  assistantReadingTouch: {
+    flex: 1,
+    justifyContent: 'center',
+  },
   assistantBubbleText: {
     color: '#3B2856',
     fontSize: 17,
@@ -2636,15 +2747,29 @@ const styles = StyleSheet.create({
     color: '#7C42A6',
     fontWeight: '900',
   },
-  emptyMascotStage: {
+  continueReadingButton: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: 13,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 18,
+    backgroundColor: '#6D3DA0',
+  },
+  continueReadingText: {
+    color: '#FFF8E7',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  emptyWelcomeStage: {
     position: 'absolute',
-    top: 0,
+    top: '29%',
     right: 0,
-    bottom: 0,
     left: 0,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingBottom: 24,
+    paddingHorizontal: 24,
   },
   thinkingMascotStage: {
     position: 'absolute',
@@ -3256,21 +3381,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700'
   },
-  flipAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(253, 181, 81, 0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(253, 181, 81, 0.5)',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 12
-  },
-  flipAllButtonText: {
-    color: '#FDB551',
-    fontSize: 11,
-    fontWeight: '700'
-  },
   tarotCardsScroll: {
     flexDirection: 'row',
     paddingVertical: 2
@@ -3669,51 +3779,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  mascotPromptCancelBtn: {
-    flex: 1,
-    minHeight: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(235, 229, 242, 0.14)',
-    backgroundColor: 'rgba(255, 255, 255, 0.055)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mascotPromptCancelText: {
-    color: '#C6BDCF',
-    fontSize: 14,
-    fontWeight: '600',
-    fontFamily: Platform.select({ ios: 'Avenir Next', android: 'sans-serif-medium', default: 'system-ui' }),
-  },
-  mascotPromptConfirmShadow: {
-    flex: 1.6,
-    borderRadius: 12,
-    elevation: 6,
-    shadowColor: '#E8A339',
-    shadowOpacity: 0.42,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 5 },
-  },
-  mascotPromptConfirmBtn: {
-    minHeight: 48,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  mascotPromptConfirmGradient: {
-    flex: 1,
-    width: '100%',
-    minHeight: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 6,
-  },
-  mascotPromptConfirmText: {
-    color: '#271A32',
-    fontSize: 14,
-    fontWeight: '700',
-    fontFamily: Platform.select({ ios: 'Avenir Next', android: 'sans-serif-medium', default: 'system-ui' }),
-  },
+  mascotPromptCancel3d: { flex: 1 },
+  mascotPromptConfirm3d: { flex: 1.6 },
 
   // --- NUMELYRA 3-STATE NEW STYLES ---
   outerScreenWrap: {

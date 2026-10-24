@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, type NavigationProp } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Linking from 'expo-linking';
 
@@ -23,7 +23,7 @@ import AstrologyScreen from './src/screens/AstrologyScreen';
 import WallpaperStudioScreen from './src/screens/WallpaperStudioScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
-import GameHubScreen from './src/screens/GameHubScreen';
+import ChatContinuationScreen from './src/screens/ChatContinuationScreen';
 import { loadProfile, hasProfile, UserProfile } from './src/store/userProfile';
 import { AuthProvider, useAuth } from './src/store/authContext';
 import { getNotifications } from './src/services/dailyNotifications';
@@ -36,12 +36,20 @@ type RootStackParamList = {
   Astrology: undefined;
   WallpaperStudio: undefined;
   Settings: undefined;
-  Games: undefined;
   ChatReadingDetail: ChatReadingDetailParams;
+  ChatContinuation: { sessionId: string; title?: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const notifications = getNotifications();
+
+function goBackOrMain(navigation: NavigationProp<RootStackParamList>): void {
+  if (navigation.canGoBack()) {
+    navigation.goBack();
+    return;
+  }
+  navigation.navigate('Main');
+}
 
 const linking = {
   prefixes: [Linking.createURL('/'), 'numelyra://'],
@@ -52,7 +60,7 @@ const linking = {
       Astrology: 'astrology',
       WallpaperStudio: 'wallpaper',
       Settings: 'settings',
-      Games: 'games/:entry?',
+      ChatContinuation: 'chat/:sessionId',
     },
   },
   async getInitialURL() {
@@ -187,8 +195,8 @@ function AppContent() {
                 onOpenCalendar={() => navigation.navigate('Calendar')}
                 onOpenAstrology={() => navigation.navigate('Astrology')}
                 onOpenWallpaper={() => navigation.navigate('WallpaperStudio')}
-                onOpenGameHub={() => navigation.navigate('Games')}
                 onOpenRawReading={(message, previousQuestion) => navigation.navigate('ChatReadingDetail', { message, previousQuestion })}
+                onContinueReading={(sessionId, title) => navigation.navigate('ChatContinuation', { sessionId, title })}
               />
             )}
           </Stack.Screen>
@@ -201,7 +209,7 @@ function AppContent() {
             {({ navigation }) => (
               <CalendarScreen
                 profile={profile}
-                onBack={() => navigation.goBack()}
+                onBack={() => goBackOrMain(navigation)}
                 onOpenSettings={() => navigation.navigate('Settings')}
               />
             )}
@@ -216,7 +224,8 @@ function AppContent() {
             {({ navigation }) => (
               <AstrologyScreen
                 profile={profile}
-                onBack={() => navigation.goBack()}
+                onBack={() => goBackOrMain(navigation)}
+                onOpenCalendar={() => navigation.navigate('Calendar')}
                 onProfileChange={setProfile}
               />
             )}
@@ -231,7 +240,7 @@ function AppContent() {
             {({ navigation }) => (
               <WallpaperStudioScreen
                 profile={profile}
-                onBack={() => navigation.goBack()}
+                onBack={() => goBackOrMain(navigation)}
               />
             )}
           </Stack.Screen>
@@ -245,20 +254,24 @@ function AppContent() {
             {({ navigation }) => (
               <SettingsScreen
                 profile={profile}
-                onBack={() => navigation.goBack()}
+                onBack={() => goBackOrMain(navigation)}
                 onRequestLogin={() => setLoginRequested(true)}
               />
             )}
           </Stack.Screen>
           <Stack.Screen
-            name="Games"
-            component={GameHubScreen}
-            options={{ orientation: 'all' }}
-          />
-          <Stack.Screen
             name="ChatReadingDetail"
             component={ChatReadingDetailScreen}
           />
+          <Stack.Screen name="ChatContinuation">
+            {({ navigation, route }) => (
+              <ChatContinuationScreen
+                sessionId={route.params.sessionId}
+                initialTitle={route.params.title}
+                onBack={() => goBackOrMain(navigation)}
+              />
+            )}
+          </Stack.Screen>
         </Stack.Navigator>
       </NavigationContainer>
     );

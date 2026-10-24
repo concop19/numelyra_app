@@ -50,19 +50,25 @@ export async function saveWallpaper(item: WallpaperSaveTarget): Promise<{ succes
     // 3. Tải file về thư mục cache cục bộ
     let localUri: string;
     if (item.isUri && typeof item.source === 'object' && 'uri' in item.source && typeof item.source.uri === 'string') {
-      const filename = `numelyra-wallpaper-${Date.now()}.${getImageExtension(item.source.uri)}`;
-      
-      let FileSystem: any = null;
-      try {
-        FileSystem = await import('expo-file-system/legacy');
-      } catch {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        FileSystem = require('expo-file-system/legacy');
-      }
+      const sourceUri = item.source.uri;
 
-      const fileUri = `${FileSystem.cacheDirectory}${filename}`;
-      const downloaded = await FileSystem.downloadAsync(item.source.uri, fileUri);
-      localUri = downloaded.uri;
+      if (sourceUri.startsWith('file://')) {
+        localUri = sourceUri;
+      } else {
+        const filename = `numelyra-wallpaper-${Date.now()}.${getImageExtension(sourceUri)}`;
+      
+        let FileSystem: any = null;
+        try {
+          FileSystem = await import('expo-file-system/legacy');
+        } catch {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          FileSystem = require('expo-file-system/legacy');
+        }
+
+        const fileUri = `${FileSystem.cacheDirectory}${filename}`;
+        const downloaded = await FileSystem.downloadAsync(sourceUri, fileUri);
+        localUri = downloaded.uri;
+      }
     } else {
       const { Asset: ExpoAsset } = await import('expo-asset');
       const asset = ExpoAsset.fromModule(item.source as number);

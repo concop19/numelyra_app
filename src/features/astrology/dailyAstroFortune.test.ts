@@ -9,6 +9,7 @@ import {
   getAstrologyProfileKey,
   loadCachedAstroFortune,
   loadRecentAstroAdvice,
+  loadRecentAstroCaDao,
   refreshCachedAstroMetadata,
   saveCachedAstroFortune,
   type KeyValueStorage,
@@ -97,6 +98,28 @@ describe('daily astrology fortune cache', () => {
       v5Fortune.advice,
       v4Fortune.advice,
       v2Fortune.advice,
+    ]);
+  });
+
+  it('loads up to fourteen recent ca dao anchors and supports legacy anchors without IDs', async () => {
+    const yesterday = new Date(2026, 9, 4, 12, 0, 0);
+    const twoDaysAgo = new Date(2026, 9, 3, 12, 0, 0);
+    const currentFortune = {
+      ...fortune,
+      anchorCaDao: { id: 42, content: 'Câu ca dao có ID', category: 'thế sự' },
+    };
+    const legacyFortune = {
+      ...fortune,
+      anchorCaDao: { content: 'Câu ca dao cache cũ', category: 'thế sự' },
+    };
+    const { storage } = createStorage({
+      [getAstroFortuneStorageKey(yesterday, profile)]: JSON.stringify(currentFortune),
+      [getAstroFortuneV5StorageKey(twoDaysAgo, profile)]: JSON.stringify(legacyFortune),
+    });
+
+    await expect(loadRecentAstroCaDao(storage, date, profile)).resolves.toEqual([
+      { id: 42, content: 'Câu ca dao có ID' },
+      { id: undefined, content: 'Câu ca dao cache cũ' },
     ]);
   });
 
