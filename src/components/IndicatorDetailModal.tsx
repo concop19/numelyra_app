@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import ThreeDButton from './ThreeDButton';
 import { CalculatedIndicator } from '../services/numerologyEngine';
@@ -132,7 +131,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
               <Text style={styles.headerCategory}>{locale === 'en' ? indicator.categoryNameEn || 'Numerology' : indicator.categoryNameVi}</Text>
             </View>
             <TouchableOpacity activeOpacity={0.7} onPress={onClose} style={styles.closeBtn}>
-              <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.8)" />
+              <Text style={styles.closeBtnText}>×</Text>
             </TouchableOpacity>
           </View>
 
@@ -173,7 +172,6 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
 
             {/* Tra Cứu Tri Thức Banner */}
             <View style={styles.knowledgeBanner}>
-              <Ionicons name="book-outline" size={16} color="#FCD34D" />
               <Text style={styles.knowledgeBannerText}>
                 {l('Luận giải tri thức chuẩn Pythagoras • Tức thì & Không qua AI', 'Pythagorean reference reading • Instant & generated without AI')}
               </Text>
@@ -182,7 +180,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
             {/* Loading Indicator */}
             {loading && (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#E5A93C" />
+                <ActivityIndicator size="large" color="#FF8A3D" />
                 <Text style={styles.loadingText}>{l('Đang tra cứu kho tri thức bản mệnh...', 'Loading your numerology reference...')}</Text>
               </View>
             )}
@@ -193,7 +191,6 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
                 {/* 1. Bản Chất Cốt Lõi */}
                 <View style={styles.sectionBlock}>
                   <View style={styles.sectionTitleRow}>
-                    <Ionicons name="sparkles" size={17} color="#FCD34D" />
                     <Text style={styles.sectionHeading}>{l('Bản Chất Cốt Lõi & Năng Lượng', 'Core Nature & Energy')}</Text>
                   </View>
                   <Text style={styles.sectionBodyText}>{visibleReading.overview}</Text>
@@ -203,12 +200,10 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
                 {visibleReading.strengths.length > 0 && (
                   <View style={styles.sectionBlock}>
                     <View style={styles.sectionTitleRow}>
-                      <Ionicons name="diamond-outline" size={17} color="#7DD3FC" />
                       <Text style={styles.sectionHeading}>{l('Điểm Mạnh Tự Nhiên', 'Natural Strengths')}</Text>
                     </View>
                     {visibleReading.strengths.map((s, idx) => (
                       <View key={`str-${idx}`} style={styles.bulletItem}>
-                        <Ionicons name="sparkles" size={12} color="#34D399" style={styles.bulletDot} />
                         <Text style={styles.bulletText}>{s}</Text>
                       </View>
                     ))}
@@ -219,12 +214,10 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
                 {visibleReading.challenges.length > 0 && (
                   <View style={styles.sectionBlock}>
                     <View style={styles.sectionTitleRow}>
-                      <Ionicons name="moon-outline" size={17} color="#C4B5FD" />
                       <Text style={styles.sectionHeading}>{l('Vùng Bóng Tối Cần Lưu Ý', 'Potential Blind Spots')}</Text>
                     </View>
                     {visibleReading.challenges.map((c, idx) => (
                       <View key={`cha-${idx}`} style={styles.bulletItem}>
-                        <Ionicons name="sparkles" size={12} color="#F87171" style={styles.bulletDot} />
                         <Text style={styles.bulletText}>{c}</Text>
                       </View>
                     ))}
@@ -235,8 +228,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
                 {visibleReading.advice ? (
                   <View style={[styles.sectionBlock, styles.adviceBlock]}>
                     <View style={styles.sectionTitleRow}>
-                      <Ionicons name="leaf-outline" size={17} color="#A7F3D0" />
-                      <Text style={[styles.sectionHeading, { color: '#FCD34D' }]}>
+                      <Text style={[styles.sectionHeading, { color: '#FFC85A' }]}>
                         {l('Lời Khuyên & Bước Chuyển Hóa', 'Guidance & Next Step')}
                       </Text>
                     </View>
@@ -255,13 +247,14 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
                       }}
                       style={styles.expandArticleBtn}
                     >
-                      <Ionicons name={showFullArticle ? "chevron-up" : "chevron-down"} size={15} color="#93C5FD" />
                       <Text style={styles.expandArticleText}>{showFullArticle ? l('Thu gọn bài luận giải', 'Collapse full reading') : l('Đọc toàn văn tư liệu gốc', 'Read the full source text')}</Text>
                     </TouchableOpacity>
 
                     {showFullArticle && (
                       <View style={styles.fullArticleBox}>
-                        <Text style={styles.fullArticleContent}>{visibleReading.fullContent}</Text>
+                        <Text style={styles.fullArticleContent}>
+                          {renderNumberedListContent(visibleReading.fullContent)}
+                        </Text>
                       </View>
                     )}
                   </View>
@@ -280,6 +273,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
               onPress={() => { void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); onClose(); }}
               shape="pill"
               variant="gold"
+              textStyle={{ color: '#2A1405' }}
             />
           </View>
         </View>
@@ -340,7 +334,6 @@ function ChartDataSection({ indicator }: { indicator: CalculatedIndicator }) {
   return (
     <View style={styles.chartSection}>
       <View style={styles.sectionTitleRow}>
-        <Ionicons name="grid-outline" size={17} color="#FCD34D" />
         <Text style={styles.sectionHeading}>{title}</Text>
       </View>
       <Text style={styles.chartHint}>{l('Số lớn là con số trong ma trận; chấm nhỏ thể hiện số lần xuất hiện.', 'The large digit identifies the matrix number; dots show how often it appears.')}</Text>
@@ -412,7 +405,6 @@ function ChartDataSection({ indicator }: { indicator: CalculatedIndicator }) {
                     </View>
                     <Text style={styles.arrowSummary}>{reading.summary}</Text>
                   </View>
-                  <Ionicons name={selected ? 'chevron-up' : 'chevron-down'} size={16} color="#ADA2C5" />
                 </TouchableOpacity>
                 {selected && (
                   <InterpretationDetails
@@ -454,18 +446,39 @@ function InterpretationDetails({
   );
 }
 
+function renderNumberedListContent(content: string): React.ReactNode[] {
+  const numberedPrefix = /(^|\n)([ \t]*)(\d+[.)]?)(?=[ \t]|$)/gm;
+  const segments: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = numberedPrefix.exec(content)) !== null) {
+    const numberStart = match.index + match[1].length + match[2].length;
+    segments.push(content.slice(lastIndex, numberStart));
+    segments.push(
+      <Text key={`number-${numberedPrefix.lastIndex}`} style={styles.numberedListNumber}>
+        {match[3]}
+      </Text>,
+    );
+    lastIndex = numberStart + match[3].length;
+  }
+
+  segments.push(content.slice(lastIndex));
+  return segments;
+}
+
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(5, 7, 15, 0.88)',
+    backgroundColor: 'rgba(10, 6, 24, 0.88)',
     justifyContent: 'flex-end',
   },
   modalCard: {
-    backgroundColor: '#0D1224',
+    backgroundColor: '#170F2E',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.28)',
+    borderColor: '#3A2C6B',
     maxHeight: '92%',
     paddingBottom: Platform.OS === 'ios' ? 24 : 16,
     overflow: 'hidden',
@@ -474,11 +487,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: '#221845',
     paddingHorizontal: 20,
     paddingTop: 18,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomColor: '#3A2C6B',
   },
   headerLeft: {
     flexDirection: 'row',
@@ -486,20 +500,20 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   numberBadge: {
-    backgroundColor: 'rgba(212, 175, 55, 0.15)',
+    backgroundColor: '#3A2A10',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.35)',
+    borderColor: 'rgba(255, 200, 90, 0.35)',
   },
   numberBadgeText: {
-    color: '#FCD34D',
+    color: '#FFC85A',
     fontSize: 12,
     fontWeight: '700',
   },
   headerCategory: {
-    color: 'rgba(255, 255, 255, 0.65)',
+    color: '#B3A6D6',
     fontSize: 13,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
@@ -509,13 +523,14 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: '#2D1F55',
     alignItems: 'center',
     justifyContent: 'center',
   },
   closeBtnText: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 16,
+    color: '#FF8A3D',
+    fontSize: 24,
+    lineHeight: 26,
     fontWeight: '600',
   },
   scrollBody: {
@@ -533,10 +548,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
     borderWidth: 1.5,
-    borderColor: 'rgba(229, 169, 60, 0.45)',
-    backgroundColor: '#1E293B',
+    borderColor: '#3A2C6B',
+    backgroundColor: '#221845',
     elevation: 8,
-    shadowColor: '#E5A93C',
+    shadowColor: '#FF8A3D',
     shadowOpacity: 0.25,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
@@ -551,19 +566,19 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(229, 169, 60, 0.04)',
+    backgroundColor: 'rgba(255, 138, 61, 0.04)',
   },
   titleInfo: {
     flex: 1,
   },
   indicatorName: {
-    color: '#FFFFFF',
+    color: '#FFF3DC',
     fontSize: 20,
     fontWeight: '700',
     letterSpacing: 0.3,
   },
   indicatorNameEn: {
-    color: 'rgba(255, 255, 255, 0.45)',
+    color: '#B3A6D6',
     fontSize: 12,
     marginTop: 2,
     fontStyle: 'italic',
@@ -576,42 +591,42 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   valueLabel: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: '#B3A6D6',
     fontSize: 13,
   },
   valuePill: {
-    backgroundColor: 'rgba(229, 169, 60, 0.18)',
+    backgroundColor: '#3A2A10',
     borderWidth: 1,
-    borderColor: '#E5A93C',
+    borderColor: 'rgba(255, 200, 90, 0.55)',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
   },
   valuePillMaster: {
-    backgroundColor: 'rgba(245, 158, 11, 0.3)',
-    borderColor: '#F59E0B',
+    backgroundColor: '#3A2A10',
+    borderColor: '#FFC85A',
   },
   valuePillText: {
-    color: '#FCD34D',
+    color: '#FFC85A',
     fontSize: 16,
     fontWeight: '800',
   },
   valuePillTextMaster: {
-    color: '#FEF08A',
+    color: '#FFC85A',
   },
   masterTag: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#3A2A10',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
   },
   masterTagText: {
-    color: '#EDE9FE',
+    color: '#FFC85A',
     fontSize: 10,
     fontWeight: '700',
   },
   cardShortDesc: {
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: '#B3A6D6',
     fontSize: 12,
     lineHeight: 17,
     marginTop: 10,
@@ -619,13 +634,13 @@ const styles = StyleSheet.create({
   chartSection: {
     marginTop: 18,
     padding: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: '#221845',
     borderWidth: 1,
-    borderColor: 'rgba(229, 169, 60, 0.22)',
+    borderColor: '#3A2C6B',
     borderRadius: 16,
   },
   chartHint: {
-    color: 'rgba(255, 255, 255, 0.58)',
+    color: '#B3A6D6',
     fontSize: 11,
     lineHeight: 16,
     marginTop: -4,
@@ -636,28 +651,28 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     borderTopWidth: 1,
     borderLeftWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: '#3A2C6B',
   },
   matrixCell: {
     width: '33.3333%',
     minHeight: 78,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.025)',
+    backgroundColor: '#170F2E',
     borderRightWidth: 1,
     borderBottomWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: '#3A2C6B',
     paddingVertical: 7,
   },
   matrixCellFilled: {
-    backgroundColor: 'rgba(229, 169, 60, 0.09)',
+    backgroundColor: '#221845',
   },
   matrixCellSelected: {
-    backgroundColor: 'rgba(229, 169, 60, 0.2)',
-    borderColor: 'rgba(252, 211, 77, 0.7)',
+    backgroundColor: 'rgba(255, 138, 61, 0.16)',
+    borderColor: '#FF8A3D',
   },
   matrixNumber: {
-    color: '#FCD34D',
+    color: '#FFC85A',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -673,20 +688,20 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#E5A93C',
+    backgroundColor: '#FF8A3D',
   },
   matrixEmpty: {
-    color: 'rgba(255, 255, 255, 0.24)',
+    color: '#B3A6D6',
     fontSize: 8,
     lineHeight: 9,
   },
   matrixCount: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: '#E6DDF5',
     fontSize: 10,
     marginTop: 2,
   },
   matrixBand: {
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: '#B3A6D6',
     fontSize: 9,
     marginTop: 2,
   },
@@ -694,9 +709,9 @@ const styles = StyleSheet.create({
     marginTop: 12,
     padding: 13,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.045)',
+    backgroundColor: '#2D1F55',
     borderWidth: 1,
-    borderColor: 'rgba(229, 169, 60, 0.18)',
+    borderColor: 'rgba(255, 200, 90, 0.35)',
     gap: 4,
   },
   interpretationDetailsCompact: {
@@ -705,25 +720,25 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   interpretationTitle: {
-    color: '#FCD34D',
+    color: '#FFC85A',
     fontSize: 12,
     fontWeight: '700',
     marginBottom: 3,
   },
   interpretationSummary: {
-    color: 'rgba(255, 255, 255, 0.82)',
+    color: '#E6DDF5',
     fontSize: 12,
     lineHeight: 18,
     marginBottom: 4,
   },
   interpretationLabel: {
-    color: '#ADA2C5',
+    color: '#B3A6D6',
     fontSize: 10,
     fontWeight: '700',
     marginTop: 3,
   },
   interpretationBody: {
-    color: 'rgba(255, 255, 255, 0.76)',
+    color: '#E6DDF5',
     fontSize: 11,
     lineHeight: 16,
   },
@@ -731,7 +746,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   arrowListTitle: {
-    color: '#FFFFFF',
+    color: '#FFF3DC',
     fontSize: 12,
     fontWeight: '700',
     marginBottom: 7,
@@ -743,7 +758,7 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 6,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.07)',
+    borderTopColor: '#3A2C6B',
   },
   arrowRowCopy: {
     flex: 1,
@@ -755,23 +770,23 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   arrowLabel: {
-    color: 'rgba(255, 255, 255, 0.82)',
+    color: '#E6DDF5',
     fontSize: 12,
     fontWeight: '600',
   },
   arrowStatus: {
-    color: '#FCD34D',
+    color: '#FFC85A',
     fontSize: 12,
     textAlign: 'right',
   },
   arrowStatusStrong: {
-    color: '#6EE7B7',
+    color: '#FF8A3D',
   },
   arrowStatusEmpty: {
-    color: '#FCA5A5',
+    color: '#FF8A3D',
   },
   arrowSummary: {
-    color: 'rgba(255, 255, 255, 0.62)',
+    color: '#B3A6D6',
     fontSize: 10,
     lineHeight: 15,
     marginTop: 4,
@@ -780,20 +795,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: '#221845',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: '#3A2C6B',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginTop: 18,
     marginBottom: 14,
   },
-  knowledgeBannerIcon: {
-    fontSize: 14,
-  },
   knowledgeBannerText: {
-    color: 'rgba(255, 255, 255, 0.65)',
+    color: '#B3A6D6',
     fontSize: 11,
     flex: 1,
   },
@@ -803,22 +815,22 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: '#B3A6D6',
     fontSize: 13,
   },
   readingContainer: {
     gap: 14,
   },
   sectionBlock: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: '#221845',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.07)',
+    borderColor: '#3A2C6B',
     borderRadius: 16,
     padding: 16,
   },
   adviceBlock: {
-    backgroundColor: 'rgba(229, 169, 60, 0.08)',
-    borderColor: 'rgba(229, 169, 60, 0.25)',
+    backgroundColor: '#2D1F55',
+    borderColor: 'rgba(255, 200, 90, 0.35)',
   },
   sectionTitleRow: {
     flexDirection: 'row',
@@ -826,17 +838,14 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 10,
   },
-  sectionIcon: {
-    fontSize: 16,
-  },
   sectionHeading: {
-    color: '#FFFFFF',
+    color: '#FFF3DC',
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: 0.3,
   },
   sectionBodyText: {
-    color: 'rgba(255, 255, 255, 0.82)',
+    color: '#E6DDF5',
     fontSize: 13.5,
     lineHeight: 21,
   },
@@ -846,19 +855,14 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 6,
   },
-  bulletDot: {
-    color: '#34D399',
-    fontSize: 11,
-    marginTop: 4,
-  },
   bulletText: {
-    color: 'rgba(255, 255, 255, 0.82)',
+    color: '#E6DDF5',
     fontSize: 13,
     lineHeight: 19,
     flex: 1,
   },
   adviceText: {
-    color: '#FEF3C7',
+    color: '#E6DDF5',
     fontSize: 13.5,
     lineHeight: 21,
     fontStyle: 'italic',
@@ -876,27 +880,30 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   expandArticleText: {
-    color: '#93C5FD',
+    color: '#FFC85A',
     fontSize: 12.5,
     fontWeight: '600',
   },
   fullArticleBox: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: '#170F2E',
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: '#3A2C6B',
     marginTop: 8,
   },
   fullArticleContent: {
-    color: 'rgba(255, 255, 255, 0.72)',
+    color: '#E6DDF5',
     fontSize: 12,
     lineHeight: 18,
+  },
+  numberedListNumber: {
+    fontWeight: '900',
   },
   footerRow: {
     paddingHorizontal: 20,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    borderTopColor: '#3A2C6B',
   },
 });
