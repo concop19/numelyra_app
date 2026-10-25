@@ -12,10 +12,12 @@ import {
   getKnowledgeAtoms,
   getMatrixKnowledgeValue,
   getRequiredValues,
+  isSupportedKnowledgeValue,
 } from './numerologyKnowledgeContract';
 import { getFrequencyBand, type MatrixReading } from './numerologyMatrixInterpretations';
 import type { CalculatedIndicator } from './numerologyEngine';
 import { translate, type AppLocale } from '../i18n/translations';
+import { formatIndicatorValue } from './numerologyPresentation';
 
 export type FallbackReason = 'db-error' | 'missing-row' | 'unsupported-value';
 
@@ -101,114 +103,42 @@ function parseKnowledgeMarkdown(
   titleFallback: string,
   locale: AppLocale = 'vi',
 ): KnowledgeReadingResult {
-  const lines = content.split('\n');
-  const strengths: string[] = [];
-  const challenges: string[] = [];
-  let currentSection = '';
-  let overviewText = '';
-  let adviceText = '';
-
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (!line) continue;
-    const upperLine = line.toLocaleUpperCase('vi-VN');
-    const isSectionMarker = line.startsWith('#') || line.endsWith(':') || line === upperLine;
-
-    if (isSectionMarker && (
-      upperLine.includes('THÁCH THỨC') || upperLine.includes('BÓNG TỐI') || upperLine.includes('CẠM BẪY') || upperLine.includes('ĐIỂM YẾU') ||
-      upperLine.includes('CHALLENGES') || upperLine.includes('CHALLENGE') || upperLine.includes('BLIND SPOT') || upperLine.includes('SHADOW') ||
-      upperLine.includes('PITFALL') || upperLine.includes('WEAKNESS') || upperLine.includes('OBSTACLE') || upperLine.includes('RISK')
-    )) {
-      currentSection = 'challenges';
-      continue;
-    } else if (isSectionMarker && (
-      upperLine.includes('ĐIỂM MẠNH') || upperLine.includes('ƯU ĐIỂM') || upperLine.includes('NĂNG LỰC') ||
-      upperLine.includes('STRENGTHS') || upperLine.includes('STRENGTH') || upperLine.includes('TALENT') || upperLine.includes('GIFT') || upperLine.includes('ADVANTAGE')
-    )) {
-      currentSection = 'strengths';
-      continue;
-    } else if (isSectionMarker && (
-      upperLine.includes('LỜI KHUYÊN') || upperLine.includes('HÀNH ĐỘNG') || upperLine.includes('BÀI HỌC') ||
-      upperLine.includes('GUIDANCE') || upperLine.includes('ADVICE') || upperLine.includes('NEXT STEP') || upperLine.includes('ACTION') ||
-      upperLine.includes('LESSON') || upperLine.includes('RECOMMENDATION')
-    )) {
-      currentSection = 'advice';
-      continue;
-    } else if (isSectionMarker && (
-      upperLine.includes('BẢN CHẤT') || upperLine.includes('TỔNG QUAN') || upperLine.includes('Ý NGHĨA') ||
-      upperLine.includes('OVERVIEW') || upperLine.includes('CORE NATURE') || upperLine.includes('ENERGY') ||
-      upperLine.includes('SUMMARY') || upperLine.includes('ESSENCE')
-    )) {
-      currentSection = 'overview';
-      continue;
-    }
-
-    if (currentSection === 'overview' && !overviewText) {
-      if (!line.startsWith('#')) overviewText = line.replace(/^\*+\s*/, '');
-    } else if (currentSection === 'strengths') {
-      if (line.startsWith('-') || line.startsWith('*') || line.startsWith('•')) {
-        strengths.push(line.replace(/^[-*•]\s*/, ''));
-      }
-    } else if (currentSection === 'challenges') {
-      if (line.startsWith('-') || line.startsWith('*') || line.startsWith('•')) {
-        challenges.push(line.replace(/^[-*•]\s*/, ''));
-      }
-    } else if (currentSection === 'advice' && !adviceText) {
-      if (!line.startsWith('#')) adviceText = line.replace(/^\*+\s*/, '');
-    }
-  }
-
-  // The bundled library contains long-form articles whose headings are tailored
-  // to each indicator instead of using one fixed template. Recover their semantic
-  // sections so the detailed UI does not discard content that is present in SQLite.
+  // Classify complete sections. Never carry a previous section's role across an
+  // unrelated heading or copy FAQ bullets into the highlights.
   const sections = extractMarkdownSections(content);
   const referenceKeywords = [
     'CÂU HỎI TRA CỨU', 'SEMANTIC Q&A', 'HỎI ĐÁP',
     'LOOKUP QUESTIONS', 'FAQS', 'FAQ', 'Q&A', 'REFERENCE',
   ];
   const challengeKeywords = [
-    'THÁCH THỨC', 'BÓNG TỐI', 'CẠM BẪY', 'ĐIỂM YẾU', 'KHỦNG HOẢNG', 'TIÊU CỰC', 'CẦN TRÁNH', 'RỦI RO', 'TRỞ NGẠI', 'STRESS',
-    'CHALLENGES', 'CHALLENGE', 'POTENTIAL BLIND SPOTS', 'BLIND SPOTS', 'BLIND SPOT', 'SHADOW', 'PITFALLS', 'PITFALL', 'WEAKNESSES', 'WEAKNESS', 'RISKS', 'OBSTACLES', 'GROWTH AREAS',
+    'THÁCH THỨC', 'BÓNG TỐI', 'CẠM BẪY', 'ĐIỂM YẾU', 'KHỦNG HOẢNG', 'TIÊU CỰC', 'CẦN TRÁNH', 'RỦI RO', 'TRỞ NGẠI', 'STRESS', 'ĐIỂM MÙ', 'TỔN THƯƠNG', 'LỆCH', 'SỢ HÃI', 'NỖI SỢ', 'XUNG ĐỘT', 'BỊ HIỂU LẦM', 'NGUY CƠ', 'THIẾU HỤT',
+    'CHALLENGES', 'CHALLENGE', 'BLIND SPOT', 'SHADOW', 'PITFALL', 'WEAKNESS', 'RISK', 'OBSTACLE', 'GROWTH AREAS', 'STRAY', 'DEVIAT', 'WOUND', 'FEAR', 'CONFLICT', 'MISUNDERSTOOD', 'SHOULD NOT', 'SHOULD AVOID', 'CRISES', 'CRISIS', 'TRAPS', 'LACKING',
   ];
   const strengthKeywords = [
     'ĐIỂM MẠNH', 'ƯU ĐIỂM', 'NĂNG LỰC', 'SỨC MẠNH', 'TIỀM NĂNG', 'MỎ NEO', 'TẦM ẢNH HƯỞNG', 'CƠ HỘI',
-    'STRENGTHS', 'STRENGTH', 'NATURAL STRENGTHS', 'TALENTS', 'TALENT', 'GIFTS', 'GIFT', 'ADVANTAGES', 'OPPORTUNITIES',
+    'STRENGTH', 'TALENT', 'GIFT', 'ADVANTAGE', 'OPPORTUNITIES', 'ABILITIES', 'SOCIAL INFLUENCE', 'PSYCHOLOGICAL ANCHOR', 'RESILIENCE', 'STATE OF FLOW',
   ];
   const adviceKeywords = [
-    'LỜI KHUYÊN', 'HÀNH ĐỘNG', 'BÀI HỌC', 'CHIẾN LƯỢC', 'KỸ THUẬT', 'GIẢI PHÁP', 'ĐỊNH TÂM', 'CHUẨN BỊ', 'PHÁT TRIỂN',
-    'GUIDANCE', 'ADVICE', 'NEXT STEP', 'NEXT STEPS', 'ACTION', 'ACTIONS', 'ACTIONABLE', 'LESSON', 'LESSONS', 'STRATEGY', 'SOLUTION', 'SOLUTIONS', 'RECOMMENDATIONS', 'RECOMMENDATION', 'DEVELOPMENT',
+    'LỜI KHUYÊN', 'HÀNH ĐỘNG', 'CHIẾN LƯỢC', 'KỸ THUẬT', 'GIẢI PHÁP', 'ĐỊNH TÂM', 'CHUẨN BỊ', 'PHÁT TRIỂN', 'THỰC HÀNH', 'BÀI TẬP', '3 BƯỚC', 'CHUYỂN HÓA',
+    'GUIDANCE', 'ADVICE', 'NEXT STEP', 'ACTION', 'STRATEGY', 'SOLUTION', 'RECOMMENDATION', 'DEVELOPMENT', 'PRACTICE', 'EXERCISE', 'CHECKLIST', 'STEPS TO', 'GROUNDING TECHNIQUE', 'RESOLVING', 'TRANSFORMING',
   ];
   const semanticSections = sections.filter((section) => !headingContains(section.heading, referenceKeywords));
 
-  // Long-form rows consistently lead with their primary interpretation, even
-  // when that heading contains words such as "khủng hoảng" for context.
-  const overviewSection = semanticSections[0];
-  const sectionOverview = overviewSection ? stripMarkdown(overviewSection.body) : '';
-  if (sectionOverview.length > stripMarkdown(overviewText).length) {
-    overviewText = sectionOverview;
-  }
-
-  if (strengths.length === 0) {
-    strengths.push(...semanticSections
-      .filter((section) => headingContains(section.heading, strengthKeywords))
-      .flatMap(sectionItems)
-      .slice(0, 3));
-  }
-
-  if (challenges.length === 0) {
-    challenges.push(...semanticSections
-      .filter((section) => headingContains(section.heading, challengeKeywords))
-      .flatMap(sectionItems)
-      .slice(0, 2));
-  }
-
-  const adviceSections = semanticSections.filter((section) => headingContains(section.heading, adviceKeywords));
-  const preferredAdvice = adviceSections.find((section) => headingContains(section.heading, ['LỜI KHUYÊN', 'GUIDANCE', 'ADVICE', 'RECOMMENDATION', 'NEXT STEP']))
+  const overviewText = semanticSections[0] ? stripMarkdown(semanticSections[0].body) : '';
+  const remaining = semanticSections.slice(1);
+  const explicitAdvice = ['LỜI KHUYÊN', 'GUIDANCE', 'ADVICE', 'RECOMMENDATION', 'NEXT STEP', 'PRACTICE', 'EXERCISE', 'THỰC HÀNH', 'BÀI TẬP', '3 BƯỚC', '3 ACTIONS', 'CHECKLIST'];
+  const isChallenge = (section: MarkdownSection) =>
+    headingContains(section.heading, challengeKeywords) && !headingContains(section.heading, explicitAdvice);
+  const isAdvice = (section: MarkdownSection) =>
+    headingContains(section.heading, adviceKeywords) && !isChallenge(section);
+  const strengths = remaining.filter((section) =>
+    headingContains(section.heading, strengthKeywords) && !isChallenge(section) && !isAdvice(section)
+  ).flatMap(sectionItems);
+  const challenges = remaining.filter(isChallenge).flatMap(sectionItems);
+  const adviceSections = remaining.filter(isAdvice);
+  const preferredAdvice = adviceSections.find((section) => headingContains(section.heading, explicitAdvice))
     || adviceSections[adviceSections.length - 1];
-  const sectionAdvice = preferredAdvice ? stripMarkdown(preferredAdvice.body) : '';
-  if (sectionAdvice.length > stripMarkdown(adviceText).length) {
-    adviceText = sectionAdvice;
-  }
+  const adviceText = preferredAdvice ? stripMarkdown(preferredAdvice.body) : '';
 
   return {
     title: titleFallback,
@@ -358,7 +288,7 @@ export async function getIndicatorReading(
     return {
       title: `${cardName}: ${chartTitle}`,
       source: 'computed-overview',
-      overview: `${chartOverview} ${locale === 'en' ? 'Profile data' : 'Dữ liệu riêng của hồ sơ'}: ${valStr}.`,
+      overview: `${chartOverview} ${locale === 'en' ? 'Profile data' : 'Dữ liệu riêng của hồ sơ'}: ${formatIndicatorValue(valStr, locale)}.`,
       strengths: [],
       challenges: [],
       advice: locale === 'en'
@@ -368,8 +298,7 @@ export async function getIndicatorReading(
   }
 
   const orderedValues = getKnowledgeAtoms(indicatorKey, indicatorValue).map((atom) => atom.numberValue);
-  const allowed = new Set(getRequiredValues(indicatorKey));
-  if (!orderedValues.length || orderedValues.some((value) => !allowed.has(value))) {
+  if (!isSupportedKnowledgeValue(indicatorKey, indicatorValue)) {
     return unavailableReading(indicatorKey, indicatorValue, cardName, locale, 'unsupported-value');
   }
   try {

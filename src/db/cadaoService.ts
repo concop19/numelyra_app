@@ -5,7 +5,7 @@
  * Database được chép từ bundle vào vùng SQLite ở lần chạy đầu tiên.
  */
 import * as SQLite from 'expo-sqlite';
-import { NUMEROLOGY_KNOWLEDGE_REQUIRED_COUNT } from '../services/numerologyKnowledgeContract';
+import { isKnowledgeCatalogValid, NUMEROLOGY_DATABASE_VERSION, type KnowledgeCatalogRecord } from '../services/numerologyCatalogValidation';
 import {
   buildContextualCaDaoSqlQuery,
   type CaDaoContextQuery,
@@ -71,12 +71,10 @@ async function hasNumerologyKnowledge(db: SQLite.SQLiteDatabase): Promise<boolea
       "SELECT count(*) as count FROM pragma_table_info('numerology_knowledge') WHERE name='locale'"
     );
     if ((localeColumn?.count ?? 0) === 0) return false;
-    const coverage = await db.getAllAsync<{ locale: string; count: number }>(
-      'SELECT locale, count(*) as count FROM numerology_knowledge GROUP BY locale'
+    const rows = await db.getAllAsync<KnowledgeCatalogRecord>(
+      'SELECT indicator_key, number_value, locale, title, content, review_status, source_revision, reviewed_by FROM numerology_knowledge'
     );
-    return ['vi', 'en'].every((locale) =>
-      (coverage.find((row) => row.locale === locale)?.count ?? 0) >= NUMEROLOGY_KNOWLEDGE_REQUIRED_COUNT
-    );
+    return isKnowledgeCatalogValid(rows);
   } catch {
     return false;
   }
@@ -103,8 +101,7 @@ async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
     const hasKnowledge = await hasNumerologyKnowledge(db);
     const version = await getDatabaseUserVersion(db);
 
-    // Version 4 phải có đủ toàn bộ luận giải cho cả tiếng Việt và tiếng Anh.
-    if (count > 0 && hasReps && hasVi && hasKnowledge && version >= 4) return db;
+    if (count > 0 && hasReps && hasVi && hasKnowledge && version === NUMEROLOGY_DATABASE_VERSION) return db;
   } catch {
     // Bản cài cũ có DB cũ hoặc thiếu bảng / thiếu cột biography_vi. Thay thế bản đó.
   }
@@ -118,7 +115,7 @@ async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
     await db.closeAsync();
     throw new Error('Bundled ca dao database is empty.');
   }
-  if (!(await hasNumerologyKnowledge(db))) {
+  if (!(await hasNumerologyKnowledge(db)) || (await getDatabaseUserVersion(db)) !== NUMEROLOGY_DATABASE_VERSION) {
     await db.closeAsync();
     throw new Error('Bundled numerology knowledge database is incomplete.');
   }

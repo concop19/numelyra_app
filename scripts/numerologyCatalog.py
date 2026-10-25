@@ -65,6 +65,15 @@ def shingles(content: str) -> set[tuple[str, ...]]:
     return {tuple(words[i:i + 5]) for i in range(max(1, len(words) - 4))}
 
 
+def markdown_structure(content: str) -> tuple[int, int, int]:
+    """Headings, list items, and FAQ questions must survive the translation."""
+    return (
+        len(re.findall(r'^#{1,6}\s+', content, re.MULTILINE)),
+        len(re.findall(r'^\s*(?:[-*•]|\d+[.)])\s+', content, re.MULTILINE)),
+        len(re.findall(r'\*\*Q:', content)),
+    )
+
+
 def quality_findings(rows: list[dict], locale: str) -> tuple[list[str], list[dict]]:
     """Block exact cross-indicator copies; queue 5-token Jaccard similarity >85%."""
     errors, similarities = [], []
@@ -114,6 +123,8 @@ def validate_catalog(vi: list[dict], en: list[dict]) -> tuple[list[str], list[di
             row_key = key(row)
             if not row.get('title', '').strip() or len(row.get('content', '').strip()) < 100:
                 errors.append(f'{locale}:{row_key}: empty or truncated content')
+            if '\ufffd' in row.get('title', '') + row.get('content', ''):
+                errors.append(f'{locale}:{row_key}: invalid Unicode replacement character')
             if row.get('review_status') != 'approved' or not row.get('reviewed_by'):
                 errors.append(f'{locale}:{row_key}: editorial approval required')
             if locale == 'en':
@@ -124,6 +135,8 @@ def validate_catalog(vi: list[dict], en: list[dict]) -> tuple[list[str], list[di
                     errors.append(f'en:{row_key}: untranslated Vietnamese text')
                 if source and len(sections(row['content'])) != len(sections(source['content'])):
                     errors.append(f'en:{row_key}: source section count differs')
+                if source and markdown_structure(row['content']) != markdown_structure(source['content']):
+                    errors.append(f'en:{row_key}: source headings, list items, or FAQ count differs')
         duplicate_errors, similar = quality_findings(rows, locale)
         errors.extend(duplicate_errors)
         similarities.extend(similar)

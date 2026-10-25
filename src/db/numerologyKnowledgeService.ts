@@ -26,7 +26,7 @@ export async function fetchNumerologyKnowledgeRows(
   return db.getAllAsync<NumerologyKnowledgeDbRow>(
     `SELECT indicator_key, number_value, title, content, locale, review_status
      FROM numerology_knowledge
-     WHERE indicator_key = ? AND locale = ? AND number_value IN (${placeholders})`,
+     WHERE indicator_key = ? AND locale = ? AND review_status = 'approved' AND number_value IN (${placeholders})`,
     [indicatorKey, locale, ...numberValues]
   );
 }

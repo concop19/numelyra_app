@@ -24,14 +24,10 @@ import {
   getMatrixKnowledgeValue,
 } from '../services/numerologyKnowledgeContract';
 import {
-  ArrowStatus,
-  DigitReading,
-  getArrowReading,
-  getDigitReading,
   getFrequencyBand,
-  MatrixKey,
 } from '../services/numerologyMatrixInterpretations';
 import { useLocalization } from '../i18n/LocalizationContext';
+import { formatIndicatorDisplayValue } from '../services/numerologyPresentation';
 
 interface IndicatorDetailModalProps {
   visible: boolean;
@@ -39,54 +35,12 @@ interface IndicatorDetailModalProps {
   onClose: () => void;
 }
 
-const ENGLISH_BAND_LABELS: Record<ReturnType<typeof getFrequencyBand>, string> = {
-  missing: 'Missing',
-  baseline: 'Foundation',
-  highlighted: 'Prominent',
-  amplified: 'Strong repetition',
-};
-
-function getEnglishDigitReading(number: number, count: number, reading: DigitReading): DigitReading {
-  const frequency = count === 1 ? 'once' : `${count} times`;
-  const presence = count === 0 ? 'does not appear' : `appears ${frequency}`;
-  return {
-    ...reading,
-    theme: `Number ${number} energy`,
-    bandLabel: ENGLISH_BAND_LABELS[reading.band],
-    summary: `Number ${number} ${presence} in this chart. Its frequency suggests how available or emphasized this quality may feel.`,
-    strength: count === 0
-      ? 'Awareness creates room to develop this quality through intentional practice.'
-      : 'This quality can become a dependable resource when it is used with balance.',
-    challenge: count >= 3
-      ? 'Strong repetition may make this tendency intense or difficult to moderate.'
-      : count === 0
-        ? 'The quality may require more conscious effort before it feels natural.'
-        : 'Relying on this quality automatically can narrow your range of responses.',
-    advice: 'Observe this pattern in daily life and practice one small behavior that brings it into better balance.',
-  };
-}
-
-function getEnglishArrowReading(status: ArrowStatus) {
-  const statusText = status === 'strong' ? 'complete' : status === 'empty' ? 'empty' : 'partially present';
-  return {
-    theme: 'Arrow pattern',
-    summary: `This three-number line is ${statusText} in your birth chart.`,
-    strength: status === 'strong'
-      ? 'A complete line can indicate a concentrated and readily available pattern.'
-      : 'The numbers that are present provide a practical starting point for development.',
-    challenge: status === 'empty'
-      ? 'An empty line is traditionally treated as a theme that benefits from conscious practice.'
-      : 'The pattern can become uneven when one quality carries too much of the load.',
-    advice: 'Use the pattern as a prompt for self-observation, then choose a concrete habit that supports balance.',
-  };
-}
-
 export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
   visible,
   indicator,
   onClose,
 }) => {
-  const { locale, l } = useLocalization();
+  const { locale, l, t } = useLocalization();
   const [loading, setLoading] = useState(true);
   const [reading, setReading] = useState<KnowledgeReadingResult | null>(null);
   const [showFullArticle, setShowFullArticle] = useState(false);
@@ -95,16 +49,19 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
     if (visible && indicator) {
       setLoading(true);
       setShowFullArticle(false);
+      let active = true;
+      setReading(null);
       getIndicatorReading(indicator.key, indicator.value, locale === 'en' ? indicator.nameEn : indicator.nameVi, locale)
         .then((res) => {
-          setReading(res);
+          if (active) setReading(res);
         })
         .catch((err) => {
           console.warn('[DetailModal] Load reading error:', err);
         })
         .finally(() => {
-          setLoading(false);
+          if (active) setLoading(false);
         });
+      return () => { active = false; };
     } else {
       setReading(null);
     }
@@ -148,10 +105,10 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
                 {locale !== 'en' && <Text style={styles.indicatorNameEn}>{indicator.nameEn}</Text>}
 
                 <View style={styles.valueRow}>
-                  <Text style={styles.valueLabel}>{indicator.chartData ? l('Dữ liệu biểu đồ:', 'Chart data:') : l('Kết quả của bạn:', 'Your result:')}</Text>
+                  <Text style={styles.valueLabel}>{t(indicator.chartData ? 'reading.chartData' : 'reading.result')}</Text>
                   <View style={[styles.valuePill, indicator.isMaster && styles.valuePillMaster]}>
                     <Text style={[styles.valuePillText, indicator.isMaster && styles.valuePillTextMaster]}>
-                      {indicator.displayValue}
+                      {formatIndicatorDisplayValue(indicator, locale)}
                     </Text>
                   </View>
                   {indicator.isMaster && (
@@ -173,7 +130,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
             {/* Tra Cứu Tri Thức Banner */}
             <View style={styles.knowledgeBanner}>
               <Text style={styles.knowledgeBannerText}>
-                {l('Luận giải tri thức chuẩn Pythagoras • Tức thì & Không qua AI', 'Pythagorean reference reading • Instant & generated without AI')}
+                {visibleReading?.source === 'fallback' ? t('reading.fallbackLabel') : t('reading.reference')}
               </Text>
             </View>
 
@@ -181,7 +138,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
             {loading && (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#FF8A3D" />
-                <Text style={styles.loadingText}>{l('Đang tra cứu kho tri thức bản mệnh...', 'Loading your numerology reference...')}</Text>
+                <Text style={styles.loadingText}>{t('reading.loading')}</Text>
               </View>
             )}
 
@@ -191,7 +148,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
                 {/* 1. Bản Chất Cốt Lõi */}
                 <View style={styles.sectionBlock}>
                   <View style={styles.sectionTitleRow}>
-                    <Text style={styles.sectionHeading}>{l('Bản Chất Cốt Lõi & Năng Lượng', 'Core Nature & Energy')}</Text>
+                    <Text style={styles.sectionHeading}>{t('reading.core')}</Text>
                   </View>
                   <Text style={styles.sectionBodyText}>{visibleReading.overview}</Text>
                 </View>
@@ -200,7 +157,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
                 {visibleReading.strengths.length > 0 && (
                   <View style={styles.sectionBlock}>
                     <View style={styles.sectionTitleRow}>
-                      <Text style={styles.sectionHeading}>{l('Điểm Mạnh Tự Nhiên', 'Natural Strengths')}</Text>
+                      <Text style={styles.sectionHeading}>{t('reading.strengths')}</Text>
                     </View>
                     {visibleReading.strengths.map((s, idx) => (
                       <View key={`str-${idx}`} style={styles.bulletItem}>
@@ -214,7 +171,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
                 {visibleReading.challenges.length > 0 && (
                   <View style={styles.sectionBlock}>
                     <View style={styles.sectionTitleRow}>
-                      <Text style={styles.sectionHeading}>{l('Vùng Bóng Tối Cần Lưu Ý', 'Potential Blind Spots')}</Text>
+                      <Text style={styles.sectionHeading}>{t('reading.challenges')}</Text>
                     </View>
                     {visibleReading.challenges.map((c, idx) => (
                       <View key={`cha-${idx}`} style={styles.bulletItem}>
@@ -229,7 +186,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
                   <View style={[styles.sectionBlock, styles.adviceBlock]}>
                     <View style={styles.sectionTitleRow}>
                       <Text style={[styles.sectionHeading, { color: '#FFC85A' }]}>
-                        {l('Lời Khuyên & Bước Chuyển Hóa', 'Guidance & Next Step')}
+                        {t('reading.guidance')}
                       </Text>
                     </View>
                     <Text style={styles.adviceText}>{visibleReading.advice}</Text>
@@ -247,7 +204,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
                       }}
                       style={styles.expandArticleBtn}
                     >
-                      <Text style={styles.expandArticleText}>{showFullArticle ? l('Thu gọn bài luận giải', 'Collapse full reading') : l('Đọc toàn văn tư liệu gốc', 'Read the full source text')}</Text>
+                      <Text style={styles.expandArticleText}>{t(showFullArticle ? 'reading.source.collapse' : 'reading.source.expand')}</Text>
                     </TouchableOpacity>
 
                     {showFullArticle && (
@@ -269,7 +226,7 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
           <View style={styles.footerRow}>
             <ThreeDButton
               fullWidth
-              label={l('Đã Hiểu • Quay Lại 24 Lá Bài', 'Got It • Back to 24 Cards')}
+              label={t('reading.back')}
               onPress={() => { void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); onClose(); }}
               shape="pill"
               variant="gold"
@@ -285,17 +242,28 @@ export const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({
 const MATRIX_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 function ChartDataSection({ indicator }: { indicator: CalculatedIndicator }) {
-  const { locale, l } = useLocalization();
+  const { locale, l, t } = useLocalization();
   const [selectedDigit, setSelectedDigit] = useState<number | null>(null);
   const [selectedArrowLabel, setSelectedArrowLabel] = useState<string | null>(null);
   const [dbReadings, setDbReadings] = useState<MatrixKnowledgeBundle>({});
+  const [digitDbReadings, setDigitDbReadings] = useState<MatrixKnowledgeBundle>({});
   const chartData = indicator.chartData;
 
   useEffect(() => {
     let active = true;
     setDbReadings({});
-    getMatrixKnowledgeBundle(indicator, locale).then((bundle) => {
-      if (active) setDbReadings(bundle);
+    setDigitDbReadings({});
+    setSelectedDigit(null);
+    setSelectedArrowLabel(null);
+    const birthIndicator = { ...indicator, key: 'birthChart', nameVi: 'Biểu đồ ngày sinh', nameEn: 'Birth Chart' };
+    Promise.all([
+      getMatrixKnowledgeBundle(indicator, locale),
+      indicator.key === 'arrows' ? getMatrixKnowledgeBundle(birthIndicator, locale) : Promise.resolve(null),
+    ]).then(([bundle, digits]) => {
+      if (active) {
+        setDbReadings(bundle);
+        setDigitDbReadings(digits ?? bundle);
+      }
     });
     return () => { active = false; };
   }, [indicator, locale]);
@@ -303,7 +271,6 @@ function ChartDataSection({ indicator }: { indicator: CalculatedIndicator }) {
   if (!chartData) return null;
 
   const isArrows = indicator.key === 'arrows';
-  const matrixInterpretationKey: MatrixKey = isArrows ? 'birthChart' : indicator.key as MatrixKey;
   const title = indicator.key === 'nameChart'
     ? l('Ma trận tần suất theo tên', 'Name Frequency Matrix')
     : indicator.key === 'birthChart' || isArrows
@@ -314,19 +281,19 @@ function ChartDataSection({ indicator }: { indicator: CalculatedIndicator }) {
     empty: l('Trống', 'Empty'),
     partial: l('Có một phần', 'Partial'),
   } as const;
+  const pending = { summary: t('reading.loading'), strength: '', challenge: '', advice: '' };
   const resolveDigitReading = (number: number, count: number) => {
     const band = getFrequencyBand(count);
-    const fallback = getDigitReading(matrixInterpretationKey, number, count);
-    const dbReading = dbReadings[getMatrixKnowledgeValue(number, band)];
-    const merged = dbReading ? { ...fallback, ...dbReading } : fallback;
-    return dbReading || locale === 'vi' ? merged : getEnglishDigitReading(number, count, merged);
+    return {
+      ...(digitDbReadings[getMatrixKnowledgeValue(number, band)] ?? pending),
+      theme: t('matrix.digitTheme', { digit: number }),
+      bandLabel: t(`matrix.${band}`),
+    };
   };
-  const resolveArrowReading = (label: string, status: ArrowStatus) => {
-    const fallback = getArrowReading(label, status);
-    const dbReading = dbReadings[getArrowKnowledgeValue(label, status)];
-    const merged = dbReading ? { ...fallback, ...dbReading } : fallback;
-    return dbReading || locale === 'vi' ? merged : { ...merged, ...getEnglishArrowReading(status) };
-  };
+  const resolveArrowReading = (label: string, status: 'strong' | 'empty' | 'partial') => ({
+    ...(dbReadings[getArrowKnowledgeValue(label, status)] ?? pending),
+    theme: locale === 'en' ? `Arrow ${label}` : `Mũi tên ${label}`,
+  });
   const selectedDigitReading = selectedDigit === null
     ? null
     : resolveDigitReading(selectedDigit, chartData.counts[selectedDigit] || 0);
@@ -379,7 +346,7 @@ function ChartDataSection({ indicator }: { indicator: CalculatedIndicator }) {
         <View style={styles.arrowList}>
           <Text style={styles.arrowListTitle}>{l('Trạng thái 8 mũi tên', 'Eight Arrow Patterns')}</Text>
           {chartData.arrows.map((arrow) => {
-            const reading = resolveArrowReading(arrow.label, arrow.status as ArrowStatus);
+            const reading = resolveArrowReading(arrow.label, arrow.status);
             const selected = selectedArrowLabel === arrow.label;
             return (
               <View key={arrow.label}>

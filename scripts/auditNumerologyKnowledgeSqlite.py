@@ -1,89 +1,70 @@
-"""Validate bilingual coverage and release readiness of the bundled database."""
+"""Verify exact coverage, editorial quality, revisions, and source/bundle parity."""
 
 from __future__ import annotations
 
 import argparse
 import json
 import sqlite3
-from pathlib import Path
+import sys
 
+from numerologyCatalog import (
+    DATABASE_VERSION, EN_PATH, ROOT, key, load_rows, required_keys,
+    source_revision, validate_catalog, vietnamese_rows,
+)
 
-ROOT = Path(__file__).resolve().parents[1]
-DB_PATH = ROOT / "assets" / "cadao.db"
-CONTRACT_PATH = ROOT / "src" / "data" / "numerologyKnowledgeContract.vi.json"
+DB_PATH = ROOT / 'assets/cadao.db'
 
 
 def main() -> None:
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8')
     parser = argparse.ArgumentParser()
-    parser.add_argument("--require-approved", action="store_true")
+    # Kept for existing CI callers. Approval is mandatory in every mode now.
+    parser.add_argument('--require-approved', action='store_true')
+    parser.add_argument('--catalog-only', action='store_true')
+    parser.add_argument('--report', help='Write a machine-readable report, including the similarity review queue')
     args = parser.parse_args()
-    contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
-    required = {
-        (entry["key"], str(value))
-        for entry in contract["indicators"]
-        for value in entry["requiredValues"]
-    }
-    db = sqlite3.connect(f"file:{DB_PATH.as_posix()}?mode=ro", uri=True)
-    try:
-        version = db.execute("PRAGMA user_version").fetchone()[0]
-        integrity = db.execute("PRAGMA integrity_check").fetchone()[0]
-        rows = db.execute(
-            "SELECT indicator_key, number_value, locale, title, content, review_status FROM numerology_knowledge"
-        ).fetchall()
-        ca_dao_count = db.execute("SELECT COUNT(*) FROM cadao").fetchone()[0]
-        duplicates = db.execute("""
-            SELECT indicator_key, number_value, locale, COUNT(*)
-            FROM numerology_knowledge
-            GROUP BY indicator_key, number_value, locale
-            HAVING COUNT(*) > 1
-        """).fetchall()
-    finally:
-        db.close()
-
-    errors: list[str] = []
-    if version != 4:
-        errors.append(f"Expected user_version 4, found {version}")
-    if integrity != "ok":
-        errors.append(f"integrity_check: {integrity}")
-    if ca_dao_count != 16521:
-        errors.append(f"Expected 16521 ca dao rows, found {ca_dao_count}")
-    if duplicates:
-        errors.append(f"Duplicate locale keys: {duplicates[:10]}")
-    by_locale = {locale: [row for row in rows if row[2] == locale] for locale in ("vi", "en")}
-    vi_keys = {(row[0], row[1]) for row in by_locale["vi"]}
-    en_keys = {(row[0], row[1]) for row in by_locale["en"]}
-    for locale, locale_rows in by_locale.items():
-        keys = {(row[0], row[1]) for row in locale_rows}
-        missing = sorted(required - keys)
-        invalid = [(row[0], row[1]) for row in locale_rows if not row[3].strip() or len(row[4].strip()) < 100]
-        if len(locale_rows) != 320:
-            errors.append(f"{locale}: expected 320 rows, found {len(locale_rows)}")
-        if len({row[0] for row in locale_rows}) != 24:
-            errors.append(f"{locale}: expected 24 indicators")
-        if missing:
-            errors.append(f"{locale}: missing {missing[:10]} (total={len(missing)})")
-        if invalid:
-            errors.append(f"{locale}: invalid {invalid[:10]} (total={len(invalid)})")
-    if vi_keys != en_keys:
-        errors.append("Vietnamese and English key sets differ")
-    draft_count = sum(1 for row in by_locale["en"] if row[5] != "approved")
-    if args.require_approved and draft_count:
-        errors.append(f"English editorial approval pending for {draft_count} rows")
-
+    vi, en = vietnamese_rows(), load_rows(EN_PATH)
+    errors, similarities = validate_catalog(vi, en)
     report = {
-        "version": version,
-        "integrity": integrity,
-        "vi": len(by_locale["vi"]),
-        "en": len(by_locale["en"]),
-        "required_per_locale": len(required),
-        "indicators_per_locale": {locale: len({row[0] for row in locale_rows}) for locale, locale_rows in by_locale.items()},
-        "ca_dao": ca_dao_count,
-        "draft_en": draft_count,
+        'required_per_locale': len(required_keys()), 'vi': len(vi), 'en': len(en),
+        'draft_en': sum(row.get('review_status') != 'approved' for row in en),
+        'similarity_queue': similarities,
     }
+    if not args.catalog_only:
+        with sqlite3.connect(f'file:{DB_PATH.as_posix()}?mode=ro', uri=True) as db:
+            db.row_factory = sqlite3.Row
+            version = db.execute('PRAGMA user_version').fetchone()[0]
+            integrity = db.execute('PRAGMA integrity_check').fetchone()[0]
+            ca_dao = db.execute('SELECT COUNT(*) FROM cadao').fetchone()[0]
+            rows = [dict(row) for row in db.execute('SELECT * FROM numerology_knowledge')]
+        report.update(version=version, integrity=integrity, ca_dao=ca_dao)
+        if version != DATABASE_VERSION:
+            errors.append(f'Expected user_version {DATABASE_VERSION}, found {version}')
+        if integrity != 'ok' or ca_dao != 16521:
+            errors.append('SQLite integrity or ca dao row count changed')
+        expected = {(locale, key(row)): row for locale, entries in [('vi', vi), ('en', en)] for row in entries}
+        actual = {(row['locale'], key(row)): row for row in rows}
+        if set(actual) != set(expected) or len(rows) != len(expected):
+            errors.append('Bundled SQLite keys differ from the exact bilingual catalog')
+        revisions = {key(row): source_revision(row['title'], row['content']) for row in vi}
+        for localized_key, article in expected.items():
+            row = actual.get(localized_key, {})
+            if any(row.get(field) != article.get(field) for field in ['title', 'content', 'review_status', 'reviewed_by']):
+                errors.append(f'Bundled text/approval differs from catalog: {localized_key}')
+            if row.get('source_revision') != revisions.get(localized_key[1]):
+                errors.append(f'Bundled source revision is stale: {localized_key}')
+        manifest = json.loads((ROOT / 'src/data/numerologyKnowledgeManifest.json').read_text(encoding='utf-8'))
+        if manifest != {'version': DATABASE_VERSION, 'revisions': dict(sorted(revisions.items()))}:
+            errors.append('Runtime manifest differs from the source catalog')
+    report['errors'] = errors
     print(json.dumps(report, ensure_ascii=False))
+    if args.report:
+        from pathlib import Path
+        Path(args.report).write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     if errors:
-        raise SystemExit("\n".join(errors))
+        raise SystemExit(f'Catalog audit failed with {len(errors)} error(s).')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

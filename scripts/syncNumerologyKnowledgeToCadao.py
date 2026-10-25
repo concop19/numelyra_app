@@ -1,4 +1,4 @@
-"""Backward-compatible entry point for the deterministic v4 DB builder."""
+"""Backward-compatible entry point for the reviewed v5 DB builder."""
 
 from buildBilingualNumerologyDb import main
 

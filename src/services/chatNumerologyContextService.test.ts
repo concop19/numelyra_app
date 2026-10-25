@@ -49,7 +49,7 @@ describe('chatNumerologyContextService', () => {
     const reading = getConciseIndicatorReading('walksOfLife', 7, 'Số Đường Đời');
     expect(reading).not.toBeNull();
     expect(reading!.title).toBe('Đường Đời 7');
-    expect(reading!.source).toBe('offline-archetype');
+    expect(reading!.source).toBe('computed-overview');
     expect(reading!.overview).toContain('chiêm nghiệm');
     expect(reading!.strengths).toEqual([]);
     expect(reading!.challenges).toEqual([]);

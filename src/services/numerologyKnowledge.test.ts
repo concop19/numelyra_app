@@ -1,11 +1,16 @@
 const mockFetchRows = jest.fn();
 
 jest.mock('../db/numerologyKnowledgeService', () => ({
-  fetchNumerologyKnowledgeRows: (...args: unknown[]) => mockFetchRows(...args),
+  fetchNumerologyKnowledgeRows: (...args: unknown[]) => mockFetchRows(...args).then((rows: object[]) =>
+    rows.map((row) => ({ locale: args[2], review_status: 'approved', ...row }))
+  ),
 }));
 
 import { CalculatedIndicator } from './numerologyEngine';
 import { getIndicatorReading, getMatrixKnowledgeBundle } from './numerologyKnowledge';
+import englishCatalog from '../data/numerologyKnowledge.en.overrides.json';
+import vietnameseCatalog from '../data/numerologyKnowledge.vi.json';
+import vietnameseEdits from '../data/numerologyKnowledge.vi.overrides.json';
 
 function contentFor(label: string): string {
   return [
@@ -21,8 +26,56 @@ function contentFor(label: string): string {
 }
 
 describe('numerologyKnowledge SQLite-first resolution', () => {
+  let warn: jest.SpyInstance;
+  beforeAll(() => { warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined); });
+  afterAll(() => { warn.mockRestore(); });
   beforeEach(() => {
     jest.clearAllMocks();
+    mockFetchRows.mockReset();
+  });
+
+  it.each(['vi', 'en'] as const)('reports a database error in %s without an archetype replacement', async (locale) => {
+    mockFetchRows.mockRejectedValue(new Error('database unavailable'));
+    const reading = await getIndicatorReading('mission', 4, 'Destiny', locale);
+    expect(reading).toMatchObject({ source: 'fallback', fallbackReason: 'db-error', strengths: [], challenges: [] });
+    expect(warn).toHaveBeenCalledWith('[numerologyKnowledge]', {
+      event: 'reading-fallback', locale, indicator: 'mission', value: '4', reason: 'db-error',
+    });
+    if (locale === 'en') expect(reading.overview).not.toMatch(/[À-ỹ]/);
+  });
+
+  it.each([
+    ['mission', '999'], ['not-an-indicator', '1'], ['karmicDebts', 'not a debt'],
+    ['missingNumbers', '0'], ['challenges', '1 + unavailable'],
+  ])('rejects an unsupported value %s/%s before opening SQLite', async (key, value) => {
+    const reading = await getIndicatorReading(key, value, key, 'en');
+    expect(reading).toMatchObject({ source: 'fallback', fallbackReason: 'unsupported-value' });
+    expect(mockFetchRows).not.toHaveBeenCalled();
+  });
+
+  it('does not display draft or wrong-locale content', async () => {
+    mockFetchRows.mockResolvedValue([
+      { indicator_key: 'mission', number_value: '4', locale: 'en', review_status: 'draft', content: contentFor('draft') },
+      { indicator_key: 'mission', number_value: '4', locale: 'vi', review_status: 'approved', content: contentFor('wrong locale') },
+    ]);
+    expect(await getIndicatorReading('mission', 4, 'Destiny', 'en')).toMatchObject({ source: 'fallback', fallbackReason: 'missing-row' });
+  });
+
+  it('returns computed chart overviews with localized status text and no fallback warning', async () => {
+    const reading = await getIndicatorReading('arrows', '1-4-7: Đủ bộ (3/3); 2-5-8: Trống (0/3)', 'Arrows', 'en');
+    expect(reading.source).toBe('computed-overview');
+    expect(reading.fallbackReason).toBeUndefined();
+    expect(reading.overview).toContain('Complete');
+    expect(reading.overview).not.toMatch(/[À-ỹ]/);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('reports failed and unsupported matrix states independently', async () => {
+    mockFetchRows.mockRejectedValue(new Error('database unavailable'));
+    const indicator = { key: 'birthChart', nameEn: 'Birth chart', chartData: { counts: { 1: 1, 10: 0 } } } as unknown as CalculatedIndicator;
+    const bundle = await getMatrixKnowledgeBundle(indicator, 'en');
+    expect(bundle['1:baseline']).toMatchObject({ source: 'fallback', fallbackReason: 'db-error' });
+    expect(bundle['10:missing']).toMatchObject({ source: 'fallback', fallbackReason: 'unsupported-value' });
   });
 
   it('loads and combines every atomic DB row for a composite result', async () => {
@@ -42,7 +95,7 @@ describe('numerologyKnowledge SQLite-first resolution', () => {
     expect(mockFetchRows).toHaveBeenCalledWith('karmicDebts', ['13/4', '16/7'], 'vi');
   });
 
-  it('uses the complete offline reading when one atomic DB row is missing', async () => {
+  it('reports a missing composite row instead of substituting a generic archetype', async () => {
     mockFetchRows.mockResolvedValue(
       [
         { indicator_key: 'missingNumbers', number_value: '2', title: '2', content: contentFor('2') },
@@ -51,12 +104,13 @@ describe('numerologyKnowledge SQLite-first resolution', () => {
 
     const reading = await getIndicatorReading('missingNumbers', '2, 7', 'Bài Học Số Thiếu', 'vi');
 
-    expect(reading.source).toBe('offline-archetype');
-    expect(reading.overview).toContain('Số 2 thiếu');
-    expect(reading.overview).toContain('Số 7 thiếu');
+    expect(reading.source).toBe('fallback');
+    expect(reading.fallbackReason).toBe('missing-row');
+    expect(reading.strengths).toEqual([]);
+    expect(reading.fullContent).toBeUndefined();
   });
 
-  it('loads matrix state rows as a batch and leaves absent states to JSON fallback', async () => {
+  it('loads matrix states in a batch and reports provenance for each missing state', async () => {
     mockFetchRows.mockResolvedValue(
       [
         { indicator_key: 'nameChart', number_value: '1:baseline', title: 'Số 1', content: contentFor('số 1 nền tảng') },
@@ -72,7 +126,8 @@ describe('numerologyKnowledge SQLite-first resolution', () => {
 
     expect(bundle['1:baseline']?.source).toBe('local-sqlite');
     expect(bundle['1:baseline']?.summary).toContain('số 1 nền tảng');
-    expect(bundle['2:missing']).toBeUndefined();
+    expect(bundle['2:missing']?.source).toBe('fallback');
+    expect(bundle['2:missing']?.fallbackReason).toBe('missing-row');
   });
 
   it('keeps ChatNumerologyContext out of the detailed UI and loads mature 4 from SQLite', async () => {
@@ -156,16 +211,16 @@ describe('numerologyKnowledge SQLite-first resolution', () => {
   it('correctly parses a single English SQLite row with OVERVIEW, STRENGTHS, CHALLENGES, and GUIDANCE', async () => {
     mockFetchRows.mockResolvedValue([
       {
-        indicator_key: 'lifePath',
+        indicator_key: 'walksOfLife',
         number_value: '4',
         title: 'Life Path 4',
         content: englishContentFor('4'),
       },
     ]);
 
-    const reading = await getIndicatorReading('lifePath', 4, 'Life Path', 'en');
+    const reading = await getIndicatorReading('walksOfLife', 4, 'Life Path', 'en');
 
-    expect(mockFetchRows).toHaveBeenCalledWith('lifePath', ['4'], 'en');
+    expect(mockFetchRows).toHaveBeenCalledWith('walksOfLife', ['4'], 'en');
     expect(reading.source).toBe('local-sqlite');
     expect(reading.overview).toContain('energy for 4 centers on discipline');
     expect(reading.strengths).toEqual(['Reliable effort and consistent work for 4.']);
@@ -237,7 +292,7 @@ describe('numerologyKnowledge SQLite-first resolution', () => {
     expect(VI_REGEX.test(reading.overview)).toBe(false);
   });
 
-  it('falls back to English advice when an English row lacks a guidance section', async () => {
+  it('does not invent repetitive advice when an article has no guidance section', async () => {
     mockFetchRows.mockResolvedValue([
       {
         indicator_key: 'karmicDebts',
@@ -259,7 +314,7 @@ describe('numerologyKnowledge SQLite-first resolution', () => {
     expect(reading.source).toBe('local-sqlite');
     expect(reading.strengths).toEqual(['Tenacity and resilience through challenges.']);
     expect(reading.challenges).toEqual(['Resistance to effort and desire for shortcuts.']);
-    expect(reading.advice).toBe('Leverage your innate strengths and maintain inner balance.');
+    expect(reading.advice).toBe('');
     expect(reading.advice).not.toContain('Phát huy điểm mạnh');
     expect(VI_REGEX.test(reading.advice)).toBe(false);
   });
@@ -332,6 +387,42 @@ describe('numerologyKnowledge SQLite-first resolution', () => {
     expect(reading.challenges).toEqual(['Superficial deflection of uncomfortable emotions.']);
     expect(reading.advice).toBe('Allow yourself to experience and share deeper feelings.');
     expect(VI_REGEX.test(reading.advice)).toBe(false);
+  });
+});
+
+describe('real reviewed bilingual catalog parsing', () => {
+  it('renders every bundled article without invented archetypes, language leakage, or FAQ contamination', async () => {
+    const edits = new Map(vietnameseEdits.rows.map((row) => [`${row.indicator_key}|${row.number_value}`, row]));
+    const vietnamese = vietnameseCatalog.rows.map((row) => ({ ...row, ...edits.get(`${row.indicator_key}|${row.number_value}`) }));
+    for (const [locale, articles] of [['vi', vietnamese], ['en', englishCatalog.rows]] as const) {
+      for (const row of articles) {
+        mockFetchRows.mockResolvedValue([{ ...row, locale }]);
+        let overview: string;
+        let fullContent: string | undefined;
+        if (['arrows', 'nameChart', 'birthChart'].includes(row.indicator_key)) {
+          const [subject, band] = row.number_value.split(':');
+          const counts = { [Number(subject)]: ['missing', 'baseline', 'highlighted', 'amplified'].indexOf(band) };
+          const indicator = {
+            key: row.indicator_key, nameVi: row.title, nameEn: row.title,
+            chartData: row.indicator_key === 'arrows'
+              ? { counts: {}, arrows: [{ label: subject, status: band, numbers: subject.split('-').map(Number), presentCount: band === 'strong' ? 3 : 0 }] }
+              : { counts },
+          } as unknown as CalculatedIndicator;
+          const reading = (await getMatrixKnowledgeBundle(indicator, locale))[row.number_value];
+          expect(reading?.source).toBe('local-sqlite');
+          overview = reading.summary;
+        } else {
+          const reading = await getIndicatorReading(row.indicator_key, row.number_value, row.title, locale);
+          expect(reading.source).toBe('local-sqlite');
+          expect(reading.fullContent).toBe(row.content);
+          expect(reading.strengths.join(' ') + reading.challenges.join(' ') + reading.advice).not.toMatch(/\b[QA]:/);
+          overview = reading.overview;
+          fullContent = reading.fullContent;
+        }
+        expect(overview.trim().length).toBeGreaterThan(20);
+        if (locale === 'en') expect(overview + (fullContent ?? '')).not.toMatch(/[ÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯàáâãèéêìíòóôõùúăđĩũơưẠ-ỹ]/);
+      }
+    }
   });
 });
 

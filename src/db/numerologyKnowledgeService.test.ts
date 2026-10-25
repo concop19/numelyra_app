@@ -39,7 +39,7 @@ describe('numerologyKnowledgeService', () => {
   });
 
   it('reports the local knowledge row count', async () => {
-    mockGetFirstAsync.mockResolvedValue({ total: 320 });
-    await expect(getNumerologyKnowledgeCount()).resolves.toBe(320);
+    mockGetFirstAsync.mockResolvedValue({ total: 304 });
+    await expect(getNumerologyKnowledgeCount()).resolves.toBe(304);
   });
 });

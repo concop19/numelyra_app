@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import {
   Modal,
   View,
@@ -25,6 +25,8 @@ import { HistoricalFigureModal } from './HistoricalFigureModal';
 import ThreeDButton from './ThreeDButton';
 import { getRepresentativeByTriple, RepresentativeItem } from '../db/representativeService';
 import { getIndicatorShortSummary } from '../services/numerologySummaryService';
+import { formatIndicatorDisplayValue } from '../services/numerologyPresentation';
+import { getIndicatorReading } from '../services/numerologyKnowledge';
 import { type ProfileItem } from '../store/userProfile';
 import { useLocalization } from '../i18n/LocalizationContext';
 
@@ -76,13 +78,14 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
   profile,
   onClose,
 }) => {
-  const { locale, l } = useLocalization();
+  const { locale, l, t } = useLocalization();
   const [selectedCategory, setSelectedCategory] = useState<'all' | IndicatorCategory>('all');
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedIndicatorForDetail, setSelectedIndicatorForDetail] = useState<CalculatedIndicator | null>(null);
   const [isFigureModalOpen, setIsFigureModalOpen] = useState(false);
   const [matchedFigure, setMatchedFigure] = useState<RepresentativeItem | null>(null);
   const [loadingFigure, setLoadingFigure] = useState(false);
+  const [englishSummary, setEnglishSummary] = useState<string | null>(null);
 
   const flatListRef = useRef<FlatList<CalculatedIndicator>>(null);
 
@@ -159,13 +162,22 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
 
   // Lá bài hiện đang được chọn ở giữa
   const currentIndicator = filteredIndicators[activeIndex] || filteredIndicators[0];
+  useEffect(() => {
+    let active = true;
+    setEnglishSummary(null);
+    if (visible && locale === 'en' && currentIndicator) {
+      void getIndicatorReading(currentIndicator.key, currentIndicator.value, currentIndicator.nameEn, locale)
+        .then((reading) => { if (active) setEnglishSummary(reading.overview); });
+    }
+    return () => { active = false; };
+  }, [visible, locale, currentIndicator]);
   const shortSummary = currentIndicator ? getIndicatorShortSummary(currentIndicator) : '';
   const currentValueLabel = currentIndicator
     ? currentIndicator.chartData
       ? l('BIỂU ĐỒ CÁ NHÂN', 'PERSONAL CHART')
       : currentIndicator.key === 'karmicDebts' || currentIndicator.key === 'missingNumbers'
-        ? l(`KẾT QUẢ ${currentIndicator.displayValue.toUpperCase()}`, `RESULT ${currentIndicator.displayValue.toUpperCase()}`)
-        : l(`SỐ ${currentIndicator.displayValue}`, `NUMBER ${currentIndicator.displayValue}`)
+        ? l(`KẾT QUẢ ${currentIndicator.displayValue.toUpperCase()}`, `RESULT ${formatIndicatorDisplayValue(currentIndicator, locale).toUpperCase()}`)
+        : l(`SỐ ${currentIndicator.displayValue}`, `NUMBER ${formatIndicatorDisplayValue(currentIndicator, locale)}`)
     : '';
 
   const renderCardItem = ({ item, index }: { item: CalculatedIndicator; index: number }) => {
@@ -241,7 +253,7 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
                 <Ionicons name="sparkles" size={15} color={PALETTE.accent} style={{ marginRight: 6 }} />
                 <Text style={styles.mainTitle}>{l('Bản Đồ Linh Hồn', 'Soul Map')}</Text>
               </View>
-              <Text style={styles.subTitle}>{l('Khám phá 24 chỉ số của bạn', 'Explore your 24 numerology indicators')}</Text>
+              <Text style={styles.subTitle}>{t('cards.title')}</Text>
             </View>
 
             {/* Nút đóng tròn tinh tế ở góc trên bên phải */}
@@ -326,7 +338,7 @@ export const NumerologyCardsModal: React.FC<NumerologyCardsModalProps> = ({
 
               {/* Đúc kết nguyên mẫu 1-2 câu sâu sắc (Chữ phụ #ADA2C5) */}
               <Text style={styles.insightSummary} numberOfLines={2}>
-                {locale === 'en' ? currentIndicator.descriptionEn || `A Pythagorean numerology reading for ${currentIndicator.nameEn}.` : shortSummary}
+                {locale === 'en' ? englishSummary ?? t('reading.loading') : shortSummary}
               </Text>
 
               {/* Cụm nút hành động: Nút Nổi Bật Tìm Người Chung 3 Chỉ Số + Nút Khám phá luận giải */}

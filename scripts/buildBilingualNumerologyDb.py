@@ -6,6 +6,7 @@ import argparse
 import json
 import sqlite3
 import sys
+from contextlib import closing
 from pathlib import Path
 
 from numerologyCatalog import (
@@ -20,7 +21,7 @@ def export_source() -> None:
     """One-time lossless extraction of the bundled Vietnamese source of truth."""
     if VI_PATH.exists():
         raise SystemExit(f'Refusing to overwrite {VI_PATH}')
-    with sqlite3.connect(f'file:{DB_PATH.as_posix()}?mode=ro', uri=True) as db:
+    with closing(sqlite3.connect(f'file:{DB_PATH.as_posix()}?mode=ro', uri=True)) as db:
         db.row_factory = sqlite3.Row
         rows = [dict(row) for row in db.execute("SELECT * FROM numerology_knowledge WHERE locale='vi' ORDER BY indicator_key, number_value")]
     required = required_keys()
@@ -39,8 +40,8 @@ def build_database(output: Path = DB_PATH) -> None:
     staged = output.with_suffix('.staged.db')
     if staged.exists():
         raise SystemExit(f'Staging file already exists: {staged}')
-    with sqlite3.connect(f'file:{DB_PATH.as_posix()}?mode=ro', uri=True) as source:
-        with sqlite3.connect(staged) as db:
+    with closing(sqlite3.connect(f'file:{DB_PATH.as_posix()}?mode=ro', uri=True)) as source:
+        with closing(sqlite3.connect(staged)) as db:
             source.backup(db)
             db.execute('DROP TABLE numerology_knowledge')
             db.execute("""CREATE TABLE numerology_knowledge (
@@ -67,9 +68,13 @@ def build_database(output: Path = DB_PATH) -> None:
             db.execute('CREATE INDEX numerology_knowledge_indicator_locale_idx ON numerology_knowledge(indicator_key, locale)')
             db.execute(f'PRAGMA user_version = {DATABASE_VERSION}')
             db.commit()
+            db.execute('VACUUM')
             if db.execute('PRAGMA integrity_check').fetchone()[0] != 'ok':
                 raise RuntimeError('Generated SQLite integrity check failed')
     staged.replace(output)
+    manifest_path = ROOT / 'src/data/numerologyKnowledgeManifest.json'
+    manifest = {'version': DATABASE_VERSION, 'revisions': {key(row): source_revision(row['title'], row['content']) for row in sorted(vi, key=key)}}
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     print(json.dumps({'version': DATABASE_VERSION, 'vi': len(vi), 'en': len(en), 'approved_en': len(en), 'similarity_reviews': len(similarities)}))
 
 

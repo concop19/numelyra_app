@@ -1,0 +1,870 @@
+{
+  "version": 1,
+  "locale": "en",
+  "rows": [
+    {
+      "indicator_key": "arrows",
+      "number_value": "1-2-3:empty",
+      "title": "Arrows of Individuality · 1-2-3 · empty",
+      "content": "# OVERVIEW\nAn empty 1-2-3 line suggests that planning and getting started may be skills to develop step by step.\n\n# STRENGTHS\n- You can use external tools to turn an intention into a clear sequence.\n\n# CHALLENGES\n- You may put things off when a goal is vague or difficult to break down.\n\n# GUIDANCE\nChoose one task, make the first step take less than 15 minutes, and record the result.",
+      "source_revision": "81efae007efc75a3",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "arrows",
+      "number_value": "1-2-3:partial",
+      "title": "Arrows of Individuality · 1-2-3 · partial",
+      "content": "# OVERVIEW\nA partially present 1-2-3 line means some ingredients for planning are in place, but the link between an idea and getting started may be incomplete.\n\n# STRENGTHS\n- The numbers present indicate where you can most readily begin building a plan.\n\n# CHALLENGES\n- Combining your own views, cooperation, and clear expression may be difficult.\n\n# GUIDANCE\nWrite a plan in three points: the goal, the people involved, and the first action.",
+      "source_revision": "9c5c85beb4ed7408",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "arrows",
+      "number_value": "1-2-3:strong",
+      "title": "Arrows of Individuality · 1-2-3 · strong",
+      "content": "# OVERVIEW\nA complete 1-2-3 line can support generating ideas and organizing the first steps.\n\n# STRENGTHS\n- You may be able to identify what you want to do and express your plan.\n\n# CHALLENGES\n- A plan may remain focused on ideas without sufficient resources or practical steps.\n\n# GUIDANCE\nGive each plan a deadline, a collaborator, and a specific first step.",
+      "source_revision": "6a07d0524e36fe0e",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "arrows",
+      "number_value": "1-4-7:empty",
+      "title": "Arrows of Individuality · 1-4-7 · empty",
+      "content": "# OVERVIEW\nAn empty 1-4-7 line suggests that organizing action and maintaining routines may need further practice.\n\n# STRENGTHS\n- You can deliberately develop your own approach rather than depend on established habits.\n\n# CHALLENGES\n- Practical tasks may be put off or lack a clear sequence.\n\n# GUIDANCE\nUse a short checklist, reminders, and a task that is easy to complete as your starting point.",
+      "source_revision": "77383abbf18ba503",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "arrows",
+      "number_value": "1-4-7:partial",
+      "title": "Arrows of Individuality · 1-4-7 · partial",
+      "content": "# OVERVIEW\nA partially present 1-4-7 line indicates practical qualities that may not yet be consistent in every situation.\n\n# STRENGTHS\n- The numbers present give you a starting point for organizing action.\n\n# CHALLENGES\n- Plans may be interrupted by a missing link in initiative, routine, or experience.\n\n# GUIDANCE\nChoose one small habit that connects intention with regular action.",
+      "source_revision": "4cb4106e50a7b0d6",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "arrows",
+      "number_value": "1-4-7:strong",
+      "title": "Arrows of Individuality · 1-4-7 · strong",
+      "content": "# OVERVIEW\nA complete 1-4-7 line suggests that a practical outlook and readiness to get to work can be reliable supports.\n\n# STRENGTHS\n- You may turn ideas into concrete action and persevere with what you have chosen.\n\n# CHALLENGES\n- At times, acting immediately may take priority over feelings or alternative approaches.\n\n# GUIDANCE\nCombine action with rest, a review of your goals, and attention to feedback.",
+      "source_revision": "fc801895a823a973",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "arrows",
+      "number_value": "1-5-9:empty",
+      "title": "Arrows of Individuality · 1-5-9 · empty",
+      "content": "# OVERVIEW\nAn empty 1-5-9 line suggests that sustained focus on a long-term goal may benefit from supporting methods.\n\n# STRENGTHS\n- You can try different ways of motivating yourself to find what suits you.\n\n# CHALLENGES\n- Urgent tasks or immediate changes may displace your goals.\n\n# GUIDANCE\nChoose one priority for each period and use calendar reminders to return to it.",
+      "source_revision": "0bf8298efaa3e69c",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "arrows",
+      "number_value": "1-5-9:partial",
+      "title": "Arrows of Individuality · 1-5-9 · partial",
+      "content": "# OVERVIEW\nA partially present 1-5-9 line indicates that motivation exists, although your ability to stay focused may vary.\n\n# STRENGTHS\n- The numbers present reveal a source of determination you can develop.\n\n# CHALLENGES\n- Balancing willpower, flexibility, and a long-term vision may be difficult.\n\n# GUIDANCE\nWrite down your goal, your reason for pursuing it, and a checkpoint for review and adjustment.",
+      "source_revision": "357552a360818476",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "arrows",
+      "number_value": "1-5-9:strong",
+      "title": "Arrows of Individuality · 1-5-9 · strong",
+      "content": "# OVERVIEW\nA complete 1-5-9 line can give strong support to determination and sustained attention to a goal.\n\n# STRENGTHS\n- You may focus on what matters and follow it through to completion.\n\n# CHALLENGES\n- At times, you may become overly forceful or struggle to change direction when new information appears.\n\n# GUIDANCE\nKeep your commitment while regularly checking whether the goal still fits.",
+      "source_revision": "4503ca1ba58fb256",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "arrows",
+      "number_value": "2-5-8:empty",
+      "title": "Arrows of Individuality · 2-5-8 · empty",
+      "content": "# OVERVIEW\nAn empty 2-5-8 line suggests that regulating emotions and maintaining balance may be a meaningful learning theme.\n\n# STRENGTHS\n- You can develop emotional skills through practical, conscious methods.\n\n# CHALLENGES\n- Emotions may be hard to name or become suppressed in stressful situations.\n\n# GUIDANCE\nPractice naming your feelings, breathing slowly, and stating what you need.",
+      "source_revision": "0595804c2104918b",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "arrows",
+      "number_value": "2-5-8:partial",
+      "title": "Arrows of Individuality · 2-5-8 · partial",
+      "content": "# OVERVIEW\nA partially present 2-5-8 line indicates some emotional abilities, although balance may change with circumstances.\n\n# STRENGTHS\n- The numbers present help you recognize your emotional supports.\n\n# CHALLENGES\n- Staying calm may be difficult when a link in awareness, self-regulation, or confidence is missing.\n\n# GUIDANCE\nAcknowledge your feelings, pause before reacting, and talk with someone you trust.",
+      "source_revision": "2ff8f0646ee594fd",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "arrows",
+      "number_value": "2-5-8:strong",
+      "title": "Arrows of Individuality · 2-5-8 · strong",
+      "content": "# OVERVIEW\nA complete 2-5-8 line can support emotional awareness and regulation.\n\n# STRENGTHS\n- You may be sensitive to the atmosphere around you and seek balance in relationships.\n\n# CHALLENGES\n- At times, you may try too hard to preserve harmony or control your feelings.\n\n# GUIDANCE\nExpress your true feelings calmly and maintain your personal boundaries.",
+      "source_revision": "13b9b7a43e98bde2",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "arrows",
+      "number_value": "3-5-7:empty",
+      "title": "Arrows of Individuality · 3-5-7 · empty",
+      "content": "# OVERVIEW\nAn empty 3-5-7 line suggests that making time to observe and draw meaning from experience may require more initiative.\n\n# STRENGTHS\n- You can develop understanding through structured learning and dialogue.\n\n# CHALLENGES\n- You may react quickly before taking stock of what is happening.\n\n# GUIDANCE\nPause, describe the situation using facts, and then choose your response.",
+      "source_revision": "e7409aaf7a783d34",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "arrows",
+      "number_value": "3-5-7:partial",
+      "title": "Arrows of Individuality · 3-5-7 · partial",
+      "content": "# OVERVIEW\nA partially present 3-5-7 line indicates some foundations for observation and understanding that may need further development.\n\n# STRENGTHS\n- The numbers present suggest how you usually take in information and reflect.\n\n# CHALLENGES\n- Finding a balanced rhythm between expression, adjustment, and reviewing experience may be difficult.\n\n# GUIDANCE\nWrite down your questions, observe the facts, and set aside a short period for reflection.",
+      "source_revision": "614478acaafdd1b0",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "arrows",
+      "number_value": "3-5-7:strong",
+      "title": "Arrows of Individuality · 3-5-7 · strong",
+      "content": "# OVERVIEW\nA complete 3-5-7 line suggests that observation, reflection, and the search for meaning can be sources of support.\n\n# STRENGTHS\n- You may learn deeply from experience and connect different perspectives.\n\n# CHALLENGES\n- At times, reflection may become excessive or detached from concrete action.\n\n# GUIDANCE\nTurn what you have understood into one small action and share it with someone you trust.",
+      "source_revision": "e1c345b5ca9d9019",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "arrows",
+      "number_value": "3-6-9:empty",
+      "title": "Arrows of Individuality · 3-6-9 · empty",
+      "content": "# OVERVIEW\nAn empty 3-6-9 line suggests that sustaining attention and organizing what you have learned may require additional tools.\n\n# STRENGTHS\n- You can choose a suitable learning method rather than rely on natural recall.\n\n# CHALLENGES\n- Information may remain disconnected or be difficult to retrieve when needed.\n\n# GUIDANCE\nBreak material into small sections, review it on a schedule, and explain it in your own words.",
+      "source_revision": "05a966218e25e6f3",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "arrows",
+      "number_value": "3-6-9:partial",
+      "title": "Arrows of Individuality · 3-6-9 · partial",
+      "content": "# OVERVIEW\nA partially present 3-6-9 line indicates some thinking abilities that may not yet be used consistently.\n\n# STRENGTHS\n- The numbers present reveal learning approaches or mental strengths you can draw on.\n\n# CHALLENGES\n- Connecting expression, observation, and broad thinking into a steady flow may be difficult.\n\n# GUIDANCE\nUse notes, diagrams, and revision to support the weaker link.",
+      "source_revision": "5482e8c1f569f3ea",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "arrows",
+      "number_value": "3-6-9:strong",
+      "title": "Arrows of Individuality · 3-6-9 · strong",
+      "content": "# OVERVIEW\nA complete 3-6-9 line suggests that taking in, remembering, and connecting information may be strengths.\n\n# STRENGTHS\n- You may look at a problem from several angles and remember what you have learned.\n\n# CHALLENGES\n- At times, you may overthink or place too much emphasis on analysis.\n\n# GUIDANCE\nCombine thinking with practical experience and mental rest.",
+      "source_revision": "87a977030827b635",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "arrows",
+      "number_value": "4-5-6:empty",
+      "title": "Arrows of Individuality · 4-5-6 · empty",
+      "content": "# OVERVIEW\nAn empty 4-5-6 line suggests that sustaining effort and pursuing longer-term goals may take practice.\n\n# STRENGTHS\n- You can build motivation through small successes you can observe.\n\n# CHALLENGES\n- Momentum may fade when results do not arrive quickly.\n\n# GUIDANCE\nDivide the goal into nearby milestones, rest when needed, and acknowledge progress.",
+      "source_revision": "dc2b5a7a385a6ed9",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "arrows",
+      "number_value": "4-5-6:partial",
+      "title": "Arrows of Individuality · 4-5-6 · partial",
+      "content": "# OVERVIEW\nA partially present 4-5-6 line indicates a foundation for willpower, although endurance may depend on circumstances.\n\n# STRENGTHS\n- The numbers present help identify what is already supporting your motivation.\n\n# CHALLENGES\n- Maintaining momentum may be difficult without structure, flexibility, or clear responsibility.\n\n# GUIDANCE\nSet short progress milestones and ask a companion to help you keep the goal in view.",
+      "source_revision": "5205e9407819e165",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "arrows",
+      "number_value": "4-5-6:strong",
+      "title": "Arrows of Individuality · 4-5-6 · strong",
+      "content": "# OVERVIEW\nA complete 4-5-6 line suggests that perseverance and keeping commitments can be strengths.\n\n# STRENGTHS\n- You may sustain your efforts and take responsibility for work you have accepted.\n\n# CHALLENGES\n- At times, you may persist too long with an approach that is no longer effective.\n\n# GUIDANCE\nHold on to the goal while periodically adjusting your methods and working rhythm.",
+      "source_revision": "6d27c66af3e9afe8",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "arrows",
+      "number_value": "7-8-9:empty",
+      "title": "Arrows of Individuality · 7-8-9 · empty",
+      "content": "# OVERVIEW\nAn empty 7-8-9 line suggests that sustaining purposeful activity and learning from experience may be areas for development.\n\n# STRENGTHS\n- You can use plans and external feedback to build momentum for action.\n\n# CHALLENGES\n- It may be hard to sustain a goal without clear results or a sense of meaning.\n\n# GUIDANCE\nChoose a near-term goal, track your progress, and reconnect with your reason for caring about it.",
+      "source_revision": "e28f7329637a3c63",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "arrows",
+      "number_value": "7-8-9:partial",
+      "title": "Arrows of Individuality · 7-8-9 · partial",
+      "content": "# OVERVIEW\nA partially present 7-8-9 line indicates some ingredients for action and achievement, but they may not yet connect smoothly.\n\n# STRENGTHS\n- The numbers present help identify existing strengths you can use when carrying out a task.\n\n# CHALLENGES\n- Linking experience, resource management, and a vision of the goal may be difficult.\n\n# GUIDANCE\nAfter each milestone, review what you have learned and identify the necessary next step.",
+      "source_revision": "61dd305e2a2852f1",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "arrows",
+      "number_value": "7-8-9:strong",
+      "title": "Arrows of Individuality · 7-8-9 · strong",
+      "content": "# OVERVIEW\nA complete 7-8-9 line suggests that learning from experience and directing action toward results may be prominent abilities.\n\n# STRENGTHS\n- You may draw lessons from experience and turn understanding into action.\n\n# CHALLENGES\n- At times, achievement may take priority over checking your feelings and limits.\n\n# GUIDANCE\nAssess the results, the lessons learned, and the energy you have used.",
+      "source_revision": "35db7171be7b445e",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "1:amplified",
+      "title": "Name Chart Matrix · 1 · amplified",
+      "content": "# OVERVIEW\nThree or more 1s strongly emphasize an independent identity in your self-expression.\n\n# STRENGTHS\n- Your ability to initiate and assert ideas may be particularly prominent.\n\n# CHALLENGES\n- This energy can at times become impatience, stubbornness, or a tendency to overshadow others.\n\n# GUIDANCE\nBalance your individual voice with active listening and cooperation.",
+      "source_revision": "e2795bc9ec9ac1b3",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "1:baseline",
+      "title": "Name Chart Matrix · 1 · baseline",
+      "content": "# OVERVIEW\nOne 1 suggests independence and a desire for self-direction in the way you express yourself.\n\n# STRENGTHS\n- You may be able to get started on your own and present your ideas.\n\n# CHALLENGES\n- At times, you may hesitate to take the lead when needed.\n\n# GUIDANCE\nVolunteer for a suitable responsibility while seeking the views of those involved.",
+      "source_revision": "1013de095300b617",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "1:highlighted",
+      "title": "Name Chart Matrix · 1 · highlighted",
+      "content": "# OVERVIEW\nTwo 1s make self-reliance and initiative more evident in the name.\n\n# STRENGTHS\n- You may readily express your views and move ideas into action.\n\n# CHALLENGES\n- You may insist on your own approach even when cooperation would be more effective.\n\n# GUIDANCE\nRemain decisive while making room for dialogue and sharing credit.",
+      "source_revision": "9009b260f075d1eb",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "1:missing",
+      "title": "Name Chart Matrix · 1 · missing",
+      "content": "# OVERVIEW\nThe name does not produce a 1; the energy of initiative may not be prominent in how you present yourself.\n\n# STRENGTHS\n- This gap invites you to notice when to take initiative while continuing to listen.\n\n# CHALLENGES\n- You may hesitate to begin or find it difficult to state your personal wishes.\n\n# GUIDANCE\nPractice expressing one opinion or starting one small task yourself each day.",
+      "source_revision": "8363dcc4dc597091",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "2:amplified",
+      "title": "Name Chart Matrix · 2 · amplified",
+      "content": "# OVERVIEW\nThree or more 2s strongly increase sensitivity and the need for connection expressed through the name.\n\n# STRENGTHS\n- Empathy and the ability to connect people may become clear strengths.\n\n# CHALLENGES\n- Oversensitivity to judgment or dependence on agreement may leave you tired.\n\n# GUIDANCE\nMake time for quiet, check your impressions, and retain your own decision-making.",
+      "source_revision": "5b5ba57f1e3a3c11",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "2:baseline",
+      "title": "Name Chart Matrix · 2 · baseline",
+      "content": "# OVERVIEW\nOne 2 suggests an ability to cooperate and attend to feelings in communication.\n\n# STRENGTHS\n- You may build trust through listening and connection.\n\n# CHALLENGES\n- At times, you may be sensitive to feedback or reluctant to disagree.\n\n# GUIDANCE\nCombine compassion with an honest expression of your needs.",
+      "source_revision": "78193cc281d6b379",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "2:highlighted",
+      "title": "Name Chart Matrix · 2 · highlighted",
+      "content": "# OVERVIEW\nTwo 2s make cooperation and social intuition more prominent.\n\n# STRENGTHS\n- You may recognize nuances in conversation and help mediate disagreements.\n\n# CHALLENGES\n- You may prioritize harmony to the point of postponing your own decisions.\n\n# GUIDANCE\nSet healthy limits and distinguish your feelings from those of others.",
+      "source_revision": "200dcbca19817e84",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "2:missing",
+      "title": "Name Chart Matrix · 2 · missing",
+      "content": "# OVERVIEW\nThe name does not produce a 2; gentleness and diplomacy may be less evident through the name.\n\n# STRENGTHS\n- You have an opportunity to develop sensitivity deliberately, without needing to please everyone.\n\n# CHALLENGES\n- Recognizing emotional signals or adjusting your communication to different people may be difficult.\n\n# GUIDANCE\nPractice listening, ask clarifying questions, and express your boundaries clearly.",
+      "source_revision": "148e88a95add31df",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "3:amplified",
+      "title": "Name Chart Matrix · 3 · amplified",
+      "content": "# OVERVIEW\nThree or more 3s make expressive energy very strong.\n\n# STRENGTHS\n- Creativity and communication may be readily noticeable qualities of the name.\n\n# CHALLENGES\n- You may talk excessively, seek attention, or use a cheerful exterior to avoid difficult emotions.\n\n# GUIDANCE\nBalance sharing with listening and allow quiet moments for depth.",
+      "source_revision": "9a82865c4f49fc91",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "3:baseline",
+      "title": "Name Chart Matrix · 3 · baseline",
+      "content": "# OVERVIEW\nOne 3 suggests an ability to communicate and a creative quality in your expression.\n\n# STRENGTHS\n- You may make ideas understandable and convey an optimistic tone.\n\n# CHALLENGES\n- At times, expression may be inconsistent or your attention may scatter among many ideas.\n\n# GUIDANCE\nChoose one important idea and finish it before moving to another.",
+      "source_revision": "cb601c0ac8648c6f",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "3:highlighted",
+      "title": "Name Chart Matrix · 3 · highlighted",
+      "content": "# OVERVIEW\nTwo 3s emphasize expression, imagination, and communication.\n\n# STRENGTHS\n- You may inspire others through words, images, or creative work.\n\n# CHALLENGES\n- Several ideas at once may leave your message without a clear focus.\n\n# GUIDANCE\nUse a clear structure and turn inspiration into a concrete creation.",
+      "source_revision": "1d5229d58b07f593",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "3:missing",
+      "title": "Name Chart Matrix · 3 · missing",
+      "content": "# OVERVIEW\nThe name does not produce a 3; joyfulness and creative expression may not be clearly evident through the name.\n\n# STRENGTHS\n- You can develop a creative voice in your own way rather than follow a template.\n\n# CHALLENGES\n- Putting ideas or feelings into words may be difficult.\n\n# GUIDANCE\nRegularly try writing, storytelling, drawing, or presenting one brief idea.",
+      "source_revision": "82cb10e00ee1e0d2",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "4:amplified",
+      "title": "Name Chart Matrix · 4 · amplified",
+      "content": "# OVERVIEW\nThree or more 4s strongly emphasize structure and control.\n\n# STRENGTHS\n- Your ability to create processes and maintain commitments may be very evident.\n\n# CHALLENGES\n- Certainty can become rigidity, perfectionism, or difficulty resting.\n\n# GUIDANCE\nPractice delegation, accept a good-enough version, and try a new approach.",
+      "source_revision": "5490d5044505305e",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "4:baseline",
+      "title": "Name Chart Matrix · 4 · baseline",
+      "content": "# OVERVIEW\nOne 4 suggests practicality and a wish to create dependable foundations.\n\n# STRENGTHS\n- You may organize work and keep your promises.\n\n# CHALLENGES\n- At times, you may hesitate to change direction when circumstances shift.\n\n# GUIDANCE\nMaintain discipline while periodically reviewing whether your approach still fits.",
+      "source_revision": "d22dce9ae7a278d6",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "4:highlighted",
+      "title": "Name Chart Matrix · 4 · highlighted",
+      "content": "# OVERVIEW\nTwo 4s make orderliness and persistence more prominent in the name.\n\n# STRENGTHS\n- You may pursue a long-term plan with stability.\n\n# CHALLENGES\n- You may set high standards or favor processes over results.\n\n# GUIDANCE\nPrioritize what matters and leave flexibility for experimentation.",
+      "source_revision": "4eda5ff979365e4b",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "4:missing",
+      "title": "Name Chart Matrix · 4 · missing",
+      "content": "# OVERVIEW\nThe name does not produce a 4; a systematic, practical approach may not be your natural form of expression.\n\n# STRENGTHS\n- You have an opportunity to choose a structure that suits you without being constrained by rigid habits.\n\n# CHALLENGES\n- Maintaining plans or following details closely may be difficult.\n\n# GUIDANCE\nUse a calendar and task list, and break goals into small steps.",
+      "source_revision": "71708c7405f5ca41",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "5:amplified",
+      "title": "Name Chart Matrix · 5 · amplified",
+      "content": "# OVERVIEW\nThree or more 5s strongly increase the need for freedom and renewal.\n\n# STRENGTHS\n- Your ability to improvise in changing environments may stand out.\n\n# CHALLENGES\n- You may act impulsively, scatter your attention, or abandon something once interest fades.\n\n# GUIDANCE\nCombine exploration with specific commitments and a stable daily rhythm.",
+      "source_revision": "2b28726c8b5c5cb9",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "5:baseline",
+      "title": "Name Chart Matrix · 5 · baseline",
+      "content": "# OVERVIEW\nOne 5 suggests curiosity, flexibility, and openness to new experiences.\n\n# STRENGTHS\n- You may adapt and connect with different groups of people.\n\n# CHALLENGES\n- At times, repetitive tasks or long-term commitments may test your patience.\n\n# GUIDANCE\nKeep a few grounding habits in place before expanding your experiences.",
+      "source_revision": "57331dc9e8319036",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "5:highlighted",
+      "title": "Name Chart Matrix · 5 · highlighted",
+      "content": "# OVERVIEW\nTwo 5s make flexibility and a love of exploration more evident.\n\n# STRENGTHS\n- You may adapt quickly and see many possible choices.\n\n# CHALLENGES\n- Too many options may cause your goals to change constantly.\n\n# GUIDANCE\nSet limits on time and resources, and complete what you have chosen.",
+      "source_revision": "b2faae13a43c6260",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "5:missing",
+      "title": "Name Chart Matrix · 5 · missing",
+      "content": "# OVERVIEW\nThe name does not produce a 5; adaptability and openness to renewal may be less visible.\n\n# STRENGTHS\n- You can create lasting stability without chasing every change.\n\n# CHALLENGES\n- Managing shifts in your plans or environment may be difficult.\n\n# GUIDANCE\nTry small, intentional changes and prepare a backup plan.",
+      "source_revision": "e0e748d96dd50040",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "6:amplified",
+      "title": "Name Chart Matrix · 6 · amplified",
+      "content": "# OVERVIEW\nThree or more 6s strongly emphasize the need to serve and preserve harmony.\n\n# STRENGTHS\n- Supporting others and nurturing a group may be major strengths.\n\n# CHALLENGES\n- You may take on too much, become perfectionistic, or feel guilty when saying no.\n\n# GUIDANCE\nShare responsibilities, set limits, and allow others to learn for themselves.",
+      "source_revision": "459406937abdd29c",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "6:baseline",
+      "title": "Name Chart Matrix · 6 · baseline",
+      "content": "# OVERVIEW\nOne 6 suggests care, responsibility, and a wish to create harmony.\n\n# STRENGTHS\n- You may look after shared work and support loved ones.\n\n# CHALLENGES\n- At times, you may accept too many tasks or expect too much of yourself and others.\n\n# GUIDANCE\nAsk what others actually need and accept only the responsibility you can sustain.",
+      "source_revision": "ac5fda39d947e063",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "6:highlighted",
+      "title": "Name Chart Matrix · 6 · highlighted",
+      "content": "# OVERVIEW\nTwo 6s make dedication and a sense of responsibility more prominent.\n\n# STRENGTHS\n- You may build a connected, dependable environment.\n\n# CHALLENGES\n- Care may turn into control or excessive self-sacrifice.\n\n# GUIDANCE\nCare for yourself and respect the autonomy of the person you are helping.",
+      "source_revision": "fefae99dd6aa7c15",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "6:missing",
+      "title": "Name Chart Matrix · 6 · missing",
+      "content": "# OVERVIEW\nThe name does not produce a 6; caregiving and responsibility toward the community may not be prominent.\n\n# STRENGTHS\n- You can care for others while retaining clear personal boundaries.\n\n# CHALLENGES\n- You may show little outward care or hesitate to accept shared responsibilities.\n\n# GUIDANCE\nExpress concern through one small action suited to your abilities.",
+      "source_revision": "10808a959d78d0a6",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "7:amplified",
+      "title": "Name Chart Matrix · 7 · amplified",
+      "content": "# OVERVIEW\nThree or more 7s strongly increase the need for privacy and the search for depth.\n\n# STRENGTHS\n- Your ability to concentrate on research may be particularly prominent.\n\n# CHALLENGES\n- You may become isolated, skeptical, or detached from practical discussion.\n\n# GUIDANCE\nStay connected with people you trust and test your ideas through experience.",
+      "source_revision": "390d6d2d626f9a44",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "7:baseline",
+      "title": "Name Chart Matrix · 7 · baseline",
+      "content": "# OVERVIEW\nOne 7 suggests observation, curiosity, and a need to find meaning.\n\n# STRENGTHS\n- You may research carefully and notice details others overlook.\n\n# CHALLENGES\n- At times, you may keep your thoughts to yourself or remain skeptical for too long.\n\n# GUIDANCE\nShare conclusions in an understandable way and balance reflection with action.",
+      "source_revision": "4a5fb4ee7191bc2d",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "7:highlighted",
+      "title": "Name Chart Matrix · 7 · highlighted",
+      "content": "# OVERVIEW\nTwo 7s make inquiry and analysis more evident.\n\n# STRENGTHS\n- You may explore a subject in depth and learn independently.\n\n# CHALLENGES\n- You may withdraw or analyze excessively before getting started.\n\n# GUIDANCE\nGive research a deadline, then try one small experiment.",
+      "source_revision": "8863afa75dd78a19",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "7:missing",
+      "title": "Name Chart Matrix · 7 · missing",
+      "content": "# OVERVIEW\nThe name does not produce a 7; analytical depth may be less evident in how you introduce yourself.\n\n# STRENGTHS\n- You may focus on direct experience and practical action.\n\n# CHALLENGES\n- You may spend little time examining causes or learning from experience.\n\n# GUIDANCE\nRecord what you have learned after an important decision or event.",
+      "source_revision": "d84cd478e9719688",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "8:amplified",
+      "title": "Name Chart Matrix · 8 · amplified",
+      "content": "# OVERVIEW\nThree or more 8s strongly emphasize the desire to direct and achieve.\n\n# STRENGTHS\n- Organizational thinking and a focus on results may be very evident.\n\n# CHALLENGES\n- This energy may become pressure, control, or excessive attention to material concerns.\n\n# GUIDANCE\nBalance ambition with rest, professional ethics, and cooperation.",
+      "source_revision": "618bf565d324f7dd",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "8:baseline",
+      "title": "Name Chart Matrix · 8 · baseline",
+      "content": "# OVERVIEW\nOne 8 suggests a goal-oriented outlook and an interest in practical results.\n\n# STRENGTHS\n- You may organize resources to complete important work.\n\n# CHALLENGES\n- At times, results may take priority over feelings and the process.\n\n# GUIDANCE\nAssess success through both outcomes and their effect on people.",
+      "source_revision": "c9554f04137fba1c",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "8:highlighted",
+      "title": "Name Chart Matrix · 8 · highlighted",
+      "content": "# OVERVIEW\nTwo 8s make management ability and ambition more prominent.\n\n# STRENGTHS\n- You may coordinate work and make pragmatic decisions.\n\n# CHALLENGES\n- You may treat control or achievement as the only measure of success.\n\n# GUIDANCE\nShare authority and set goals linked to the common good.",
+      "source_revision": "9300e4da3993646b",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "8:missing",
+      "title": "Name Chart Matrix · 8 · missing",
+      "content": "# OVERVIEW\nThe name does not produce an 8; organizing goals and managing resources may not be emphasized.\n\n# STRENGTHS\n- You can define success through your own values rather than status alone.\n\n# CHALLENGES\n- You may hesitate to take on decision-making authority or resource management.\n\n# GUIDANCE\nPractice setting a measurable goal and tracking one specific resource.",
+      "source_revision": "2ee736e8ea2f63d8",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "9:amplified",
+      "title": "Name Chart Matrix · 9 · amplified",
+      "content": "# OVERVIEW\nThree or more 9s strongly emphasize ideals and feelings directed toward the community.\n\n# STRENGTHS\n- Inspiring others and connecting with humanitarian goals may be prominent abilities.\n\n# CHALLENGES\n- You may sacrifice too much, idealize, or struggle to let go of the past.\n\n# GUIDANCE\nRemain compassionate while prioritizing what lies within your influence.",
+      "source_revision": "5376f2e852a3cae8",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "9:baseline",
+      "title": "Name Chart Matrix · 9 · baseline",
+      "content": "# OVERVIEW\nOne 9 suggests compassion and a wish to contribute to something meaningful.\n\n# STRENGTHS\n- You may empathize and recognize the common good.\n\n# CHALLENGES\n- At times, you may idealize others or take on problems beyond your capacity.\n\n# GUIDANCE\nTurn an ideal into a small, bounded action you can sustain.",
+      "source_revision": "21a277cf99c54833",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "9:highlighted",
+      "title": "Name Chart Matrix · 9 · highlighted",
+      "content": "# OVERVIEW\nTwo 9s make ideals and generosity more evident in your expression.\n\n# STRENGTHS\n- You may inspire others through a community-oriented vision.\n\n# CHALLENGES\n- You may feel disappointed when reality does not meet high expectations.\n\n# GUIDANCE\nCombine a large vision with practical steps and healthy boundaries.",
+      "source_revision": "584704daf3921fa7",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "nameChart",
+      "number_value": "9:missing",
+      "title": "Name Chart Matrix · 9 · missing",
+      "content": "# OVERVIEW\nThe name does not produce a 9; broad ideals and community spirit may be less visibly expressed.\n\n# STRENGTHS\n- You may keep a practical perspective and focus your help on a specific area.\n\n# CHALLENGES\n- Looking at problems in a wider context or expressing empathy may be difficult.\n\n# GUIDANCE\nLearn about other people's experiences and take part in a manageable community activity.",
+      "source_revision": "43e6e7ff076a37ac",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "1:amplified",
+      "title": "Birth Chart Matrix · 1 · amplified",
+      "content": "# OVERVIEW\nThree or more 1s strongly increase the tendency toward self-direction and self-assertion.\n\n# STRENGTHS\n- Your capacity to initiate action may be very clear.\n\n# CHALLENGES\n- You may become impatient, excessively independent, or impose your views.\n\n# GUIDANCE\nCombine decisiveness with patience, listening, and collaboration.",
+      "source_revision": "aa5364e73ac4b220",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "1:baseline",
+      "title": "Birth Chart Matrix · 1 · baseline",
+      "content": "# OVERVIEW\nOne 1 suggests a foundation of self-reliance and a basic ability to take initiative.\n\n# STRENGTHS\n- You may get started on your own once the goal is clear.\n\n# CHALLENGES\n- At times, you may need more encouragement to maintain a decision.\n\n# GUIDANCE\nBreak a major decision into small steps and acknowledge progress.",
+      "source_revision": "239a0413f63cba77",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "1:highlighted",
+      "title": "Birth Chart Matrix · 1 · highlighted",
+      "content": "# OVERVIEW\nTwo 1s make independence and the will to begin more prominent.\n\n# STRENGTHS\n- You may take initiative and maintain your own point of view.\n\n# CHALLENGES\n- You may become stubborn or find it difficult to ask others for help.\n\n# GUIDANCE\nRemain proactive while practicing asking for input before finalizing shared decisions.",
+      "source_revision": "35b142eaff53d7fe",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "1:missing",
+      "title": "Birth Chart Matrix · 1 · missing",
+      "content": "# OVERVIEW\nThe digit 1 is absent from the birth date; asserting your needs and initiating action may be lessons to attend to.\n\n# STRENGTHS\n- You have an opportunity to develop a form of self-reliance that suits you, without being confined to a fixed personality.\n\n# CHALLENGES\n- You may struggle to state your wishes or wait for someone else to decide for you.\n\n# GUIDANCE\nPractice making small choices and stating your needs directly.",
+      "source_revision": "9e4a7444e59d146a",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "2:amplified",
+      "title": "Birth Chart Matrix · 2 · amplified",
+      "content": "# OVERVIEW\nThree or more 2s strongly emphasize sensitivity and a need for harmony.\n\n# STRENGTHS\n- Empathy may help you offer support and form deep connections.\n\n# CHALLENGES\n- Emotional overload or avoidance of disagreement may occur.\n\n# GUIDANCE\nSet boundaries, allow emotional rest, and communicate frankly.",
+      "source_revision": "546415caac735441",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "2:baseline",
+      "title": "Birth Chart Matrix · 2 · baseline",
+      "content": "# OVERVIEW\nOne 2 suggests basic emotional sensitivity and an ability to connect.\n\n# STRENGTHS\n- You may recognize emotions in familiar situations.\n\n# CHALLENGES\n- Unexpected feedback may at times unsettle you.\n\n# GUIDANCE\nPause before reacting and state what you need clearly.",
+      "source_revision": "463a22e080ef238d",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "2:highlighted",
+      "title": "Birth Chart Matrix · 2 · highlighted",
+      "content": "# OVERVIEW\nTwo 2s make sensitivity and empathy more prominent.\n\n# STRENGTHS\n- You may be perceptive about the atmosphere around you and cooperate well.\n\n# CHALLENGES\n- The moods or comments of people around you may readily affect you.\n\n# GUIDANCE\nDistinguish what you feel from what someone else is experiencing.",
+      "source_revision": "ce18e2c7147f6f20",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "2:missing",
+      "title": "Birth Chart Matrix · 2 · missing",
+      "content": "# OVERVIEW\nThe digit 2 is absent from the birth date; emotional awareness and regulation may be areas to develop.\n\n# STRENGTHS\n- You can learn to connect while maintaining your own steadiness.\n\n# CHALLENGES\n- Expressing feelings or recognizing another person's subtle needs may be difficult.\n\n# GUIDANCE\nName your feelings, ask when something is unclear, and practice listening without judgment.",
+      "source_revision": "eb7a41fbf76d3dad",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "3:amplified",
+      "title": "Birth Chart Matrix · 3 · amplified",
+      "content": "# OVERVIEW\nThree or more 3s strongly increase mental activity and expression.\n\n# STRENGTHS\n- You may take in, associate, and share information quickly.\n\n# CHALLENGES\n- Your mind may become overloaded or scattered.\n\n# GUIDANCE\nReduce multitasking, work in focused sessions, and prioritize rest.",
+      "source_revision": "160b126127e0f082",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "3:baseline",
+      "title": "Birth Chart Matrix · 3 · baseline",
+      "content": "# OVERVIEW\nOne 3 suggests a foundation for memory and expression.\n\n# STRENGTHS\n- You may share your thoughts when you have time to organize them.\n\n# CHALLENGES\n- Large amounts of information or pressure may reduce concentration.\n\n# GUIDANCE\nReview at a steady pace and summarize in your own words.",
+      "source_revision": "80dd21edcfc7d574",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "3:highlighted",
+      "title": "Birth Chart Matrix · 3 · highlighted",
+      "content": "# OVERVIEW\nTwo 3s make memory and communication more prominent.\n\n# STRENGTHS\n- You may learn through discussion, retelling, and creative activity.\n\n# CHALLENGES\n- You may become absorbed in many ideas or speak before organizing them sufficiently.\n\n# GUIDANCE\nChoose a focus, note what needs to be remembered, and take time to check information.",
+      "source_revision": "588f6ddb45b4acf7",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "3:missing",
+      "title": "Birth Chart Matrix · 3 · missing",
+      "content": "# OVERVIEW\nThe digit 3 is absent from the birth date; memory, expression, or maintaining a cheerful outlook may benefit from supporting methods.\n\n# STRENGTHS\n- You can develop practical ways of learning that do not depend on immediate recall.\n\n# CHALLENGES\n- Organizing ideas or expressing your thoughts may be difficult.\n\n# GUIDANCE\nUse notes and diagrams, and practice brief presentations organized around key points.",
+      "source_revision": "eeb345a646615014",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "4:amplified",
+      "title": "Birth Chart Matrix · 4 · amplified",
+      "content": "# OVERVIEW\nThree or more 4s strongly emphasize discipline and a need for order.\n\n# STRENGTHS\n- Organization and sustained work may be very evident abilities.\n\n# CHALLENGES\n- You may become rigid, perfectionistic, or overly concerned with rules.\n\n# GUIDANCE\nTry new methods and balance productivity with recovery time.",
+      "source_revision": "af3d481bc80b7763",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "4:baseline",
+      "title": "Birth Chart Matrix · 4 · baseline",
+      "content": "# OVERVIEW\nOne 4 suggests a practical foundation and an ability to work in sequence.\n\n# STRENGTHS\n- You may maintain familiar tasks when the goal is clear.\n\n# CHALLENGES\n- New habits may need time to become established.\n\n# GUIDANCE\nUse calendar reminders and set small goals with specific deadlines.",
+      "source_revision": "d37edbb60137a630",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "4:highlighted",
+      "title": "Birth Chart Matrix · 4 · highlighted",
+      "content": "# OVERVIEW\nTwo 4s make perseverance and practicality more prominent.\n\n# STRENGTHS\n- You may establish routines and complete work that takes sustained effort.\n\n# CHALLENGES\n- Changes to a plan may readily cause irritation.\n\n# GUIDANCE\nPrepare backup options and leave room for the unexpected.",
+      "source_revision": "ec6c5de7a7569263",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "4:missing",
+      "title": "Birth Chart Matrix · 4 · missing",
+      "content": "# OVERVIEW\nThe digit 4 is absent from the birth date; regularity and following a process may be practical lessons.\n\n# STRENGTHS\n- You can choose flexible systems that suit your daily rhythm.\n\n# CHALLENGES\n- Maintaining habits or completing work step by step may be difficult.\n\n# GUIDANCE\nCreate a simple schedule, use reminders, and track one habit at a time.",
+      "source_revision": "651495504cf94fd5",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "5:amplified",
+      "title": "Birth Chart Matrix · 5 · amplified",
+      "content": "# OVERVIEW\nThree or more 5s strongly emphasize the need for experience and change.\n\n# STRENGTHS\n- Improvisation may be a major advantage as circumstances shift.\n\n# CHALLENGES\n- Too much stimulation may leave you scattered or impulsive.\n\n# GUIDANCE\nEstablish a stable daily schedule and consider consequences before major decisions.",
+      "source_revision": "68749e983c342962",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "5:baseline",
+      "title": "Birth Chart Matrix · 5 · baseline",
+      "content": "# OVERVIEW\nOne 5 suggests a basic ability to adjust and seek balance.\n\n# STRENGTHS\n- You may adapt when given time to prepare.\n\n# CHALLENGES\n- Rapid changes may at times leave you feeling disoriented.\n\n# GUIDANCE\nKeep your core priorities while remaining flexible about how to carry them out.",
+      "source_revision": "66f080f65178b242",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "5:highlighted",
+      "title": "Birth Chart Matrix · 5 · highlighted",
+      "content": "# OVERVIEW\nTwo 5s make improvisation and self-regulation more prominent.\n\n# STRENGTHS\n- You may manage well in environments with frequent changes.\n\n# CHALLENGES\n- You may keep changing direction or struggle to maintain a steady rhythm.\n\n# GUIDANCE\nLimit the number of changes happening at once and review progress weekly.",
+      "source_revision": "c2fd67a8c9a36a5c",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "5:missing",
+      "title": "Birth Chart Matrix · 5 · missing",
+      "content": "# OVERVIEW\nThe digit 5 is absent from the birth date; managing change and maintaining balance may require practice.\n\n# STRENGTHS\n- You can build stability deliberately rather than depend on enthusiasm.\n\n# CHALLENGES\n- Change may unsettle you, or maintaining a daily rhythm may be difficult.\n\n# GUIDANCE\nMaintain a few grounding habits and make changes step by step.",
+      "source_revision": "edbb7d7cf958bb42",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "6:amplified",
+      "title": "Birth Chart Matrix · 6 · amplified",
+      "content": "# OVERVIEW\nThree or more 6s strongly emphasize responsibility and the need to care for others.\n\n# STRENGTHS\n- Your ability to nurture a stable environment may be very evident.\n\n# CHALLENGES\n- You may become controlling, sacrifice too much, or find it hard to refuse.\n\n# GUIDANCE\nMaintain limits, delegate, and let others take responsibility for their own part.",
+      "source_revision": "5beda24b022a4e86",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "6:baseline",
+      "title": "Birth Chart Matrix · 6 · baseline",
+      "content": "# OVERVIEW\nOne 6 suggests a foundation of care and responsibility.\n\n# STRENGTHS\n- You may be dependable in familiar commitments.\n\n# CHALLENGES\n- At times, you may hesitate to show care or take on additional tasks.\n\n# GUIDANCE\nState your capacity clearly before accepting new responsibilities.",
+      "source_revision": "8e3a97e88a0d8aaf",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "6:highlighted",
+      "title": "Birth Chart Matrix · 6 · highlighted",
+      "content": "# OVERVIEW\nTwo 6s make caregiving and responsibility more prominent.\n\n# STRENGTHS\n- You may support your family or group through practical action.\n\n# CHALLENGES\n- You may take on too much or expect others to reciprocate in the same way.\n\n# GUIDANCE\nShare tasks, ask about actual needs, and reserve time for yourself.",
+      "source_revision": "adad956e18e27174",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "6:missing",
+      "title": "Birth Chart Matrix · 6 · missing",
+      "content": "# OVERVIEW\nThe digit 6 is absent from the birth date; balancing personal and collective responsibility may need attention.\n\n# STRENGTHS\n- You can deliberately define care in a way that preserves your boundaries.\n\n# CHALLENGES\n- You may avoid shared responsibilities or struggle to sustain caregiving commitments.\n\n# GUIDANCE\nAccept a manageable share of work and agree on expectations clearly with everyone involved.",
+      "source_revision": "74d5333c3d6da2f5",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "7:amplified",
+      "title": "Birth Chart Matrix · 7 · amplified",
+      "content": "# OVERVIEW\nThree or more 7s strongly emphasize inner depth and observation.\n\n# STRENGTHS\n- Focused reflection may help you understand an issue thoroughly.\n\n# CHALLENGES\n- You may become isolated, guarded, or prone to excessive interpretation.\n\n# GUIDANCE\nMaintain social connections and test your thoughts through practical action.",
+      "source_revision": "3b86dfb8cdd04f11",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "7:baseline",
+      "title": "Birth Chart Matrix · 7 · baseline",
+      "content": "# OVERVIEW\nOne 7 suggests a foundation for observation and reflection on experience.\n\n# STRENGTHS\n- You may draw your own lessons after taking time to look back.\n\n# CHALLENGES\n- At times, you may need more patience to understand what is not immediately clear.\n\n# GUIDANCE\nCombine reflection with conversation with someone you trust.",
+      "source_revision": "8930b3b011f82973",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "7:highlighted",
+      "title": "Birth Chart Matrix · 7 · highlighted",
+      "content": "# OVERVIEW\nTwo 7s make the need for inquiry and contemplation more prominent.\n\n# STRENGTHS\n- You may learn deeply through observation and personal experience.\n\n# CHALLENGES\n- You may withdraw or interpret difficulties as signs of failure.\n\n# GUIDANCE\nShare what you have learned and treat challenges as information for making adjustments.",
+      "source_revision": "c876a8ea70f9ad02",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "7:missing",
+      "title": "Birth Chart Matrix · 7 · missing",
+      "content": "# OVERVIEW\nThe digit 7 is absent from the birth date; learning from experience and making time for reflection may require deliberate effort.\n\n# STRENGTHS\n- You may approach life directly and focus on practice.\n\n# CHALLENGES\n- You may overlook lessons from experience or struggle to trust a long-term process.\n\n# GUIDANCE\nAfter an important experience, record the lesson and what you would like to try differently.",
+      "source_revision": "363c6d734bf00305",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "8:amplified",
+      "title": "Birth Chart Matrix · 8 · amplified",
+      "content": "# OVERVIEW\nThree or more 8s strongly emphasize executive qualities and ambition.\n\n# STRENGTHS\n- Planning and carrying out goals may be very evident abilities.\n\n# CHALLENGES\n- This energy may become pressure, competition, or excessive control.\n\n# GUIDANCE\nDefine working limits, maintain fair standards, and know when to rest.",
+      "source_revision": "06ebae9998f8fdb4",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "8:baseline",
+      "title": "Birth Chart Matrix · 8 · baseline",
+      "content": "# OVERVIEW\nOne 8 suggests a foundation for management and a focus on results.\n\n# STRENGTHS\n- You may take responsibility for a goal when the plan is clear.\n\n# CHALLENGES\n- At times, decisions about resources may test your confidence.\n\n# GUIDANCE\nPractice making decisions based on information and reviewing results regularly.",
+      "source_revision": "0c6f28bf3f81ab6d",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "8:highlighted",
+      "title": "Birth Chart Matrix · 8 · highlighted",
+      "content": "# OVERVIEW\nTwo 8s make coordination and determination to achieve more prominent.\n\n# STRENGTHS\n- You may organize people and resources toward a shared result.\n\n# CHALLENGES\n- Pressure to achieve or excessive attention to control may arise.\n\n# GUIDANCE\nShare decision-making authority and balance goals with health.",
+      "source_revision": "64064d6c678ca97b",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "8:missing",
+      "title": "Birth Chart Matrix · 8 · missing",
+      "content": "# OVERVIEW\nThe digit 8 is absent from the birth date; organizing resources and pursuing material goals may require practice.\n\n# STRENGTHS\n- You can find ways to succeed that do not depend solely on power or money.\n\n# CHALLENGES\n- You may hesitate to manage finances, deadlines, or coordination responsibilities.\n\n# GUIDANCE\nTrack a simple budget and divide goals into specific milestones.",
+      "source_revision": "df7824b5dc736cca",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "9:amplified",
+      "title": "Birth Chart Matrix · 9 · amplified",
+      "content": "# OVERVIEW\nThree or more 9s strongly emphasize ideals and broad concern for others.\n\n# STRENGTHS\n- Your ability to inspire pursuit of a meaningful goal may be clear.\n\n# CHALLENGES\n- Feelings, expectations, or the desire to rescue everyone may become overwhelming.\n\n# GUIDANCE\nSet boundaries, rest, and focus on sustainable contributions.",
+      "source_revision": "c6fb6a735c273d38",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "9:baseline",
+      "title": "Birth Chart Matrix · 9 · baseline",
+      "content": "# OVERVIEW\nOne 9 suggests a foundation of ideals and an ability to see issues more broadly.\n\n# STRENGTHS\n- You may consider the meaning and shared impact of a choice.\n\n# CHALLENGES\n- At times, ideals may not yet have been translated into practical steps.\n\n# GUIDANCE\nChoose one small action that puts your values into practice.",
+      "source_revision": "afb5033c984be19e",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "9:highlighted",
+      "title": "Birth Chart Matrix · 9 · highlighted",
+      "content": "# OVERVIEW\nTwo 9s make broad thinking and compassion more prominent.\n\n# STRENGTHS\n- You may recognize connections and common goals.\n\n# CHALLENGES\n- Reality may disappoint you, or you may take on too many problems.\n\n# GUIDANCE\nKeep your ideals while clearly defining the work that lies within your capacity.",
+      "source_revision": "8cc0350358b51312",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    },
+    {
+      "indicator_key": "birthChart",
+      "number_value": "9:missing",
+      "title": "Birth Chart Matrix · 9 · missing",
+      "content": "# OVERVIEW\nThe digit 9 is absent from the birth date; broadening your perspective and putting ideals into action may be learning themes.\n\n# STRENGTHS\n- You may focus well on near-term goals and specific outcomes.\n\n# CHALLENGES\n- Seeing a wider context or maintaining motivation for a long-term goal may be difficult.\n\n# GUIDANCE\nConnect one everyday task with a larger value you care about.",
+      "source_revision": "b00185e4a8f01819",
+      "review_status": "approved",
+      "reviewed_by": "codex-matrix-editorial"
+    }
+  ]
+}
