@@ -1,9 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getLocales, useLocales } from 'expo-localization';
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
-  translations,
   translate,
   type AppLocale,
   type LanguagePreference,
@@ -32,6 +31,8 @@ export function LocalizationProvider({ children }: React.PropsWithChildren) {
   const deviceLocales = useLocales();
   const [preference, setPreferenceState] = useState<LanguagePreference>('system');
   const [ready, setReady] = useState(false);
+  const pendingWrite = useRef(Promise.resolve());
+  const preferenceChanged = useRef(false);
   const deviceLocale = resolveDeviceLocale(deviceLocales[0]?.languageCode ?? getLocales()[0]?.languageCode);
   const locale = preference === 'system' ? deviceLocale : preference;
 
@@ -39,16 +40,22 @@ export function LocalizationProvider({ children }: React.PropsWithChildren) {
     let active = true;
     AsyncStorage.getItem(STORAGE_KEY)
       .then((stored) => {
-        if (!active) return;
+        if (!active || preferenceChanged.current) return;
         if (stored === 'system' || stored === 'vi' || stored === 'en') setPreferenceState(stored);
       })
+      .catch(() => undefined)
       .finally(() => { if (active) setReady(true); });
     return () => { active = false; };
   }, []);
 
   const setPreference = useCallback(async (next: LanguagePreference) => {
+    preferenceChanged.current = true;
     setPreferenceState(next);
-    await AsyncStorage.setItem(STORAGE_KEY, next);
+    // Serialize quick changes so an older write cannot win after a restart.
+    const write = pendingWrite.current.catch(() => undefined)
+      .then(() => AsyncStorage.setItem(STORAGE_KEY, next));
+    pendingWrite.current = write;
+    await write;
   }, []);
 
   const t = useCallback((key: TranslationKey, values?: Record<string, string | number>) => (

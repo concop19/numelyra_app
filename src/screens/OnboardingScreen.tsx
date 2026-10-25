@@ -41,6 +41,7 @@ import {
   type UserProfile,
 } from '../store/userProfile';
 import { useLocalization } from '../i18n/LocalizationContext';
+import type { LanguagePreference, TranslationKey } from '../i18n/translations';
 
 interface Props {
   onComplete: () => void;
@@ -68,8 +69,8 @@ const PROFILE_FIELD_NAMES: ProfileFieldName[] = [
 
 type FeatureSlide = {
   id: string;
-  title: string;
-  description: string;
+  titleKey: TranslationKey;
+  descriptionKey: TranslationKey;
   image: ImageSource;
 };
 
@@ -107,51 +108,12 @@ const COIN_PARTICLES = [
 ] as const;
 
 const FEATURE_SLIDES: FeatureSlide[] = [
-  {
-    id: 'welcome',
-    title: 'Chào mừng đến với\ntrợ lý phong thủy AI',
-    description: 'Trò chuyện, xem vận mệnh, tạo hình nền và khám phá thế giới chiêm tinh ngay trên một ứng dụng.',
-    image: HERO_MASCOT,
-  },
-  {
-    id: 'chat',
-    title: 'Trò chuyện với AI\nbất cứ điều gì',
-    description: 'Đặt câu hỏi về cuộc sống, công việc, học tập hay những thắc mắc đời thường.',
-    image: HERO_CHAT,
-  },
-  {
-    id: 'love',
-    title: 'Hỏi tình duyên',
-    description: 'Nhận lời giải đáp về chuyện tình cảm, mối quan hệ và duyên phận.',
-    image: HERO_LOVE,
-  },
-  {
-    id: 'calendar',
-    title: 'Xem lịch Can Chi',
-    description: 'Tra cứu ngày âm dương, Can Chi, ngày tốt xấu và các thông tin phong thủy quan trọng.',
-    image: HERO_CALENDAR,
-  },
-  {
-    id: 'wallpaper',
-    title: 'Tạo hình nền theo ý thích',
-    description: 'Tạo những hình nền mang dấu ấn riêng theo chủ đề phong thủy, thiên nhiên hoặc chiêm tinh.',
-    image: HERO_WALLPAPER,
-  },
-  {
-    id: 'astrology',
-    title: 'Xem chiêm tinh',
-    description: 'Khám phá bản đồ sao, tính cách, định hướng và vận hạn theo chiêm tinh học.',
-    image: HERO_ASTROLOGY,
-  },
-];
-
-const FEATURE_SLIDES_EN: FeatureSlide[] = [
-  { id: 'welcome', title: 'Welcome to your\nAI spiritual guide', description: 'Chat, explore your path, create wallpapers and discover astrology in one app.', image: HERO_MASCOT },
-  { id: 'chat', title: 'Ask AI\nabout anything', description: 'Ask about life, work, learning or the questions on your mind.', image: HERO_CHAT },
-  { id: 'love', title: 'Explore relationships', description: 'Reflect on love, relationships and meaningful connections.', image: HERO_LOVE },
-  { id: 'calendar', title: 'Explore the Can Chi calendar', description: 'View lunar dates, Can Chi, favorable days and traditional guidance.', image: HERO_CALENDAR },
-  { id: 'wallpaper', title: 'Create a personal wallpaper', description: 'Generate wallpapers inspired by feng shui, nature or astrology.', image: HERO_WALLPAPER },
-  { id: 'astrology', title: 'Explore astrology', description: 'Discover your birth chart, personality themes and current transits.', image: HERO_ASTROLOGY },
+  { id: 'welcome', titleKey: 'onboarding.welcome.title', descriptionKey: 'onboarding.welcome.description', image: HERO_MASCOT },
+  { id: 'chat', titleKey: 'onboarding.chat.title', descriptionKey: 'onboarding.chat.description', image: HERO_CHAT },
+  { id: 'love', titleKey: 'onboarding.love.title', descriptionKey: 'onboarding.love.description', image: HERO_LOVE },
+  { id: 'calendar', titleKey: 'onboarding.calendar.title', descriptionKey: 'onboarding.calendar.description', image: HERO_CALENDAR },
+  { id: 'wallpaper', titleKey: 'onboarding.wallpaper.title', descriptionKey: 'onboarding.wallpaper.description', image: HERO_WALLPAPER },
+  { id: 'astrology', titleKey: 'onboarding.astrology.title', descriptionKey: 'onboarding.astrology.description', image: HERO_ASTROLOGY },
 ];
 
 const STEP_HEROES: ImageSource[] = [
@@ -547,7 +509,8 @@ function CoinRewardBurst({ runId }: { runId: number }) {
 }
 
 export default function OnboardingScreen({ onComplete }: Props) {
-  const { locale, t } = useLocalization();
+  const { locale, preference, setPreference, t } = useLocalization();
+  const [languageSaveError, setLanguageSaveError] = useState(false);
   const en = locale === 'en';
   const { height } = useWindowDimensions();
   const [step, setStep] = useState(0);
@@ -840,8 +803,11 @@ export default function OnboardingScreen({ onComplete }: Props) {
     );
   }
 
-  const featureSlides = en ? FEATURE_SLIDES_EN : FEATURE_SLIDES;
-  const feature = step < featureSlides.length ? featureSlides[step] : null;
+  const feature = step < FEATURE_SLIDES.length ? FEATURE_SLIDES[step] : null;
+  const chooseLanguage = (value: LanguagePreference) => {
+    setLanguageSaveError(false);
+    void setPreference(value).catch(() => setLanguageSaveError(true));
+  };
 
   return (
     <View style={styles.root}>
@@ -856,17 +822,38 @@ export default function OnboardingScreen({ onComplete }: Props) {
             </Pressable>
           )}
 
+          {step === 0 && (
+            <View style={styles.languageContainer}>
+              <View accessibilityRole="radiogroup" accessibilityLabel={t('language.title')} style={styles.languageControl}>
+                {(['system', 'vi', 'en'] as const).map((value) => (
+                  <Pressable
+                    key={value}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: preference === value }}
+                    accessibilityLabel={value === 'system' ? t('language.system') : t(`language.${value}`)}
+                    onPress={() => chooseLanguage(value)}
+                    style={[styles.languageOption, preference === value && styles.languageOptionSelected]}
+                  >
+                    <Text style={[styles.languageOptionText, preference === value && styles.languageOptionTextSelected]}>
+                      {value === 'system' ? t('language.auto') : t(`language.${value}`)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              {languageSaveError && <Text accessibilityRole="alert" style={styles.languageError}>{t('language.saveError')}</Text>}
+            </View>
+          )}
           <Animated.View style={[styles.animatedPage, { opacity: fade }]}>
             {feature ? (
               <View style={styles.featurePage}>
                 <View style={styles.featureCopy}>
-                  <Text style={[styles.title, compact && styles.titleCompact]}>{feature.title}</Text>
-                  <Text style={styles.description}>{feature.description}</Text>
+                  <Text style={[styles.title, compact && styles.titleCompact]}>{t(feature.titleKey)}</Text>
+                  <Text style={styles.description}>{t(feature.descriptionKey)}</Text>
                 </View>
                 <HeroImage key={feature.id} source={feature.image} imageKey={feature.id} compact={compact} />
                 <View style={styles.featureFooter}>
                   <Pagination active={step} english={en} />
-                  <PrimaryButton label={en ? 'Next' : 'Tiếp theo'} onPress={next} />
+                  <PrimaryButton label={t('onboarding.next')} onPress={next} />
                 </View>
               </View>
             ) : step === 6 ? (
@@ -1137,6 +1124,13 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#171061' },
   animatedPage: { flex: 1 },
+  languageContainer: { paddingHorizontal: 22, paddingTop: 10 },
+  languageControl: { flexDirection: 'row', padding: 4, borderRadius: 18, backgroundColor: 'rgba(56,35,125,0.85)', borderWidth: 1, borderColor: 'rgba(255,210,235,0.28)' },
+  languageOption: { flex: 1, minHeight: 44, paddingHorizontal: 8, paddingVertical: 10, alignItems: 'center', justifyContent: 'center', borderRadius: 13 },
+  languageOptionSelected: { backgroundColor: '#FFD1E1' },
+  languageOptionText: { color: '#E9DDFB', fontSize: 13, fontWeight: '700' },
+  languageOptionTextSelected: { color: '#40216E' },
+  languageError: { color: '#FFD0DA', fontSize: 12, textAlign: 'center', marginTop: 6 },
   backButton: { position: 'absolute', top: 2, left: 16, width: 44, height: 44, alignItems: 'center', justifyContent: 'center', zIndex: 20 },
   featurePage: { flex: 1, paddingTop: 36, paddingHorizontal: 22, paddingBottom: 12 },
   featureCopy: { minHeight: 150, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },

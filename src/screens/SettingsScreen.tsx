@@ -204,7 +204,9 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
   };
 
   const chooseLanguage = () => {
-    const apply = (next: LanguagePreference) => { void setPreference(next); };
+    const apply = (next: LanguagePreference) => {
+      void setPreference(next).catch(() => Alert.alert(t('language.title'), t('language.saveError')));
+    };
     Alert.alert(t('language.title'), undefined, [
       { text: `${preference === 'system' ? '✓ ' : ''}${t('language.system')}`, onPress: () => apply('system') },
       { text: `${preference === 'vi' ? '✓ ' : ''}${t('language.vi')}`, onPress: () => apply('vi') },

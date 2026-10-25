@@ -14,7 +14,12 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_ROOTS = [ROOT / "src" / "components", ROOT / "src" / "screens", ROOT / "src" / "features"]
+SOURCE_ROOTS = [
+    ROOT / "src" / "components",
+    ROOT / "src" / "screens",
+    ROOT / "src" / "features",
+    ROOT / "src" / "services",
+]
 VIETNAMESE = re.compile(r"[ÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯàáâãèéêìíòóôõùúăđĩũơưẠ-ỹ]")
 USER_FACING = re.compile(
     r"(<Text\b[^>]*>[^<{]*|placeholder\s*=|accessibilityLabel\s*=|Alert\.alert\(|\balert\(|text\s*:)"

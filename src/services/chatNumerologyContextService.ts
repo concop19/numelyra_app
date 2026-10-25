@@ -99,7 +99,7 @@ export function getConciseIndicatorReading(
   const indicatorName = getChatIndicatorName(key, locale) || cardName || key;
   return {
     title: `${indicatorName} ${value}`,
-    source: 'offline-archetype',
+    source: 'computed-overview',
     overview: meaning,
     strengths: [],
     challenges: [],

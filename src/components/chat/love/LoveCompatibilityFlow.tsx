@@ -18,7 +18,7 @@ import HighlightedAnswerText from '../HighlightedAnswerText';
 import ThreeDButton from '../../ThreeDButton';
 import type { MessageItem } from '../../../screens/ChatScreen';
 import { TAROT_AMBIENT_AUDIO } from '../../../services/tarotAssets';
-import { getLoveReadingViewModel } from './loveReadingModel';
+import { getLoveReadingViewModel, type LoveReadingProfile } from './loveReadingModel';
 import { canSetAudioPlayerVolume } from '../../../services/audioPlatform';
 import { useLocalization } from '../../../i18n/LocalizationContext';
 
@@ -29,8 +29,8 @@ const SUCCESS_ANIMATION = require('../../../../assets/giao_dien/giaodien1/chat_d
 const FAIL_ANIMATION = require('../../../../assets/giao_dien/giaodien1/chat_detail/love/animation/fail.webp');
 const ANIMATION_HORIZONTAL_OFFSET = 12;
 const LOADING_STEPS_VI = [
-  'Đang đọc thông tin bạn nam',
-  'Đang đọc thông tin bạn nữ',
+  'Đang đọc hồ sơ thứ nhất',
+  'Đang đọc hồ sơ thứ hai',
   'Đang đối chiếu Tử Vi và Bát Tự',
   'Đang tính chỉ số Lục Hợp',
 ];
@@ -55,6 +55,7 @@ type FlowPhase = 'loading' | 'revealing' | 'result';
 type Props = {
   visible: boolean;
   message?: MessageItem;
+  profiles?: LoveReadingProfile[];
   question: string;
   onClose: () => void;
   onOpenDetail: (message: MessageItem, question: string) => void;
@@ -63,16 +64,31 @@ type Props = {
 export default function LoveCompatibilityFlow({
   visible,
   message,
+  profiles = [],
   question,
   onClose,
   onOpenDetail,
 }: Props) {
   const { locale, l } = useLocalization();
+  const model = useMemo(
+    () => message ? getLoveReadingViewModel(message.card, message.text, question) : null,
+    [message, question],
+  );
+  const firstProfileName = model?.profileA.fullName || profiles[0]?.fullName;
+  const secondProfileName = model?.profileB.fullName || profiles[1]?.fullName;
+  const pairLabel = firstProfileName && secondProfileName
+    ? `${firstProfileName} & ${secondProfileName}`
+    : l('hai hồ sơ', 'both profiles');
   const loadingSteps = locale === 'en' ? [
-    'Reading the first profile',
-    'Reading the second profile',
+    `Reading ${firstProfileName || 'the first profile'}`,
+    `Reading ${secondProfileName || 'the second profile'}`,
     'Comparing Tu Vi and Bazi',
     'Calculating the Liu He pattern',
+  ] : firstProfileName && secondProfileName ? [
+    `Đang đọc dữ liệu ${firstProfileName}`,
+    `Đang đọc dữ liệu ${secondProfileName}`,
+    LOADING_STEPS_VI[2],
+    LOADING_STEPS_VI[3],
   ] : LOADING_STEPS_VI;
   const ambientPlayer = useAudioPlayer(TAROT_AMBIENT_AUDIO, { keepAudioSessionActive: true });
 
@@ -101,10 +117,6 @@ export default function LoveCompatibilityFlow({
     };
   }, [visible, ambientPlayer]);
 
-  const model = useMemo(
-    () => message ? getLoveReadingViewModel(message.card, message.text, question) : null,
-    [message, question],
-  );
   const score = model?.compatibilityScore;
   const isAwaitingMessage = !message;
   const [loadingElapsed, setLoadingElapsed] = useState(0);
@@ -407,7 +419,7 @@ export default function LoveCompatibilityFlow({
           <View style={styles.loadingContent}>
             <View style={styles.loadingStatus}>
               <Text style={styles.loadingPercent}>{l('Đang lắng nghe duyên số', 'Listening to the relationship pattern')}</Text>
-              <Text style={styles.loadingTitle}>{l('AI đang phân tích\nmối tương hợp của hai bạn...', 'AI is analyzing\nyour compatibility…')}</Text>
+              <Text style={styles.loadingTitle}>{l(`AI đang phân tích\nmối tương hợp của ${pairLabel}...`, `AI is analyzing\nthe compatibility of ${pairLabel}…`)}</Text>
               <View style={styles.progressCard}>
                 {loadingSteps.map((step, index) => {
                   const stepProgress = Math.max(0, Math.min(1,
@@ -460,7 +472,7 @@ export default function LoveCompatibilityFlow({
             <View style={styles.revealHeading}>
               <Text style={styles.revealEyebrow}>{l('KẾT NỐI DUYÊN SỐ', 'RELATIONSHIP CONNECTION')}</Text>
               <Text style={styles.revealTitle}>
-                {hasLockedScore ? l('Điểm tương hợp đã được hé lộ', 'Your compatibility score is revealed') : l('Đang hội tụ năng lượng của hai bạn', 'Bringing both profiles together')}
+                {hasLockedScore ? l(`Điểm tương hợp của ${pairLabel}`, `Compatibility score for ${pairLabel}`) : l(`Đang đối chiếu ${pairLabel}`, `Bringing ${pairLabel} together`)}
               </Text>
             </View>
 

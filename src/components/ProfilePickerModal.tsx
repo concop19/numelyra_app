@@ -244,6 +244,19 @@ export default function ProfilePickerModal({
     }
   };
 
+  const selectedCoupleNames = tempSelectedIds
+    .map((id) => profiles.find((profile) => profile.id === id)?.fullName)
+    .filter((name): name is string => Boolean(name));
+  const coupleNamingNotice = selectedCoupleNames.length === 2
+    ? l(
+        `Không cần xác định ai là “bạn”. AI sẽ gọi thẳng ${selectedCoupleNames[0]} và ${selectedCoupleNames[1]} trong toàn bộ luận giải.`,
+        `You do not need to identify who is “you.” AI will address ${selectedCoupleNames[0]} and ${selectedCoupleNames[1]} by name throughout the reading.`,
+      )
+    : l(
+        'Chọn 2 hồ sơ. Không cần xác định ai là “bạn”; AI sẽ gọi từng người bằng đúng tên hồ sơ.',
+        'Choose two profiles. You do not need to identify who is “you”; AI will address each person by profile name.',
+      );
+
   return (
     <Modal
       visible={visible}
@@ -305,7 +318,7 @@ export default function ProfilePickerModal({
           ) : (
             <Text style={styles.headerSubtitle}>
               {isCoupleMode
-                ? l('Tích chọn 2 người (Bạn & Người ấy) để Agent phân tích Bát Tự hòa hợp và trải bài tình duyên.', 'Choose two people so the agent can analyze Bazi compatibility and a relationship spread.')
+                ? coupleNamingNotice
                 : l('Chọn 1 hồ sơ để Tiểu Linh Miêu giải mã vận mệnh, công danh và năng lượng cá nhân.', 'Choose one profile for a personal destiny, career and energy reading.')}
             </Text>
           )}
@@ -343,7 +356,7 @@ export default function ProfilePickerModal({
                           {isSelected && (
                             <View style={[styles.activeBadge, isCoupleMode && styles.activeBadgeCouple]}>
                               <Text style={styles.activeBadgeText}>
-                                {isCoupleMode ? `${l('Người', 'Person')} ${order}` : l('Đang chọn', 'Selected')}
+                                {isCoupleMode ? `${l('Hồ sơ', 'Profile')} ${order}` : l('Đang chọn', 'Selected')}
                               </Text>
                             </View>
                           )}

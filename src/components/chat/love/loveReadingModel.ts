@@ -95,9 +95,10 @@ export function getLoveReadingViewModel(
     }
   }
 
-  const score = asScore(resolvedTuViBazi?.compatibilityScore)
-    ?? asScore(rawTuViBazi?.compatibilityScore)
-    ?? asScore(card.compatibilityScore);
+  // The backend score is authoritative. Local Tu Vi computation remains only
+  // as the detailed visual breakdown and must never replace this percentage.
+  const score = asScore(card.compatibilityScore)
+    ?? asScore(rawTuViBazi?.compatibilityScore);
 
   return {
     profileA: personA,

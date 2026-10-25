@@ -1175,7 +1175,7 @@ export default function ChatScreen({
           text: [
             `✦ OVERVIEW\nThe Bazi and Tu Vi compatibility score for ${p1.fullName} and ${p2.fullName} is ${tuViBazi.compatibilityScore}%. Traditional Can Chi and Nạp Âm names are preserved as proper terms.`,
             `✦ FOUR PILLARS\n• ${p1.fullName}: year ${chartA.yearPillar.ganVi} ${chartA.yearPillar.zhiVi}; month ${chartA.monthPillar.ganVi} ${chartA.monthPillar.zhiVi}; day ${chartA.dayPillar.ganVi} ${chartA.dayPillar.zhiVi}. Day-master element: ${chartA.dayPillar.elementEn}.\n• ${p2.fullName}: year ${chartB.yearPillar.ganVi} ${chartB.yearPillar.zhiVi}; month ${chartB.monthPillar.ganVi} ${chartB.monthPillar.zhiVi}; day ${chartB.dayPillar.ganVi} ${chartB.dayPillar.zhiVi}. Day-master element: ${chartB.dayPillar.elementEn}.`,
-            '✦ PRACTICAL GUIDANCE\nTreat the score as a reflection framework rather than a verdict. Compare communication habits, boundaries, financial expectations, and long-term priorities directly, then agree on one shared practice for resolving tension.',
+            `✦ PRACTICAL GUIDANCE\n${p1.fullName} and ${p2.fullName} should treat the score as a reflection framework rather than a verdict. ${p1.fullName} and ${p2.fullName} can compare communication habits, boundaries, financial expectations, and long-term priorities directly, then agree on one shared practice for resolving tension.`,
           ].join('\n\n'),
           card: cardPayload({ drawnCards: [], tuViBazi, compatibilityScore: tuViBazi.compatibilityScore }),
         };
@@ -1263,7 +1263,7 @@ export default function ChatScreen({
       const tuViBazi = evaluateTuViBaziLove(chartA, chartB);
 
       const text = [
-        `✦ KẾT LUẬN TỔNG QUAN TỬ VI & BÁT TỰ:\nTheo phân tích Tử Vi Đẩu Số & Bát Tự Tứ Trụ, mức độ tương hợp duyên nợ giữa ${p1.fullName} (${chartA.napAmYear}, Cung ${chartA.cungPhi}) và ${p2.fullName} (${chartB.napAmYear}, Cung ${chartB.cungPhi}) đạt ${tuViBazi.compatibilityScore}%. Hai bạn có nhân duyên tương phối sâu sắc, hội tụ đủ khí vận để xây đắp gia đạo hạnh phúc.`,
+        `✦ KẾT LUẬN TỔNG QUAN TỬ VI & BÁT TỰ:\nTheo phân tích Tử Vi Đẩu Số & Bát Tự Tứ Trụ, mức độ tương hợp duyên nợ giữa ${p1.fullName} (${chartA.napAmYear}, Cung ${chartA.cungPhi}) và ${p2.fullName} (${chartB.napAmYear}, Cung ${chartB.cungPhi}) đạt ${tuViBazi.compatibilityScore}%. ${p1.fullName} và ${p2.fullName} có những điểm tương phối đáng chú ý để cùng soi chiếu khi xây dựng mối quan hệ.`,
         `\n✦ PHÂN TÍCH TỨ TRỤ & CUNG PHU THÊ:\n• Tứ Trụ ${p1.fullName}: Năm [${chartA.yearPillar.ganVi} ${chartA.yearPillar.zhiVi} - ${chartA.napAmYear}] • Tháng [${chartA.monthPillar.ganVi} ${chartA.monthPillar.zhiVi}] • Ngày [${chartA.dayPillar.ganVi} ${chartA.dayPillar.zhiVi} - Nhật Chủ: ${chartA.dayMaster} mang hành ${chartA.dayMasterElement}]\n• Tứ Trụ ${p2.fullName}: Năm [${chartB.yearPillar.ganVi} ${chartB.yearPillar.zhiVi} - ${chartB.napAmYear}] • Tháng [${chartB.monthPillar.ganVi} ${chartB.monthPillar.zhiVi}] • Ngày [${chartB.dayPillar.ganVi} ${chartB.dayPillar.zhiVi} - Nhật Chủ: ${chartB.dayMaster} mang hành ${chartB.dayMasterElement}]\n• Cung Phu Thê (Nhật Chi): ${chartA.spousalPalace} ✕ ${chartB.spousalPalace} ➔ ${tuViBazi.spousalInteraction.labelVi}. ${tuViBazi.spousalInteraction.description}\n• Thiên Can Nhật Chủ: ${chartA.dayMaster} ✕ ${chartB.dayMaster} ➔ ${tuViBazi.stemInteraction.labelVi}. ${tuViBazi.stemInteraction.description}`,
         `\n✦ CUNG PHI BÁT TRẠCH & BẢN MỆNH NẠP ÂM:\n• Bát Trạch Quái Mệnh: ${chartA.cungPhi} (${chartA.cungPhiGroup}) ✕ ${chartB.cungPhi} (${chartB.cungPhiGroup}) ➔ Phối Hôn đạt ${tuViBazi.cungPhiBatTrach.labelVi}: ${tuViBazi.cungPhiBatTrach.description}\n• Ngũ Hành Nạp Âm: ${tuViBazi.napAmHarmony.labelVi} - ${tuViBazi.napAmHarmony.description}\n• Địa Chi Con Giáp: ${tuViBazi.yearAnimalHarmony.labelVi} - ${tuViBazi.yearAnimalHarmony.description}`,
         `\n✦ VÌ SAO (BÀI HỌC VẬN MỆNH CẦN CHUYỂN HÓA):\n${tuViBazi.summaryVi}`,
@@ -1594,11 +1594,13 @@ export default function ChatScreen({
     }
 
     // 4. Tính toán Tử Vi Đẩu Số nếu ghép đôi 2 người
-    let tuViBaziPayload: TuViBaziSynastryResult | undefined;
+    let tuViBaziPayload: Omit<TuViBaziSynastryResult, 'compatibilityScore'> | undefined;
     if (selectedProfiles.length >= 2) {
       const chartA = computePersonTuViBazi(selectedProfiles[0].fullName, selectedProfiles[0].birthDate, selectedProfiles[0].gender);
       const chartB = computePersonTuViBazi(selectedProfiles[1].fullName, selectedProfiles[1].birthDate, selectedProfiles[1].gender);
-      tuViBaziPayload = evaluateTuViBaziLove(chartA, chartB);
+      const localDetails = evaluateTuViBaziLove(chartA, chartB);
+      const { compatibilityScore: _discardedLocalScore, ...detailsWithoutScore } = localDetails;
+      tuViBaziPayload = detailsWithoutScore;
     }
 
     try {
@@ -1616,64 +1618,58 @@ export default function ChatScreen({
           profiles: selectedProfiles,
           indicators: {
             profile1: indicators1,
-            profile2: indicators2
+            profile2: indicators2,
           },
           tarotCards: drawnCards,
           ...(colorGuidance ? { colorGuidance } : {}),
-          tuViBazi: tuViBaziPayload,
           ...(placeContext ? { placeContext } : {}),
-        })
+        }),
       });
-
       const data = await res.json();
-      
-      if (data.ok && data.data) {
-        // The local draw is the source of truth for the reveal interaction.
-        // Preserve it even when the backend omits it from cardPayload.
-        const serverCardPayload = data.data.cardPayload || {};
-        const cardPayload = {
-          type: 'agent_synthesis',
-          decision,
-          profiles: selectedProfiles,
-          indicators1,
-          indicators2,
-          ...(tuViBaziPayload ? {
-            tuViBazi: tuViBaziPayload,
-            compatibilityScore: tuViBaziPayload.compatibilityScore,
-          } : {}),
-          ...serverCardPayload,
-          questionText: prompt,
-          drawnCards: serverCardPayload.drawnCards?.length
-            ? serverCardPayload.drawnCards
-            : drawnCards,
-          sessionId: typeof data.data.sessionId === 'string' ? data.data.sessionId : undefined,
-          canContinue: Boolean(data.data.canContinue && data.data.sessionId),
-        };
-        const mascotMsg: MessageItem = {
-          id: tarotMessageId,
-          sender: 'mascot',
-          text: data.data.replyText,
-          card: cardPayload,
-          time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-          turnId,
-          createdAt: tarotMessageCreatedAt,
-          isTypingCompleted: decision.mode === 'compatibility' || drawnCards.length > 0
-        };
-        appendMessage(mascotMsg);
+      if (!data.ok || !data.data) throw new Error('Fallback to local synthesis engine');
 
-        if (decision.mode === 'compatibility') {
-          openCompatibilityDetail(mascotMsg, prompt);
-        }
+      const serverCardPayload = data.data.cardPayload || {};
+      const backendScore = typeof serverCardPayload.compatibilityScore === 'number'
+        ? serverCardPayload.compatibilityScore
+        : undefined;
+      const serverScoredTuViBazi = tuViBaziPayload && backendScore !== undefined
+        ? { ...tuViBaziPayload, compatibilityScore: backendScore }
+        : undefined;
+      const cardPayload = {
+        type: 'agent_synthesis',
+        decision,
+        profiles: selectedProfiles,
+        indicators1,
+        indicators2,
+        ...(serverScoredTuViBazi ? { tuViBazi: serverScoredTuViBazi } : {}),
+        ...serverCardPayload,
+        ...(backendScore !== undefined ? { compatibilityScore: backendScore } : {}),
+        questionText: prompt,
+        drawnCards: serverCardPayload.drawnCards?.length
+          ? serverCardPayload.drawnCards
+          : drawnCards,
+        sessionId: typeof data.data.sessionId === 'string' ? data.data.sessionId : undefined,
+        canContinue: Boolean(data.data.canContinue && data.data.sessionId),
+      };
+      const mascotMsg: MessageItem = {
+        id: tarotMessageId,
+        sender: 'mascot',
+        text: data.data.replyText,
+        card: cardPayload,
+        time: new Date().toLocaleTimeString(locale === 'en' ? 'en-US' : 'vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        turnId,
+        createdAt: tarotMessageCreatedAt,
+        isTypingCompleted: decision.mode === 'compatibility' || drawnCards.length > 0,
+      };
+      appendMessage(mascotMsg);
 
-        if (drawnCards.length > 0) {
-          setLiveTarotReading((current) => current?.id === tarotMessageId
-            ? { ...current, status: 'ready', replyText: data.data.replyText }
-            : current);
-        } else {
-          setMascotState('explain');
-        }
+      if (decision.mode === 'compatibility') openCompatibilityDetail(mascotMsg, prompt);
+      if (drawnCards.length > 0) {
+        setLiveTarotReading((current) => current?.id === tarotMessageId
+          ? { ...current, status: 'ready', replyText: data.data.replyText }
+          : current);
       } else {
-        throw new Error('Fallback to local synthesis engine');
+        setMascotState('explain');
       }
     } catch {
       // Sử dụng Autonomous Spiritual Synthesis Engine
@@ -1697,7 +1693,13 @@ export default function ChatScreen({
         createdAt: tarotMessageCreatedAt,
         isTypingCompleted: decision.mode === 'compatibility' || drawnCards.length > 0
       };
-      appendMessage(mascotMsg);
+      setMessages((current) => {
+        const alreadyStarted = current.some((item) => item.id === tarotMessageId);
+        return alreadyStarted
+          ? current.map((item) => item.id === tarotMessageId ? mascotMsg : item)
+          : orderChatHistoryMessages([...current, mascotMsg]).slice(-MAX_STORED_CHAT_MESSAGES);
+      });
+      setVisibleMessageCount(2);
 
       if (decision.mode === 'compatibility') {
         openCompatibilityDetail(mascotMsg, prompt);
@@ -2582,6 +2584,7 @@ export default function ChatScreen({
       <LoveCompatibilityFlow
         visible={!!loveCompatibilityFlow}
         message={loveCompatibilityFlow?.phase === 'result' ? loveCompatibilityFlow.message : undefined}
+        profiles={selectedProfiles}
         question={loveCompatibilityFlow?.question || ''}
         onClose={() => {
           loveCompatibilityFlowDismissedRef.current = true;
