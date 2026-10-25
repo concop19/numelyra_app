@@ -4,8 +4,7 @@ import {
   getLocalChatMessages,
   getPendingChatData,
   markChatDataSynced,
-  upsertLocalChatMessage,
-  upsertLocalChatSession,
+  upsertLocalChatSnapshot,
   type LocalChatMessage,
   type LocalChatSession,
 } from '../db/chatDatabaseService';
@@ -47,13 +46,47 @@ export async function hydrateChatSessionFromSupabase(sessionId: string): Promise
   if (sessionError || messagesError || !session) return null;
   const localSession = cloudToLocalSession(session as CloudSession);
   const localMessages = ((messages || []) as CloudMessage[]).map(cloudToLocalMessage);
-  await upsertLocalChatSession(localSession);
-  for (const message of localMessages) await upsertLocalChatMessage(message);
+  await upsertLocalChatSnapshot(localSession, localMessages);
   // Keep locally queued messages that have not reached Supabase yet.
   return { session: localSession, messages: await getLocalChatMessages(sessionId) };
 }
 
-export async function syncPendingChatSession(sessionId: string): Promise<boolean> {
+const inFlightSyncs = new Map<string, Promise<boolean>>();
+const queuedSyncs = new Map<string, Promise<boolean>>();
+
+function startSync(sessionId: string): Promise<boolean> {
+  const run = runPendingChatSync(sessionId)
+    .catch((error) => {
+      console.warn('[chatSessionSync] Sync failed:', error);
+      return false;
+    })
+    .finally(() => {
+      if (inFlightSyncs.get(sessionId) === run) inFlightSyncs.delete(sessionId);
+    });
+  inFlightSyncs.set(sessionId, run);
+  return run;
+}
+
+/**
+ * Several triggers (NetInfo reconnect, end of a turn) can request a sync at
+ * the same moment. Keep at most one running sync plus one queued follow-up
+ * per session so they never race, while data written during a running sync
+ * is still pushed by the follow-up.
+ */
+export function syncPendingChatSession(sessionId: string): Promise<boolean> {
+  const running = inFlightSyncs.get(sessionId);
+  if (!running) return startSync(sessionId);
+  const queued = queuedSyncs.get(sessionId);
+  if (queued) return queued;
+  const followUp = running.then(() => {
+    queuedSyncs.delete(sessionId);
+    return startSync(sessionId);
+  });
+  queuedSyncs.set(sessionId, followUp);
+  return followUp;
+}
+
+async function runPendingChatSync(sessionId: string): Promise<boolean> {
   if (!supabase) return false;
   const network = await NetInfo.fetch();
   if (!network.isConnected || network.isInternetReachable === false) return false;

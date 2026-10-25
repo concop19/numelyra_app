@@ -45,6 +45,20 @@ type MessageRow = {
 };
 
 let databasePromise: Promise<SQLite.SQLiteDatabase> | null = null;
+let operationQueue: Promise<unknown> = Promise.resolve();
+
+/**
+ * expo-sqlite uses a single connection and `withTransactionAsync` is not
+ * exclusive: overlapping calls issue a nested BEGIN ("cannot start a
+ * transaction within a transaction") and a later ROLLBACK fails because the
+ * other caller already committed. `withExclusiveTransactionAsync` is not
+ * supported on web, so every DB operation runs through this FIFO queue.
+ */
+function serialized<T>(operation: (db: SQLite.SQLiteDatabase) => Promise<T>): Promise<T> {
+  const run = operationQueue.then(async () => operation(await database()));
+  operationQueue = run.catch(() => undefined);
+  return run;
+}
 
 const parseJson = <T>(value: string | null): T | null => {
   if (!value) return null;
@@ -140,8 +154,7 @@ export function createChatId(): string {
   });
 }
 
-export async function upsertLocalChatSession(session: LocalChatSession): Promise<void> {
-  const db = await database();
+async function writeSession(db: SQLite.SQLiteDatabase, session: LocalChatSession): Promise<void> {
   await db.runAsync(
     `INSERT INTO chat_sessions (
       id, user_id, title, intent, mode, context_data, question_count, max_questions,
@@ -160,8 +173,7 @@ export async function upsertLocalChatSession(session: LocalChatSession): Promise
   );
 }
 
-export async function upsertLocalChatMessage(message: LocalChatMessage): Promise<void> {
-  const db = await database();
+async function writeMessage(db: SQLite.SQLiteDatabase, message: LocalChatMessage): Promise<void> {
   await db.runAsync(
     `INSERT INTO chat_messages (
       id, session_id, turn_index, sender, text, card_payload, sync_status, created_at, synced_at
@@ -175,19 +187,40 @@ export async function upsertLocalChatMessage(message: LocalChatMessage): Promise
   );
 }
 
-export async function getLocalChatSession(sessionId: string): Promise<LocalChatSession | null> {
-  const db = await database();
-  const row = await db.getFirstAsync<SessionRow>('SELECT * FROM chat_sessions WHERE id = ?', sessionId);
-  return row ? mapSession(row) : null;
+export function upsertLocalChatSession(session: LocalChatSession): Promise<void> {
+  return serialized((db) => writeSession(db, session));
 }
 
-export async function getLocalChatMessages(sessionId: string): Promise<LocalChatMessage[]> {
-  const db = await database();
-  const rows = await db.getAllAsync<MessageRow>(
-    'SELECT * FROM chat_messages WHERE session_id = ? ORDER BY turn_index ASC, created_at ASC',
-    sessionId
-  );
-  return rows.map(mapMessage);
+export function upsertLocalChatMessage(message: LocalChatMessage): Promise<void> {
+  return serialized((db) => writeMessage(db, message));
+}
+
+/** Writes a hydrated session and its messages atomically in one queued transaction. */
+export function upsertLocalChatSnapshot(
+  session: LocalChatSession,
+  messages: LocalChatMessage[]
+): Promise<void> {
+  return serialized((db) => db.withTransactionAsync(async () => {
+    await writeSession(db, session);
+    for (const message of messages) await writeMessage(db, message);
+  }));
+}
+
+export function getLocalChatSession(sessionId: string): Promise<LocalChatSession | null> {
+  return serialized(async (db) => {
+    const row = await db.getFirstAsync<SessionRow>('SELECT * FROM chat_sessions WHERE id = ?', sessionId);
+    return row ? mapSession(row) : null;
+  });
+}
+
+export function getLocalChatMessages(sessionId: string): Promise<LocalChatMessage[]> {
+  return serialized(async (db) => {
+    const rows = await db.getAllAsync<MessageRow>(
+      'SELECT * FROM chat_messages WHERE session_id = ? ORDER BY turn_index ASC, created_at ASC',
+      sessionId
+    );
+    return rows.map(mapMessage);
+  });
 }
 
 export async function savePendingUserMessage(message: LocalChatMessage): Promise<void> {
@@ -200,7 +233,6 @@ export async function finishLocalChatTurn(
   questionCount: number,
   sessionCompleted: boolean
 ): Promise<LocalChatSession> {
-  const db = await database();
   const updated: LocalChatSession = {
     ...session,
     questionCount,
@@ -209,36 +241,38 @@ export async function finishLocalChatTurn(
     updatedAt: new Date().toISOString(),
     syncedAt: null,
   };
-  await db.withTransactionAsync(async () => {
-    await upsertLocalChatMessage({ ...assistantMessage, syncStatus: 'pending', syncedAt: null });
-    await upsertLocalChatSession(updated);
-  });
+  // Use the unqueued writers inside the transaction; calling the public
+  // (queued) helpers here would wait on this very operation and deadlock.
+  await serialized((db) => db.withTransactionAsync(async () => {
+    await writeMessage(db, { ...assistantMessage, syncStatus: 'pending', syncedAt: null });
+    await writeSession(db, updated);
+  }));
   return updated;
 }
 
-export async function getPendingChatData(sessionId: string): Promise<{
+export function getPendingChatData(sessionId: string): Promise<{
   session: LocalChatSession | null;
   messages: LocalChatMessage[];
 }> {
-  const db = await database();
-  const sessionRow = await db.getFirstAsync<SessionRow>(
-    `SELECT * FROM chat_sessions WHERE id = ? AND sync_status IN ('pending', 'failed')`,
-    sessionId
-  );
-  const messageRows = await db.getAllAsync<MessageRow>(
-    `SELECT * FROM chat_messages WHERE session_id = ? AND sync_status IN ('pending', 'failed')`,
-    sessionId
-  );
-  return {
-    session: sessionRow ? mapSession(sessionRow) : null,
-    messages: messageRows.map(mapMessage),
-  };
+  return serialized(async (db) => {
+    const sessionRow = await db.getFirstAsync<SessionRow>(
+      `SELECT * FROM chat_sessions WHERE id = ? AND sync_status IN ('pending', 'failed')`,
+      sessionId
+    );
+    const messageRows = await db.getAllAsync<MessageRow>(
+      `SELECT * FROM chat_messages WHERE session_id = ? AND sync_status IN ('pending', 'failed')`,
+      sessionId
+    );
+    return {
+      session: sessionRow ? mapSession(sessionRow) : null,
+      messages: messageRows.map(mapMessage),
+    };
+  });
 }
 
-export async function markChatDataSynced(sessionId: string, messageIds: string[]): Promise<void> {
-  const db = await database();
+export function markChatDataSynced(sessionId: string, messageIds: string[]): Promise<void> {
   const now = new Date().toISOString();
-  await db.withTransactionAsync(async () => {
+  return serialized((db) => db.withTransactionAsync(async () => {
     await db.runAsync(
       `UPDATE chat_sessions SET sync_status='synced', synced_at=? WHERE id=?`,
       now,
@@ -252,6 +286,6 @@ export async function markChatDataSynced(sessionId: string, messageIds: string[]
         ...messageIds
       );
     }
-  });
+  }));
 }
 
