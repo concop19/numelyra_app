@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { ASTRO_COLORS } from './AstrologyUi';
+import { useLocalization } from '../../i18n/LocalizationContext';
 
 export function EnergyScoreRing({
   label,
@@ -12,6 +13,7 @@ export function EnergyScoreRing({
   value: number;
   color: string;
 }) {
+  const { l } = useLocalization();
   const normalized = Math.max(0, Math.min(1, value));
   const percent = Math.round(normalized * 100);
   const activeSegments = Math.round(normalized * 24);
@@ -19,7 +21,7 @@ export function EnergyScoreRing({
   return (
     <View
       accessible
-      accessibilityLabel={`${label}: ${percent} phần trăm`}
+      accessibilityLabel={l(`${label}: ${percent} phần trăm`, `${label}: ${percent} percent`)}
       style={styles.item}
     >
       <View style={styles.ring}>

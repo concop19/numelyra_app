@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, type LayoutChangeEvent } from 'react-native';
 import { Image } from 'expo-image';
+import { useLocalization } from '../../i18n/LocalizationContext';
 
 import type { NatalAspect } from '../../services/astro/aspectCalculator';
 import type { AstroPlanetSnapshot, PureAstroFeatureMetadata } from '../../services/astro/astroVectorEngine';
@@ -103,6 +104,7 @@ export function NatalChartWheel({
   metadata: PureAstroFeatureMetadata;
   onOpenDetail(target: AstrologyDetailTarget): void;
 }) {
+  const { locale, l } = useLocalization();
   const [availableWidth, setAvailableWidth] = useState(0);
   const size = Math.min(460, Math.max(294, availableWidth || 360));
   const center = size / 2;
@@ -119,7 +121,9 @@ export function NatalChartWheel({
     setAvailableWidth((current) => current === width ? current : width);
   };
   const chartLabel = metadata.natalPlanets
-    .map((planet) => `${isPlanetId(planet.name) ? PLANET_INFO[planet.name].nameVi : planet.name} ở ${isZodiacId(planet.sign) ? ZODIAC_INFO[planet.sign].nameVi : planet.sign} ${planet.degreeInSign.toFixed(1)} độ`)
+    .map((planet) => locale === 'en'
+      ? `${isPlanetId(planet.name) ? PLANET_INFO[planet.name].id : planet.name} in ${isZodiacId(planet.sign) ? ZODIAC_INFO[planet.sign].id : planet.sign} at ${planet.degreeInSign.toFixed(1)} degrees`
+      : `${isPlanetId(planet.name) ? PLANET_INFO[planet.name].nameVi : planet.name} ở ${isZodiacId(planet.sign) ? ZODIAC_INFO[planet.sign].nameVi : planet.sign} ${planet.degreeInSign.toFixed(1)} độ`)
     .join(', ');
 
   return (
@@ -127,7 +131,7 @@ export function NatalChartWheel({
       <View
         accessible
         accessibilityRole="image"
-        accessibilityLabel={`Biểu đồ lá số. ${chartLabel}`}
+        accessibilityLabel={l(`Biểu đồ lá số. ${chartLabel}`, `Natal chart. ${chartLabel}`)}
         style={[styles.chart, { width: size, height: size }]}
       >
         <View style={[styles.chartGlow, { width: size * 0.82, height: size * 0.82, borderRadius: size * 0.41, left: size * 0.09, top: size * 0.09 }]} />
@@ -153,7 +157,7 @@ export function NatalChartWheel({
           const point = polarPoint(center, size * 0.425, index * 30);
           return (
             <TouchableOpacity
-              accessibilityLabel={`Mở chi tiết ${sign.nameVi}`}
+              accessibilityLabel={l(`Mở chi tiết ${sign.nameVi}`, `Open ${sign.id} details`)}
               accessibilityRole="button"
               hitSlop={5}
               key={sign.id}
@@ -207,7 +211,7 @@ export function NatalChartWheel({
           const planetId = marker.planet.name;
           return (
             <TouchableOpacity
-              accessibilityLabel={`Mở chi tiết ${PLANET_INFO[planetId].nameVi}`}
+              accessibilityLabel={l(`Mở chi tiết ${PLANET_INFO[planetId].nameVi}`, `Open ${PLANET_INFO[planetId].id} details`)}
               accessibilityRole="button"
               hitSlop={5}
               key={planetId}

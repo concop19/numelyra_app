@@ -8,6 +8,7 @@ import type {
   AstroDominantSignal,
   PureAstroFeatureMetadata,
 } from '../../services/astro/astroVectorEngine';
+import type { AppLocale } from '../../i18n/translations';
 
 export const PLANET_IDS = [
   'Sun', 'Moon', 'Mercury', 'Venus', 'Mars',
@@ -179,12 +180,50 @@ const ZODIAC_EXPRESSION_VI: Record<ZodiacId, string> = {
   Pisces: 'trực giác, cảm thông và dễ tiếp nhận những tín hiệu tinh tế',
 };
 
+const ZODIAC_EXPRESSION_EN: Record<ZodiacId, string> = {
+  Aries: 'direct, decisive, and ready to initiate',
+  Taurus: 'steady, practical, and oriented toward stability',
+  Gemini: 'flexible, curious, and eager to exchange ideas',
+  Cancer: 'sensitive, protective, and guided by belonging',
+  Leo: 'warm, creative, and openly expressive',
+  Virgo: 'observant, practical, and focused on improvement',
+  Libra: 'considerate, cooperative, and harmony-seeking',
+  Scorpio: 'focused, deep, and capable of thorough transformation',
+  Sagittarius: 'open, exploratory, and eager to broaden perspective',
+  Capricorn: 'disciplined, structured, and committed to lasting results',
+  Aquarius: 'independent, innovative, and aware of the wider community',
+  Pisces: 'intuitive, compassionate, and receptive to subtle signals',
+};
+
+const HOUSE_DESCRIPTIONS_EN: Record<number, string> = {
+  1: 'how you present yourself, initiate, and make a direct impression',
+  2: 'personal values, resources, and your sense of stability',
+  3: 'everyday thinking, communication, and learning',
+  4: 'emotional roots, home, and private foundations',
+  5: 'joy, creativity, romance, and self-expression',
+  6: 'routines, daily work, and practical care',
+  7: 'one-to-one relationships, commitment, and cooperation',
+  8: 'intimacy, shared resources, and deep transformation',
+  9: 'worldview, higher learning, and expanded experience',
+  10: 'public direction, responsibility, and social role',
+  11: 'friends, community, ideals, and long-term plans',
+  12: 'the inner world, retreat, and what is ready to be released',
+};
+
 const ASPECT_ENERGY_VI: Record<AspectType, string> = {
   conjunction: 'Hai nguồn lực hội tụ và khuếch đại lẫn nhau; cách sử dụng năng lượng này quyết định nó dễ chịu hay căng thẳng.',
   sextile: 'Một cơ hội hỗ trợ nhẹ đang mở ra, nhưng cần sự chủ động để biến tiềm năng thành hành động.',
   square: 'Ma sát giữa hai nhu cầu tạo áp lực phải điều chỉnh, đồng thời cung cấp động lực để thay đổi.',
   trine: 'Hai nguồn lực phối hợp tự nhiên, giúp năng lượng lưu chuyển thuận lợi và dễ được phát huy.',
   opposition: 'Hai đầu nhu cầu kéo theo hướng khác nhau, đòi hỏi sự cân bằng và nhận biết cả hai phía.',
+};
+
+const ASPECT_ENERGY_EN: Record<AspectType, string> = {
+  conjunction: 'The two forces converge and amplify each other; how they are directed determines whether the result feels supportive or intense.',
+  sextile: 'A gentle opportunity for support is available, but initiative is needed to turn potential into action.',
+  square: 'Friction between two needs calls for adjustment while also supplying momentum for change.',
+  trine: 'The two forces cooperate naturally, allowing their energy to flow and develop with ease.',
+  opposition: 'Two needs pull in different directions, asking for balance and awareness of both sides.',
 };
 
 const SIGNAL_LABELS: Record<AstroDominantSignal, string> = {
@@ -194,19 +233,90 @@ const SIGNAL_LABELS: Record<AstroDominantSignal, string> = {
   balanced: 'Cân bằng',
 };
 
-export function zodiacLabel(sign: string): string {
+const SIGNAL_LABELS_EN: Record<AstroDominantSignal, string> = {
+  tension: 'Needs adjustment',
+  harmony: 'In flow',
+  conjunction: 'Converging',
+  balanced: 'Balanced',
+};
+
+const SIGNAL_DETAILS_EN: Record<AstroDominantSignal, string> = {
+  tension: 'Friction aspects are more prominent, making this a good time to review your plans.',
+  harmony: 'Supportive aspects are prominent, creating favorable conditions for moving plans forward.',
+  conjunction: 'Several currents are converging strongly; focus on the priority that needs momentum.',
+  balanced: 'The influences are fairly balanced, supporting a steady pace and attentive observation.',
+};
+
+const ASPECT_NAMES_EN: Record<AspectType, string> = {
+  conjunction: 'conjunct',
+  sextile: 'sextile',
+  square: 'square',
+  trine: 'trine',
+  opposition: 'opposite',
+};
+
+const PLANET_THEMES_EN: Record<PlanetId, string[]> = {
+  Sun: ['Identity', 'Vitality', 'Purpose'],
+  Moon: ['Emotions', 'Instinct', 'Security'],
+  Mercury: ['Thinking', 'Language', 'Learning'],
+  Venus: ['Relationships', 'Values', 'Attraction'],
+  Mars: ['Action', 'Will', 'Courage'],
+  Jupiter: ['Expansion', 'Opportunity', 'Faith'],
+  Saturn: ['Discipline', 'Responsibility', 'Maturity'],
+  Uranus: ['Innovation', 'Freedom', 'Awakening'],
+  Neptune: ['Intuition', 'Ideals', 'Inspiration'],
+  Pluto: ['Transformation', 'Renewal', 'Depth'],
+};
+
+const PLANET_DESCRIPTIONS_EN: Record<PlanetId, string> = {
+  Sun: 'The center of identity, vitality, and conscious direction.',
+  Moon: 'The emotional world, instinctive responses, and inner need for safety.',
+  Mercury: 'How information is received, processed, and communicated.',
+  Venus: 'How you connect, recognize value, and seek harmony.',
+  Mars: 'The drive to act, assert your will, and respond directly.',
+  Jupiter: 'The impulse to expand, develop faith, and seek meaning.',
+  Saturn: 'Lessons of limits, responsibility, and lasting structure.',
+  Uranus: 'The need for innovation, freedom, and breaking old patterns.',
+  Neptune: 'Intuition, ideals, and the subtle boundaries of perception.',
+  Pluto: 'Deep transformation and the restructuring of power.',
+};
+
+const HOUSE_TOPICS_EN: Record<number, string> = {
+  1: 'Self and identity',
+  2: 'Values and resources',
+  3: 'Communication and learning',
+  4: 'Home and foundations',
+  5: 'Creativity and expression',
+  6: 'Routines and service',
+  7: 'Relationships and partnership',
+  8: 'Transformation and shared resources',
+  9: 'Beliefs and expansion',
+  10: 'Career and public role',
+  11: 'Community and the future',
+  12: 'Inner life and release',
+};
+
+export function zodiacLabel(sign: string, locale: AppLocale = 'vi'): string {
   const info = isZodiacId(sign) ? ZODIAC_INFO[sign] : undefined;
-  return info ? `${info.nameVi} ${info.symbol}` : sign;
+  return info ? `${locale === 'en' ? info.id : info.nameVi} ${info.symbol}` : sign;
 }
 
-export function planetLabel(planet: string): string {
-  return isPlanetId(planet) ? PLANET_INFO[planet].nameVi : planet;
+export function planetLabel(planet: string, locale: AppLocale = 'vi'): string {
+  return isPlanetId(planet) ? (locale === 'en' ? PLANET_INFO[planet].id : PLANET_INFO[planet].nameVi) : planet;
 }
 
-function scoreLevel(value: number): string {
-  if (value >= 0.67) return 'Mạnh';
-  if (value >= 0.34) return 'Vừa';
-  return 'Nhẹ';
+export function planetThemes(planet: PlanetId, locale: AppLocale = 'vi'): string[] {
+  return locale === 'en' ? PLANET_THEMES_EN[planet] : PLANET_INFO[planet].themes;
+}
+
+export function planetDescription(planet: PlanetId, locale: AppLocale = 'vi'): string {
+  return locale === 'en' ? PLANET_DESCRIPTIONS_EN[planet] : PLANET_INFO[planet].description;
+}
+
+function scoreLevel(value: number, locale: AppLocale): string {
+  if (value >= 0.67) return locale === 'en' ? 'Strong' : 'Mạnh';
+  if (value >= 0.34) return locale === 'en' ? 'Moderate' : 'Vừa';
+  return locale === 'en' ? 'Gentle' : 'Nhẹ';
 }
 
 function findAspect(metadata: PureAstroFeatureMetadata, planet: string): DetectedAspect | undefined {
@@ -215,11 +325,14 @@ function findAspect(metadata: PureAstroFeatureMetadata, planet: string): Detecte
   );
 }
 
-function aspectLine(aspect: DetectedAspect): string {
-  return `${planetLabel(aspect.transitPlanet)} ${aspect.nameVi.toLocaleLowerCase('vi-VN')} ${planetLabel(aspect.natalPlanet)} · orb ${aspect.orb.toFixed(1)}°`;
+function aspectLine(aspect: DetectedAspect, locale: AppLocale = 'vi'): string {
+  const aspectName = locale === 'en'
+    ? ASPECT_NAMES_EN[aspect.type]
+    : aspect.nameVi.toLocaleLowerCase('vi-VN');
+  return `${planetLabel(aspect.transitPlanet, locale)} ${aspectName} ${planetLabel(aspect.natalPlanet, locale)} · orb ${aspect.orb.toFixed(1)}°`;
 }
 
-export function getPlanetGuidanceItems(metadata: PureAstroFeatureMetadata): PlanetGuidanceItem[] {
+export function getPlanetGuidanceItems(metadata: PureAstroFeatureMetadata, locale: AppLocale = 'vi'): PlanetGuidanceItem[] {
   return PLANET_IDS.map((id) => {
     const transit = metadata.transitPlanets.find((planet) => planet.name === id);
     const allAspects = metadata.transitAspects ?? metadata.notableTransitAspects;
@@ -237,22 +350,24 @@ export function getPlanetGuidanceItems(metadata: PureAstroFeatureMetadata): Plan
       degreeInSign: transit?.degreeInSign ?? null,
       aspect,
       aspectText: aspect
-        ? aspectLine(aspect)
+        ? aspectLine(aspect, locale)
         : sign
-          ? `${zodiacLabel(sign)} · ${transit!.degreeInSign.toFixed(1)}° hôm nay`
-          : 'Đang đồng hành trong nhịp trời hôm nay',
+          ? locale === 'en'
+            ? `${zodiacLabel(sign, locale)} · ${transit!.degreeInSign.toFixed(1)}° today`
+            : `${zodiacLabel(sign, locale)} · ${transit!.degreeInSign.toFixed(1)}° hôm nay`
+          : locale === 'en' ? "Moving with today's sky" : 'Đang đồng hành trong nhịp trời hôm nay',
       natureLabel: aspect
         ? aspect.nature === 'harmony'
-          ? 'Góc hỗ trợ'
+          ? locale === 'en' ? 'Supportive aspect' : 'Góc hỗ trợ'
           : aspect.nature === 'tension'
-            ? 'Góc thử thách'
-            : 'Góc hội tụ'
-        : 'Nhịp trung tính',
+            ? locale === 'en' ? 'Challenging aspect' : 'Góc thử thách'
+            : locale === 'en' ? 'Converging aspect' : 'Góc hội tụ'
+        : locale === 'en' ? 'Neutral rhythm' : 'Nhịp trung tính',
     };
   });
 }
 
-export function getTodaySummaryCards(metadata: PureAstroFeatureMetadata): TodaySummaryCard[] {
+export function getTodaySummaryCards(metadata: PureAstroFeatureMetadata, locale: AppLocale = 'vi'): TodaySummaryCard[] {
   const moonAspect = findAspect(metadata, 'Moon');
   const venusAspect = findAspect(metadata, 'Venus');
   const activeHouse = metadata.dailyContext?.activatedHouses[0];
@@ -260,37 +375,41 @@ export function getTodaySummaryCards(metadata: PureAstroFeatureMetadata): TodayS
   return [
     {
       id: 'energy',
-      title: 'Năng lượng',
-      value: scoreLevel(metadata.scores.fastPlanetActivity),
-      detail: `Nhịp hành tinh nhanh ${Math.round(metadata.scores.fastPlanetActivity * 100)}%`,
+      title: locale === 'en' ? 'Energy' : 'Năng lượng',
+      value: scoreLevel(metadata.scores.fastPlanetActivity, locale),
+      detail: locale === 'en'
+        ? `Fast-planet activity ${Math.round(metadata.scores.fastPlanetActivity * 100)}%`
+        : `Nhịp hành tinh nhanh ${Math.round(metadata.scores.fastPlanetActivity * 100)}%`,
       icon: 'sparkles',
       color: '#9B8CFF',
     },
     {
       id: 'emotion',
-      title: 'Cảm xúc',
-      value: zodiacLabel(metadata.transitMoonSign),
-      detail: moonAspect ? aspectLine(moonAspect) : 'Không có góc Mặt Trăng chính nổi bật',
+      title: locale === 'en' ? 'Emotion' : 'Cảm xúc',
+      value: zodiacLabel(metadata.transitMoonSign, locale),
+      detail: moonAspect ? aspectLine(moonAspect, locale) : locale === 'en' ? 'No notable major Moon aspects' : 'Không có góc Mặt Trăng chính nổi bật',
       icon: 'moon',
       color: '#73D7FF',
       target: { kind: 'planet', id: 'Moon' },
     },
     {
       id: 'relationships',
-      title: 'Quan hệ',
-      value: venusAspect ? SIGNAL_LABELS[metadata.dominantSignal] : 'Nhịp ổn định',
-      detail: venusAspect ? aspectLine(venusAspect) : 'Không có góc Sao Kim chính nổi bật',
+      title: locale === 'en' ? 'Relationships' : 'Quan hệ',
+      value: venusAspect ? (locale === 'en' ? SIGNAL_LABELS_EN : SIGNAL_LABELS)[metadata.dominantSignal] : locale === 'en' ? 'Steady rhythm' : 'Nhịp ổn định',
+      detail: venusAspect ? aspectLine(venusAspect, locale) : locale === 'en' ? 'No notable major Venus aspects' : 'Không có góc Sao Kim chính nổi bật',
       icon: 'heart',
       color: '#FF7BB7',
       target: { kind: 'planet', id: 'Venus' },
     },
     {
       id: 'actions',
-      title: 'Hành động',
-      value: SIGNAL_LABELS[metadata.dominantSignal],
+      title: locale === 'en' ? 'Action' : 'Hành động',
+      value: (locale === 'en' ? SIGNAL_LABELS_EN : SIGNAL_LABELS)[metadata.dominantSignal],
       detail: activeHouse
-        ? `Nhà ${activeHouse.house} · ${activeHouse.topicVi}`
-        : metadata.vibeSummary,
+        ? locale === 'en'
+          ? `House ${activeHouse.house} · ${HOUSE_TOPICS_EN[activeHouse.house] ?? 'Current focus'}`
+          : `Nhà ${activeHouse.house} · ${activeHouse.topicVi}`
+        : locale === 'en' ? SIGNAL_DETAILS_EN[metadata.dominantSignal] : metadata.vibeSummary,
       icon: 'navigate',
       color: '#FFD166',
       target: metadata.topAspect && isPlanetId(metadata.topAspect.transitPlanet)
@@ -309,17 +428,25 @@ export function getEnergyFocus(metadata: PureAstroFeatureMetadata): EnergyFocusI
   ];
 }
 
-export function getPrecisionMessage(metadata: PureAstroFeatureMetadata): string {
+export function getPrecisionMessage(metadata: PureAstroFeatureMetadata, locale: AppLocale = 'vi'): string {
   if (metadata.birthDataPrecision === 'complete') {
     if (metadata.natalContext?.isLocalTimeAmbiguous) {
-      return 'Đã có giờ và nơi sinh. Thời điểm này nằm trong khoảng giờ lặp do chuyển giờ mùa hè; hệ thống dùng lần xuất hiện đầu tiên.';
+      return locale === 'en'
+        ? 'Birth time and place are available. This time falls within a daylight-saving overlap, so the first occurrence is used.'
+        : 'Đã có giờ và nơi sinh. Thời điểm này nằm trong khoảng giờ lặp do chuyển giờ mùa hè; hệ thống dùng lần xuất hiện đầu tiên.';
     }
-    return 'Đã có giờ, nơi sinh và múi giờ. ASC, MC và 12 nhà dùng hệ Porphyry.';
+    return locale === 'en'
+      ? 'Birth time, place, and time zone are available. The Ascendant, Midheaven, and 12 houses use the Porphyry system.'
+      : 'Đã có giờ, nơi sinh và múi giờ. ASC, MC và 12 nhà dùng hệ Porphyry.';
   }
   if (metadata.birthDataPrecision === 'timeWithoutLocation') {
-    return 'Đã có giờ sinh nhưng chưa có nơi sinh/múi giờ. Vị trí hiện tạm quy chiếu UTC; ASC, MC và 12 nhà chưa được hiển thị.';
+    return locale === 'en'
+      ? 'Birth time is available, but birth place and time zone are missing. UTC is used temporarily; the Ascendant, Midheaven, and 12 houses are hidden.'
+      : 'Đã có giờ sinh nhưng chưa có nơi sinh/múi giờ. Vị trí hiện tạm quy chiếu UTC; ASC, MC và 12 nhà chưa được hiển thị.';
   }
-  return 'Chưa có giờ sinh chính xác. Lá số đang dùng mốc 12:00 tạm tính; ASC, MC và 12 nhà chưa được hiển thị.';
+  return locale === 'en'
+    ? 'Exact birth time is unavailable. The chart temporarily uses 12:00; the Ascendant, Midheaven, and 12 houses are hidden.'
+    : 'Chưa có giờ sinh chính xác. Lá số đang dùng mốc 12:00 tạm tính; ASC, MC và 12 nhà chưa được hiển thị.';
 }
 
 function transitAspectStrength(aspect: DetectedAspect): number {
@@ -362,21 +489,39 @@ export function getNatalAspectCounterpart(aspect: NatalAspect, planet: PlanetId)
   return aspect.planetA === planet ? aspect.planetB : aspect.planetA;
 }
 
-export function getAspectEnergyDescription(type: AspectType): string {
-  return ASPECT_ENERGY_VI[type];
+export function getAspectEnergyDescription(type: AspectType, locale: AppLocale = 'vi'): string {
+  return locale === 'en' ? ASPECT_ENERGY_EN[type] : ASPECT_ENERGY_VI[type];
 }
 
-export function describeTransitAspect(aspect: DetectedAspect): string {
+export function describeTransitAspect(aspect: DetectedAspect, locale: AppLocale = 'vi'): string {
   const transit = isPlanetId(aspect.transitPlanet) ? PLANET_INFO[aspect.transitPlanet] : undefined;
   const natal = isPlanetId(aspect.natalPlanet) ? PLANET_INFO[aspect.natalPlanet] : undefined;
+  if (locale === 'en') {
+    const transitTheme = transit && isPlanetId(aspect.transitPlanet)
+      ? planetThemes(aspect.transitPlanet, locale)[0]?.toLocaleLowerCase('en-US')
+      : 'current movement';
+    const natalTheme = natal && isPlanetId(aspect.natalPlanet)
+      ? planetThemes(aspect.natalPlanet, locale)[0]?.toLocaleLowerCase('en-US')
+      : 'natal foundation';
+    return `The ${transitTheme} of ${planetLabel(aspect.transitPlanet, locale)} is touching the natal ${natalTheme} of ${planetLabel(aspect.natalPlanet, locale)}. ${getAspectEnergyDescription(aspect.type, locale)}`;
+  }
   const transitTheme = transit?.themes[0]?.toLocaleLowerCase('vi-VN') ?? 'chuyển động hiện tại';
   const natalTheme = natal?.themes[0]?.toLocaleLowerCase('vi-VN') ?? 'nền tảng bản mệnh';
   return `Nhịp ${transitTheme} của ${planetLabel(aspect.transitPlanet)} đang chạm vào vùng ${natalTheme} của ${planetLabel(aspect.natalPlanet)} bản mệnh. ${getAspectEnergyDescription(aspect.type)}`;
 }
 
-export function describeNatalAspect(aspect: NatalAspect): string {
+export function describeNatalAspect(aspect: NatalAspect, locale: AppLocale = 'vi'): string {
   const first = isPlanetId(aspect.planetA) ? PLANET_INFO[aspect.planetA] : undefined;
   const second = isPlanetId(aspect.planetB) ? PLANET_INFO[aspect.planetB] : undefined;
+  if (locale === 'en') {
+    const firstTheme = first && isPlanetId(aspect.planetA)
+      ? planetThemes(aspect.planetA, locale)[0]?.toLocaleLowerCase('en-US')
+      : 'first force';
+    const secondTheme = second && isPlanetId(aspect.planetB)
+      ? planetThemes(aspect.planetB, locale)[0]?.toLocaleLowerCase('en-US')
+      : 'second force';
+    return `In the natal chart, the ${firstTheme} of ${planetLabel(aspect.planetA, locale)} connects with the ${secondTheme} of ${planetLabel(aspect.planetB, locale)}. ${getAspectEnergyDescription(aspect.type, locale)}`;
+  }
   const firstTheme = first?.themes[0]?.toLocaleLowerCase('vi-VN') ?? 'nguồn lực thứ nhất';
   const secondTheme = second?.themes[0]?.toLocaleLowerCase('vi-VN') ?? 'nguồn lực thứ hai';
   return `Trong bản mệnh, mạch ${firstTheme} của ${planetLabel(aspect.planetA)} liên hệ với mạch ${secondTheme} của ${planetLabel(aspect.planetB)}. ${getAspectEnergyDescription(aspect.type)}`;
@@ -385,7 +530,8 @@ export function describeNatalAspect(aspect: NatalAspect): string {
 export function getPlanetRuleInsights(
   metadata: PureAstroFeatureMetadata,
   planet: PlanetId,
-  mode: PlanetDetailMode
+  mode: PlanetDetailMode,
+  locale: AppLocale = 'vi'
 ): PlanetRuleInsight[] {
   const matches = metadata.ruleEvaluation?.matches ?? [];
   const placementPrefix = `placement.planet.${planet}.`;
@@ -411,17 +557,35 @@ export function getPlanetRuleInsights(
     if (seen.has(payloadKey)) return [];
     seen.add(payloadKey);
 
-    let title = mode === 'natal' ? `Dấu ấn ${planetLabel(planet)}` : `Nhịp hiện tại của ${planetLabel(planet)}`;
-    if (primaryId.includes('.sign.')) title = 'Cách biểu đạt';
-    if (primaryId.includes('.house.')) title = mode === 'natal' ? 'Lĩnh vực biểu hiện' : 'Trọng tâm quá cảnh';
+    let title = locale === 'en'
+      ? mode === 'natal' ? `${planetLabel(planet, locale)} signature` : `Current ${planetLabel(planet, locale)} rhythm`
+      : mode === 'natal' ? `Dấu ấn ${planetLabel(planet)}` : `Nhịp hiện tại của ${planetLabel(planet)}`;
+    if (primaryId.includes('.sign.')) title = locale === 'en' ? 'Expression style' : 'Cách biểu đạt';
+    if (primaryId.includes('.house.')) title = locale === 'en'
+      ? mode === 'natal' ? 'Area of expression' : 'Transit focus'
+      : mode === 'natal' ? 'Lĩnh vực biểu hiện' : 'Trọng tâm quá cảnh';
+
+    const signMatch = primaryId.match(/\.sign\.([A-Za-z]+)$/);
+    const sign = signMatch && isZodiacId(signMatch[1]) ? signMatch[1] : undefined;
+    const houseMatch = primaryId.match(/\.house\.(\d+)$/);
+    const house = houseMatch ? Number(houseMatch[1]) : undefined;
+    const englishFocus = sign
+      ? `${sign}'s ${ZODIAC_EXPRESSION_EN[sign]} style`
+      : house ? `House ${house} themes of ${HOUSE_TOPICS_EN[house] ?? 'current focus'}` : 'this planetary pattern';
+    const englishChallenge = mode === 'natal'
+      ? `${planetLabel(planet, locale)} can become one-sided when ${englishFocus} is expressed without enough reflection or balance.`
+      : `${planetLabel(planet, locale)} may temporarily intensify ${englishFocus}, making priorities feel more urgent than usual.`;
+    const englishAdvice = mode === 'natal'
+      ? `Give ${planetLabel(planet, locale)} a clear, constructive role and leave room for the needs represented by the rest of the chart.`
+      : `Work with this transit deliberately: choose one useful action, keep the pace sustainable, and review the result before pushing further.`;
 
     return [{
       key: `${mode}-${planet}-${seen.size}`,
       title,
-      experience: match.payload.experience,
-      challenge: match.payload.challenge,
-      supportiveExpression: match.payload.supportiveExpression,
-      advice: match.payload.advice,
+      experience: locale === 'en' ? `${planetLabel(planet, locale)} is currently emphasizing ${englishFocus}.` : match.payload.experience,
+      challenge: locale === 'en' ? englishChallenge : match.payload.challenge,
+      supportiveExpression: locale === 'en' ? `A balanced expression channels this energy into clear, proportionate choices.` : match.payload.supportiveExpression,
+      advice: locale === 'en' ? englishAdvice : match.payload.advice,
     }];
   }).slice(0, 2);
 }
@@ -430,9 +594,31 @@ export function buildPlanetPlacementInterpretation(
   planet: PlanetId,
   sign: string | undefined,
   house: number | undefined,
-  mode: PlanetDetailMode
+  mode: PlanetDetailMode,
+  locale: AppLocale = 'vi'
 ): string[] {
   const info = PLANET_INFO[planet];
+  if (locale === 'en') {
+    const description = planetDescription(planet, locale);
+    const normalizedDescription = `${description.charAt(0).toLocaleLowerCase('en-US')}${description.slice(1)}`;
+    const paragraphs = [`${planetLabel(planet, locale)} represents ${normalizedDescription}`];
+    if (sign && isZodiacId(sign)) {
+      const modeLead = mode === 'natal'
+        ? 'In the natal chart, this energy is expressed'
+        : 'At this time, this energy is operating';
+      paragraphs.push(`${modeLead} in a ${ZODIAC_EXPRESSION_EN[sign]} way as it moves through ${zodiacLabel(sign, locale)}.`);
+    }
+    if (house) {
+      const houseDescription = HOUSE_DESCRIPTIONS_EN[house];
+      if (houseDescription) {
+        const houseLead = mode === 'natal'
+          ? `House ${house} shows that this energy is often expressed through`
+          : `While moving through House ${house} in your chart, this energy temporarily focuses on`;
+        paragraphs.push(`${houseLead} ${houseDescription}.`);
+      }
+    }
+    return paragraphs;
+  }
   const normalizedDescription = `${info.description.charAt(0).toLocaleLowerCase('vi-VN')}${info.description.slice(1)}`;
   const paragraphs = [`${info.nameVi} đại diện cho ${normalizedDescription}`];
   if (sign && isZodiacId(sign)) {
@@ -454,7 +640,8 @@ export function buildPlanetPlacementInterpretation(
 export function buildPlanetModeSummary(
   metadata: PureAstroFeatureMetadata,
   planet: PlanetId,
-  mode: PlanetDetailMode
+  mode: PlanetDetailMode,
+  locale: AppLocale = 'vi'
 ): string {
   const placement = mode === 'natal'
     ? metadata.natalPlanets.find((item) => item.name === planet)
@@ -462,22 +649,28 @@ export function buildPlanetModeSummary(
   const house = mode === 'natal'
     ? metadata.natalContext?.planetHouses[planet]
     : metadata.dailyContext?.transitHouses[planet];
-  const sentences = buildPlanetPlacementInterpretation(planet, placement?.sign, house, mode);
+  const sentences = buildPlanetPlacementInterpretation(planet, placement?.sign, house, mode, locale);
 
   if (mode === 'natal') {
     const natalAspect = getNatalAspectsForPlanet(metadata, planet)[0];
     if (natalAspect) {
       const counterpart = getNatalAspectCounterpart(natalAspect, planet);
-      sentences.push(`Góc bản mệnh nổi bật nhất nối ${planetLabel(planet)} với ${planetLabel(counterpart)} qua ${natalAspect.nameVi.toLocaleLowerCase('vi-VN')}, orb ${natalAspect.orb.toFixed(1)}°.`);
+      sentences.push(locale === 'en'
+        ? `The strongest natal aspect connects ${planetLabel(planet, locale)} with ${planetLabel(counterpart, locale)} through a ${ASPECT_NAMES_EN[natalAspect.type]}, orb ${natalAspect.orb.toFixed(1)}°.`
+        : `Góc bản mệnh nổi bật nhất nối ${planetLabel(planet)} với ${planetLabel(counterpart)} qua ${natalAspect.nameVi.toLocaleLowerCase('vi-VN')}, orb ${natalAspect.orb.toFixed(1)}°.`);
     }
     const incoming = getIncomingTransitAspects(metadata, planet)[0];
     if (incoming) {
-      sentences.push(`Tác động hiện tại nổi bật nhất đến từ ${planetLabel(incoming.transitPlanet)} qua ${incoming.nameVi.toLocaleLowerCase('vi-VN')}, orb ${incoming.orb.toFixed(1)}°.`);
+      sentences.push(locale === 'en'
+        ? `The strongest current influence comes from ${planetLabel(incoming.transitPlanet, locale)} through a ${ASPECT_NAMES_EN[incoming.type]}, orb ${incoming.orb.toFixed(1)}°.`
+        : `Tác động hiện tại nổi bật nhất đến từ ${planetLabel(incoming.transitPlanet)} qua ${incoming.nameVi.toLocaleLowerCase('vi-VN')}, orb ${incoming.orb.toFixed(1)}°.`);
     }
   } else {
     const outgoing = getOutgoingTransitAspects(metadata, planet)[0];
     if (outgoing) {
-      sentences.push(`${planetLabel(planet)} hiện tác động rõ nhất lên ${planetLabel(outgoing.natalPlanet)} bản mệnh qua ${outgoing.nameVi.toLocaleLowerCase('vi-VN')}, orb ${outgoing.orb.toFixed(1)}°.`);
+      sentences.push(locale === 'en'
+        ? `Current ${planetLabel(planet, locale)} most strongly influences natal ${planetLabel(outgoing.natalPlanet, locale)} through a ${ASPECT_NAMES_EN[outgoing.type]}, orb ${outgoing.orb.toFixed(1)}°.`
+        : `${planetLabel(planet)} hiện tác động rõ nhất lên ${planetLabel(outgoing.natalPlanet)} bản mệnh qua ${outgoing.nameVi.toLocaleLowerCase('vi-VN')}, orb ${outgoing.orb.toFixed(1)}°.`);
     }
   }
 
@@ -547,5 +740,5 @@ export function getCelestialInfo(target: AstrologyDetailTarget): CelestialInfo {
 }
 
 export function formatAspect(aspect: DetectedAspect): string {
-  return aspectLine(aspect);
+  return aspectLine(aspect, 'vi');
 }

@@ -35,6 +35,7 @@ import {
   getTodaySummaryCards,
   isZodiacId,
   planetLabel,
+  planetThemes,
   type AstrologyDetailTarget,
 } from './astrologyPresentation';
 import {
@@ -69,13 +70,15 @@ interface WeekDayItem {
   isToday: boolean;
 }
 
-function makeWeek(date: Date): WeekDayItem[] {
+function makeWeek(date: Date, locale: 'vi' | 'en'): WeekDayItem[] {
   const day = date.getDay();
   const diffToMonday = day === 0 ? -6 : 1 - day;
   const monday = new Date(date);
   monday.setDate(date.getDate() + diffToMonday);
 
-  const labels = ['TH 2', 'TH 3', 'TH 4', 'TH 5', 'TH 6', 'TH 7', 'CN'];
+  const labels = locale === 'en'
+    ? ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+    : ['TH 2', 'TH 3', 'TH 4', 'TH 5', 'TH 6', 'TH 7', 'CN'];
 
   return Array.from({ length: 7 }, (_, index) => {
     const val = new Date(monday);
@@ -130,9 +133,9 @@ export function AstrologyTodayView({
   const insets = useSafeAreaInsets();
   const { locale, t, l } = useLocalization();
   const { width } = useWindowDimensions();
-  const week = useMemo(() => makeWeek(currentDate), [currentDate]);
-  const cards = useMemo(() => metadata ? getTodaySummaryCards(metadata) : [], [metadata]);
-  const guidanceItems = useMemo(() => metadata ? getPlanetGuidanceItems(metadata) : [], [metadata]);
+  const week = useMemo(() => makeWeek(currentDate, locale), [currentDate, locale]);
+  const cards = useMemo(() => metadata ? getTodaySummaryCards(metadata, locale) : [], [metadata, locale]);
+  const guidanceItems = useMemo(() => metadata ? getPlanetGuidanceItems(metadata, locale) : [], [metadata, locale]);
   const contentWidth = Math.min(720, width) - 24;
   const guidanceCardWidth = Math.max(156, Math.min(222, (contentWidth - 10) / 2));
   const dateTitle = useMemo(() => formatDateTitle(currentDate, locale), [currentDate, locale]);
@@ -152,7 +155,9 @@ export function AstrologyTodayView({
     return ZODIAC_INFO[metadata.transitMoonSign];
   }, [metadata?.transitMoonSign]);
 
-  const moonSignName = moonSignInfo?.nameVi ?? (metadata?.transitMoonSign ?? 'Song Ngư');
+  const moonSignName = moonSignInfo
+    ? locale === 'en' ? moonSignInfo.id : moonSignInfo.nameVi
+    : (metadata?.transitMoonSign ?? (locale === 'en' ? 'Pisces' : 'Song Ngư'));
   const moonSignSymbol = moonSignInfo?.symbol ?? '♓';
 
   const actionDetailText = useMemo(() => {
@@ -280,7 +285,7 @@ export function AstrologyTodayView({
                   <Text style={styles.cardCategoryTitle}>{l('Năng lượng hôm nay', "Today's Energy")}</Text>
                 </View>
 
-                <Text style={styles.energyMainValue}>{energyCard?.value ?? 'Vừa'}</Text>
+                  <Text style={styles.energyMainValue}>{energyCard?.value ?? l('Vừa', 'Balanced')}</Text>
 
                 <View style={styles.progressBarRow}>
                   <View style={styles.progressBarTrack}>
@@ -358,7 +363,7 @@ export function AstrologyTodayView({
                   <Text style={styles.cardCategoryTitle}>{l('Quan hệ', 'Relationship')}</Text>
                 </View>
 
-                <Text style={styles.halfCardMainValue}>{relationCard?.value ?? 'Nhịp ổn định'}</Text>
+                  <Text style={styles.halfCardMainValue}>{relationCard?.value ?? l('Nhịp ổn định', 'Steady rhythm')}</Text>
 
                 <Text numberOfLines={3} style={styles.halfCardDetailText}>
                   {relationCard?.detail ?? l('Không có góc Sao Kim chính nổi bật.', 'No notable major Venus aspects.')}
@@ -389,7 +394,7 @@ export function AstrologyTodayView({
                   <Text style={styles.cardCategoryTitle}>{l('Hành động', 'Action')}</Text>
                 </View>
 
-                <Text style={styles.actionMainValue}>{actionCard?.value ?? 'Cần điều chỉnh'}</Text>
+                  <Text style={styles.actionMainValue}>{actionCard?.value ?? l('Cần điều chỉnh', 'Needs adjustment')}</Text>
 
                 <Text numberOfLines={3} style={styles.cardDetailText}>
                   {actionDetailText}
@@ -409,7 +414,7 @@ export function AstrologyTodayView({
                 <Ionicons name="compass-outline" size={22} color={ASTRO_COLORS.cyan} />
                 <View style={styles.flexCopy}>
                   <Text style={styles.precisionTitle}>{t('astrology.completeData')}</Text>
-                  <Text style={styles.precisionBody}>{getPrecisionMessage(metadata)}</Text>
+                  <Text style={styles.precisionBody}>{getPrecisionMessage(metadata, locale)}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={ASTRO_COLORS.gold} />
               </TouchableOpacity>
@@ -428,7 +433,7 @@ export function AstrologyTodayView({
               removeClippedSubviews
               renderItem={({ item }) => (
                   <TouchableOpacity
-                    accessibilityLabel={`${planetLabel(item.id)}. ${item.aspectText}`}
+                    accessibilityLabel={`${planetLabel(item.id, locale)}. ${item.aspectText}`}
                     accessibilityRole="button"
                     activeOpacity={0.78}
                     onPress={() => onOpenDetail({ kind: 'planet', id: item.id })}
@@ -453,8 +458,8 @@ export function AstrologyTodayView({
                       />
                       <View style={styles.guidanceImageHeader}>
                         <View>
-                          <Text style={styles.guidanceTitle}>{planetLabel(item.id)}</Text>
-                          <Text numberOfLines={1} style={styles.guidanceThemes}>{PLANET_INFO[item.id].themes.join(' · ')}</Text>
+                          <Text style={styles.guidanceTitle}>{planetLabel(item.id, locale)}</Text>
+                          <Text numberOfLines={1} style={styles.guidanceThemes}>{planetThemes(item.id, locale).join(' · ')}</Text>
                         </View>
                         <Text style={styles.guidanceSymbol}>{PLANET_INFO[item.id].symbol}</Text>
                       </View>

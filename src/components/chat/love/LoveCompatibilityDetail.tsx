@@ -13,6 +13,8 @@ import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { PersonTuViBaziChart } from '../../../services/tuViBaziService';
 import type { LoveReadingProfile, LoveReadingViewModel } from './loveReadingModel';
+import { useLocalization } from '../../../i18n/LocalizationContext';
+import type { AppLocale } from '../../../i18n/translations';
 
 const BACKGROUND = require('../../../../assets/giao_dien/giaodien1/chat_detail/love/background/evident.png');
 
@@ -32,16 +34,17 @@ type PersonEntry = {
   chart?: PersonTuViBaziChart;
 };
 
-const formatDate = (value?: string) => {
-  if (!value) return 'Chưa có ngày sinh';
+const formatDate = (value: string | undefined, locale: AppLocale) => {
+  if (!value) return locale === 'en' ? 'No birth date' : 'Chưa có ngày sinh';
   const parts = value.split('-');
   return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : value;
 };
 
-const makePersonSection = (entry: PersonEntry, index: number): AccordionData => {
+const makePersonSection = (entry: PersonEntry, index: number, locale: AppLocale): AccordionData => {
   const { profile, chart } = entry;
   const gender = profile.gender;
-  const title = gender === 'male' ? 'Hồ sơ bạn nam' : gender === 'female' ? 'Hồ sơ bạn nữ' : `Hồ sơ ${index + 1}`;
+  const english = locale === 'en';
+  const title = gender === 'male' ? (english ? 'Male profile' : 'Hồ sơ bạn nam') : gender === 'female' ? (english ? 'Female profile' : 'Hồ sơ bạn nữ') : (english ? `Profile ${index + 1}` : `Hồ sơ ${index + 1}`);
 
   return {
     id: `person-${index}`,
@@ -49,8 +52,8 @@ const makePersonSection = (entry: PersonEntry, index: number): AccordionData => 
     subtitle: profile.fullName,
     icon: gender === 'male' ? '♂' : gender === 'female' ? '♀' : '✦',
     rows: [
-      { label: 'Ngày sinh', value: formatDate(chart?.birthDate || profile.birthDate) },
-      { label: 'Giới tính', value: gender === 'male' ? 'Nam' : gender === 'female' ? 'Nữ' : 'Chưa cập nhật' },
+      { label: english ? 'Birth date' : 'Ngày sinh', value: formatDate(chart?.birthDate || profile.birthDate, locale) },
+      { label: english ? 'Gender' : 'Giới tính', value: gender === 'male' ? (english ? 'Male' : 'Nam') : gender === 'female' ? (english ? 'Female' : 'Nữ') : (english ? 'Not provided' : 'Chưa cập nhật') },
       ...(chart ? [
         { label: 'Tứ trụ năm', value: `${chart.yearPillar.ganVi} ${chart.yearPillar.zhiVi}` },
         { label: 'Tứ trụ tháng', value: `${chart.monthPillar.ganVi} ${chart.monthPillar.zhiVi}` },
@@ -61,16 +64,20 @@ const makePersonSection = (entry: PersonEntry, index: number): AccordionData => 
         { label: 'Nạp Âm', value: chart.napAmYear },
       ] : []),
     ],
-    analysis: chart
+    analysis: english ? (chart
+      ? `${profile.fullName}'s Day Master is ${chart.dayMaster} (${chart.dayPillar.elementEn}); this is compared with the other profile.`
+      : 'A complete birth date is required to calculate the Tu Vi and Bazi chart.') : chart
       ? `${profile.fullName} có Nhật Chủ ${chart.dayMaster} thuộc hành ${chart.dayMasterElement}; dữ liệu này được dùng để đối chiếu với hồ sơ còn lại.`
       : 'Hồ sơ chưa có đủ ngày sinh để dựng lá số Tử Vi và Bát Tự.',
-    advice: chart
+    advice: english ? (chart
+      ? 'These values provide background context for the compatibility reading below.'
+      : 'Add the birth date to view the complete personal indicators.') : chart
       ? 'Các thông tin này là nền tảng tham khảo cho phần luận giải tương hợp bên dưới.'
       : 'Hãy bổ sung ngày sinh trong hồ sơ để xem đầy đủ các chỉ số cá nhân.',
   };
 };
 
-function buildAccordionData(model: LoveReadingViewModel): AccordionData[] {
+function buildAccordionData(model: LoveReadingViewModel, locale: AppLocale): AccordionData[] {
   const synastry = model.tuViBazi;
   const entries: PersonEntry[] = [
     { profile: model.profileA, chart: synastry?.personA },
@@ -86,8 +93,8 @@ function buildAccordionData(model: LoveReadingViewModel): AccordionData[] {
   const pB = synastry?.personB;
 
   const sections: AccordionData[] = [
-    makePersonSection(entries[0], 0),
-    makePersonSection(entries[1], 1),
+    makePersonSection(entries[0], 0, locale),
+    makePersonSection(entries[1], 1, locale),
   ];
 
   sections.push(
@@ -191,10 +198,33 @@ function buildAccordionData(model: LoveReadingViewModel): AccordionData[] {
     },
   );
 
-  return sections;
+  if (locale === 'vi') return sections;
+
+  const englishMeta: Record<string, { title: string; subtitle: string; advice: string; analysis?: string }> = {
+    'phu-the': { title: 'Spouse Palace', subtitle: synastry?.spousalInteraction.labelEn || 'Marriage-palace comparison', analysis: synastry?.spousalInteraction.descriptionEn, advice: 'Pause when emotions rise, listen fully, and respect each other’s boundaries.' },
+    'thien-can': { title: 'Day Master Stems', subtitle: synastry?.stemInteraction.labelEn || 'Expression and direction', analysis: synastry?.stemInteraction.descriptionEn, advice: 'Respect each other’s goals and make room for different ways of taking initiative.' },
+    'ngu-hanh': { title: 'Day Master Elements', subtitle: synastry?.elementHarmony.relationship === 'sinh' ? 'Supportive cycle' : synastry?.elementHarmony.relationship === 'khac' ? 'Controlling cycle' : 'Same-element pattern', analysis: synastry?.elementHarmony.descriptionEn, advice: 'Balance needs directly instead of trying to change the other person.' },
+    'bat-trach': { title: 'Eight Mansions', subtitle: synastry?.cungPhiBatTrach.labelEn || 'Trigram pairing', analysis: synastry?.cungPhiBatTrach.descriptionEn, advice: 'Discuss important home and life decisions openly before making commitments.' },
+    'nap-am': { title: 'Nạp Âm Elements', subtitle: synastry?.napAmHarmony.labelEn || 'Nạp Âm pattern', analysis: synastry?.napAmHarmony.descriptionEn, advice: 'Build trust through consistent action and a shared decision-making rhythm.' },
+    'dia-chi': { title: 'Earthly Branches', subtitle: synastry?.yearAnimalHarmony.labelEn || 'Year-branch pattern', analysis: synastry?.yearAnimalHarmony.descriptionEn, advice: synastry?.adviceEn || 'Communicate openly and respect your differences.' },
+  };
+  const rowLabels: Record<string, string> = { 'Tương tác': 'Interaction', 'Dòng năng lượng': 'Element flow', 'Phối quái': 'Pairing', 'Ngũ hành': 'Elements' };
+  return sections.map((section) => {
+    const meta = englishMeta[section.id];
+    if (!meta) return section;
+    return {
+      ...section,
+      title: meta.title,
+      subtitle: meta.subtitle,
+      analysis: meta.analysis || synastry?.summaryEn || 'No detailed analysis is available for this section.',
+      advice: meta.advice,
+      rows: section.rows.map((row) => ({ ...row, label: rowLabels[row.label] || row.label })),
+    };
+  });
 }
 
 function AccordionDetails({ section, model }: { section: AccordionData; model: LoveReadingViewModel }) {
+  const { l } = useLocalization();
   return (
     <View style={styles.accordionBody}>
       {section.rows.length > 0 ? (
@@ -208,12 +238,12 @@ function AccordionDetails({ section, model }: { section: AccordionData; model: L
         </View>
       ) : null}
       <View style={styles.analysisBox}>
-        <Text style={styles.sectionLabel}>✦ LUẬN GIẢI</Text>
+        <Text style={styles.sectionLabel}>✦ {l('LUẬN GIẢI', 'INTERPRETATION')}</Text>
         <Text style={styles.bodyText}>{section.analysis}</Text>
       </View>
       <View style={[styles.adviceBox, section.warning && styles.warningBox]}>
         <Text style={[styles.sectionLabel, section.warning && styles.warningText]}>
-          {section.warning ? '✦ GỢI Ý CÂN BẰNG' : '✦ CÙNG VUN ĐẮP'}
+          {section.warning ? l('✦ GỢI Ý CÂN BẰNG', '✦ BALANCING GUIDANCE') : l('✦ CÙNG VUN ĐẮP', '✦ GROWING TOGETHER')}
         </Text>
         <Text style={styles.bodyText}>{section.advice || fallbackAdviceText(model)}</Text>
       </View>
@@ -226,8 +256,9 @@ export default function LoveCompatibilityDetail({ model, onClose, onContinue }: 
   onClose: () => void;
   onContinue?: () => void;
 }) {
+  const { locale, l } = useLocalization();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(() => new Set());
-  const sections = useMemo(() => buildAccordionData(model), [model]);
+  const sections = useMemo(() => buildAccordionData(model, locale), [locale, model]);
   const profileSections = sections
     .filter((section) => section.id.startsWith('person-'))
     .sort((a, b) => Number(a.title === 'Hồ sơ bạn nam') - Number(b.title === 'Hồ sơ bạn nam'));
@@ -260,13 +291,13 @@ export default function LoveCompatibilityDetail({ model, onClose, onContinue }: 
             onPress={onClose}
             style={styles.backButton}
             accessibilityRole="button"
-            accessibilityLabel="Quay lại kết quả tương hợp"
+            accessibilityLabel={l('Quay lại kết quả tương hợp', 'Back to compatibility result')}
           >
             <Ionicons name="arrow-back" color="#FFF7E9" size={21} />
           </TouchableOpacity>
           <View style={styles.headerTitleWrap}>
-            <Text style={styles.eyebrow}>NUMELYRA · DUYÊN MỆNH</Text>
-            <Text style={styles.headerTitle}>Nguyên nhân tương hợp</Text>
+          <Text style={styles.eyebrow}>NUMELYRA · {l('DUYÊN MỆNH', 'COMPATIBILITY')}</Text>
+          <Text style={styles.headerTitle}>{l('Nguyên nhân tương hợp', 'Compatibility factors')}</Text>
           </View>
           <View style={styles.headerSpacer} />
         </View>
@@ -314,7 +345,7 @@ export default function LoveCompatibilityDetail({ model, onClose, onContinue }: 
                       activeOpacity={0.82}
                       accessibilityRole="button"
                       accessibilityState={{ expanded: expandedItems.has(section.id) }}
-                      accessibilityLabel={`${expandedItems.has(section.id) ? 'Thu gọn' : 'Mở'} ${section.title}`}
+                  accessibilityLabel={`${expandedItems.has(section.id) ? l('Thu gọn', 'Collapse') : l('Mở', 'Open')} ${section.title}`}
                       style={styles.profileHeader}
                     >
                       <LinearGradient
@@ -378,7 +409,7 @@ export default function LoveCompatibilityDetail({ model, onClose, onContinue }: 
                     activeOpacity={0.8}
                     accessibilityRole="button"
                     accessibilityState={{ expanded }}
-                    accessibilityLabel={`${expanded ? 'Thu gọn' : 'Mở'} ${section.title}`}
+                accessibilityLabel={`${expanded ? l('Thu gọn', 'Collapse') : l('Mở', 'Open')} ${section.title}`}
                     style={styles.accordionHeader}
                   >
                     <View style={styles.iconBadge}>
@@ -411,11 +442,11 @@ export default function LoveCompatibilityDetail({ model, onClose, onContinue }: 
               activeOpacity={0.84}
               onPress={onContinue}
               accessibilityRole="button"
-              accessibilityLabel="Tiếp tục trò chuyện về bài luận giải này"
+            accessibilityLabel={l('Tiếp tục trò chuyện về bài luận giải này', 'Continue chatting about this reading')}
               style={styles.continueButton}
             >
               <Ionicons name="chatbubble-ellipses-outline" size={20} color="#FFF8E7" />
-              <Text style={styles.continueButtonText}>Tiếp tục trò chuyện</Text>
+            <Text style={styles.continueButtonText}>{l('Tiếp tục trò chuyện', 'Continue conversation')}</Text>
               <Ionicons name="arrow-forward" size={18} color="#FFF8E7" />
             </TouchableOpacity>
           ) : null}

@@ -9,7 +9,7 @@ import FlameCharacterSprite from './FlameCharacterSprite';
 import BottomFlameSprite from './BottomFlameSprite';
 import ThreeDButton from './ThreeDButton';
 import { useLocalization } from '../i18n/LocalizationContext';
-import { getEnglishIndicatorReading } from './IndicatorDetailModal';
+import { formatIndicatorDisplayValue } from '../services/numerologyPresentation';
 
 const BACKGROUND = require('../../assets/giao_dien/giaodien1/chat_detail/background/background.png');
 const MAT = require('../../assets/giao_dien/giaodien1/chat_detail/item/tham.png');
@@ -70,7 +70,7 @@ function Decor({ scale, active, paperLayout }: { scale: number; active: boolean;
 }
 
 export function MysticIndicatorDetailModal({ visible, indicator, onClose }: Props) {
-  const { locale, l } = useLocalization();
+  const { locale, l, t } = useLocalization();
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const [loading, setLoading] = useState(false);
   const [reading, setReading] = useState<KnowledgeReadingResult | null>(null);
@@ -84,16 +84,17 @@ export function MysticIndicatorDetailModal({ visible, indicator, onClose }: Prop
       return () => { mounted = false; };
     }
     setLoading(true);
+    setReading(null);
     setShowFullArticle(false);
-    getIndicatorReading(indicator.key, indicator.value, indicator.nameVi)
+    getIndicatorReading(indicator.key, indicator.value, locale === 'en' ? indicator.nameEn : indicator.nameVi, locale)
       .then((result) => { if (mounted) setReading(result); })
       .catch((error) => console.warn('[DetailModal] Load reading error:', error))
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
-  }, [visible, indicator]);
+  }, [visible, indicator, locale]);
 
   if (!indicator) return null;
-  const visibleReading = locale === 'en' ? getEnglishIndicatorReading(indicator) : reading;
+  const visibleReading = reading;
 
   const isLandscape = viewportWidth > viewportHeight;
   const scale = isLandscape
@@ -135,13 +136,14 @@ export function MysticIndicatorDetailModal({ visible, indicator, onClose }: Prop
         {locale !== 'en' && <Text style={styles.subtitle}>{indicator.nameEn}</Text>}
         <View style={styles.valueRow}>
           <Text style={styles.valueLabel}>{l('Chỉ số của bạn', 'Your number')}</Text>
-          <Text style={styles.value}>{indicator.displayValue}</Text>
+          <Text style={styles.value}>{formatIndicatorDisplayValue(indicator, locale)}</Text>
           {indicator.isMaster ? <Text style={styles.master}>MASTER</Text> : null}
         </View>
         <Text style={styles.description}>{locale === 'en' ? indicator.descriptionEn || `A Pythagorean numerology reading for ${indicator.nameEn}.` : indicator.description}</Text>
 
         {loading ? <Text style={styles.loadingText}>{l('Đang mở trang luận giải…', 'Opening your reading…')}</Text> : visibleReading ? <View style={styles.reading}>
-          <Section title={l('Bản chất cốt lõi', 'Core nature')} body={visibleReading.overview} />
+          {visibleReading.source === 'fallback' && <Text accessibilityRole="alert">{t('reading.fallbackLabel')}</Text>}
+          <Section title={t('reading.core')} body={visibleReading.overview} />
           {visibleReading.strengths.length > 0 ? <Bullets title={l('Điểm mạnh tự nhiên', 'Natural strengths')} items={visibleReading.strengths} /> : null}
           {visibleReading.challenges.length > 0 ? <Bullets title={l('Điều cần lưu ý', 'Points to notice')} items={visibleReading.challenges} /> : null}
           {visibleReading.advice ? <Section title={l('Lời khuyên', 'Guidance')} body={visibleReading.advice} accent /> : null}

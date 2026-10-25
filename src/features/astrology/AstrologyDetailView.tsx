@@ -27,6 +27,7 @@ import {
   getPlanetRuleInsights,
   getPrecisionMessage,
   planetLabel,
+  planetThemes,
   resolveDetailConstellation,
   zodiacLabel,
   type AstrologyDetailTarget,
@@ -88,7 +89,7 @@ function transitAspectItems(aspects: DetectedAspect[], english = false): AspectD
     key: `${aspect.transitPlanet}-${aspect.natalPlanet}-${aspect.type}-${index}`,
     title: `${english ? aspect.transitPlanet : planetLabel(aspect.transitPlanet)} ${aspect.symbol} ${english ? aspect.natalPlanet : planetLabel(aspect.natalPlanet)}`,
     meta: english ? `${aspect.type} · actual angle ${aspect.actualAngle.toFixed(1)}° · orb ${aspect.orb.toFixed(1)}°` : `${aspect.nameVi} · góc thực tế ${aspect.actualAngle.toFixed(1)}° · orb ${aspect.orb.toFixed(1)}°`,
-    description: english ? `Current ${aspect.transitPlanet} forms a ${aspect.type} with natal ${aspect.natalPlanet}.` : describeTransitAspect(aspect),
+    description: describeTransitAspect(aspect, english ? 'en' : 'vi'),
     nature: aspect.nature,
   }));
 }
@@ -100,7 +101,7 @@ function natalAspectItems(aspects: NatalAspect[], selectedPlanet: PlanetId, engl
       key: `${aspect.planetA}-${aspect.planetB}-${aspect.type}-${index}`,
       title: `${english ? selectedPlanet : planetLabel(selectedPlanet)} ${aspect.symbol} ${english ? counterpart : planetLabel(counterpart)}`,
       meta: english ? `${aspect.type} · actual angle ${aspect.actualAngle.toFixed(1)}° · orb ${aspect.orb.toFixed(1)}°` : `${aspect.nameVi} · góc thực tế ${aspect.actualAngle.toFixed(1)}° · orb ${aspect.orb.toFixed(1)}°`,
-      description: english ? `${selectedPlanet} forms a natal ${aspect.type} with ${counterpart}.` : describeNatalAspect(aspect),
+      description: describeNatalAspect(aspect, english ? 'en' : 'vi'),
       nature: aspect.nature,
     };
   });
@@ -159,15 +160,15 @@ function PlanetDetailView({
     : metadata?.dailyContext?.transitHouses[planetId];
   const constellationSign = resolveDetailConstellation({ kind: 'planet', id: planetId }, metadata, mode);
   const placementInterpretation = useMemo(
-    () => buildPlanetPlacementInterpretation(planetId, placement?.sign, house, mode),
-    [house, mode, placement?.sign, planetId]
+    () => buildPlanetPlacementInterpretation(planetId, placement?.sign, house, mode, locale),
+    [house, locale, mode, placement?.sign, planetId]
   );
   const natalAspects = useMemo(() => metadata ? getNatalAspectsForPlanet(metadata, planetId) : [], [metadata, planetId]);
   const incomingAspects = useMemo(() => metadata ? getIncomingTransitAspects(metadata, planetId) : [], [metadata, planetId]);
   const outgoingAspects = useMemo(() => metadata ? getOutgoingTransitAspects(metadata, planetId) : [], [metadata, planetId]);
   const ruleInsights = useMemo(
-    () => metadata ? getPlanetRuleInsights(metadata, planetId, mode) : [],
-    [metadata, mode, planetId]
+    () => metadata ? getPlanetRuleInsights(metadata, planetId, mode, locale) : [],
+    [locale, metadata, mode, planetId]
   );
   const houseInfo = house ? HOUSE_INFO[house] : undefined;
   const needsBirthData = !!metadata && metadata.birthDataPrecision !== 'complete';
@@ -192,16 +193,16 @@ function PlanetDetailView({
             <View style={styles.planetCopy}>
               <Image accessibilityElementsHidden contentFit="contain" pointerEvents="none" source={CONSTELLATION_SVG[constellationSign]} style={styles.planetConstellationHalo} />
               <View style={styles.planetCopyContent}>
-                <Text style={styles.planetConstellationCaption}>{mode === 'natal' ? 'VỊ TRÍ BẢN MỆNH' : 'VỊ TRÍ HIỆN TẠI'}</Text>
+              <Text style={styles.planetConstellationCaption}>{mode === 'natal' ? l('VỊ TRÍ BẢN MỆNH', 'NATAL POSITION') : l('VỊ TRÍ HIỆN TẠI', 'CURRENT POSITION')}</Text>
                 <Text style={styles.planetTitle}>{locale === 'en' ? info.id : info.nameVi}</Text>
                 <Text style={styles.planetSign}>
-                  {zodiacLabel(constellationSign)}{' '}
+                  {locale === 'en' ? constellationSign : getCelestialInfo({ kind: 'sign', id: constellationSign }).nameVi}{' '}
                   <Text style={styles.planetSignSymbol}>
                     {getCelestialInfo({ kind: 'sign', id: constellationSign }).symbol}
                   </Text>
                 </Text>
                 <View style={styles.themeRow}>
-                  {info.themes.map((theme, index) => (
+                  {planetThemes(planetId, locale).map((theme, index) => (
                     <View key={theme} style={styles.themePill}>
                       <Ionicons
                         name={index === 0 ? 'heart-outline' : index === 1 ? 'git-branch-outline' : 'shield-checkmark-outline'}
@@ -220,10 +221,10 @@ function PlanetDetailView({
             <Image contentFit="contain" source={PLANET_SVG[planetId]} style={styles.placementIcon} />
             <View style={styles.placementDivider} />
             <View style={styles.flexCopy}>
-              <Text style={styles.placementLabel}>{mode === 'natal' ? 'BẢN MỆNH · LÚC SINH' : 'HIỆN TẠI · QUÁ CẢNH'}</Text>
+              <Text style={styles.placementLabel}>{mode === 'natal' ? l('BẢN MỆNH · LÚC SINH', 'NATAL · AT BIRTH') : l('HIỆN TẠI · QUÁ CẢNH', 'CURRENT · TRANSIT')}</Text>
               <Text style={styles.placementValue}>
-                {placement ? `${zodiacLabel(placement.sign)} · ${placement.degreeInSign.toFixed(1)}°` : 'Chưa có dữ liệu vị trí'}
-                {house ? ` · Nhà ${house}` : ''}
+                {placement ? `${zodiacLabel(placement.sign, locale)} · ${placement.degreeInSign.toFixed(1)}°` : l('Chưa có dữ liệu vị trí', 'Position data unavailable')}
+                {house ? ` · ${l('Nhà', 'House')} ${house}` : ''}
               </Text>
               {!!houseInfo && <Text style={styles.placementHouseNote}>{mode === 'transit' ? l('Đang đi qua', 'Transiting') : l('Thuộc', 'Located in')} {l('Nhà', 'House')} {house} {l('trong lá số của bạn', 'in your chart')}{locale === 'vi' ? ` · ${houseInfo.nameVi}` : ''}</Text>}
             </View>
@@ -242,13 +243,13 @@ function PlanetDetailView({
                 <Ionicons name="compass-outline" size={23} color={ASTRO_COLORS.cyan} />
                 <View style={styles.flexCopy}>
                   <Text style={styles.precisionTitle}>{l('Chưa thể xác định nhà', 'House placement unavailable')}</Text>
-                  <Text style={styles.precisionBody}>{getPrecisionMessage(metadata)}</Text>
+                  <Text style={styles.precisionBody}>{getPrecisionMessage(metadata, locale)}</Text>
                 </View>
                 {!!onEditBirthData && <View style={styles.completeButton}><Text style={styles.completeButtonText}>{l('Bổ sung', 'Add details')}</Text></View>}
               </TouchableOpacity>
             )}
 
-            <SectionHeading title={mode === 'natal' ? 'Vị trí & năng lượng bản mệnh' : 'Vị trí & năng lượng hiện tại'} eyebrow={mode === 'natal' ? 'Natal Placement' : 'Transit Placement'} />
+            <SectionHeading title={mode === 'natal' ? l('Vị trí & năng lượng bản mệnh', 'Natal placement and energy') : l('Vị trí & năng lượng hiện tại', 'Current placement and energy')} eyebrow={mode === 'natal' ? 'Natal Placement' : 'Transit Placement'} />
             <MysticCard style={styles.energyCard}>
               <View style={styles.energyHeader}>
                 <Image contentFit="contain" source={PLANET_SVG[planetId]} style={styles.energyIcon} />

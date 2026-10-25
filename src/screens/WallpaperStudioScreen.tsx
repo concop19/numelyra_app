@@ -539,6 +539,7 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
           styleId: randomStyle.id,
           deviceType: 'mobile',
           customWish: effectivePrompt,
+          locale,
           count: 4,
         }),
       });

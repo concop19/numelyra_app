@@ -60,6 +60,23 @@ export function getKnowledgeAtoms(
   return unique(values).map((numberValue) => ({ indicatorKey, numberValue }));
 }
 
+/** Reject malformed strings before tokenizing, rather than interpreting them as "none". */
+export function isSupportedKnowledgeValue(indicatorKey: string, value: string | number): boolean {
+  const raw = String(value).trim();
+  if (indicatorKey === 'karmicDebts') {
+    if (raw === 'none' || raw === 'Không có nợ nghiệp') return true;
+    if (!/^(?:13\/4|14\/5|16\/7|19\/1)(?:\s*,\s*(?:13\/4|14\/5|16\/7|19\/1))*$/.test(raw)) return false;
+  } else if (indicatorKey === 'missingNumbers') {
+    if (raw === 'none' || raw === 'Không thiếu') return true;
+    if (!/^[1-9](?:\s*,\s*[1-9])*$/.test(raw)) return false;
+  } else if (COMPOSITE_KEYS.has(indicatorKey) && !/^\d+(?:\s*[,-]\s*\d+)*$/.test(raw)) {
+    return false;
+  }
+  const values = getKnowledgeAtoms(indicatorKey, value);
+  const allowed = new Set(getRequiredValues(indicatorKey));
+  return values.length > 0 && values.every((atom) => allowed.has(atom.numberValue));
+}
+
 export function getMatrixKnowledgeValue(digit: number, band: string): string {
   return `${digit}:${band}`;
 }

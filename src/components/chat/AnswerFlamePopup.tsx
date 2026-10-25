@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import HighlightedAnswerText from './HighlightedAnswerText';
+import { useLocalization } from '../../i18n/LocalizationContext';
 
 const ANSWER_BG = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/answerPopup/answer_popup_index2.png');
 const ANSWER_AURA = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/answerPopup/answer_popup_index3.png');
@@ -44,6 +45,7 @@ export const AnswerFlamePopup: React.FC<Props> = ({
   extraActions,
   isCompact = false,
 }) => {
+  const { l } = useLocalization();
   const [displayedLength, setDisplayedLength] = useState(
     isTypingCompleted ? text.length : 0
   );
@@ -265,7 +267,7 @@ export const AnswerFlamePopup: React.FC<Props> = ({
             onPress={handleSkipTyping}
             style={styles.senderButton}
             accessibilityRole="button"
-            accessibilityLabel="Bỏ qua hiệu ứng gõ chữ"
+            accessibilityLabel={l('Bỏ qua hiệu ứng gõ chữ', 'Skip typing animation')}
           >
             <View style={styles.senderDot} />
             <Text style={[styles.senderTitle, isCompact && styles.senderTitleCompact]}>
@@ -278,7 +280,7 @@ export const AnswerFlamePopup: React.FC<Props> = ({
               onPress={() => onToggleSpeech(messageId, text)}
               style={styles.speechButton}
               accessibilityRole="button"
-              accessibilityLabel={isSpeaking ? 'Dừng đọc câu trả lời' : 'Đọc câu trả lời thành tiếng'}
+              accessibilityLabel={isSpeaking ? l('Dừng đọc câu trả lời', 'Stop reading answer') : l('Đọc câu trả lời thành tiếng', 'Read answer aloud')}
               hitSlop={8}
             >
               <Ionicons
@@ -313,7 +315,7 @@ export const AnswerFlamePopup: React.FC<Props> = ({
           </TouchableOpacity>
 
           {isDone && onDoublePress && (
-            <Text style={styles.analysisHint}>Nhấn đúp vào lời giải để xem căn cứ luận giải</Text>
+            <Text style={styles.analysisHint}>{l('Nhấn đúp vào lời giải để xem căn cứ luận giải', 'Double-tap the answer to view the reading basis')}</Text>
           )}
 
           {extraActions && (

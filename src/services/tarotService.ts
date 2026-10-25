@@ -4,6 +4,8 @@
  * 5 lá (Hai Lựa Chọn A vs B), 5 lá (Mối Quan Hệ Tình Cảm).
  */
 import { MINOR_ARCANA_DATA } from './minorArcana.generated.ts';
+import type { AppLocale } from '../i18n/translations';
+import { getTarotEnglishText } from './tarotEnglishData';
 
 export interface TarotCardData {
   id: string;
@@ -15,22 +17,32 @@ export interface TarotCardData {
   keywordsReversed: string[];
   meaningUpright: string;
   meaningReversed: string;
+  keywordsUprightEn: string[];
+  keywordsReversedEn: string[];
+  meaningUprightEn: string;
+  meaningReversedEn: string;
 }
 
 export interface TarotPosition {
   id: string;
   nameVi: string;
   descVi: string;
+  nameEn: string;
+  descEn: string;
 }
 
 export interface TarotSpreadConfig {
   id: string;
   nameVi: string;
   descVi: string;
+  nameEn: string;
+  descEn: string;
   positions: TarotPosition[];
 }
 
 export interface DrawnCardResult {
+  schemaVersion?: 2;
+  localeAtCreation?: AppLocale;
   card: TarotCardData;
   isReversed: boolean;
   position: TarotPosition;
@@ -41,47 +53,57 @@ export const TAROT_SPREADS: Record<string, TarotSpreadConfig> = {
     id: 'single',
     nameVi: 'Trải bài 1 Lá (Thông điệp Trọng Tâm)',
     descVi: 'Một thông điệp dẫn lối rõ ràng và tức thời cho thời điểm hiện tại.',
+    nameEn: 'One-Card Spread (Core Message)',
+    descEn: 'A clear, immediate point of guidance for the present moment.',
     positions: [
-      { id: 'single-1', nameVi: 'Thông điệp Trực Giác', descVi: 'Điều quan trọng nhất vũ trụ muốn bạn lưu tâm lúc này.' }
+      { id: 'single-1', nameVi: 'Thông điệp Trực Giác', descVi: 'Điều quan trọng nhất vũ trụ muốn bạn lưu tâm lúc này.', nameEn: 'Intuitive Message', descEn: 'The most important theme to notice at this moment.' }
     ]
   },
   'three-card': {
     id: 'three-card',
     nameVi: 'Trải bài 3 Lá (Quá Khứ · Hiện Tại · Tương Lai)',
     descVi: 'Nhìn lại cội nguồn, nhận diện thách thức hiện tại và xu hướng tương lai gần.',
+    nameEn: 'Three-Card Spread (Past · Present · Future)',
+    descEn: 'Review the roots, understand the present challenge, and explore the near-term direction.',
     positions: [
-      { id: 'pos-1', nameVi: 'Quá Khứ (Gốc rễ)', descVi: 'Nguyên nhân và ảnh hưởng đã định hình tình thế hiện tại.' },
-      { id: 'pos-2', nameVi: 'Hiện Tại (Thực trạng)', descVi: 'Năng lượng cốt lõi và bài học bạn đang đối diện.' },
-      { id: 'pos-3', nameVi: 'Tương Lai Gần (Xu hướng)', descVi: 'Xu hướng phát triển sắp tới nếu tiếp tục hướng đi này.' }
+      { id: 'pos-1', nameVi: 'Quá Khứ (Gốc rễ)', descVi: 'Nguyên nhân và ảnh hưởng đã định hình tình thế hiện tại.', nameEn: 'Past (Roots)', descEn: 'The causes and influences that shaped the present situation.' },
+      { id: 'pos-2', nameVi: 'Hiện Tại (Thực trạng)', descVi: 'Năng lượng cốt lõi và bài học bạn đang đối diện.', nameEn: 'Present (Current Reality)', descEn: 'The central energy and lesson you are facing now.' },
+      { id: 'pos-3', nameVi: 'Tương Lai Gần (Xu hướng)', descVi: 'Xu hướng phát triển sắp tới nếu tiếp tục hướng đi này.', nameEn: 'Near Future (Direction)', descEn: 'The likely direction if the current course continues.' }
     ]
   },
   'two-options': {
     id: 'two-options',
     nameVi: 'Trải bài 5 Lá (Hai Lựa Chọn A vs B)',
     descVi: 'So sánh chi tiết 2 ngã rẽ và định lượng phương án được vũ trụ ủng hộ hơn.',
+    nameEn: 'Five-Card Spread (Option A vs B)',
+    descEn: 'Compare two possible paths, their process, and their likely outcomes.',
     positions: [
-      { id: 'opt-1', nameVi: 'Tình Trạng Nền Tảng', descVi: 'Bản chất thực sự phía sau câu hỏi phân vân của bạn.' },
-      { id: 'opt-2', nameVi: 'Phương Án A (Tiến trình)', descVi: 'Trải nghiệm và thử thách trên con đường lựa chọn A.' },
-      { id: 'opt-3', nameVi: 'Phương Án A (Kết quả)', descVi: 'Xu hướng thành quả nếu bạn chọn phương án A.' },
-      { id: 'opt-4', nameVi: 'Phương Án B (Tiến trình)', descVi: 'Trải nghiệm và thử thách trên con đường lựa chọn B.' },
-      { id: 'opt-5', nameVi: 'Phương Án B (Kết quả)', descVi: 'Xu hướng thành quả nếu bạn chọn phương án B.' }
+      { id: 'opt-1', nameVi: 'Tình Trạng Nền Tảng', descVi: 'Bản chất thực sự phía sau câu hỏi phân vân của bạn.', nameEn: 'Underlying Situation', descEn: 'The real issue beneath the decision you are considering.' },
+      { id: 'opt-2', nameVi: 'Phương Án A (Tiến trình)', descVi: 'Trải nghiệm và thử thách trên con đường lựa chọn A.', nameEn: 'Option A (Process)', descEn: 'The experience and challenges along path A.' },
+      { id: 'opt-3', nameVi: 'Phương Án A (Kết quả)', descVi: 'Xu hướng thành quả nếu bạn chọn phương án A.', nameEn: 'Option A (Outcome)', descEn: 'The likely outcome if you choose path A.' },
+      { id: 'opt-4', nameVi: 'Phương Án B (Tiến trình)', descVi: 'Trải nghiệm và thử thách trên con đường lựa chọn B.', nameEn: 'Option B (Process)', descEn: 'The experience and challenges along path B.' },
+      { id: 'opt-5', nameVi: 'Phương Án B (Kết quả)', descVi: 'Xu hướng thành quả nếu bạn chọn phương án B.', nameEn: 'Option B (Outcome)', descEn: 'The likely outcome if you choose path B.' }
     ]
   },
   'relationship': {
     id: 'relationship',
     nameVi: 'Trải bài 5 Lá (Mối Quan Hệ Tình Cảm & Kết Nối)',
     descVi: 'Khám phá sự giao thoa năng lượng giữa 2 người, nút thắt và tiềm năng gắn kết.',
+    nameEn: 'Five-Card Spread (Relationship & Connection)',
+    descEn: 'Explore the dynamic between two people, the central tension, and the relationship potential.',
     positions: [
-      { id: 'rel-1', nameVi: 'Năng Lượng Của Bạn', descVi: 'Tâm thế, cảm xúc và góc nhìn của bạn trong mối quan hệ.' },
-      { id: 'rel-2', nameVi: 'Năng Lượng Phản Chiếu Đối Phương', descVi: 'Thái độ và năng lượng đối phương phản chiếu tới bạn.' },
-      { id: 'rel-3', nameVi: 'Sợi Dây Kết Nối', descVi: 'Bản chất mẫu hình tương tác hiện tại giữa hai người.' },
-      { id: 'rel-4', nameVi: 'Nút Thắt Cần Hóa Giải', descVi: 'Thử thách lớn nhất hoặc điều chưa được giãi bày.' },
-      { id: 'rel-5', nameVi: 'Tiềm Năng Phát Triển', descVi: 'Tương lai của mối quan hệ nếu cả hai cùng nỗ lực.' }
+      { id: 'rel-1', nameVi: 'Năng Lượng Của Bạn', descVi: 'Tâm thế, cảm xúc và góc nhìn của bạn trong mối quan hệ.', nameEn: 'Your Energy', descEn: 'Your mindset, feelings, and perspective in the relationship.' },
+      { id: 'rel-2', nameVi: 'Năng Lượng Phản Chiếu Đối Phương', descVi: 'Thái độ và năng lượng đối phương phản chiếu tới bạn.', nameEn: "The Other Person's Energy", descEn: 'The attitude and energy the other person reflects toward you.' },
+      { id: 'rel-3', nameVi: 'Sợi Dây Kết Nối', descVi: 'Bản chất mẫu hình tương tác hiện tại giữa hai người.', nameEn: 'The Connection', descEn: 'The current interaction pattern between the two of you.' },
+      { id: 'rel-4', nameVi: 'Nút Thắt Cần Hóa Giải', descVi: 'Thử thách lớn nhất hoặc điều chưa được giãi bày.', nameEn: 'The Knot to Resolve', descEn: 'The main challenge or the issue that remains unspoken.' },
+      { id: 'rel-5', nameVi: 'Tiềm Năng Phát Triển', descVi: 'Tương lai của mối quan hệ nếu cả hai cùng nỗ lực.', nameEn: 'Growth Potential', descEn: 'The relationship potential if both people make a genuine effort.' }
     ]
   }
 };
 
-export const MAJOR_ARCANA: TarotCardData[] = [
+type TarotCardSource = Omit<TarotCardData, 'keywordsUprightEn' | 'keywordsReversedEn' | 'meaningUprightEn' | 'meaningReversedEn'>;
+
+const MAJOR_ARCANA_SOURCE: TarotCardSource[] = [
   {
     id: '0-fool', number: 0, nameVi: 'Chàng Khờ (The Fool)', nameEn: 'The Fool', emoji: '🎒',
     keywordsUpright: ['Khởi đầu mới', 'Tự do', 'Dấn thân'], keywordsReversed: ['Bốc đồng', 'Thiếu chuẩn bị'],
@@ -216,11 +238,51 @@ export const MAJOR_ARCANA: TarotCardData[] = [
   }
 ];
 
-export const MINOR_ARCANA: TarotCardData[] = MINOR_ARCANA_DATA;
+function withEnglish(card: TarotCardSource): TarotCardData {
+  return { ...card, ...getTarotEnglishText(card.id, card.nameEn) };
+}
+
+export const MAJOR_ARCANA: TarotCardData[] = MAJOR_ARCANA_SOURCE.map(withEnglish);
+
+export const MINOR_ARCANA: TarotCardData[] = MINOR_ARCANA_DATA.map(withEnglish);
 
 export const TAROT_DECK: TarotCardData[] = [...MAJOR_ARCANA, ...MINOR_ARCANA];
 
-export function drawCardsForSpread(spreadId: string): DrawnCardResult[] {
+export function getTarotCardName(card: TarotCardData, locale: AppLocale): string {
+  return locale === 'en' ? card.nameEn : card.nameVi;
+}
+
+export function getTarotKeywords(card: TarotCardData, isReversed: boolean, locale: AppLocale): string[] {
+  if (locale === 'en') return isReversed ? card.keywordsReversedEn : card.keywordsUprightEn;
+  return isReversed ? card.keywordsReversed : card.keywordsUpright;
+}
+
+export function getTarotMeaning(card: TarotCardData, isReversed: boolean, locale: AppLocale): string {
+  if (locale === 'en') return isReversed ? card.meaningReversedEn : card.meaningUprightEn;
+  return isReversed ? card.meaningReversed : card.meaningUpright;
+}
+
+export function getTarotPositionName(position: TarotPosition, locale: AppLocale): string {
+  return locale === 'en' ? position.nameEn : position.nameVi;
+}
+
+export function getTarotPositionDescription(position: TarotPosition, locale: AppLocale): string {
+  return locale === 'en' ? position.descEn : position.descVi;
+}
+
+export function getTarotSpreadName(spread: TarotSpreadConfig, locale: AppLocale): string {
+  return locale === 'en' ? spread.nameEn : spread.nameVi;
+}
+
+export function normalizeDrawnCardPayload(value: DrawnCardResult, fallbackLocale: AppLocale = 'vi'): DrawnCardResult {
+  return {
+    ...value,
+    schemaVersion: value.schemaVersion ?? 2,
+    localeAtCreation: value.localeAtCreation ?? fallbackLocale,
+  };
+}
+
+export function drawCardsForSpread(spreadId: string, locale: AppLocale = 'vi'): DrawnCardResult[] {
   const spread = TAROT_SPREADS[spreadId] || TAROT_SPREADS['single'];
   const shuffled = [...TAROT_DECK];
   for (let index = shuffled.length - 1; index > 0; index--) {
@@ -229,6 +291,8 @@ export function drawCardsForSpread(spreadId: string): DrawnCardResult[] {
   }
 
   return spread.positions.map((pos, idx) => ({
+    schemaVersion: 2,
+    localeAtCreation: locale,
     card: shuffled[idx],
     isReversed: Math.random() > 0.65, // ~35% khả năng lá ngược
     position: pos

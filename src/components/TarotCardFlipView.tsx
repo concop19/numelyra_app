@@ -9,8 +9,14 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { DrawnCardResult } from '../services/tarotService';
+import {
+  DrawnCardResult,
+  getTarotCardName,
+  getTarotMeaning,
+  getTarotPositionName,
+} from '../services/tarotService';
 import { getTarotCardImage, TAROT_CARD_BACK } from '../services/tarotAssets';
+import { useLocalization } from '../i18n/LocalizationContext';
 
 interface Props {
   item: DrawnCardResult;
@@ -27,6 +33,8 @@ export default function TarotCardFlipView({
   onFlip,
   onPressCard
 }: Props) {
+  const { locale, t } = useLocalization();
+  const contentLocale = item.localeAtCreation ?? locale;
   const animatedValue = useRef(new Animated.Value(isFlipped ? 180 : 0)).current;
 
   useEffect(() => {
@@ -79,7 +87,7 @@ export default function TarotCardFlipView({
       {/* Vị trí trong trải bài */}
       <View style={styles.posHeader}>
         <Text style={styles.posNumber}>{index + 1}</Text>
-        <Text style={styles.posName} numberOfLines={1}>{item.position.nameVi}</Text>
+        <Text style={styles.posName} numberOfLines={1}>{getTarotPositionName(item.position, contentLocale)}</Text>
       </View>
 
       <View style={styles.cardWrapper}>
@@ -102,7 +110,7 @@ export default function TarotCardFlipView({
           <View style={styles.backOverlay}>
             <View style={styles.tapToFlipBadge}>
               <Ionicons name="sparkles" size={12} color="#FDB551" style={styles.tapSparkle} />
-              <Text style={styles.tapText}>Chạm để lật</Text>
+              <Text style={styles.tapText}>{t('tarot.tapToFlip')}</Text>
             </View>
           </View>
         </Animated.View>
@@ -136,7 +144,7 @@ export default function TarotCardFlipView({
               ]}
             >
               <Text style={styles.orientationText}>
-                {item.isReversed ? 'Lá Ngược ↷' : 'Lá Xuôi ↾'}
+                {item.isReversed ? t('tarot.reversed') : t('tarot.upright')}
               </Text>
             </View>
           </View>
@@ -144,10 +152,10 @@ export default function TarotCardFlipView({
           {/* Tên lá bài & Thông điệp tóm tắt */}
           <View style={styles.cardInfo}>
             <Text style={styles.cardTitle} numberOfLines={1}>
-              {item.card.nameVi.split('(')[0].trim()}
+              {getTarotCardName(item.card, contentLocale).split('(')[0].trim()}
             </Text>
             <Text style={styles.cardSnippet} numberOfLines={3}>
-              {item.isReversed ? item.card.meaningReversed : item.card.meaningUpright}
+              {getTarotMeaning(item.card, item.isReversed, contentLocale)}
             </Text>
           </View>
         </Animated.View>

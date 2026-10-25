@@ -7,6 +7,7 @@
  */
 import { ProfileItem } from '../store/userProfile';
 import { isColorQuestion } from './colorGuidanceService';
+import type { AppLocale } from '../i18n/translations';
 
 export interface AgentDecision {
   mode: 'single' | 'compatibility';
@@ -33,6 +34,11 @@ Câu hỏi của bạn dường như chưa có chủ đề hoặc mục đích r
 
 Bạn hãy thử hỏi cụ thể hơn, ví dụ: "Sự nghiệp trong 6 tháng tới của tôi sẽ ra sao?" hoặc "Tôi đang phân vân giữa hai lựa chọn A và B, nên đi hướng nào?"`;
 
+const TRASH_PROMPT_GUIDANCE_EN = `✦ A NOTE FROM LITTLE SPIRIT CAT:
+Your question does not yet have a clear topic or purpose.
+
+Try a more specific question, such as “How should I approach my career over the next six months?” or “I am choosing between option A and option B—which direction should I examine first?”`;
+
 /**
  * Fallback ở thiết bị khi API classify không truy cập được. Server vẫn là nơi
  * phân loại chính; hàm này chỉ tránh việc app offline rút Tarot cho ký tự rác.
@@ -47,9 +53,11 @@ function isLikelyTrashPrompt(question: string): boolean {
 
 export function evaluateAgentDecision(
   question: string,
-  profiles: ProfileItem[]
+  profiles: ProfileItem[],
+  locale: AppLocale = 'vi',
 ): AgentDecision {
   const q = question.toLowerCase().trim();
+  const english = locale === 'en';
 
   if (isLikelyTrashPrompt(q)) {
     return {
@@ -59,8 +67,10 @@ export function evaluateAgentDecision(
       spreadId: null,
       cardCount: 0,
       targetIndicators: [],
-      thoughtProcess: 'Câu hỏi chưa có chủ đề hoặc mục đích rõ ràng. Mời bạn đặt một câu hỏi cụ thể hơn.',
-      replyText: TRASH_PROMPT_GUIDANCE
+      thoughtProcess: english
+        ? 'The question has no clear topic or purpose. Ask for a more specific question.'
+        : 'Câu hỏi chưa có chủ đề hoặc mục đích rõ ràng. Mời bạn đặt một câu hỏi cụ thể hơn.',
+      replyText: english ? TRASH_PROMPT_GUIDANCE_EN : TRASH_PROMPT_GUIDANCE
     };
   }
 
@@ -75,7 +85,9 @@ export function evaluateAgentDecision(
       spreadId: null,
       cardCount: 0,
       targetIndicators: ['walksOfLife', 'soul', 'tuvi_bazi'],
-      thoughtProcess: `Phát hiện câu hỏi ghép đôi giữa 2 hồ sơ: ${p1} & ${p2}. Kích hoạt Luận giải THUẦN TỬ VI ĐẨU SỐ & BÁT TỰ TỨ TRỤ TOÀN DIỆN (Cung Phu Thê, Ngũ Hành Bản Mệnh, Can Chi Hợp/Xung, Quái Mệnh Bát Trạch - không cần rút bài Tarot).`
+      thoughtProcess: english
+        ? `Two profiles selected: ${p1} and ${p2}. Use the Bazi and Tu Vi compatibility reading without Tarot.`
+        : `Phát hiện câu hỏi ghép đôi giữa 2 hồ sơ: ${p1} & ${p2}. Kích hoạt Luận giải THUẦN TỬ VI ĐẨU SỐ & BÁT TỰ TỨ TRỤ TOÀN DIỆN (Cung Phu Thê, Ngũ Hành Bản Mệnh, Can Chi Hợp/Xung, Quái Mệnh Bát Trạch - không cần rút bài Tarot).`
     };
   }
 
@@ -83,7 +95,7 @@ export function evaluateAgentDecision(
 
   // A. Màu hợp mệnh: một lá Tarot là lớp trực giác để chọn hai màu trong
   // palette phong thủy đã tính ở client.
-  if (isColorQuestion(q)) {
+  if (isColorQuestion(q) || /\b(colou?r|palette|what should i wear|wear today)\b/i.test(q)) {
     return {
       mode: 'single',
       intent: 'color_guidance',
@@ -91,14 +103,17 @@ export function evaluateAgentDecision(
       spreadId: 'single',
       cardCount: 1,
       targetIndicators: [],
-      thoughtProcess: 'Câu hỏi về màu sắc. Tiểu Linh Miêu rút một lá để ưu tiên hai màu trong bảng màu hợp mệnh của bạn.'
+      thoughtProcess: english
+        ? 'Color guidance request. Draw one card to prioritize two colors from the personal palette.'
+        : 'Câu hỏi về màu sắc. Tiểu Linh Miêu rút một lá để ưu tiên hai màu trong bảng màu hợp mệnh của bạn.'
     };
   }
 
   // B. Hai Lựa Chọn / Phân vân ngã rẽ (A vs B)
   const isTwoChoices =
-    /\b(hay|hoặc|vs|versus|hay là|hay nên|phân vân|lăn tăn|lựa chọn|chọn bên nào|ở lại hay|mua hay|đi hay ở)\b/i.test(q) &&
-    /\b(nên|chọn|định|có nên|giữa|a hay b)\b/i.test(q);
+    (/\b(hay|hoặc|vs|versus|hay là|hay nên|phân vân|lăn tăn|lựa chọn|chọn bên nào|ở lại hay|mua hay|đi hay ở)\b/i.test(q) &&
+      /\b(nên|chọn|định|có nên|giữa|a hay b)\b/i.test(q)) ||
+    (/\b(or|versus|vs|between|option|choice|choose)\b/i.test(q) && /\b(should|choose|decide|between|a or b)\b/i.test(q));
 
   if (isTwoChoices) {
     return {
@@ -108,14 +123,16 @@ export function evaluateAgentDecision(
       spreadId: 'two-options',
       cardCount: 5,
       targetIndicators: ['rationalThinking', 'attitude'],
-      thoughtProcess: 'Câu hỏi phân vân giữa 2 ngã rẽ. Kích hoạt Trải bài Hai Lựa Chọn (5 lá) và đối chiếu cách suy nghĩ, phản ứng của người hỏi.'
+      thoughtProcess: english
+        ? 'A choice between two paths. Use the five-card options spread with rational-thought context.'
+        : 'Câu hỏi phân vân giữa 2 ngã rẽ. Kích hoạt Trải bài Hai Lựa Chọn (5 lá) và đối chiếu cách suy nghĩ, phản ứng của người hỏi.'
     };
   }
 
   // B. A real-world place search. This intentionally runs before the timeline
   // branch so "Cuối tuần này đi đâu?" is not mistaken for a future reading.
   const isWhereToGo =
-    /(đi đâu|chỗ nào|nơi nào|quán nào|cà phê nào|cafe nào|địa điểm|đi chơi|hẹn hò ở đâu|dạo ở đâu|tham quan)/i.test(q);
+    /(đi đâu|chỗ nào|nơi nào|quán nào|cà phê nào|cafe nào|địa điểm|đi chơi|hẹn hò ở đâu|dạo ở đâu|tham quan|where should (i|we) go|place to go|which (cafe|restaurant|place)|date spot|nearby place)/i.test(q);
 
   if (isWhereToGo) {
     return {
@@ -125,14 +142,16 @@ export function evaluateAgentDecision(
       spreadId: 'single',
       cardCount: 1,
       targetIndicators: ['attitude', 'soul'],
-      thoughtProcess: 'Tiểu Linh Miêu sẽ lọc khu vực, khoảng cách, ngân sách và người đi cùng trước, rồi dùng một lá Tarot để chọn vibe phù hợp.'
+      thoughtProcess: english
+        ? 'Collect area, distance, budget, and companion preferences, then use one card to select the matching atmosphere.'
+        : 'Tiểu Linh Miêu sẽ lọc khu vực, khoảng cách, ngân sách và người đi cùng trước, rồi dùng một lá Tarot để chọn vibe phù hợp.'
     };
   }
 
   // C. Thuần Bản Mệnh / Tính cách cốt lõi / Sứ mệnh (KHÔNG CẦN TAROT - 0 lá)
   const isCorePersonality =
-    /\b(tính cách|bản thân tôi|điểm mạnh|điểm yếu|sứ mệnh|nợ nghiệp|số thiếu|linh hồn|ý nghĩa tên|ngày sinh nói lên|con người tôi|phong cách)\b/i.test(q) &&
-    !/\b(tương lai|sau này|sắp tới|người yêu|hôm nay)\b/i.test(q);
+    /\b(tính cách|bản thân tôi|điểm mạnh|điểm yếu|sứ mệnh|nợ nghiệp|số thiếu|linh hồn|ý nghĩa tên|ngày sinh nói lên|con người tôi|phong cách|personality|my strengths|my weaknesses|life purpose|mission|soul urge|what does my (name|birth date) mean)\b/i.test(q) &&
+    !/\b(tương lai|sau này|sắp tới|người yêu|hôm nay|future|soon|partner|today)\b/i.test(q);
 
   if (isCorePersonality) {
     return {
@@ -141,16 +160,18 @@ export function evaluateAgentDecision(
       needsTarot: false,
       spreadId: null,
       cardCount: 0,
-      targetIndicators: q.includes('sứ mệnh')
+      targetIndicators: q.includes('sứ mệnh') || q.includes('mission') || q.includes('life purpose')
         ? ['mission', 'walksOfLife', 'soul']
         : ['walksOfLife', 'soul', 'personality', 'attitude', 'rationalThinking'],
-      thoughtProcess: 'Câu hỏi về bản thân. Chọn các chỉ số liên quan trực tiếp tới nội dung được hỏi (không cần Tarot).'
+      thoughtProcess: english
+        ? 'A core-personality question. Use the directly relevant numerology indicators without Tarot.'
+        : 'Câu hỏi về bản thân. Chọn các chỉ số liên quan trực tiếp tới nội dung được hỏi (không cần Tarot).'
     };
   }
 
   // D. Tiến trình / Tương lai gần / Xu hướng sắp tới (3 lá: Quá khứ - Hiện tại - Tương lai)
   const isTimingOrTrajectory =
-    /\b(tương lai|sắp tới|tiến trình|dạo này|thời gian tới|xu hướng|phát triển|sau này|năm nay|tháng này)\b/i.test(q);
+    /\b(tương lai|sắp tới|tiến trình|dạo này|thời gian tới|xu hướng|phát triển|sau này|năm nay|tháng này|future|next few|coming|trajectory|progress|this year|this month|where is this going)\b/i.test(q);
 
   if (isTimingOrTrajectory) {
     return {
@@ -160,13 +181,15 @@ export function evaluateAgentDecision(
       spreadId: 'three-card',
       cardCount: 3,
       targetIndicators: ['attitude', 'rationalThinking'],
-      thoughtProcess: 'Câu hỏi về diễn tiến. Kích hoạt Trải bài 3 Lá và dùng chỉ số về phản ứng, tư duy để cá nhân hóa lời khuyên.'
+      thoughtProcess: english
+        ? 'A trajectory question. Use the three-card spread with attitude and rational-thought context.'
+        : 'Câu hỏi về diễn tiến. Kích hoạt Trải bài 3 Lá và dùng chỉ số về phản ứng, tư duy để cá nhân hóa lời khuyên.'
     };
   }
 
   // E. Lời khuyên tức thời / Thông điệp ngày / Có nên hay không (1 lá)
   const isDailyOrQuick =
-    /\b(hôm nay|ngày mai|lúc này|bây giờ|có nên không|lời khuyên|thông điệp|dẫn lối|nhắn nhủ)\b/i.test(q);
+    /\b(hôm nay|ngày mai|lúc này|bây giờ|có nên không|lời khuyên|thông điệp|dẫn lối|nhắn nhủ|today|tomorrow|right now|should i|advice|message|guidance)\b/i.test(q);
 
   if (isDailyOrQuick) {
     return {
@@ -176,7 +199,9 @@ export function evaluateAgentDecision(
       spreadId: 'single',
       cardCount: 1,
       targetIndicators: ['attitude', 'soul'],
-      thoughtProcess: 'Câu hỏi cần lời khuyên trước mắt. Kích hoạt Trải bài 1 Lá và chọn chỉ số Thái độ, Linh hồn để tham khảo.'
+      thoughtProcess: english
+        ? 'An immediate-guidance question. Use one card with attitude and soul context.'
+        : 'Câu hỏi cần lời khuyên trước mắt. Kích hoạt Trải bài 1 Lá và chọn chỉ số Thái độ, Linh hồn để tham khảo.'
     };
   }
 
@@ -188,6 +213,8 @@ export function evaluateAgentDecision(
     spreadId: 'single',
     cardCount: 1,
     targetIndicators: ['attitude', 'soul'],
-    thoughtProcess: 'Tiểu Linh Miêu rút 1 lá Tarot và tham khảo cách phản ứng, nhu cầu nội tâm của bạn.'
+    thoughtProcess: english
+      ? 'Draw one Tarot card and use attitude and inner-needs context.'
+      : 'Tiểu Linh Miêu rút 1 lá Tarot và tham khảo cách phản ứng, nhu cầu nội tâm của bạn.'
   };
 }

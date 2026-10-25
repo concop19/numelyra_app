@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "status": "approved",
+  "terms": {
+    "walksOfLife": "Life Path",
+    "mission": "Mission / Destiny",
+    "soul": "Soul Urge",
+    "personality": "Personality",
+    "dateOfBirth": "Birthday Number",
+    "mature": "Maturity Number",
+    "balance": "Balance Number",
+    "rationalThinking": "Rational Thought",
+    "subconsciousPower": "Subconscious Power",
+    "passion": "Hidden Passion",
+    "attitude": "Attitude / Approach",
+    "karmicDebts": "Karmic Debts",
+    "missingNumbers": "Karmic Lessons",
+    "bridgeLifeMission": "Life Path–Mission Bridge",
+    "bridgeSoulPersonality": "Soul–Personality Bridge",
+    "bridgeMaturityPassion": "Maturity–Passion Bridge",
+    "yearIndividual": "Personal Year",
+    "monthIndividual": "Personal Month",
+    "dayIndividual": "Personal Day",
+    "way": "Four Pinnacles",
+    "challenges": "Four Challenges",
+    "arrows": "Arrows of Individuality",
+    "nameChart": "Name Chart Matrix",
+    "birthChart": "Birth Chart Matrix",
+    "upright": "Upright",
+    "reversed": "Reversed"
+  }
+}

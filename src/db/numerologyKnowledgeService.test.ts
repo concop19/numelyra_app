@@ -20,7 +20,7 @@ describe('numerologyKnowledgeService', () => {
   });
 
   it('does not open SQLite for an empty lookup', async () => {
-    await expect(fetchNumerologyKnowledgeRows('mission', [])).resolves.toEqual([]);
+    await expect(fetchNumerologyKnowledgeRows('mission', [], 'vi')).resolves.toEqual([]);
     expect(mockOpenDatabase).not.toHaveBeenCalled();
   });
 
@@ -31,15 +31,15 @@ describe('numerologyKnowledgeService', () => {
     ];
     mockGetAllAsync.mockResolvedValue(rows);
 
-    await expect(fetchNumerologyKnowledgeRows('missingNumbers', ['2', '7'])).resolves.toEqual(rows);
+    await expect(fetchNumerologyKnowledgeRows('missingNumbers', ['2', '7'], 'vi')).resolves.toEqual(rows);
     expect(mockGetAllAsync).toHaveBeenCalledWith(
       expect.stringContaining('FROM numerology_knowledge'),
-      ['missingNumbers', '2', '7']
+      ['missingNumbers', 'vi', '2', '7']
     );
   });
 
   it('reports the local knowledge row count', async () => {
-    mockGetFirstAsync.mockResolvedValue({ total: 320 });
-    await expect(getNumerologyKnowledgeCount()).resolves.toBe(320);
+    mockGetFirstAsync.mockResolvedValue({ total: 304 });
+    await expect(getNumerologyKnowledgeCount()).resolves.toBe(304);
   });
 });

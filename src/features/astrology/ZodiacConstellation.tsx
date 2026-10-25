@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 
 import { getZodiacConstellation } from './zodiacConstellations';
+import { useLocalization } from '../../i18n/LocalizationContext';
 
 interface Point {
   x: number;
@@ -30,6 +31,7 @@ function Segment({ from, to }: { from: Point; to: Point }) {
 }
 
 export function ZodiacConstellation({ sign }: { sign: string }) {
+  const { l } = useLocalization();
   const [size, setSize] = useState({ width: 0, height: 0 });
   const preset = getZodiacConstellation(sign);
   const points = useMemo(
@@ -51,7 +53,7 @@ export function ZodiacConstellation({ sign }: { sign: string }) {
     <View
       accessible
       accessibilityRole="image"
-      accessibilityLabel={`Minh họa chòm sao ${sign}`}
+      accessibilityLabel={l(`Minh họa chòm sao ${sign}`, `${sign} constellation illustration`)}
       onLayout={onLayout}
       style={styles.root}
     >

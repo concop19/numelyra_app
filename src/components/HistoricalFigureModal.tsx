@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Modal,
   View,
@@ -19,6 +19,7 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Haptics from 'expo-haptics';
 import { RepresentativeItem } from '../db/representativeService';
 import ThreeDButton from './ThreeDButton';
+import { useLocalization } from '../i18n/LocalizationContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -45,10 +46,14 @@ export const HistoricalFigureModal: React.FC<HistoricalFigureModalProps> = ({
   userTriple,
   onClose,
 }) => {
+  const { locale } = useLocalization();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [lang, setLang] = useState<'vi' | 'en'>('vi');
+  const [lang, setLang] = useState<'vi' | 'en'>(locale);
+  const copy = (vi: string, en: string) => lang === 'en' ? en : vi;
+
+  useEffect(() => setLang(locale), [locale]);
 
   if (!visible) return null;
 
@@ -73,14 +78,14 @@ export const HistoricalFigureModal: React.FC<HistoricalFigureModalProps> = ({
 
   const birthYear = formatYear(figure?.birth_date);
   const deathYear = formatYear(figure?.death_date);
-  const lifespan = birthYear ? (deathYear ? `${birthYear} – ${deathYear}` : `Sinh năm ${birthYear}`) : '';
+  const lifespan = birthYear ? (deathYear ? `${birthYear} – ${deathYear}` : copy(`Sinh năm ${birthYear}`, `Born ${birthYear}`)) : '';
 
   // Độ khớp
   const getMatchLabel = () => {
-    if (!figure) return 'Đồng Điệu';
-    if (figure.matchType === 'exact_3') return '100% Đồng Điệu 3 Số';
-    if (figure.matchType === 'core_2') return 'Đồng Điệu Đường Đời & Sứ Mệnh';
-    return 'Đồng Điệu Đường Đời';
+    if (!figure) return copy('Đồng Điệu', 'Aligned');
+    if (figure.matchType === 'exact_3') return copy('100% Đồng Điệu 3 Số', '100% three-number match');
+    if (figure.matchType === 'core_2') return copy('Đồng Điệu Đường Đời & Sứ Mệnh', 'Life Path & Destiny match');
+    return copy('Đồng Điệu Đường Đời', 'Life Path match');
   };
 
   // Mở bài viết gốc trên Wikipedia
@@ -102,7 +107,10 @@ export const HistoricalFigureModal: React.FC<HistoricalFigureModalProps> = ({
     if (!figure) return;
     try {
       await Share.share({
-        message: `✦ Nhân vật đồng điệu Thần số học với tôi: ${displayName} (${lifespan})\nBộ 3 số cốt lõi: Đường đời ${figure.life_path} · Sứ mệnh ${figure.expression} · Linh hồn ${figure.soul_urge}.\nKhám phá hành trình cùng Numelyra!`,
+        message: copy(
+          `✦ Nhân vật đồng điệu Thần số học với tôi: ${displayName} (${lifespan})\nBộ 3 số cốt lõi: Đường đời ${figure.life_path} · Sứ mệnh ${figure.expression} · Linh hồn ${figure.soul_urge}.\nKhám phá hành trình cùng Numelyra!`,
+          `✦ My numerology-aligned historical figure: ${displayName} (${lifespan})\nCore numbers: Life Path ${figure.life_path} · Destiny ${figure.expression} · Soul Urge ${figure.soul_urge}.\nExplore your journey with Numelyra!`,
+        ),
       });
     } catch {}
   };
@@ -119,7 +127,7 @@ export const HistoricalFigureModal: React.FC<HistoricalFigureModalProps> = ({
             onPress={handleShare}
             style={styles.iconCircleBtn}
             accessibilityRole="button"
-            accessibilityLabel="Chia sẻ"
+            accessibilityLabel={copy('Chia sẻ', 'Share')}
           >
             <Ionicons name="share-social-outline" size={18} color="#D2CCE5" />
           </TouchableOpacity>
@@ -129,7 +137,7 @@ export const HistoricalFigureModal: React.FC<HistoricalFigureModalProps> = ({
             onPress={onClose}
             style={styles.iconCircleBtn}
             accessibilityRole="button"
-            accessibilityLabel="Đóng"
+            accessibilityLabel={copy('Đóng', 'Close')}
           >
             <Ionicons name="close" size={20} color="#FFFFFF" />
           </TouchableOpacity>
@@ -138,17 +146,17 @@ export const HistoricalFigureModal: React.FC<HistoricalFigureModalProps> = ({
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#E8BC79" />
-            <Text style={styles.loadingText}>Đang truy vấn kho tàng lịch sử nhân loại...</Text>
+            <Text style={styles.loadingText}>{copy('Đang truy vấn kho tàng lịch sử nhân loại...', 'Searching the historical archive…')}</Text>
           </View>
         ) : !figure ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="compass-outline" size={54} color="#7F7699" />
-            <Text style={styles.emptyTitle}>Chưa tìm thấy nhân vật tương ứng</Text>
+            <Text style={styles.emptyTitle}>{copy('Chưa tìm thấy nhân vật tương ứng', 'No matching historical figure found')}</Text>
             <Text style={styles.emptySub}>
-              Hệ thống đang tiếp tục cập nhật dữ liệu nhân vật cho bộ số của bạn.
+              {copy('Hệ thống đang tiếp tục cập nhật dữ liệu nhân vật cho bộ số của bạn.', 'The historical-figure catalog is still being expanded for your number set.')}
             </Text>
             <TouchableOpacity activeOpacity={0.8} onPress={onClose} style={styles.backBtn}>
-              <Text style={styles.backBtnText}>Quay lại Bản đồ</Text>
+              <Text style={styles.backBtnText}>{copy('Quay lại Bản đồ', 'Back to chart')}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -206,7 +214,7 @@ export const HistoricalFigureModal: React.FC<HistoricalFigureModalProps> = ({
 
                 <View style={styles.metaBadge}>
                   <Ionicons name="chatbubbles-outline" size={13} color="#8DA0F8" style={{ marginRight: 4 }} />
-                  <Text style={styles.metaBadgeText}>{figure.sitelinks} bài viết</Text>
+                  <Text style={styles.metaBadgeText}>{figure.sitelinks} {copy('bài viết', 'articles')}</Text>
                 </View>
 
                 <View style={[styles.metaBadge, styles.metaBadgeHighlight]}>
@@ -220,17 +228,17 @@ export const HistoricalFigureModal: React.FC<HistoricalFigureModalProps> = ({
               {/* Dải chỉ số đối chiếu (Core Numbers Comparison) */}
               <View style={styles.numbersCompareRow}>
                 <View style={styles.numberChip}>
-                  <Text style={styles.numberChipLabel}>Đường đời</Text>
+                  <Text style={styles.numberChipLabel}>{copy('Đường đời', 'Life Path')}</Text>
                   <Text style={styles.numberChipVal}>{figure.life_path}</Text>
                 </View>
                 <View style={styles.numberChipDivider} />
                 <View style={styles.numberChip}>
-                  <Text style={styles.numberChipLabel}>Sứ mệnh</Text>
+                  <Text style={styles.numberChipLabel}>{copy('Sứ mệnh', 'Destiny')}</Text>
                   <Text style={styles.numberChipVal}>{figure.expression}</Text>
                 </View>
                 <View style={styles.numberChipDivider} />
                 <View style={styles.numberChip}>
-                  <Text style={styles.numberChipLabel}>Linh hồn</Text>
+                  <Text style={styles.numberChipLabel}>{copy('Linh hồn', 'Soul Urge')}</Text>
                   <Text style={styles.numberChipVal}>{figure.soul_urge}</Text>
                 </View>
               </View>
@@ -247,7 +255,7 @@ export const HistoricalFigureModal: React.FC<HistoricalFigureModalProps> = ({
                     }}
                     style={[styles.langToggleBtn, lang === 'vi' && styles.langToggleBtnActive]}
                     accessibilityRole="button"
-                    accessibilityLabel="Xem tiếng Việt"
+                    accessibilityLabel={copy('Xem tiếng Việt', 'View in Vietnamese')}
                   >
                     <Ionicons
                       name="language"
@@ -311,7 +319,7 @@ export const HistoricalFigureModal: React.FC<HistoricalFigureModalProps> = ({
               <View style={styles.actionFooter}>
                 {figure.wikipedia_url && (
                   <ThreeDButton
-                    label="Khám phá trên Wikipedia"
+                    label={copy('Khám phá trên Wikipedia', 'Explore on Wikipedia')}
                     leadingIcon={<Ionicons name="globe-outline" size={16} color="#FFFFFF" />}
                     onPress={handleOpenWikipedia}
                     shape="pill"

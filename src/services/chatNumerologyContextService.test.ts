@@ -49,11 +49,21 @@ describe('chatNumerologyContextService', () => {
     const reading = getConciseIndicatorReading('walksOfLife', 7, 'Số Đường Đời');
     expect(reading).not.toBeNull();
     expect(reading!.title).toBe('Đường Đời 7');
-    expect(reading!.source).toBe('offline-archetype');
+    expect(reading!.source).toBe('computed-overview');
     expect(reading!.overview).toContain('chiêm nghiệm');
     expect(reading!.strengths).toEqual([]);
     expect(reading!.challenges).toEqual([]);
     expect(reading!.fullContent).toBe(reading!.overview);
+  });
+
+  it('returns dedicated English context instead of Vietnamese fallback copy', () => {
+    expect(getChatIndicatorName('walksOfLife', 'en')).toBe('Life Path');
+    const meaning = getConciseIndicatorMeaning('walksOfLife', 7, 'en');
+    expect(meaning).toContain('analysis, contemplation');
+    expect(meaning).not.toMatch(/[À-ỹ]/);
+    const reading = getConciseIndicatorReading('mission', 22, 'Destiny', 'en');
+    expect(reading?.title).toBe('Destiny 22');
+    expect(reading?.overview).toContain('Master Builder');
   });
 
   it('returns undefined / null for unknown values safely', () => {

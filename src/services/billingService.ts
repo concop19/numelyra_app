@@ -1,6 +1,7 @@
 import * as WebBrowser from 'expo-web-browser';
 
 import { API_ENDPOINTS, authenticatedFetch } from './apiConfig';
+import type { AppLocale } from '../i18n/translations';
 
 export type BillingProvider = 'payos' | 'paypal';
 
@@ -29,12 +30,12 @@ export async function getBillingStatus(): Promise<BillingStatus> {
 }
 
 /** Requests a checkout URL from the same Next.js APIs used by the website. */
-export async function beginCheckout(provider: BillingProvider): Promise<void> {
+export async function beginCheckout(provider: BillingProvider, locale: AppLocale = 'vi'): Promise<void> {
   const endpoint = provider === 'payos' ? API_ENDPOINTS.PAYOS_CHECKOUT : API_ENDPOINTS.PAYPAL_CHECKOUT;
   const response = await authenticatedFetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ locale: 'vi' }),
+    body: JSON.stringify({ locale }),
   });
   const data = await readPayload(response);
   const checkoutUrl = provider === 'payos' ? data.checkoutUrl : data.approvalUrl;

@@ -36,11 +36,15 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# Python-generated audit caches
+__pycache__/
+
 # generated native folders
 /ios
 /android
 
 # build artifacts
+build/
 *.apk
 *.aab
 builds/

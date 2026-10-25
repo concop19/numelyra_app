@@ -4,7 +4,11 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
-import type { DrawnCardResult } from '../services/tarotService';
+import {
+  type DrawnCardResult,
+  getTarotCardName,
+  getTarotPositionName,
+} from '../services/tarotService';
 import { getTarotCardImage, TAROT_AMBIENT_AUDIO } from '../services/tarotAssets';
 import HighlightedAnswerText from '../components/chat/HighlightedAnswerText';
 import LoveCompatibilityDetail from '../components/chat/love/LoveCompatibilityDetail';
@@ -18,6 +22,7 @@ import {
 } from '../db/chatDatabaseService';
 import { hydrateChatSessionFromSupabase } from '../services/chatSessionSyncService';
 import type { MessageItem } from './ChatScreen';
+import { useLocalization } from '../i18n/LocalizationContext';
 
 export type ChatReadingDetailParams = {
   message: MessageItem;
@@ -51,6 +56,7 @@ const getDrawnCards = (card: unknown): DrawnCardResult[] => {
 };
 
 export default function ChatReadingDetailScreen({ navigation, route }: Props) {
+  const { t, l } = useLocalization();
   const { message, previousQuestion } = route.params;
   const ambientPlayer = useAudioPlayer(TAROT_AMBIENT_AUDIO, { keepAudioSessionActive: true });
   const conversationLoadedRef = useRef(false);
@@ -111,16 +117,16 @@ export default function ChatReadingDetailScreen({ navigation, route }: Props) {
         setConversationSession(remote.session);
         setConversationMessages(remote.messages);
       } else if (localMessages.length === 0) {
-        setConversationError('Chưa tải được lịch sử của phiên trò chuyện này.');
+        setConversationError(l('Chưa tải được lịch sử của phiên trò chuyện này.', 'This conversation history could not be loaded.'));
       }
     } catch (error) {
       console.warn('[ChatReadingDetailScreen] Could not load conversation:', error);
-      setConversationError('Không thể tải toàn bộ cuộc trò chuyện lúc này.');
+      setConversationError(l('Không thể tải toàn bộ cuộc trò chuyện lúc này.', 'The full conversation is unavailable right now.'));
       conversationLoadedRef.current = false;
     } finally {
       setConversationLoading(false);
     }
-  }, [sessionId]);
+  }, [l, sessionId]);
 
   const toggleConversation = useCallback(() => {
     setConversationOpen((open) => {
@@ -163,13 +169,13 @@ export default function ChatReadingDetailScreen({ navigation, route }: Props) {
           onPress={close}
           style={styles.backButton}
           accessibilityRole="button"
-          accessibilityLabel="Quay lại trò chuyện"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="arrow-back" color="#FFF4D8" size={22} />
         </TouchableOpacity>
         <View>
           <Text style={styles.eyebrow}>NUMELYRA</Text>
-          <Text style={styles.title}>Luận giải chi tiết</Text>
+          <Text style={styles.title}>{l('Luận giải chi tiết', 'Detailed reading')}</Text>
         </View>
         <View style={styles.headerSpacer} />
       </View>
@@ -177,14 +183,14 @@ export default function ChatReadingDetailScreen({ navigation, route }: Props) {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {question ? (
           <View style={styles.questionCard}>
-            <Text style={styles.sectionLabel}>CÂU HỎI CỦA BẠN</Text>
+            <Text style={styles.sectionLabel}>{l('CÂU HỎI CỦA BẠN', 'YOUR QUESTION')}</Text>
             <Text style={styles.question}>{question}</Text>
           </View>
         ) : null}
 
         {cards.length > 0 ? (
           <View style={styles.cardsSection}>
-            <Text style={styles.sectionLabel}>TAROT ĐÃ RÚT</Text>
+            <Text style={styles.sectionLabel}>{l('TAROT ĐÃ RÚT', 'DRAWN TAROT CARDS')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardsRow}>
               {cards.map((drawnCard, index) => (
                 <View key={`${message.id}-${drawnCard.card.id}-${index}`} style={styles.tarotCard}>
@@ -194,7 +200,9 @@ export default function ChatReadingDetailScreen({ navigation, route }: Props) {
                     resizeMode="cover"
                   />
                   <Text numberOfLines={1} style={styles.tarotCaption}>
-                    {drawnCard.position?.nameVi || drawnCard.card.nameVi}
+                    {drawnCard.position
+                      ? getTarotPositionName(drawnCard.position, drawnCard.localeAtCreation ?? 'vi')
+                      : getTarotCardName(drawnCard.card, drawnCard.localeAtCreation ?? 'vi')}
                   </Text>
                 </View>
               ))}
@@ -221,7 +229,7 @@ export default function ChatReadingDetailScreen({ navigation, route }: Props) {
               onPress={toggleConversation}
               accessibilityRole="button"
               accessibilityState={{ expanded: conversationOpen }}
-              accessibilityLabel="Xem toàn bộ cuộc trò chuyện"
+              accessibilityLabel={l('Xem toàn bộ cuộc trò chuyện', 'View the full conversation')}
               style={styles.conversationToggle}
             >
               <View style={styles.conversationIcon}>
@@ -229,12 +237,14 @@ export default function ChatReadingDetailScreen({ navigation, route }: Props) {
               </View>
               <View style={styles.conversationToggleCopy}>
                 <Text style={styles.conversationToggleTitle}>
-                  {conversationOpen ? 'Thu gọn cuộc trò chuyện' : 'Xem toàn bộ cuộc trò chuyện'}
+                  {conversationOpen
+                    ? l('Thu gọn cuộc trò chuyện', 'Collapse conversation')
+                    : l('Xem toàn bộ cuộc trò chuyện', 'View full conversation')}
                 </Text>
                 <Text style={styles.conversationToggleSubtitle}>
                   {conversationSession
-                    ? `${conversationSession.questionCount}/${conversationSession.maxQuestions} câu tiếp nối`
-                    : 'Bài đọc gốc và các câu hỏi tiếp nối'}
+                    ? l(`${conversationSession.questionCount}/${conversationSession.maxQuestions} câu tiếp nối`, `${conversationSession.questionCount}/${conversationSession.maxQuestions} follow-up questions`)
+                    : l('Bài đọc gốc và các câu hỏi tiếp nối', 'Original reading and follow-up questions')}
                 </Text>
               </View>
               <Ionicons name={conversationOpen ? 'chevron-up' : 'chevron-down'} size={21} color="#E8DDF5" />
@@ -245,7 +255,7 @@ export default function ChatReadingDetailScreen({ navigation, route }: Props) {
                 {conversationLoading ? (
                   <View style={styles.conversationLoading}>
                     <ActivityIndicator size="small" color="#D69BFF" />
-                    <Text style={styles.conversationLoadingText}>Đang tải cuộc trò chuyện…</Text>
+                    <Text style={styles.conversationLoadingText}>{l('Đang tải cuộc trò chuyện…', 'Loading conversation…')}</Text>
                   </View>
                 ) : null}
 
@@ -269,8 +279,8 @@ export default function ChatReadingDetailScreen({ navigation, route }: Props) {
                       <View style={styles.historyMessageHeader}>
                         <Text style={[styles.historySender, isUser && styles.historyUserSender]}>
                           {chatMessage.turnIndex === 0
-                            ? (isUser ? 'Câu hỏi gốc' : 'Numelyra · Bài đọc gốc')
-                            : (isUser ? `Bạn · Câu ${chatMessage.turnIndex}` : `Numelyra · Lượt ${chatMessage.turnIndex}`)}
+                            ? (isUser ? l('Câu hỏi gốc', 'Original question') : l('Numelyra · Bài đọc gốc', 'Numelyra · Original reading'))
+                            : (isUser ? l(`Bạn · Câu ${chatMessage.turnIndex}`, `You · Question ${chatMessage.turnIndex}`) : l(`Numelyra · Lượt ${chatMessage.turnIndex}`, `Numelyra · Turn ${chatMessage.turnIndex}`))}
                         </Text>
                         {canExpand ? (
                           <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color="#CDBDE0" />
@@ -280,14 +290,14 @@ export default function ChatReadingDetailScreen({ navigation, route }: Props) {
                         {chatMessage.text}
                       </Text>
                       {canExpand ? (
-                        <Text style={styles.historyExpandText}>{expanded ? 'Thu gọn' : 'Xem đầy đủ'}</Text>
+                              <Text style={styles.historyExpandText}>{expanded ? l('Thu gọn', 'Collapse') : l('Xem đầy đủ', 'View full message')}</Text>
                       ) : null}
                     </TouchableOpacity>
                   );
                 })}
 
                 {!conversationLoading && !conversationError && conversationMessages.length === 0 ? (
-                  <Text style={styles.conversationEmpty}>Phiên này chưa có tin nhắn tiếp nối.</Text>
+                    <Text style={styles.conversationEmpty}>{l('Phiên này chưa có tin nhắn tiếp nối.', 'This session has no follow-up messages yet.')}</Text>
                 ) : null}
               </View>
             ) : null}
@@ -299,11 +309,11 @@ export default function ChatReadingDetailScreen({ navigation, route }: Props) {
             activeOpacity={0.84}
             onPress={continueReading}
             accessibilityRole="button"
-            accessibilityLabel="Tiếp tục trò chuyện về bài luận giải này"
+            accessibilityLabel={l('Tiếp tục trò chuyện về bài luận giải này', 'Continue chatting about this reading')}
             style={styles.continueButton}
           >
             <Ionicons name="chatbubble-ellipses-outline" size={20} color="#FFF8E7" />
-            <Text style={styles.continueButtonText}>Tiếp tục trò chuyện</Text>
+            <Text style={styles.continueButtonText}>{l('Tiếp tục trò chuyện', 'Continue conversation')}</Text>
             <Ionicons name="arrow-forward" size={18} color="#FFF8E7" />
           </TouchableOpacity>
         ) : null}
