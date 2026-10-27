@@ -28,7 +28,7 @@ Không sửa trực tiếp `numerologyKnowledge.en.overrides.json`, `numerologyK
 
 ## Locale và fallback
 
-Màn chào mừng có Auto / Tiếng Việt / English, dùng chung preference với Settings. Auto dùng Việt cho thiết bị tiếng Việt, English cho tiếng Anh hoặc ngôn ngữ chưa hỗ trợ. Lựa chọn được lưu ngay; đổi locale không reset bước hoặc bản nháp onboarding. Nội dung chat cũ giữ ngôn ngữ lúc tạo.
+Onboarding bắt đầu bằng màn chọn Tiếng Việt / English riêng, dùng chung preference với Settings; tùy chọn Auto vẫn có trong Settings. Lựa chọn được lưu ngay, toàn bộ các bước onboarding sau đổi theo ngôn ngữ đã chọn và việc đổi locale không reset bước hoặc bản nháp. Nội dung chat cũ giữ ngôn ngữ lúc tạo.
 
 Sau khi đổi `supportedLocales` trong app config, chạy `npx expo prebuild --platform android --no-install` cho checkout có native folder sẵn và tạo binary mới. Cấu hình hệ điều hành không thể cập nhật chỉ bằng JavaScript/OTA.
 

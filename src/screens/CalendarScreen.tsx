@@ -18,12 +18,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { makeDaySnapshot, type HourInfo } from '../services/lunarService';
-import { type UserProfile } from '../store/userProfile';
+import { getActiveProfile, type ProfileItem, type UserProfile } from '../store/userProfile';
 import { getDailyCaDao, type CaDaoItem } from '../db/cadaoService';
 import BlocDetailModal, { type ModalType } from '../components/BlocDetailModal';
 import CalendarMascotSprite from '../components/CalendarMascotSprite';
 import FallingCherryPetals from '../components/FallingCherryPetals';
 import HourDirectionSheet from '../components/HourDirectionSheet';
+import ProfilePickerModal from '../components/ProfilePickerModal';
 import { useLocalization } from '../i18n/LocalizationContext';
 
 const BG_CALENDAR = require('../../assets/giao_dien/giaodien1/calender_asset/background/calendar_background_v2.png');
@@ -38,7 +39,19 @@ const HOUR_SHEET_SPRING = { useNativeDriver: true, damping: 26, stiffness: 170, 
 interface Props {
   profile: UserProfile;
   onBack?: () => void;
-  onOpenSettings: () => void;
+  onProfileChange: (profile: UserProfile) => void;
+}
+
+function profileItemToUserProfile(item: ProfileItem): UserProfile {
+  return {
+    fullName: item.fullName,
+    birthDate: item.birthDate,
+    gender: item.gender ?? 'female',
+    birthTime: item.birthTime,
+    birthPlace: item.birthPlace,
+    birthLocation: item.birthLocation,
+    birthTimeAccuracy: item.birthTimeAccuracy,
+  };
 }
 
 function moveDate(value: Date, amount: number, unit: 'day' | 'month') {
@@ -76,7 +89,7 @@ function findCurrentHour(hours: HourInfo[], hour: number) {
   }) ?? null;
 }
 
-export default function CalendarScreen({ profile, onBack, onOpenSettings }: Props) {
+export default function CalendarScreen({ profile, onBack, onProfileChange }: Props) {
   const { width: winWidth, height: winHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { locale, t, l } = useLocalization();
@@ -86,6 +99,8 @@ export default function CalendarScreen({ profile, onBack, onOpenSettings }: Prop
   const [pickerDate, setPickerDate] = useState(() => new Date());
   const [caDao, setCaDao] = useState<CaDaoItem | null>(null);
   const [modalType, setModalType] = useState<ModalType>(null);
+  const [profilePickerVisible, setProfilePickerVisible] = useState(false);
+  const [selectedProfiles, setSelectedProfiles] = useState<ProfileItem[]>([]);
   const [hourSheetVisible, setHourSheetVisible] = useState(false);
   const [isHourSheetDragging, setIsHourSheetDragging] = useState(false);
   const hourSheetProgress = useRef(new Animated.Value(0)).current;
@@ -122,6 +137,14 @@ export default function CalendarScreen({ profile, onBack, onOpenSettings }: Prop
     const timer = setInterval(() => setClock(new Date()), 30_000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    void getActiveProfile().then((item) => {
+      if (mounted && item) setSelectedProfiles([item]);
+    });
+    return () => { mounted = false; };
+  }, [profile.birthDate, profile.fullName]);
 
   useEffect(() => {
     let active = true;
@@ -241,8 +264,14 @@ export default function CalendarScreen({ profile, onBack, onOpenSettings }: Prop
               <Ionicons name="arrow-back" size={24} color="#FFF1DA" />
             </TouchableOpacity>
             <Text style={styles.brand}>Numelyra<Text style={styles.brandStar}> ✦</Text></Text>
-            <TouchableOpacity activeOpacity={0.72} style={styles.headerButton} onPress={onOpenSettings} accessibilityRole="button" accessibilityLabel={t('chat.settings')}>
-              <Ionicons name="settings-outline" size={23} color="#FFF1DA" />
+            <TouchableOpacity
+              activeOpacity={0.72}
+              style={styles.headerButton}
+              onPress={() => setProfilePickerVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel={l(`Chọn hồ sơ, hiện tại là ${profile.fullName}`, `Choose profile, currently ${profile.fullName}`)}
+            >
+              <Ionicons name="person-outline" size={23} color="#FFF1DA" />
             </TouchableOpacity>
           </View>
 
@@ -425,6 +454,18 @@ export default function CalendarScreen({ profile, onBack, onOpenSettings }: Prop
           direction={direction}
           activities={activities}
           userZodiac={zodiac}
+        />
+        <ProfilePickerModal
+          visible={profilePickerVisible}
+          selectedProfiles={selectedProfiles}
+          allowCoupleMode={false}
+          onClose={() => setProfilePickerVisible(false)}
+          onProfilesSelected={(items) => {
+            const selected = items[0];
+            if (!selected) return;
+            setSelectedProfiles([selected]);
+            onProfileChange(profileItemToUserProfile(selected));
+          }}
         />
       </SafeAreaView>
     </View>

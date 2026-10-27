@@ -45,9 +45,11 @@ interface Props {
   fortune?: AstroFortuneSlip | null;
   onClose(): void;
   onAsk(question: string): void;
+  backUnlocked?: boolean;
+  onUnlockBack?(): Promise<boolean>;
 }
 
-export default function DailyInsightSheet({ visible, insight, fortune, onClose, onAsk }: Props) {
+export default function DailyInsightSheet({ visible, insight, fortune, onClose, onAsk, backUnlocked = false, onUnlockBack }: Props) {
   const { t, formatDate, locale } = useLocalization();
   const { height, width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -56,9 +58,27 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
 
   // 3D Flip animation value (0 = Page 1, 1 = Page 2)
   const flipAnim = useRef(new Animated.Value(0)).current;
+  const backUnlockedRef = useRef(backUnlocked);
+  const unlockBackRef = useRef(onUnlockBack);
+  const currentPageRef = useRef<1 | 2>(currentPage);
+  const unlockPendingRef = useRef(false);
+  backUnlockedRef.current = backUnlocked;
+  unlockBackRef.current = onUnlockBack;
+  currentPageRef.current = currentPage;
 
-  const flipToPage = (target: 1 | 2) => {
-    if (target === currentPage) return;
+  const flipToPage = async (target: 1 | 2) => {
+    if (target === currentPageRef.current || unlockPendingRef.current) return;
+    if (target === 2 && !backUnlockedRef.current) {
+      unlockPendingRef.current = true;
+      try {
+        const unlocked = await unlockBackRef.current?.();
+        if (!unlocked) return;
+        backUnlockedRef.current = true;
+      } finally {
+        unlockPendingRef.current = false;
+      }
+    }
+    currentPageRef.current = target;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     Animated.timing(flipAnim, {
       toValue: target === 2 ? 1 : 0,
@@ -77,9 +97,9 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
         Math.abs(gestureState.dx) > 30 && Math.abs(gestureState.dy) < 30,
       onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dx < -50 && currentPage === 1) {
-          flipToPage(2);
+          void flipToPage(2);
         } else if (gestureState.dx > 50 && currentPage === 2) {
-          flipToPage(1);
+          void flipToPage(1);
         }
       },
     })
@@ -294,131 +314,7 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
                   </Text>
                 </View>
 
-                {/* Section 3: Bottom 3 Sticky Note Memo Cards */}
-                <View style={styles.stickyNotesRow}>
-                  {/* Note 1: Giờ tốt */}
-                  <View style={[styles.stickyNote, styles.notePurple]}>
-                    <View style={[styles.noteTape, styles.tapePurple]} />
-                    <View style={styles.noteHeader}>
-                      <View style={[styles.noteIconCircle, styles.iconCirclePurple]}>
-                        <Ionicons color="#6141A8" name="time-outline" size={12} />
-                      </View>
-                      <Text numberOfLines={1} style={[styles.noteLabel, styles.labelPurple]}>
-                        {t('daily.luckyTime')}:
-                      </Text>
-                    </View>
-                    <Text numberOfLines={1} style={styles.noteValue}>
-                      {insight.luckyTime?.range ?? t('daily.noLuckyTime')}
-                    </Text>
-                  </View>
-
-                  {/* Note 2: Hướng vui */}
-                  <View style={[styles.stickyNote, styles.notePink]}>
-                    <View style={[styles.noteTape, styles.tapePink]} />
-                    <View style={styles.noteHeader}>
-                      <View style={[styles.noteIconCircle, styles.iconCirclePink]}>
-                        <Ionicons color="#A33663" name="navigate-outline" size={11} />
-                      </View>
-                      <Text numberOfLines={1} style={[styles.noteLabel, styles.labelPink]}>
-                        {t('daily.joyDirection')}:
-                      </Text>
-                    </View>
-                    <Text numberOfLines={1} style={styles.noteValue}>
-                      {insight.directions.joy}
-                    </Text>
-                  </View>
-
-                  {/* Note 3: Hướng tài lộc */}
-                  <View style={[styles.stickyNote, styles.noteYellow]}>
-                    <View style={[styles.noteTape, styles.tapeYellow]} />
-                    <View style={styles.noteHeader}>
-                      <View style={[styles.noteIconCircle, styles.iconCircleYellow]}>
-                        <Ionicons color="#946312" name="cash-outline" size={12} />
-                      </View>
-                      <Text numberOfLines={1} style={[styles.noteLabel, styles.labelYellow]}>
-                        {t('daily.wealthDirection')}:
-                      </Text>
-                    </View>
-                    <Text numberOfLines={1} style={styles.noteValue}>
-                      {insight.directions.wealth}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Flip to Page 2 Bookmark Button */}
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => flipToPage(2)}
-                  style={styles.pageFlipButton}
-                >
-                  <Text style={styles.pageFlipButtonText}>✦ {locale === 'en' ? 'View Astrology & Cycles' : 'Xem Chiêm Tinh & Vận Hạn'}</Text>
-                  <Ionicons color="#553A82" name="arrow-forward" size={14} />
-                </TouchableOpacity>
-
-                {/* Pagination Dots */}
-                <View style={styles.paginationRow}>
-                  <View style={[styles.paginationDot, styles.dotActive]} />
-                  <TouchableOpacity hitSlop={10} onPress={() => flipToPage(2)}>
-                    <View style={[styles.paginationDot, styles.dotInactive]} />
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
-            </Animated.View>
-
-            {/* TRANG 2: CHIÊM TINH & VẬN HẠN */}
-            <Animated.View
-              pointerEvents={currentPage === 2 ? 'auto' : 'none'}
-              style={[
-                styles.pageWrapper,
-                {
-                  opacity: page2Opacity,
-                  transform: [{ perspective: 1400 }, { rotateY: page2RotateY }],
-                  zIndex: currentPage === 2 ? 2 : 1,
-                },
-              ]}
-            >
-              <ScrollView
-                bounces={false}
-                contentContainerStyle={[
-                  styles.contentContainer,
-                  isCompact && styles.contentContainerCompact,
-                  styles.page2ContentContainer,
-                ]}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-                style={styles.pageScroll}
-              >
-                {/* Page 2 Header */}
-                <View style={styles.p2EyebrowPill}>
-                  <Text style={styles.p2EyebrowText}>— {locale === 'en' ? 'ASTROLOGY TODAY' : 'CHIÊM TINH HÔM NAY'} —</Text>
-                </View>
-
-                <Text style={styles.p2Title}>{locale === 'en' ? 'Energy Map' : 'Bản Đồ Năng Lượng'}</Text>
-                <Text style={styles.p2Subtitle}>{dateSubtitle}</Text>
-
-                {/* Lucky Color Sticky Note Banner */}
-                <View style={styles.luckyColorCard}>
-                  <View style={styles.tapeMint} />
-                  <View style={styles.luckyColorRow}>
-                    <View style={[styles.luckyColorDot, { backgroundColor: insight.luckyColor.hex }]} />
-                    <View style={styles.luckyColorTextCol}>
-                      <Text style={styles.luckyColorTitle}>
-                        {t('daily.luckyColor')}:{' '}
-                        <Text style={[styles.luckyColorName, { color: insight.luckyColor.hex }]}>
-                          {insight.luckyColor.name}
-                        </Text>
-                      </Text>
-                      {!!insight.luckyColor.evidence && (
-                        <Text numberOfLines={1} style={styles.luckyColorEvidence}>
-                          ✦ {insight.luckyColor.evidence}
-                        </Text>
-                      )}
-                    </View>
-                    <Ionicons color="#6A4E94" name="sparkles" size={14} style={{ opacity: 0.6 }} />
-                  </View>
-                </View>
-
-                {/* 4 Astro Metrics Grid */}
+                {/* Section 3: Four-pillar rhythm */}
                 <View style={styles.metricsBox}>
                   <View style={styles.metricsHeaderRow}>
                     <Text style={styles.metricsTitle}>{locale === 'en' ? 'Four-pillar rhythm' : 'Nhịp điệu 4 trụ cột'}</Text>
@@ -486,6 +382,130 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
                   )}
                 </View>
 
+                {/* Flip to Page 2 Bookmark Button */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => { void flipToPage(2); }}
+                  style={styles.pageFlipButton}
+                >
+                  <Text style={styles.pageFlipButtonText}>✦ {backUnlocked ? (locale === 'en' ? 'View Astrology & Cycles' : 'Xem Chiêm Tinh & Vận Hạn') : (locale === 'en' ? 'Unlock Daily Insight back' : 'Mở khóa mặt sau Daily Insight')}</Text>
+                  <Ionicons color="#553A82" name="arrow-forward" size={14} />
+                </TouchableOpacity>
+
+                {/* Pagination Dots */}
+                <View style={styles.paginationRow}>
+                  <View style={[styles.paginationDot, styles.dotActive]} />
+                  <TouchableOpacity hitSlop={10} onPress={() => { void flipToPage(2); }}>
+                    <View style={[styles.paginationDot, styles.dotInactive]} />
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </Animated.View>
+
+            {/* TRANG 2: CHIÊM TINH & VẬN HẠN */}
+            <Animated.View
+              pointerEvents={currentPage === 2 ? 'auto' : 'none'}
+              style={[
+                styles.pageWrapper,
+                {
+                  opacity: page2Opacity,
+                  transform: [{ perspective: 1400 }, { rotateY: page2RotateY }],
+                  zIndex: currentPage === 2 ? 2 : 1,
+                },
+              ]}
+            >
+              <ScrollView
+                bounces={false}
+                contentContainerStyle={[
+                  styles.contentContainer,
+                  isCompact && styles.contentContainerCompact,
+                  styles.page2ContentContainer,
+                ]}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                style={styles.pageScroll}
+              >
+                {/* Page 2 Header */}
+                <View style={styles.p2EyebrowPill}>
+                  <Text style={styles.p2EyebrowText}>— {locale === 'en' ? 'ASTROLOGY TODAY' : 'CHIÊM TINH HÔM NAY'} —</Text>
+                </View>
+
+                <Text style={styles.p2Title}>{locale === 'en' ? 'Energy Map' : 'Bản Đồ Năng Lượng'}</Text>
+                <Text style={styles.p2Subtitle}>{dateSubtitle}</Text>
+
+                {/* Lucky Color Sticky Note Banner */}
+                <View style={styles.luckyColorCard}>
+                  <View style={styles.tapeMint} />
+                  <View style={styles.luckyColorRow}>
+                    <View style={[styles.luckyColorDot, { backgroundColor: insight.luckyColor.hex }]} />
+                    <View style={styles.luckyColorTextCol}>
+                      <Text style={styles.luckyColorTitle}>
+                        {t('daily.luckyColor')}:{' '}
+                        <Text style={[styles.luckyColorName, { color: insight.luckyColor.hex }]}>
+                          {insight.luckyColor.name}
+                        </Text>
+                      </Text>
+                      {!!insight.luckyColor.evidence && (
+                        <Text numberOfLines={1} style={styles.luckyColorEvidence}>
+                          ✦ {insight.luckyColor.evidence}
+                        </Text>
+                      )}
+                    </View>
+                    <Ionicons color="#6A4E94" name="sparkles" size={14} style={{ opacity: 0.6 }} />
+                  </View>
+                </View>
+
+                {/* Lucky time and auspicious directions */}
+                <View style={styles.stickyNotesRow}>
+                  {/* Note 1: Giờ tốt */}
+                  <View style={[styles.stickyNote, styles.notePurple]}>
+                    <View style={[styles.noteTape, styles.tapePurple]} />
+                    <View style={styles.noteHeader}>
+                      <View style={[styles.noteIconCircle, styles.iconCirclePurple]}>
+                        <Ionicons color="#6141A8" name="time-outline" size={12} />
+                      </View>
+                      <Text numberOfLines={1} style={[styles.noteLabel, styles.labelPurple]}>
+                        {t('daily.luckyTime')}:
+                      </Text>
+                    </View>
+                    <Text numberOfLines={1} style={styles.noteValue}>
+                      {insight.luckyTime?.range ?? t('daily.noLuckyTime')}
+                    </Text>
+                  </View>
+
+                  {/* Note 2: Hướng vui */}
+                  <View style={[styles.stickyNote, styles.notePink]}>
+                    <View style={[styles.noteTape, styles.tapePink]} />
+                    <View style={styles.noteHeader}>
+                      <View style={[styles.noteIconCircle, styles.iconCirclePink]}>
+                        <Ionicons color="#A33663" name="navigate-outline" size={11} />
+                      </View>
+                      <Text numberOfLines={1} style={[styles.noteLabel, styles.labelPink]}>
+                        {t('daily.joyDirection')}:
+                      </Text>
+                    </View>
+                    <Text numberOfLines={1} style={styles.noteValue}>
+                      {insight.directions.joy}
+                    </Text>
+                  </View>
+
+                  {/* Note 3: Hướng tài lộc */}
+                  <View style={[styles.stickyNote, styles.noteYellow]}>
+                    <View style={[styles.noteTape, styles.tapeYellow]} />
+                    <View style={styles.noteHeader}>
+                      <View style={[styles.noteIconCircle, styles.iconCircleYellow]}>
+                        <Ionicons color="#946312" name="cash-outline" size={12} />
+                      </View>
+                      <Text numberOfLines={1} style={[styles.noteLabel, styles.labelYellow]}>
+                        {t('daily.wealthDirection')}:
+                      </Text>
+                    </View>
+                    <Text numberOfLines={1} style={styles.noteValue}>
+                      {insight.directions.wealth}
+                    </Text>
+                  </View>
+                </View>
+
                 {/* Recommended & Avoid Guidance */}
                 <View style={styles.guidanceRow}>
                   <View style={[styles.guidanceCard, styles.guidanceGood]}>
@@ -528,7 +548,7 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
 
                   <TouchableOpacity
                     activeOpacity={0.8}
-                    onPress={() => flipToPage(1)}
+                    onPress={() => { void flipToPage(1); }}
                     style={styles.pageFlipBackButton}
                   >
                     <Ionicons color="#553A82" name="arrow-back" size={12} />
@@ -538,7 +558,7 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
 
                 {/* Pagination Dots */}
                 <View style={styles.paginationRow}>
-                  <TouchableOpacity hitSlop={10} onPress={() => flipToPage(1)}>
+                  <TouchableOpacity hitSlop={10} onPress={() => { void flipToPage(1); }}>
                     <View style={[styles.paginationDot, styles.dotInactive]} />
                   </TouchableOpacity>
                   <View style={[styles.paginationDot, styles.dotActive]} />

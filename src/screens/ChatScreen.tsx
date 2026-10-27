@@ -51,7 +51,8 @@ import {
 import { createColorGuidance, isColorQuestion, type ColorGuidanceContext } from '../services/colorGuidanceService';
 import { computePersonTuViBazi, evaluateTuViBaziLove, TuViBaziSynastryResult } from '../services/tuViBaziService';
 import { API_ENDPOINTS, authenticatedFetch } from '../services/apiConfig';
-import { getBillingStatus } from '../services/billingService';
+import { unlockDailyInsightBack } from '../services/billingService';
+import { useBilling } from '../store/billingContext';
 import ChatSceneBackground, { ChatMoonButton } from '../components/chat/ChatSceneBackground';
 import FlameMascot, {
   CHAR_ANIMATIONS,
@@ -61,6 +62,7 @@ import FlameMascot, {
 import MeteorShower from '../components/chat/MeteorShower';
 import FloatingWallpaperCloud from '../components/FloatingWallpaperCloud';
 import ChatInputBar from '../components/chat/ChatInputBar';
+import MonthlyChatQuotaBar from '../components/chat/MonthlyChatQuotaBar';
 import HighlightedAnswerText from '../components/chat/HighlightedAnswerText';
 import { PlaceSearchContextModal } from '../components/chat/PlaceSearchContextModal';
 import { PlaceSuggestionsCard } from '../components/chat/PlaceSuggestionsCard';
@@ -633,34 +635,34 @@ export default function ChatScreen({
   const insets = useSafeAreaInsets();
   const { width: viewportWidth } = useWindowDimensions();
   const { user } = useAuth();
+  const {
+    billing,
+    loadState: quotaLoadState,
+    reloadBilling,
+    consumeQuota,
+    restoreQuota,
+    markQuotaEmpty,
+  } = useBilling();
   const { locale, t, l } = useLocalization();
   const chatMascotMaxVisualWidth = getMascotMaxVisualWidth(CHAT_MASCOT_SIZE, viewportWidth);
   const thinkingMascotMaxVisualWidth = getMascotMaxVisualWidth(THINKING_MASCOT_SIZE, viewportWidth);
   const chatHistoryOwner = user?.id || 'guest';
-  const [isPro, setIsPro] = useState(false);
+  const isPro = billing?.plan === 'pro';
+  const aiQuota = billing?.quota?.ai_response ?? null;
+  const quotaPeriodEnd = billing?.periodEnd || billing?.subscription?.current_period_end || null;
+  const [dailyBackUnlocked, setDailyBackUnlocked] = useState(false);
   const [dailyClock, setDailyClock] = useState(() => new Date());
   const [dailySheetVisible, setDailySheetVisible] = useState(false);
   const [isDailyInsightUnseen, setIsDailyInsightUnseen] = useState(false);
   const [suggestionOffset, setSuggestionOffset] = useState(0);
+  const dailyUnlockRequestsRef = useRef(new Set<string>());
 
-  const refreshPlan = useCallback(async () => {
-    try {
-      const billing = await getBillingStatus();
-      setIsPro(billing.plan === 'pro');
-    } catch {
-      // Keep the regular flame if the user is a guest or the server is offline.
-      setIsPro(false);
-    }
-  }, []);
-
-  // Re-check whenever the Chat tab becomes visible, including after a user
-  // completes checkout and returns from Cài đặt.
+  // Focus only owns screen resources. Billing is loaded once by BillingProvider.
   useFocusEffect(useCallback(() => {
-    void refreshPlan();
     return () => {
       void ttsService.stop();
     };
-  }, [refreshPlan]));
+  }, []));
   
   // Profile state (Multi-profile requirement: 1 profile or 2 profiles for couple match)
   const [selectedProfiles, setSelectedProfiles] = useState<ProfileItem[]>([]);
@@ -703,6 +705,7 @@ export default function ChatScreen({
   const {
     currentDate: dailyFortuneDate,
     fortune: dailyFortune,
+    retry: unlockDailyFortune,
   } = useDailyAstroFortune(dailyProfile);
   const fortuneForDailyInsight = useMemo(() => {
     if (!dailyInsight || !dailyFortune) return null;
@@ -818,10 +821,57 @@ export default function ChatScreen({
       return;
     }
     setDailySheetVisible(true);
+    if (!dailyFortune) void unlockDailyFortune().catch(() => undefined);
     setIsDailyInsightUnseen(false);
     const seenKey = `@numelyra:daily-insight-seen:${dailyInsight.profileKey}:${dailyInsight.dateKey}`;
     void AsyncStorage.setItem(seenKey, '1').catch(() => undefined);
-  }, [dailyInsight, dailyProfile, locale]);
+  }, [dailyFortune, dailyInsight, dailyProfile, locale, unlockDailyFortune]);
+
+  useEffect(() => {
+    setDailyBackUnlocked(false);
+  }, [dailyInsight?.dateKey, dailyInsight?.profileKey]);
+
+  const handleUnlockDailyBack = useCallback(async () => {
+    if (!dailyInsight || !user) {
+      Alert.alert(l('Cần đăng nhập', 'Sign in required'), l('Hãy đăng nhập để mở Daily Insight hôm nay.', "Sign in to unlock today's Daily Insight."));
+      return false;
+    }
+
+    if (dailyBackUnlocked) return true;
+    const dailyQuota = billing?.quota?.daily_insight_back;
+    if (!dailyQuota || dailyQuota.remaining <= 0 || !consumeQuota('daily_insight_back')) {
+      Alert.alert(
+        l('Đã hết lượt Daily Insight', 'Daily Insight allowance reached'),
+        l('Bạn có thể xem lại gói hiện tại trong Cài đặt.', 'You can review your current plan in Settings.'),
+        [
+          { text: l('Để sau', 'Not now'), style: 'cancel' },
+          { text: l('Xem gói', 'View plan'), onPress: onOpenSettings },
+        ],
+      );
+      return false;
+    }
+
+    // Unlock the page immediately from the bootstrap quota. Persist the debit
+    // in the background and de-duplicate by profile/date so rapid swipes cannot spam.
+    setDailyBackUnlocked(true);
+    const unlockKey = `${dailyInsight.profileKey}:${dailyInsight.dateKey}`;
+    if (!dailyUnlockRequestsRef.current.has(unlockKey)) {
+      dailyUnlockRequestsRef.current.add(unlockKey);
+      void unlockDailyInsightBack({
+        profileKey: dailyInsight.profileKey,
+        localDate: dailyInsight.dateKey,
+        locale,
+      }).then((result) => {
+        // The server may report that this date was already unlocked earlier.
+        // In that case the bootstrap allowance was not consumed again.
+        if (result.cached) restoreQuota('daily_insight_back');
+      }).catch(() => {
+        dailyUnlockRequestsRef.current.delete(unlockKey);
+        restoreQuota('daily_insight_back');
+      });
+    }
+    return true;
+  }, [billing?.quota?.daily_insight_back, consumeQuota, dailyBackUnlocked, dailyInsight, l, locale, onOpenSettings, restoreQuota, user]);
 
   // Theo dõi trạng thái hiển thị bàn phím để tự động thu gọn Mascot và tối ưu không gian cho ô soạn thảo
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
@@ -1442,6 +1492,7 @@ export default function ChatScreen({
     const turnCreatedAt = Date.now();
     const turnSequence = chatTurnSequenceRef.current++;
     const turnId = `turn-${turnCreatedAt}-${turnSequence}`;
+    const requestId = turnId;
     const userMsg: MessageItem = {
       id: `user-${turnCreatedAt}-${turnSequence}`,
       sender: 'user',
@@ -1484,9 +1535,30 @@ export default function ChatScreen({
           message: prompt,
           profiles: selectedProfiles,
           locale,
+          requestId,
         })
       });
       const classData = await classRes.json();
+      if (classRes.status === 401 || classData.code === 'MONTHLY_LIMIT_REACHED') {
+        Alert.alert(
+          l('Đã hết lượt AI', 'AI allowance reached'),
+          classData.error || l('Hãy đăng nhập hoặc nâng cấp NUMELYRA Pro để tiếp tục.', 'Sign in or upgrade to NUMELYRA Pro to continue.'),
+          [
+            { text: l('Để sau', 'Not now'), style: 'cancel' },
+            { text: l('Xem gói Pro', 'View Pro'), onPress: onOpenSettings },
+          ],
+        );
+        setLoading(false);
+        setMascotState('idle');
+        markQuotaEmpty('ai_response');
+        return;
+      }
+      if (classData.code === 'RATE_LIMITED' || classData.code === 'QUOTA_UNAVAILABLE') {
+        Alert.alert(l('Vui lòng thử lại', 'Please try again'), classData.error || l('Dịch vụ đang bận trong chốc lát.', 'The service is temporarily busy.'));
+        setLoading(false);
+        setMascotState('idle');
+        return;
+      }
       if (classData.ok && classData.data) {
         decision = classData.data;
       } else {
@@ -1609,6 +1681,7 @@ export default function ChatScreen({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: prompt,
+          requestId,
           locale,
           decision,
           timeZone: (() => {
@@ -1626,7 +1699,34 @@ export default function ChatScreen({
         }),
       });
       const data = await res.json();
+      if (res.status === 401 || data.code === 'MONTHLY_LIMIT_REACHED') {
+        Alert.alert(
+          l('Đã hết lượt AI', 'AI allowance reached'),
+          data.error || l('Hãy đăng nhập hoặc nâng cấp NUMELYRA Pro để tiếp tục.', 'Sign in or upgrade to NUMELYRA Pro to continue.'),
+          [
+            { text: l('Để sau', 'Not now'), style: 'cancel' },
+            { text: l('Xem gói Pro', 'View Pro'), onPress: onOpenSettings },
+          ],
+        );
+        if (drawnCards.length > 0) {
+          setPendingTarotReveal(null);
+          setLiveTarotReading(null);
+          waitsForTarotReveal = false;
+        }
+        markQuotaEmpty('ai_response');
+        return;
+      }
+      if (data.code === 'RATE_LIMITED' || data.code === 'QUOTA_UNAVAILABLE') {
+        Alert.alert(l('Vui lòng thử lại', 'Please try again'), data.error || l('Dịch vụ đang bận trong chốc lát.', 'The service is temporarily busy.'));
+        if (drawnCards.length > 0) {
+          setPendingTarotReveal(null);
+          setLiveTarotReading(null);
+          waitsForTarotReveal = false;
+        }
+        return;
+      }
       if (!data.ok || !data.data) throw new Error('Fallback to local synthesis engine');
+      consumeQuota('ai_response');
 
       const serverCardPayload = data.data.cardPayload || {};
       const backendScore = typeof serverCardPayload.compatibilityScore === 'number'
@@ -2174,6 +2274,47 @@ export default function ChatScreen({
     handleFlipCard(pendingTarotReveal.messageId, nextIndex);
   }, [flippedCards, pendingTarotReveal]);
 
+  const handleQuotaPress = useCallback(() => {
+    void Haptics.selectionAsync();
+
+    if (quotaLoadState === 'guest') {
+      onOpenSettings?.();
+      return;
+    }
+    if (quotaLoadState === 'loading') return;
+    if (quotaLoadState === 'error' && !aiQuota) {
+      void reloadBilling();
+      return;
+    }
+    if (!aiQuota) return;
+
+    const parsedPeriodEnd = quotaPeriodEnd ? new Date(quotaPeriodEnd) : null;
+    const resetDate = parsedPeriodEnd && !Number.isNaN(parsedPeriodEnd.getTime())
+      ? parsedPeriodEnd.toLocaleDateString(locale === 'en' ? 'en-US' : 'vi-VN')
+      : null;
+    const detailLines = [
+      l(`Còn lại: ${aiQuota.remaining}/${aiQuota.limit} lượt`, `Remaining: ${aiQuota.remaining}/${aiQuota.limit}`),
+      l(`Đã dùng: ${aiQuota.used} lượt`, `Used: ${aiQuota.used}`),
+      ...(resetDate ? [l(`Làm mới vào: ${resetDate}`, `Renews on: ${resetDate}`)] : []),
+      l(`Gói hiện tại: ${isPro ? 'Premium' : 'Miễn phí'}`, `Current plan: ${isPro ? 'Premium' : 'Free'}`),
+      ...(quotaLoadState === 'error'
+        ? [l('Đây là dữ liệu gần nhất. Kết nối mạng để cập nhật.', 'This is the latest cached value. Connect to refresh.')]
+        : []),
+    ];
+
+    Alert.alert(
+      l('Lượt chat tháng này', 'Monthly chat allowance'),
+      detailLines.join('\n'),
+      [
+        ...(quotaLoadState === 'error'
+          ? [{ text: t('common.retry'), onPress: () => { void reloadBilling(); } }]
+          : []),
+        { text: l('Quản lý gói', 'Manage plan'), onPress: onOpenSettings },
+        { text: t('common.close'), style: 'cancel' },
+      ],
+    );
+  }, [aiQuota, isPro, l, locale, onOpenSettings, quotaLoadState, quotaPeriodEnd, reloadBilling, t]);
+
   return (
     <View style={styles.outerScreenWrap}>
       {/* 🌟 1. BỐI CẢNH ĐÊM 3 LỚP PARALLAX + MOON + STARS */}
@@ -2203,6 +2344,12 @@ export default function ChatScreen({
           <View style={styles.headerSideSpacer} />
           <View style={styles.headerTitleWrap}>
             <Text style={styles.numelyraBrandTitle}>Numelyra</Text>
+            <MonthlyChatQuotaBar
+              quota={aiQuota}
+              status={quotaLoadState}
+              isPro={isPro}
+              onPress={handleQuotaPress}
+            />
           </View>
           <TouchableOpacity
             accessibilityRole="button"
@@ -2355,6 +2502,8 @@ export default function ChatScreen({
           visible={dailySheetVisible}
           insight={dailyInsight}
           fortune={fortuneForDailyInsight}
+          backUnlocked={dailyBackUnlocked}
+          onUnlockBack={handleUnlockDailyBack}
           onClose={() => {
             setDailySheetVisible(false);
             setIsDailyInsightUnseen(false);
@@ -3947,9 +4096,11 @@ const styles = StyleSheet.create({
   headerTitleWrap: {
     alignItems: 'center',
     justifyContent: 'center',
+    minWidth: 184,
   },
   numelyraBrandTitle: {
-    fontSize: 19,
+    marginBottom: 1,
+    fontSize: 18,
     fontWeight: '500',
     color: '#F4EFFC',
     letterSpacing: 0.15,

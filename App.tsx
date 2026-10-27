@@ -26,6 +26,7 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import ChatContinuationScreen from './src/screens/ChatContinuationScreen';
 import { loadProfile, hasProfile, UserProfile } from './src/store/userProfile';
 import { AuthProvider, useAuth } from './src/store/authContext';
+import { BillingProvider } from './src/store/billingContext';
 import { getNotifications } from './src/services/dailyNotifications';
 import { refreshDailyInsightNotifications } from './src/services/dailyNotifications';
 import { LocalizationProvider, useLocalization } from './src/i18n/LocalizationContext';
@@ -85,7 +86,9 @@ export default function App() {
     <SafeAreaProvider>
       <LocalizationProvider>
         <AuthProvider>
-          <AppContent />
+          <BillingProvider>
+            <AppContent />
+          </BillingProvider>
         </AuthProvider>
       </LocalizationProvider>
     </SafeAreaProvider>
@@ -210,7 +213,7 @@ function AppContent() {
               <CalendarScreen
                 profile={profile}
                 onBack={() => goBackOrMain(navigation)}
-                onOpenSettings={() => navigation.navigate('Settings')}
+                onProfileChange={setProfile}
               />
             )}
           </Stack.Screen>

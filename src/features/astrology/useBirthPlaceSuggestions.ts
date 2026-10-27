@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
+import type { AppLocale } from '../../i18n/translations';
 import {
   searchBirthPlaceSuggestions,
   type BirthPlaceSuggestion,
@@ -11,6 +12,7 @@ interface Options {
   existingLabel?: string;
   selectedLabel?: string;
   enabled?: boolean;
+  locale?: AppLocale;
 }
 
 /**
@@ -23,6 +25,7 @@ export function useBirthPlaceSuggestions({
   existingLabel,
   selectedLabel,
   enabled = true,
+  locale = 'vi',
 }: Options) {
   const [suggestions, setSuggestions] = useState<BirthPlaceSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
@@ -46,7 +49,9 @@ export function useBirthPlaceSuggestions({
     ) {
       setSuggestions([]);
       setSearching(false);
-      setSearchError('Tra cứu nơi sinh mới hiện hỗ trợ trên ứng dụng iOS và Android.');
+      setSearchError(locale === 'en'
+        ? 'Birth-place lookup is currently available in the iOS and Android apps.'
+        : 'Tra cứu nơi sinh mới hiện hỗ trợ trên ứng dụng iOS và Android.');
       return;
     }
 
@@ -68,14 +73,18 @@ export function useBirthPlaceSuggestions({
       void searchBirthPlaceSuggestions(normalized, controller.signal)
         .then((items) => {
           setSuggestions(items);
-          if (items.length === 0) setSearchError('Không tìm thấy địa điểm phù hợp.');
+          if (items.length === 0) {
+            setSearchError(locale === 'en'
+              ? 'No matching place was found.'
+              : 'Không tìm thấy địa điểm phù hợp.');
+          }
         })
         .catch((caught) => {
           if (caught instanceof Error && caught.name === 'AbortError') return;
           setSuggestions([]);
-          setSearchError(
-            caught instanceof Error ? caught.message : 'Không thể tải đề xuất địa điểm.'
-          );
+          setSearchError(locale === 'en'
+            ? 'Unable to load place suggestions.'
+            : 'Không thể tải đề xuất địa điểm.');
         })
         .finally(() => {
           if (!controller.signal.aborted) setSearching(false);
@@ -86,7 +95,7 @@ export function useBirthPlaceSuggestions({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [enabled, existingLabel, query, selectedLabel]);
+  }, [enabled, existingLabel, locale, query, selectedLabel]);
 
   return { suggestions, searching, searchError };
 }

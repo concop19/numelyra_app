@@ -1,8 +1,8 @@
 import React, { useCallback, useState } from 'react';
 import {
   Alert,
-  AppState,
   Image,
+  Platform,
   ScrollView,
   StyleSheet,
   Switch,
@@ -21,7 +21,14 @@ import { useFocusEffect } from '@react-navigation/native';
 import FlameMascot from '../components/chat/FlameMascot';
 import ThreeDButton from '../components/ThreeDButton';
 import { useAuth } from '../store/authContext';
-import { beginCheckout, getBillingStatus, type BillingProvider, type BillingStatus } from '../services/billingService';
+import {
+  beginCheckout,
+  getGooglePlayMonthlyDisplayPrice,
+  getGooglePlayProduct,
+  restoreGooglePlayPurchases,
+  type BillingProvider,
+} from '../services/billingService';
+import { useBilling } from '../store/billingContext';
 import {
   canUseNativeNotifications,
   DEFAULT_DAILY_REMINDER_SETTINGS,
@@ -56,41 +63,21 @@ type SettingItemProps = {
 export default function SettingsScreen({ profile, onBack, onRequestLogin }: Props) {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { user, isConfigured, signOut, syncLocalProfiles } = useAuth();
+  const { billing, error: initialBillingError, reloadBilling } = useBilling();
   const { locale, preference, setPreference, t, l } = useLocalization();
   const [busy, setBusy] = useState(false);
-  const [billing, setBilling] = useState<BillingStatus | null>(null);
   const [billingError, setBillingError] = useState('');
+  const [playPrice, setPlayPrice] = useState<string | null>(null);
   const [dailyReminder, setDailyReminder] = useState<DailyReminderSettings>({ ...DEFAULT_DAILY_REMINDER_SETTINGS });
-
-  const refreshBilling = useCallback(async () => {
-    if (!user) {
-      setBilling(null);
-      setBillingError('');
-      return;
-    }
-
-    try {
-      setBillingError('');
-      setBilling(await getBillingStatus());
-    } catch (error) {
-      setBillingError(error instanceof Error ? error.message : l('Không thể tải trạng thái gói Pro.', 'Unable to load your Pro plan status.'));
-    }
-  }, [l, user]);
-
-  useFocusEffect(useCallback(() => {
-    void refreshBilling();
-  }, [refreshBilling]));
 
   useFocusEffect(useCallback(() => {
     void loadDailyReminderSettings().then(setDailyReminder);
-  }, []));
-
-  useFocusEffect(useCallback(() => {
-    const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') void refreshBilling();
-    });
-    return () => subscription.remove();
-  }, [refreshBilling]));
+    if (Platform.OS === 'android' && user) {
+      void getGooglePlayProduct()
+        .then((product) => setPlayPrice(getGooglePlayMonthlyDisplayPrice(product)))
+        .catch(() => setPlayPrice(null));
+    }
+  }, [user?.id]));
 
   const handleSignOut = async () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -128,7 +115,7 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
     setBillingError('');
     try {
       await beginCheckout(provider, locale);
-      await refreshBilling();
+      await reloadBilling();
     } catch (error) {
       const message = error instanceof Error ? error.message : l('Không thể mở trang thanh toán.', 'Unable to open the payment page.');
       if (/sign in|đăng nhập|not_authenticated/i.test(message)) onRequestLogin();
@@ -180,14 +167,23 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
     }
     if (isPro) {
       Alert.alert(l('Gói Premium', 'Premium plan'), activeUntil ? l(`Gói của bạn có hiệu lực đến ${activeUntil}.`, `Your plan is active until ${activeUntil}.`) : l('Gói Premium đang hoạt động.', 'Your Premium plan is active.'), [
-        { text: l('Cập nhật trạng thái', 'Refresh status'), onPress: () => { void refreshBilling(); } },
+        ...(Platform.OS === 'android' ? [{ text: l('Khôi phục giao dịch', 'Restore purchases'), onPress: () => { void restoreGooglePlayPurchases().then(() => reloadBilling()).catch((error) => setBillingError(error.message)); } }] : []),
+        { text: l('Cập nhật trạng thái', 'Refresh status'), onPress: () => { void reloadBilling(); } },
         { text: t('common.close'), style: 'cancel' },
       ]);
       return;
     }
+    if (Platform.OS === 'android') {
+      Alert.alert('NUMELYRA Pro', l(`200 lượt AI/tháng · ${playPrice || 'giá hiển thị bởi Google Play'}`, `200 AI responses/month · ${playPrice || 'localized Google Play price'}`), [
+        { text: l('Đăng ký qua Google Play', 'Subscribe with Google Play'), onPress: () => { void upgrade('google_play'); } },
+        { text: l('Khôi phục giao dịch', 'Restore purchases'), onPress: () => { void restoreGooglePlayPurchases().then((restored) => restored ? reloadBilling() : setBillingError(l('Không tìm thấy giao dịch hợp lệ.', 'No valid purchase was found.'))).catch((error) => setBillingError(error.message)); } },
+        { text: l('Để sau', 'Not now'), style: 'cancel' },
+      ]);
+      return;
+    }
     Alert.alert(l('Nâng cấp Premium', 'Upgrade to Premium'), l('Chọn phương thức thanh toán', 'Choose a payment method'), [
-      { text: 'VietQR / PayOS', onPress: () => { void upgrade('payos'); } },
-      { text: 'PayPal', onPress: () => { void upgrade('paypal'); } },
+      { text: 'VietQR / PayOS · 249.000đ', onPress: () => { void upgrade('payos'); } },
+      { text: 'PayPal · $9.99', onPress: () => { void upgrade('paypal'); } },
       { text: l('Để sau', 'Not now'), style: 'cancel' },
     ]);
   };
@@ -406,7 +402,7 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
           {!!billing?.checkoutPending && (
             <Text style={styles.warning}>{l('Bạn có một yêu cầu PayPal chưa hoàn tất. Hãy hoàn tất hoặc hủy yêu cầu trước khi thử lại.', 'You have an unfinished PayPal request. Complete or cancel it before trying again.')}</Text>
           )}
-          {!!billingError && <Text accessibilityRole="alert" style={styles.error}>{billingError}</Text>}
+          {!!(billingError || initialBillingError) && <Text accessibilityRole="alert" style={styles.error}>{billingError || initialBillingError}</Text>}
         </ScrollView>
       </SafeAreaView>
     </View>

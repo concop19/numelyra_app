@@ -10,6 +10,9 @@ export const translations = {
   vi: {
     "language.auto": "Auto",
     "language.saveError": "Chưa lưu được ngôn ngữ. Vui lòng thử lại.",
+    "onboarding.language.title": "Chọn ngôn ngữ của bạn",
+    "onboarding.language.description": "Toàn bộ hành trình thiết lập sẽ hiển thị bằng ngôn ngữ bạn chọn.",
+    "onboarding.language.continue": "Tiếp tục",
     "onboarding.next": "Tiếp theo",
     "onboarding.welcome.title": "Chào mừng đến với\ntrợ lý phong thủy AI",
     "onboarding.welcome.description": "Trò chuyện, xem vận mệnh, tạo hình nền và khám phá thế giới chiêm tinh ngay trên một ứng dụng.",
@@ -154,6 +157,9 @@ export const translations = {
   en: {
     "language.auto": "Auto",
     "language.saveError": "Unable to save the language. Please try again.",
+    "onboarding.language.title": "Choose your language",
+    "onboarding.language.description": "The rest of your setup journey will use the language you choose.",
+    "onboarding.language.continue": "Continue",
     "onboarding.next": "Next",
     "onboarding.welcome.title": "Welcome to your\nAI spiritual guide",
     "onboarding.welcome.description": "Chat, explore your path, create wallpapers and discover astrology in one app.",

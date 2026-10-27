@@ -153,7 +153,12 @@ export default function AstrologyScreen({ profile, onBack, onProfileChange, onOp
                 target,
                 initialMode: target.kind === 'planet' ? 'transit' : undefined,
               }))}
-              onOpenInterpretation={() => afterWebFocusReleased(() => setInsightVisible(true))}
+              onOpenInterpretation={() => afterWebFocusReleased(() => {
+                void (async () => {
+                  if (!fortune) await retry();
+                  setInsightVisible(true);
+                })();
+              })}
               onRetry={() => void retry()}
               onShare={() => void share()}
             />

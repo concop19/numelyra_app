@@ -33,7 +33,7 @@ import {
   resolveBirthPlaceSuggestion,
   type BirthPlaceSuggestion,
 } from '../services/astro/birthLocation';
-import { beginCheckout } from '../services/billingService';
+import { beginCheckout, getGooglePlayMonthlyDisplayPrice, getGooglePlayProduct } from '../services/billingService';
 import {
   saveProfile,
   type ProfileGender,
@@ -41,7 +41,7 @@ import {
   type UserProfile,
 } from '../store/userProfile';
 import { useLocalization } from '../i18n/LocalizationContext';
-import type { LanguagePreference, TranslationKey } from '../i18n/translations';
+import type { AppLocale, TranslationKey } from '../i18n/translations';
 
 interface Props {
   onComplete: () => void;
@@ -75,13 +75,19 @@ type FeatureSlide = {
 };
 
 type StoredProgress = {
+  version?: number;
   step: number;
   draft: Draft;
-  rewardClaimed: boolean;
 };
 
-const TOTAL_STEPS = 12;
-const PROFILE_STEP = 6;
+const ONBOARDING_PROGRESS_VERSION = 2;
+const LANGUAGE_STEP = 0;
+const FEATURE_START_STEP = 1;
+const PROFILE_STEP = 7;
+const PLAN_LIMITS_STEP = 8;
+const MONTHLY_PLAN_STEP = 9;
+const FINAL_STEP = 10;
+const TOTAL_STEPS = FINAL_STEP + 1;
 const PROGRESS_KEY = '@numelyra_onboarding_progress_v1';
 
 const BACKGROUND = require('../../assets/giao_dien/giaodien1/chat_screen_asset/backgorund/background_index1.png');
@@ -92,20 +98,7 @@ const HERO_CALENDAR = require('../../assets/onboarding/heroes/calendar-720.png')
 const HERO_WALLPAPER = require('../../assets/onboarding/heroes/wallpaper-720.png');
 const HERO_ASTROLOGY = require('../../assets/onboarding/heroes/astrology-720.png');
 const HERO_PROFILE = require('../../assets/onboarding/heroes/profile-720.png');
-const HERO_COINS = require('../../assets/onboarding/heroes/coins-720.png');
-const HERO_REWARD_CALENDAR = require('../../assets/onboarding/heroes/reward-calendar-720.png');
 const HERO_CROWN = require('../../assets/onboarding/heroes/crown-720.png');
-const REWARD_SOUND = require('../../assets/onboarding/sound/finish_1_o_dot.mp3');
-
-const COIN_PARTICLES = [
-  { delay: 0, rotate: 180, size: 30, x: -124, y: -235 },
-  { delay: 45, rotate: -220, size: 36, x: -72, y: -300 },
-  { delay: 90, rotate: 250, size: 32, x: -24, y: -255 },
-  { delay: 20, rotate: -190, size: 40, x: 22, y: -330 },
-  { delay: 70, rotate: 210, size: 34, x: 76, y: -270 },
-  { delay: 120, rotate: -260, size: 29, x: 126, y: -225 },
-  { delay: 150, rotate: 160, size: 25, x: 48, y: -205 },
-] as const;
 
 const FEATURE_SLIDES: FeatureSlide[] = [
   { id: 'welcome', titleKey: 'onboarding.welcome.title', descriptionKey: 'onboarding.welcome.description', image: HERO_MASCOT },
@@ -118,15 +111,14 @@ const FEATURE_SLIDES: FeatureSlide[] = [
 
 const STEP_HEROES: ImageSource[] = [
   HERO_MASCOT,
+  HERO_MASCOT,
   HERO_CHAT,
   HERO_LOVE,
   HERO_CALENDAR,
   HERO_WALLPAPER,
   HERO_ASTROLOGY,
   HERO_PROFILE,
-  HERO_COINS,
-  HERO_REWARD_CALENDAR,
-  HERO_COINS,
+  HERO_CROWN,
   HERO_CROWN,
   HERO_MASCOT,
 ];
@@ -432,82 +424,6 @@ function WebDateField({
   );
 }
 
-function CoinRewardBurst({ runId }: { runId: number }) {
-  const particles = useRef(COIN_PARTICLES.map(() => new Animated.Value(0))).current;
-
-  useEffect(() => {
-    if (runId === 0) return;
-    particles.forEach((value) => value.setValue(0));
-    Animated.parallel(
-      particles.map((value, index) => (
-        Animated.sequence([
-          Animated.delay(COIN_PARTICLES[index].delay),
-          Animated.timing(value, {
-            toValue: 1,
-            duration: 820,
-            useNativeDriver: Platform.OS !== 'web',
-          }),
-        ])
-      )),
-    ).start();
-  }, [particles, runId]);
-
-  if (runId === 0) return null;
-
-  return (
-    <View pointerEvents="none" style={styles.coinBurstLayer}>
-      {COIN_PARTICLES.map((coin, index) => {
-        const progress = particles[index];
-        return (
-          <Animated.View
-            key={`${runId}-${index}`}
-            style={[
-              styles.flyingCoin,
-              {
-                height: coin.size,
-                width: coin.size,
-                borderRadius: coin.size / 2,
-                opacity: progress.interpolate({
-                  inputRange: [0, 0.08, 0.72, 1],
-                  outputRange: [0, 1, 1, 0],
-                }),
-                transform: [
-                  {
-                    translateX: progress.interpolate({
-                      inputRange: [0, 0.3, 1],
-                      outputRange: [0, coin.x * 0.2, coin.x],
-                    }),
-                  },
-                  {
-                    translateY: progress.interpolate({
-                      inputRange: [0, 0.18, 1],
-                      outputRange: [18, -42, coin.y],
-                    }),
-                  },
-                  {
-                    scale: progress.interpolate({
-                      inputRange: [0, 0.16, 0.7, 1],
-                      outputRange: [0.35, 1.16, 0.92, 0.55],
-                    }),
-                  },
-                  {
-                    rotate: progress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ['0deg', `${coin.rotate}deg`],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <Ionicons name="star" size={Math.round(coin.size * 0.48)} color="#9B5A15" />
-          </Animated.View>
-        );
-      })}
-    </View>
-  );
-}
-
 export default function OnboardingScreen({ onComplete }: Props) {
   const { locale, preference, setPreference, t } = useLocalization();
   const [languageSaveError, setLanguageSaveError] = useState(false);
@@ -515,22 +431,18 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const { height } = useWindowDimensions();
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
-  const [rewardClaimed, setRewardClaimed] = useState(false);
-  const [selectedCoinPack, setSelectedCoinPack] = useState(1);
   const [ready, setReady] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [resolvingPlace, setResolvingPlace] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [googlePlayPrice, setGooglePlayPrice] = useState<string | null>(null);
   const [showBirthDatePicker, setShowBirthDatePicker] = useState(false);
   const [selectedPlaceSuggestion, setSelectedPlaceSuggestion] = useState<BirthPlaceSuggestion | null>(null);
   const [profileTouched, setProfileTouched] = useState<Partial<Record<ProfileFieldName, boolean>>>({});
   const [profileSubmitAttempted, setProfileSubmitAttempted] = useState(false);
   const [birthPlaceResolutionError, setBirthPlaceResolutionError] = useState<string | null>(null);
-  const [rewardAnimationRun, setRewardAnimationRun] = useState(0);
   const fade = useRef(new Animated.Value(1)).current;
-  const rewardPulse = useRef(new Animated.Value(1)).current;
   const ambientPlayer = useAudioPlayer(TAROT_AMBIENT_AUDIO, { keepAudioSessionActive: true });
-  const rewardSound = useAudioPlayer(REWARD_SOUND, { keepAudioSessionActive: true });
 
   const compact = height < 720;
   const selectedBirthDate = useMemo(
@@ -546,6 +458,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
     existingLabel: draft.birthLocation?.userLabel,
     selectedLabel: selectedPlaceSuggestion?.userLabel,
     enabled: ready && step === PROFILE_STEP,
+    locale,
   });
 
   useEffect(() => {
@@ -557,11 +470,14 @@ export default function OnboardingScreen({ onComplete }: Props) {
         if (raw) {
           const progress = JSON.parse(raw) as Partial<StoredProgress>;
           if (typeof progress.step === 'number') {
-            initialStep = Math.min(Math.max(progress.step, 0), TOTAL_STEPS - 1);
+            const storedStep = Math.min(Math.max(progress.step, 0), TOTAL_STEPS - 1);
+            // v1 had no dedicated language step, so shift saved users forward once.
+            initialStep = progress.version === ONBOARDING_PROGRESS_VERSION
+              ? storedStep
+              : Math.min(storedStep + 1, TOTAL_STEPS - 1);
             if (mounted) setStep(initialStep);
           }
           if (progress.draft && mounted) setDraft({ ...EMPTY_DRAFT, ...progress.draft });
-          if (mounted) setRewardClaimed(Boolean(progress.rewardClaimed));
         }
         await Promise.all([
           Image.loadAsync(STEP_HEROES[initialStep]),
@@ -579,14 +495,27 @@ export default function OnboardingScreen({ onComplete }: Props) {
 
   useEffect(() => {
     if (!ready) return;
-    const progress: StoredProgress = { step, draft, rewardClaimed };
+    const progress: StoredProgress = {
+      version: ONBOARDING_PROGRESS_VERSION,
+      step,
+      draft,
+    };
     void AsyncStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
-  }, [draft, ready, rewardClaimed, step]);
+  }, [draft, ready, step]);
 
   useEffect(() => {
     if (!ready) return;
     const nextHero = STEP_HEROES[Math.min(step + 1, STEP_HEROES.length - 1)];
     void Image.loadAsync(nextHero).catch(() => undefined);
+  }, [ready, step]);
+
+  useEffect(() => {
+    if (!ready || Platform.OS !== 'android' || step !== MONTHLY_PLAN_STEP) return;
+    let mounted = true;
+    void getGooglePlayProduct()
+      .then((product) => { if (mounted) setGooglePlayPrice(getGooglePlayMonthlyDisplayPrice(product)); })
+      .catch(() => { if (mounted) setGooglePlayPrice(null); });
+    return () => { mounted = false; };
   }, [ready, step]);
 
   useEffect(() => {
@@ -730,38 +659,6 @@ export default function OnboardingScreen({ onComplete }: Props) {
     goTo(step + 1);
   };
 
-  const claimDailyReward = () => {
-    if (rewardClaimed) {
-      next();
-      return;
-    }
-
-    setRewardClaimed(true);
-    setRewardAnimationRun((value) => value + 1);
-    rewardPulse.setValue(0.72);
-    Animated.sequence([
-      Animated.spring(rewardPulse, {
-        toValue: 1.22,
-        speed: 24,
-        bounciness: 12,
-        useNativeDriver: Platform.OS !== 'web',
-      }),
-      Animated.spring(rewardPulse, {
-        toValue: 1,
-        speed: 22,
-        bounciness: 7,
-        useNativeDriver: Platform.OS !== 'web',
-      }),
-    ]).start();
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    try {
-      if (canSetAudioPlayerVolume()) rewardSound.volume = 0.58;
-      rewardSound.play();
-    } catch {
-      // Reward claiming still succeeds when audio playback is unavailable.
-    }
-  };
-
   const finish = async () => {
     if (!parsedProfile) {
       setProfileSubmitAttempted(true);
@@ -785,8 +682,8 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const startCheckout = async () => {
     setCheckoutLoading(true);
     try {
-      await beginCheckout('payos', locale);
-      goTo(11);
+      await beginCheckout(Platform.OS === 'android' ? 'google_play' : (locale === 'vi' ? 'payos' : 'paypal'), locale);
+      goTo(FINAL_STEP);
     } catch (error) {
       Alert.alert(en ? 'Unable to open payment' : 'Chưa thể mở thanh toán', error instanceof Error ? error.message : (en ? 'Please try again later.' : 'Vui lòng thử lại sau.'));
     } finally {
@@ -803,8 +700,11 @@ export default function OnboardingScreen({ onComplete }: Props) {
     );
   }
 
-  const feature = step < FEATURE_SLIDES.length ? FEATURE_SLIDES[step] : null;
-  const chooseLanguage = (value: LanguagePreference) => {
+  const featureIndex = step >= FEATURE_START_STEP && step < PROFILE_STEP
+    ? step - FEATURE_START_STEP
+    : null;
+  const feature = featureIndex === null ? null : FEATURE_SLIDES[featureIndex];
+  const chooseLanguage = (value: AppLocale) => {
     setLanguageSaveError(false);
     void setPreference(value).catch(() => setLanguageSaveError(true));
   };
@@ -822,29 +722,70 @@ export default function OnboardingScreen({ onComplete }: Props) {
             </Pressable>
           )}
 
-          {step === 0 && (
-            <View style={styles.languageContainer}>
-              <View accessibilityRole="radiogroup" accessibilityLabel={t('language.title')} style={styles.languageControl}>
-                {(['system', 'vi', 'en'] as const).map((value) => (
-                  <Pressable
-                    key={value}
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: preference === value }}
-                    accessibilityLabel={value === 'system' ? t('language.system') : t(`language.${value}`)}
-                    onPress={() => chooseLanguage(value)}
-                    style={[styles.languageOption, preference === value && styles.languageOptionSelected]}
-                  >
-                    <Text style={[styles.languageOptionText, preference === value && styles.languageOptionTextSelected]}>
-                      {value === 'system' ? t('language.auto') : t(`language.${value}`)}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-              {languageSaveError && <Text accessibilityRole="alert" style={styles.languageError}>{t('language.saveError')}</Text>}
-            </View>
-          )}
           <Animated.View style={[styles.animatedPage, { opacity: fade }]}>
-            {feature ? (
+            {step === LANGUAGE_STEP ? (
+              <View style={styles.languagePage}>
+                <View style={styles.languageCopy}>
+                  <View style={styles.languageIcon}>
+                    <Ionicons name="language-outline" size={28} color="#FFD4E5" />
+                  </View>
+                  <Text style={[styles.title, compact && styles.titleCompact]}>{t('onboarding.language.title')}</Text>
+                  <Text style={styles.description}>{t('onboarding.language.description')}</Text>
+                </View>
+                <HeroImage source={HERO_MASCOT} imageKey="language" compact={compact} />
+                <View style={styles.languageFooter}>
+                  <View
+                    accessibilityRole="radiogroup"
+                    accessibilityLabel={t('language.title')}
+                    style={styles.languageCardList}
+                  >
+                    {([
+                      { value: 'vi', label: 'Tiếng Việt', hint: 'Sử dụng tiếng Việt' },
+                      { value: 'en', label: 'English', hint: 'Use English' },
+                    ] as const).map((option) => {
+                      const selected = preference === option.value;
+                      return (
+                        <Pressable
+                          key={option.value}
+                          accessibilityRole="radio"
+                          accessibilityState={{ checked: selected }}
+                          accessibilityLabel={option.label}
+                          onPress={() => chooseLanguage(option.value)}
+                          style={[styles.languageCard, selected && styles.languageCardSelected]}
+                        >
+                          <View style={[styles.languageBadge, selected && styles.languageBadgeSelected]}>
+                            <Text style={[styles.languageBadgeText, selected && styles.languageBadgeTextSelected]}>
+                              {option.value === 'vi' ? 'VI' : 'EN'}
+                            </Text>
+                          </View>
+                          <View style={styles.languageCardCopy}>
+                            <Text style={[styles.languageCardTitle, selected && styles.languageCardTitleSelected]}>
+                              {option.label}
+                            </Text>
+                            <Text style={[styles.languageCardHint, selected && styles.languageCardHintSelected]}>
+                              {option.hint}
+                            </Text>
+                          </View>
+                          <Ionicons
+                            name={selected ? 'checkmark-circle' : 'ellipse-outline'}
+                            size={23}
+                            color={selected ? '#53257B' : '#B9ACD8'}
+                          />
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                  {languageSaveError && (
+                    <Text accessibilityRole="alert" style={styles.languageError}>{t('language.saveError')}</Text>
+                  )}
+                  <PrimaryButton
+                    disabled={preference === 'system'}
+                    label={t('onboarding.language.continue')}
+                    onPress={next}
+                  />
+                </View>
+              </View>
+            ) : feature ? (
               <View style={styles.featurePage}>
                 <View style={styles.featureCopy}>
                   <Text style={[styles.title, compact && styles.titleCompact]}>{t(feature.titleKey)}</Text>
@@ -852,11 +793,11 @@ export default function OnboardingScreen({ onComplete }: Props) {
                 </View>
                 <HeroImage key={feature.id} source={feature.image} imageKey={feature.id} compact={compact} />
                 <View style={styles.featureFooter}>
-                  <Pagination active={step} english={en} />
+                  <Pagination active={featureIndex ?? 0} english={en} />
                   <PrimaryButton label={t('onboarding.next')} onPress={next} />
                 </View>
               </View>
-            ) : step === 6 ? (
+            ) : step === PROFILE_STEP ? (
               <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
                 <ScrollView contentContainerStyle={styles.formScroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                   <Text style={styles.sectionTitle}>{en ? 'Tell us about yourself' : 'Nhập thông tin của bạn'}</Text>
@@ -1007,64 +948,24 @@ export default function OnboardingScreen({ onComplete }: Props) {
                   />
                 </ScrollView>
               </KeyboardAvoidingView>
-            ) : step === 7 ? (
-              <InfoPage title={en ? 'Coin system' : 'Hệ thống xu'} description={en ? 'Use coins to enjoy special app features.' : 'Sử dụng xu để trải nghiệm các tính năng đặc biệt của ứng dụng.'} hero={HERO_COINS} compact={compact}>
+            ) : step === PLAN_LIMITS_STEP ? (
+              <InfoPage title={en ? 'Clear monthly limits' : 'Hạn mức tháng rõ ràng'} description={en ? 'No coins and no hidden conversions. Each successful result uses one clearly stated allowance.' : 'Không dùng xu và không quy đổi mơ hồ. Mỗi kết quả thành công dùng đúng một lượt được hiển thị rõ.'} hero={HERO_CROWN} compact={compact}>
                 <View style={styles.infoCard}>
-                  <InfoRow icon="gift-outline" label={en ? 'Daily check-in' : 'Điểm danh hằng ngày'} value={en ? '+10 coins' : '+10 xu'} />
-                  <InfoRow icon="chatbubble-ellipses-outline" label={en ? 'General questions' : 'Hỏi đáp thông thường'} value={en ? '-2 coins' : '-2 xu'} />
-                  <InfoRow icon="heart-outline" label={en ? 'Relationship questions' : 'Hỏi đáp về tình duyên'} value={en ? '-3 coins' : '-3 xu'} />
-                  <InfoRow icon="sparkles-outline" label={en ? 'Calendar, wallpaper and astrology' : 'Lịch, hình nền và chiêm tinh'} value={en ? 'Free' : 'Miễn phí'} />
+                  <InfoRow icon="chatbubble-ellipses-outline" label={en ? 'AI responses' : 'Trả lời AI'} value={en ? 'Free 10 · Pro 200' : 'Free 10 · Pro 200'} />
+                  <InfoRow icon="book-outline" label={en ? "Today's verse" : 'Ca dao hôm nay'} value={en ? 'Free 7 · Pro 31' : 'Free 7 · Pro 31'} />
+                  <InfoRow icon="sparkles-outline" label="Daily Insight" value={en ? 'Free 10 · Pro 31' : 'Free 10 · Pro 31'} />
+                  <InfoRow icon="image-outline" label={en ? 'Wallpapers' : 'Hình nền'} value={en ? 'Free 2 · Pro 30' : 'Free 2 · Pro 30'} />
                 </View>
                 <PrimaryButton label={en ? 'Got it' : 'Đã hiểu'} onPress={next} />
               </InfoPage>
-            ) : step === 8 ? (
-              <InfoPage title={en ? 'Daily check-in' : 'Điểm danh mỗi ngày'} description={en ? 'Come back every day to receive 10 free coins!' : 'Quay lại mỗi ngày để nhận 10 xu miễn phí!'} hero={HERO_REWARD_CALENDAR} compact={compact}>
-                <View style={styles.rewardValueWrap}>
-                  <CoinRewardBurst runId={rewardAnimationRun} />
-                  <Animated.Text style={[styles.rewardValue, { transform: [{ scale: rewardPulse }] }]}>+10 <Text style={styles.rewardUnit}>{en ? 'coins' : 'xu'}</Text></Animated.Text>
-                </View>
-                <View style={styles.streakCard}>
-                  <Text style={styles.streakTitle}>{en ? 'Daily streak' : 'Chuỗi ngày liên tiếp'}</Text>
-                  <View style={styles.streakDays}>
-                    {[1, 2, 3, 4, 5, 6, 7].map((day) => (
-                      <View key={day} style={styles.streakDayWrap}>
-                        <View style={[styles.streakDay, day === 1 && styles.streakDayActive]}>{day === 1 && <Ionicons name="checkmark" size={15} color="#472064" />}</View>
-                        <Text style={styles.streakDayText}>{en ? 'D' : 'N'}{day}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-                <PrimaryButton label={rewardClaimed ? (en ? 'Continue' : 'Tiếp tục') : (en ? 'Check in now' : 'Điểm danh ngay')} icon={rewardClaimed ? 'arrow-forward' : 'checkmark'} onPress={claimDailyReward} />
-                {rewardClaimed && <TouchableOpacity onPress={next} style={styles.inlineLink}><Text style={styles.inlineLinkText}>{en ? 'Continue' : 'Tiếp tục'}</Text></TouchableOpacity>}
-              </InfoPage>
-            ) : step === 9 ? (
-              <InfoPage title={en ? 'Get more coins' : 'Mua thêm xu'} description={en ? 'Choose a pack to keep exploring without interruption.' : 'Chọn gói phù hợp để trải nghiệm không gián đoạn.'} hero={HERO_COINS} compact>
-                <View style={styles.tabs}><View style={styles.tabActive}><Text style={styles.tabActiveText}>{en ? 'Coin packs' : 'Gói xu'}</Text></View><View style={styles.tab}><Text style={styles.tabText}>{en ? 'Monthly plan' : 'Gói tháng'}</Text></View></View>
-                <View style={styles.packList}>
-                  {[
-                    [en ? '100 coins' : '100 xu', '29.000đ'],
-                    [en ? '300 coins' : '300 xu', '79.000đ'],
-                    [en ? '700 coins' : '700 xu', '179.000đ'],
-                    [en ? '1,500 coins' : '1.500 xu', '349.000đ'],
-                  ].map(([amount, price], index) => (
-                    <TouchableOpacity key={amount} onPress={() => setSelectedCoinPack(index)} style={[styles.packRow, selectedCoinPack === index && styles.packRowSelected]}>
-                      <View style={styles.coinBadge}><Ionicons name="star" size={16} color="#8B4E28" /></View>
-                      <Text style={styles.packAmount}>{amount}</Text>
-                      <Text style={styles.packPrice}>{price}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                <Text style={styles.note}>{en ? 'Coin purchases will be available when the coin wallet is activated.' : 'Giao dịch xu sẽ được mở khi ví xu được kích hoạt.'}</Text>
-                <PrimaryButton label={en ? 'Continue' : 'Tiếp tục'} onPress={next} />
-              </InfoPage>
-            ) : step === 10 ? (
+            ) : step === MONTHLY_PLAN_STEP ? (
               <InfoPage title={en ? 'Monthly plan' : 'Gói tháng'} description={en ? 'Save more and enjoy every feature at a preferred price.' : 'Tiết kiệm hơn và trải nghiệm đầy đủ tính năng với mức giá ưu đãi.'} hero={HERO_CROWN} compact={compact}>
                 <View style={styles.planCard}>
-                  <View><Text style={styles.planLabel}>{en ? 'Monthly plan' : 'Gói tháng'}</Text><Text style={styles.planPrice}>99.000đ<Text style={styles.planUnit}> / {en ? 'month' : 'tháng'}</Text></Text></View>
+                  <View><Text style={styles.planLabel}>NUMELYRA Pro</Text><Text style={styles.planPrice}>{Platform.OS === 'android' ? (googlePlayPrice || (en ? 'Loading Play price…' : 'Đang tải giá Play…')) : (locale === 'vi' ? '249.000đ' : '$9.99')}<Text style={styles.planUnit}> / {en ? 'month' : 'tháng'}</Text></Text></View>
                   <Ionicons name="diamond" size={25} color="#FFD38F" />
                 </View>
                 <View style={styles.benefitList}>
-                  {(en ? ['Receive 1,000 coins every month', 'Preferred price on extra coins', 'Access the full feature set', 'Early access to new features'] : ['Nhận 1.000 xu mỗi tháng', 'Ưu đãi khi mua thêm xu', 'Trải nghiệm đầy đủ các tính năng', 'Cập nhật tính năng mới sớm nhất']).map((item) => (
+                  {(en ? ['200 AI responses per period', '31 Ca Dao unlocks and 31 Daily Insight backs', '30 wallpapers per period', 'Full cloud sync and history'] : ['200 lượt AI mỗi kỳ', '31 lượt ca dao và 31 mặt sau Daily Insight', '30 hình nền mỗi kỳ', 'Đồng bộ và lịch sử cloud đầy đủ']).map((item) => (
                     <View key={item} style={styles.benefitRow}><Ionicons name="checkmark-circle" size={18} color="#FFB48E" /><Text style={styles.benefitText}>{item}</Text></View>
                   ))}
                 </View>
@@ -1124,12 +1025,22 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#171061' },
   animatedPage: { flex: 1 },
-  languageContainer: { paddingHorizontal: 22, paddingTop: 10 },
-  languageControl: { flexDirection: 'row', padding: 4, borderRadius: 18, backgroundColor: 'rgba(56,35,125,0.85)', borderWidth: 1, borderColor: 'rgba(255,210,235,0.28)' },
-  languageOption: { flex: 1, minHeight: 44, paddingHorizontal: 8, paddingVertical: 10, alignItems: 'center', justifyContent: 'center', borderRadius: 13 },
-  languageOptionSelected: { backgroundColor: '#FFD1E1' },
-  languageOptionText: { color: '#E9DDFB', fontSize: 13, fontWeight: '700' },
-  languageOptionTextSelected: { color: '#40216E' },
+  languagePage: { flex: 1, paddingTop: 30, paddingHorizontal: 22, paddingBottom: 12 },
+  languageCopy: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  languageIcon: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 14, backgroundColor: 'rgba(255,169,207,0.16)', borderWidth: 1, borderColor: 'rgba(255,215,235,0.26)' },
+  languageFooter: { gap: 12 },
+  languageCardList: { flexDirection: 'row', gap: 10 },
+  languageCard: { flex: 1, minHeight: 86, paddingHorizontal: 12, paddingVertical: 11, flexDirection: 'row', alignItems: 'center', borderRadius: 17, backgroundColor: 'rgba(56,35,125,0.88)', borderWidth: 1, borderColor: 'rgba(221,194,255,0.18)' },
+  languageCardSelected: { backgroundColor: '#FFD1E1', borderColor: '#FFF1F7' },
+  languageBadge: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginRight: 9, backgroundColor: 'rgba(255,164,204,0.14)' },
+  languageBadgeSelected: { backgroundColor: 'rgba(83,37,123,0.12)' },
+  languageBadgeText: { color: '#FFD4E5', fontSize: 11, fontWeight: '900' },
+  languageBadgeTextSelected: { color: '#53257B' },
+  languageCardCopy: { flex: 1 },
+  languageCardTitle: { color: '#FFF8FF', fontSize: 14, fontWeight: '800' },
+  languageCardTitleSelected: { color: '#44216E' },
+  languageCardHint: { color: '#BFB2DE', fontSize: 10, marginTop: 3 },
+  languageCardHintSelected: { color: '#76598E' },
   languageError: { color: '#FFD0DA', fontSize: 12, textAlign: 'center', marginTop: 6 },
   backButton: { position: 'absolute', top: 2, left: 16, width: 44, height: 44, alignItems: 'center', justifyContent: 'center', zIndex: 20 },
   featurePage: { flex: 1, paddingTop: 36, paddingHorizontal: 22, paddingBottom: 12 },
@@ -1188,29 +1099,6 @@ const styles = StyleSheet.create({
   infoRowIcon: { width: 31, height: 31, borderRadius: 9, backgroundColor: 'rgba(255,151,201,0.14)', alignItems: 'center', justifyContent: 'center', marginRight: 9 },
   infoRowLabel: { flex: 1, color: '#F4EEFF', fontSize: 12, fontWeight: '600' },
   infoRowValue: { color: '#FFD1E5', fontSize: 12, fontWeight: '800' },
-  rewardValueWrap: { minHeight: 58, alignItems: 'center', justifyContent: 'center', overflow: 'visible', zIndex: 20 },
-  rewardValue: { color: '#FFF8F2', fontSize: 40, fontWeight: '900', textAlign: 'center', textShadowColor: '#7B3EBA', textShadowRadius: 10 },
-  rewardUnit: { fontSize: 24 },
-  coinBurstLayer: { position: 'absolute', left: '50%', bottom: 8, width: 1, height: 1, zIndex: 30, overflow: 'visible' },
-  flyingCoin: { position: 'absolute', left: -16, top: -16, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFC85F', borderWidth: 2, borderColor: '#FFE9A8', shadowColor: '#FFD35E', shadowOpacity: 0.9, shadowRadius: 9, elevation: 8 },
-  streakCard: { backgroundColor: 'rgba(45, 31, 119, 0.86)', borderRadius: 17, padding: 14 },
-  streakTitle: { color: '#FFF7FF', fontSize: 13, fontWeight: '800', marginBottom: 12 },
-  streakDays: { flexDirection: 'row', justifyContent: 'space-between' },
-  streakDayWrap: { alignItems: 'center', gap: 5 },
-  streakDay: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#5D48B2', alignItems: 'center', justifyContent: 'center' },
-  streakDayActive: { backgroundColor: '#F58ABB' },
-  streakDayText: { color: '#BEB3DF', fontSize: 9 },
-  tabs: { flexDirection: 'row', padding: 4, borderRadius: 13, backgroundColor: 'rgba(71,50,147,0.74)' },
-  tab: { flex: 1, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  tabActive: { flex: 1, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFA7C6' },
-  tabText: { color: '#D8D0EE', fontSize: 12, fontWeight: '700' },
-  tabActiveText: { color: '#40216E', fontSize: 12, fontWeight: '800' },
-  packList: { gap: 8 },
-  packRow: { height: 52, borderRadius: 13, backgroundColor: 'rgba(72,52,155,0.7)', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 11, borderWidth: 1, borderColor: 'transparent' },
-  packRowSelected: { borderColor: '#FF9FC9', backgroundColor: 'rgba(102,67,185,0.86)' },
-  coinBadge: { width: 31, height: 31, borderRadius: 16, backgroundColor: '#FFC36F', alignItems: 'center', justifyContent: 'center', marginRight: 9 },
-  packAmount: { flex: 1, color: '#FFF8FF', fontSize: 13, fontWeight: '800' },
-  packPrice: { color: '#EDE5FF', fontSize: 12, fontWeight: '700' },
   note: { color: '#BDB3DB', fontSize: 10, lineHeight: 15, textAlign: 'center' },
   planCard: { minHeight: 76, borderRadius: 16, backgroundColor: 'rgba(55,35,130,0.86)', borderWidth: 1, borderColor: '#EE8BB7', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 17 },
   planLabel: { color: '#FFF2FA', fontSize: 13, fontWeight: '700' },

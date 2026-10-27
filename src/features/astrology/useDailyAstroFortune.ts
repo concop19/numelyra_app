@@ -14,6 +14,7 @@ import {
 } from '../../services/astro/astroFortuneService';
 import {
   formatLocalDateKey,
+  getAstrologyProfileFingerprint,
   loadCachedAstroFortune,
   loadRecentAstroAdvice,
   loadRecentAstroCaDao,
@@ -47,7 +48,7 @@ export function useDailyAstroFortune(profile?: UserProfile | null): DailyAstroFo
   const { locale } = useLocalization();
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [fortune, setFortune] = useState<AstroFortuneSlip | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const requestVersion = useRef(0);
   const localDateKey = formatLocalDateKey(currentDate);
@@ -80,7 +81,7 @@ export function useDailyAstroFortune(profile?: UserProfile | null): DailyAstroFo
   ]);
   const metadata = localAstro.metadata;
 
-  const fetchFortune = useCallback(async (allowCache: boolean) => {
+  const fetchFortune = useCallback(async (allowCache: boolean, generateIfMissing = true) => {
     const version = ++requestVersion.current;
     setLoading(true);
     setError(null);
@@ -108,6 +109,8 @@ export function useDailyAstroFortune(profile?: UserProfile | null): DailyAstroFo
         }
       }
 
+      if (!generateIfMissing) return;
+
       const [recentAdvice, recentCaDao] = await Promise.all([
         loadRecentAstroAdvice(AsyncStorage, currentDate, profile, 7, locale),
         loadRecentAstroCaDao(AsyncStorage, currentDate, profile, 14, locale),
@@ -118,6 +121,9 @@ export function useDailyAstroFortune(profile?: UserProfile | null): DailyAstroFo
         caDaoMode: 'daily',
         recentAdvice,
         recentCaDao,
+        profileKey: getAstrologyProfileFingerprint(profile),
+        localDate: formatLocalDateKey(currentDate),
+        requestId: `cadao-${getAstrologyProfileFingerprint(profile)}-${formatLocalDateKey(currentDate)}`,
       });
       result.astroMetadata = metadata;
       try {
@@ -155,7 +161,7 @@ export function useDailyAstroFortune(profile?: UserProfile | null): DailyAstroFo
 
   useEffect(() => {
     setFortune(null);
-    void fetchFortune(true);
+    void fetchFortune(true, false);
     return () => {
       requestVersion.current += 1;
     };
@@ -177,7 +183,7 @@ export function useDailyAstroFortune(profile?: UserProfile | null): DailyAstroFo
 
   const retry = useCallback(async () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-    await fetchFortune(false);
+    await fetchFortune(false, true);
   }, [fetchFortune]);
 
   const share = useCallback(async () => {

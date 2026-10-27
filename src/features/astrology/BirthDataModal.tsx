@@ -40,7 +40,7 @@ function isValidBirthTime(value: string): boolean {
 
 export function BirthDataModal({ visible, profile, onSave, onClose }: Props) {
   const insets = useSafeAreaInsets();
-  const { t, l } = useLocalization();
+  const { locale, t, l } = useLocalization();
   const [place, setPlace] = useState(profile.birthPlace ?? profile.birthLocation?.userLabel ?? '');
   const [knowsBirthTime, setKnowsBirthTime] = useState(
     profile.birthTimeAccuracy === 'exact' || (!profile.birthTimeAccuracy && !!profile.birthTime)
@@ -54,6 +54,7 @@ export function BirthDataModal({ visible, profile, onSave, onClose }: Props) {
     existingLabel: profile.birthLocation?.userLabel,
     selectedLabel: selectedSuggestion?.userLabel,
     enabled: visible,
+    locale,
   });
 
   useEffect(() => {

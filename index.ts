@@ -1,6 +1,7 @@
 import { registerRootComponent } from 'expo';
 import React, { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+
+import { prepareSkia } from './src/prepareSkia';
 
 function Root() {
   const [AppComponent, setAppComponent] = useState<React.ComponentType | null>(null);
@@ -10,10 +11,7 @@ function Root() {
     let active = true;
 
     void (async () => {
-      if (Platform.OS === 'web') {
-        const { LoadSkiaWeb } = await import('@shopify/react-native-skia/lib/module/web');
-        await LoadSkiaWeb({ locateFile: () => '/canvaskit.wasm' });
-      }
+      await prepareSkia();
 
       const { default: App } = await import('./App');
       if (active) setAppComponent(() => App);

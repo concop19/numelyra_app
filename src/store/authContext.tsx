@@ -27,7 +27,6 @@ type AuthContextValue = {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName?: string) => Promise<SignUpResult>;
   signInWithGoogle: () => Promise<void>;
-  signInWithFacebook: () => Promise<void>;
   signOut: () => Promise<void>;
   syncLocalProfiles: () => Promise<void>;
 };
@@ -162,15 +161,14 @@ async function syncProfilesForUser(user: User): Promise<void> {
   }
 }
 
-async function performOAuthSignIn(provider: 'google' | 'facebook'): Promise<void> {
+async function performGoogleSignIn(): Promise<void> {
   if (!supabase) throw configurationError();
 
-  const queryParams = provider === 'google'
-    ? {
-        access_type: 'offline',
-        prompt: 'consent',
-      }
-    : undefined;
+  const provider = 'google' as const;
+  const queryParams = {
+    access_type: 'offline',
+    prompt: 'consent',
+  };
 
   if (Platform.OS === 'web') {
     const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined;
@@ -178,7 +176,7 @@ async function performOAuthSignIn(provider: 'google' | 'facebook'): Promise<void
       provider,
       options: {
         redirectTo,
-        ...(queryParams ? { queryParams } : {}),
+        queryParams,
       },
     });
     if (error) throw error;
@@ -192,7 +190,7 @@ async function performOAuthSignIn(provider: 'google' | 'facebook'): Promise<void
       options: {
         redirectTo: redirectUrl,
         skipBrowserRedirect: true,
-        ...(queryParams ? { queryParams } : {}),
+        queryParams,
       },
     });
     if (error) throw error;
@@ -291,10 +289,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
     },
     async signInWithGoogle() {
-      await performOAuthSignIn('google');
-    },
-    async signInWithFacebook() {
-      await performOAuthSignIn('facebook');
+      await performGoogleSignIn();
     },
     async syncLocalProfiles() {
       if (session?.user) await syncProfilesForUser(session.user);

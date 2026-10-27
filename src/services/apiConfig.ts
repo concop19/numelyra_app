@@ -44,6 +44,8 @@ export const API_ENDPOINTS = {
   get LUCKY_WALLPAPER() { return `${getApiBaseUrl()}/api/lucky-wallpaper/generate`; },
   get ASTRO_FORTUNE() { return `${getApiBaseUrl()}/api/astro/fortune`; },
   get BILLING_SUBSCRIPTION() { return `${getApiBaseUrl()}/api/billing/subscription`; },
+  get GOOGLE_PLAY_VERIFY() { return `${getApiBaseUrl()}/api/billing/google-play/verify`; },
+  get DAILY_INSIGHT_UNLOCK() { return `${getApiBaseUrl()}/api/daily-insight/unlock`; },
   get PAYOS_CHECKOUT() { return `${getApiBaseUrl()}/api/billing/payos/checkout`; },
   get PAYPAL_CHECKOUT() { return `${getApiBaseUrl()}/api/billing/paypal/checkout`; },
 };
