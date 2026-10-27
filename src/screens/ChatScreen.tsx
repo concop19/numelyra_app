@@ -78,6 +78,7 @@ import {
 import { useLocalization } from '../i18n/LocalizationContext';
 import { buildDailyInsight, cacheDailyInsight } from '../features/daily-insight/dailyInsight';
 import DailyInsightSheet from '../features/daily-insight/DailyInsightSheet';
+import { resolvePrimaryDailyProfile } from '../features/daily-insight/dailyProfile';
 import { formatLocalDateKey } from '../features/astrology/dailyAstroFortune';
 import { useDailyAstroFortune } from '../features/astrology/useDailyAstroFortune';
 
@@ -135,6 +136,7 @@ const getMascotMaxVisualWidth = (size: number, viewportWidth: number) => Math.ma
 
 interface Props {
   profile?: UserProfile;
+  primaryProfileId?: string | null;
   openDailyDate?: string;
   onOpenSettings?: () => void;
   onOpenCalendar?: () => void;
@@ -624,6 +626,7 @@ const TypewriterMessage: React.FC<TypewriterMessageProps> = ({
 
 export default function ChatScreen({
   profile,
+  primaryProfileId,
   openDailyDate,
   onOpenSettings,
   onOpenCalendar,
@@ -679,19 +682,10 @@ export default function ChatScreen({
     return null;
   }, [selectedProfiles, profile]);
 
-  const dailyProfile = useMemo<UserProfile | null>(() => {
-    const selected = selectedProfiles[0];
-    if (!selected) return profile ?? null;
-    return {
-      fullName: selected.fullName,
-      birthDate: selected.birthDate,
-      gender: selected.gender ?? profile?.gender ?? 'female',
-      birthTime: selected.birthTime,
-      birthPlace: selected.birthPlace,
-      birthLocation: selected.birthLocation,
-      birthTimeAccuracy: selected.birthTimeAccuracy,
-    };
-  }, [profile, selectedProfiles]);
+  const dailyProfile = useMemo(
+    () => resolvePrimaryDailyProfile(profile, primaryProfileId),
+    [primaryProfileId, profile],
+  );
 
   const dailyInsight = useMemo(() => {
     if (!dailyProfile) return null;
@@ -706,7 +700,7 @@ export default function ChatScreen({
     currentDate: dailyFortuneDate,
     fortune: dailyFortune,
     retry: unlockDailyFortune,
-  } = useDailyAstroFortune(dailyProfile);
+  } = useDailyAstroFortune(dailyProfile, primaryProfileId);
   const fortuneForDailyInsight = useMemo(() => {
     if (!dailyInsight || !dailyFortune) return null;
     if (formatLocalDateKey(dailyFortuneDate) !== dailyInsight.dateKey) return null;
@@ -2502,6 +2496,7 @@ export default function ChatScreen({
           visible={dailySheetVisible}
           insight={dailyInsight}
           fortune={fortuneForDailyInsight}
+          profileName={profile?.fullName}
           backUnlocked={dailyBackUnlocked}
           onUnlockBack={handleUnlockDailyBack}
           onClose={() => {
@@ -2564,6 +2559,8 @@ export default function ChatScreen({
           setSelectedProfiles(list);
           setProfilePromptNotice('');
         }}
+        managementMode="add-only"
+        primaryProfileId={primaryProfileId}
         promptNotice={profilePromptNotice}
       />
 

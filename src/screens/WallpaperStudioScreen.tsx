@@ -22,7 +22,7 @@
  * Phong cách nghệ thuật & Ý niệm thu hút được chọn ngẫu nhiên (randomize) tự động theo tinh thần Thần số học.
  */
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -51,9 +51,11 @@ import { Image as ExpoImage } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { saveWallpaper } from '../services/wallpaperSaver';
-import { ProfileItem, setActiveProfileId, UserProfile } from '../store/userProfile';
+import { profileItemToUserProfile, UserProfile } from '../store/userProfile';
+import { useProfiles } from '../store/profileContext';
 import { NumerologyCalculator, reduceNumber } from '../services/numerology24Service';
 import { API_ENDPOINTS, authenticatedFetch, resolveApiUrl } from '../services/apiConfig';
 import { NumerologyCardsModal } from '../components/NumerologyCardsModal';
@@ -177,7 +179,9 @@ function getRandomAffirmation(lifePath: number, intention: string): string {
   return `${q} (Ý niệm: ${intention})`;
 }
 
-export default function WallpaperStudioScreen({ profile, onBack }: Props) {
+export default function WallpaperStudioScreen({ profile: primaryProfile, onBack }: Props) {
+  const { profiles, primaryProfileId, refreshProfiles } = useProfiles();
+  const [viewProfileId, setViewProfileId] = useState(primaryProfileId);
   const { locale, t, l } = useLocalization();
   // State quản lý luồng màn hình: 'input' -> 'generating' -> 'result'
   const [step, setStep] = useState<ScreenStep>('input');
@@ -267,17 +271,24 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
   const [showMenuModal, setShowMenuModal] = useState(false);
   const [showCardsModal, setShowCardsModal] = useState(false);
   const [isProfilePickerOpen, setIsProfilePickerOpen] = useState(false);
-  const [selectedProfiles, setSelectedProfiles] = useState<ProfileItem[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isSavingWallpaper, setIsSavingWallpaper] = useState(false);
 
-  useEffect(() => {
-    if (profile && selectedProfiles.length === 0) {
-      setSelectedProfiles([{ id: 'default-profile', ...profile, gender: profile.gender }]);
-    }
-  }, [profile, selectedProfiles.length]);
+  const viewProfileItem = profiles.find((item) => item.id === viewProfileId)
+    ?? profiles.find((item) => item.id === primaryProfileId)
+    ?? null;
+  const selectedProfiles = useMemo(() => viewProfileItem ? [viewProfileItem] : [], [viewProfileItem]);
+  const activeWallpaperProfile = (viewProfileItem && profileItemToUserProfile(viewProfileItem))
+    || primaryProfile
+    || null;
 
-  const activeWallpaperProfile = selectedProfiles[0] ?? profile ?? null;
+  useFocusEffect(useCallback(() => {
+    setViewProfileId(primaryProfileId);
+  }, [primaryProfileId]));
+
+  useEffect(() => {
+    if (!viewProfileItem && primaryProfileId) setViewProfileId(primaryProfileId);
+  }, [primaryProfileId, viewProfileItem]);
   const activeWallpaperProfileForModal: UserProfile | null = activeWallpaperProfile
     ? {
         fullName: activeWallpaperProfile.fullName,
@@ -630,10 +641,13 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => setIsProfilePickerOpen(true)}
-              style={styles.headerIconButton}
-              accessibilityLabel={l('Chọn hồ sơ', 'Choose profile')}
+              style={styles.profileHeaderChip}
+              accessibilityLabel={l(`Chọn hồ sơ, hiện tại là ${activeWallpaperProfile?.fullName || ''}`, `Choose profile, currently ${activeWallpaperProfile?.fullName || ''}`)}
             >
-              <Ionicons name="search-outline" size={23} color="#F7CC6A" />
+              <Ionicons name="person-circle-outline" size={20} color="#F7CC6A" />
+              <Text numberOfLines={1} style={styles.profileHeaderName}>{activeWallpaperProfile?.fullName}</Text>
+              {viewProfileId === primaryProfileId && <Text style={styles.profileHeaderBadge}>{l('Tôi', 'Me')}</Text>}
+              <Ionicons name="chevron-down" size={13} color="#C8B9E4" />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -679,6 +693,7 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
                     <Text style={[styles.inputSubtitle, isKeyboardVisible && styles.inputSubtitleKeyboard]}>
                       {l('Mô tả cảm xúc, tâm trạng hoặc điều bạn đang cần.', 'Describe your vibe, mood or what you need right now.')}
                     </Text>
+                    <Text style={styles.profileContextText}>{l('Tạo cho', 'Creating for')} {activeWallpaperProfile?.fullName}</Text>
                   </View>
 
                   {/* Minh họa trăng khuyết và sao lấp lánh ở góc trên phải */}
@@ -800,6 +815,7 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
             <Text style={styles.loadingSubtitle}>
               {l('Biến lời bạn thành một khung cảnh ✨', 'Turning your words into a scene ✨')}
             </Text>
+            <Text style={styles.loadingProfileText}>{l('Dành cho', 'For')} {activeWallpaperProfile?.fullName}</Text>
           </View>
 
           {/* Khung 4 tấm hình nổi xếp chồng nhau với chuyển động bay bổng */}
@@ -918,6 +934,7 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
             <Text style={styles.resultSubtitle}>
               {l('Vuốt để xem 4 phiên bản ✨ hoặc chạm vào ảnh để xem toàn màn hình.', 'Swipe to explore all 4 variations ✨ or tap any card to view fullscreen.')}
             </Text>
+            <Text style={styles.resultProfileText}>{l('Đã tạo cho', 'Created for')} {activeWallpaperProfile?.fullName}</Text>
           </View>
 
           {/* Carousel ngang hiển thị hình nền */}
@@ -1220,12 +1237,15 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
         selectedProfiles={selectedProfiles}
         allowCoupleMode={false}
         onProfilesSelected={async (list) => {
-          setSelectedProfiles(list.slice(0, 1));
           if (list.length > 0) {
-            await setActiveProfileId(list[0].id);
+            setViewProfileId(list[0].id);
           }
           setIsProfilePickerOpen(false);
         }}
+        managementMode="add-only"
+        onProfilesChanged={refreshProfiles}
+        primaryProfileId={primaryProfileId}
+        title={l('Tạo hình nền cho ai?', 'Create a wallpaper for whom?')}
       />
 
       {/* Modal 24 Lá Bài Thần Số Học */}
@@ -1304,6 +1324,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  profileHeaderChip: {
+    maxWidth: Math.min(230, SCREEN_WIDTH - 108),
+    minHeight: 40,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(247, 204, 106, 0.38)',
+    backgroundColor: 'rgba(33, 20, 56, 0.72)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  profileHeaderName: { flexShrink: 1, color: '#FFF7DF', fontSize: 12, fontWeight: '800' },
+  profileHeaderBadge: { color: '#2B1A42', backgroundColor: '#F7CC6A', borderRadius: 8, paddingHorizontal: 5, paddingVertical: 2, fontSize: 8, fontWeight: '900', overflow: 'hidden' },
   headerBackArrow: {
     color: '#FFFFFF',
     fontSize: 28,
@@ -1358,6 +1392,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 4,
   },
+  profileContextText: { color: '#F7CC6A', fontSize: 12, fontWeight: '800', marginTop: 7 },
   moonDecorWrapper: {
     position: 'absolute',
     top: 6,
@@ -1500,6 +1535,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontWeight: '400',
   },
+  loadingProfileText: { color: '#F7CC6A', fontSize: 12, fontWeight: '800', marginTop: 7 },
   stackedCardsArea: {
     flex: 1,
     alignItems: 'center',
@@ -1611,6 +1647,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontWeight: '400',
   },
+  resultProfileText: { color: '#F7CC6A', fontSize: 12, fontWeight: '800', marginTop: 6 },
   carouselContainer: {
     flex: 1,
     justifyContent: 'center',

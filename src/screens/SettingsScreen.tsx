@@ -20,7 +20,9 @@ import { useFocusEffect } from '@react-navigation/native';
 
 import FlameMascot from '../components/chat/FlameMascot';
 import ThreeDButton from '../components/ThreeDButton';
+import ProfilePickerModal from '../components/ProfilePickerModal';
 import { useAuth } from '../store/authContext';
+import { useProfiles } from '../store/profileContext';
 import {
   beginCheckout,
   getGooglePlayMonthlyDisplayPrice,
@@ -65,10 +67,17 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
   const { user, isConfigured, signOut, syncLocalProfiles } = useAuth();
   const { billing, error: initialBillingError, reloadBilling } = useBilling();
   const { locale, preference, setPreference, t, l } = useLocalization();
+  const {
+    primaryProfileId,
+    primaryProfileItem,
+    refreshProfiles,
+    setPrimaryProfile,
+  } = useProfiles();
   const [busy, setBusy] = useState(false);
   const [billingError, setBillingError] = useState('');
   const [playPrice, setPlayPrice] = useState<string | null>(null);
   const [dailyReminder, setDailyReminder] = useState<DailyReminderSettings>({ ...DEFAULT_DAILY_REMINDER_SETTINGS });
+  const [profileManagerVisible, setProfileManagerVisible] = useState(false);
 
   useFocusEffect(useCallback(() => {
     void loadDailyReminderSettings().then(setDailyReminder);
@@ -95,6 +104,7 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
     setBusy(true);
     try {
       await syncLocalProfiles();
+      await refreshProfiles();
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(l('Đã đồng bộ', 'Sync complete'), l('Hồ sơ trên thiết bị đã được liên kết với tài khoản của bạn.', 'The profiles on this device are now linked to your account.'));
     } catch (error) {
@@ -126,7 +136,7 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
   };
 
   const updateDailyReminder = async (next: DailyReminderSettings) => {
-    const saved = await saveDailyReminderSettings(next, { profile, locale });
+    const saved = await saveDailyReminderSettings(next, { profile: { ...profile, id: primaryProfileId }, locale });
     setDailyReminder(saved);
     if (next.enabled && !saved.enabled) {
       Alert.alert(l('Chưa bật thông báo', 'Notifications are off'), l('Bạn có thể bật lại quyền thông báo trong Cài đặt thiết bị bất kỳ lúc nào.', 'You can enable notification permission later in your device settings.'));
@@ -211,6 +221,36 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
     ]);
   };
 
+  const requestPrimaryProfileChange = (nextId: string) => {
+    if (nextId === primaryProfileId) {
+      setProfileManagerVisible(false);
+      return;
+    }
+    const apply = async () => {
+      setBusy(true);
+      try {
+        const result = await setPrimaryProfile(nextId);
+        setProfileManagerVisible(false);
+        if (!result.synced && user) {
+          Alert.alert(
+            l('Đã lưu trên thiết bị', 'Saved on this device'),
+            l('Hồ sơ chính sẽ được đồng bộ khi thiết bị có mạng.', 'The primary profile will sync when the device is online.'),
+          );
+        }
+      } finally {
+        setBusy(false);
+      }
+    };
+    Alert.alert(
+      l('Đổi hồ sơ chính?', 'Change primary profile?'),
+      l('Daily Insight, vận hôm nay và thông báo sẽ được cá nhân hóa theo hồ sơ này.', 'Daily Insight, today’s fortune and notifications will use this profile.'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: l('Đặt làm hồ sơ chính', 'Set as primary'), onPress: () => { void apply(); } },
+      ],
+    );
+  };
+
   const contentWidth = Math.min(windowWidth - 36, 504);
 
   return (
@@ -269,6 +309,14 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
           </View>
 
           <View style={styles.settingsPanel}>
+            <SettingItem
+              icon="person-circle"
+              iconColor="#5D238B"
+              iconBackground="#FFF0C9"
+              label={l('Hồ sơ chính', 'Primary profile')}
+              detail={primaryProfileItem?.fullName || profile.fullName}
+              onPress={() => setProfileManagerVisible(true)}
+            />
             <SettingItem
               icon={user ? 'person' : 'person-add'}
               iconColor="#5D238B"
@@ -405,6 +453,21 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
           {!!(billingError || initialBillingError) && <Text accessibilityRole="alert" style={styles.error}>{billingError || initialBillingError}</Text>}
         </ScrollView>
       </SafeAreaView>
+      <ProfilePickerModal
+        visible={profileManagerVisible}
+        onClose={() => setProfileManagerVisible(false)}
+        selectedProfiles={primaryProfileItem ? [primaryProfileItem] : []}
+        onProfilesSelected={(items) => {
+          const selected = items[0];
+          if (selected) requestPrimaryProfileChange(selected.id);
+        }}
+        allowCoupleMode={false}
+        managementMode="full"
+        onProfilesChanged={refreshProfiles}
+        primaryProfileId={primaryProfileId}
+        title={l('Quản lý hồ sơ', 'Manage profiles')}
+        selectCreatedProfile={false}
+      />
     </View>
   );
 }

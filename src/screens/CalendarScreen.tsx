@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Image,
@@ -17,8 +17,10 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import { useFocusEffect } from '@react-navigation/native';
 import { makeDaySnapshot, type HourInfo } from '../services/lunarService';
-import { getActiveProfile, type ProfileItem, type UserProfile } from '../store/userProfile';
+import { profileItemToUserProfile, type UserProfile } from '../store/userProfile';
+import { useProfiles } from '../store/profileContext';
 import { getDailyCaDao, type CaDaoItem } from '../db/cadaoService';
 import BlocDetailModal, { type ModalType } from '../components/BlocDetailModal';
 import CalendarMascotSprite from '../components/CalendarMascotSprite';
@@ -39,19 +41,6 @@ const HOUR_SHEET_SPRING = { useNativeDriver: true, damping: 26, stiffness: 170, 
 interface Props {
   profile: UserProfile;
   onBack?: () => void;
-  onProfileChange: (profile: UserProfile) => void;
-}
-
-function profileItemToUserProfile(item: ProfileItem): UserProfile {
-  return {
-    fullName: item.fullName,
-    birthDate: item.birthDate,
-    gender: item.gender ?? 'female',
-    birthTime: item.birthTime,
-    birthPlace: item.birthPlace,
-    birthLocation: item.birthLocation,
-    birthTimeAccuracy: item.birthTimeAccuracy,
-  };
 }
 
 function moveDate(value: Date, amount: number, unit: 'day' | 'month') {
@@ -89,10 +78,12 @@ function findCurrentHour(hours: HourInfo[], hour: number) {
   }) ?? null;
 }
 
-export default function CalendarScreen({ profile, onBack, onProfileChange }: Props) {
+export default function CalendarScreen({ profile: primaryProfile, onBack }: Props) {
   const { width: winWidth, height: winHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { locale, t, l } = useLocalization();
+  const { profiles, primaryProfileId, refreshProfiles } = useProfiles();
+  const [viewProfileId, setViewProfileId] = useState(primaryProfileId);
   const [date, setDate] = useState(() => new Date());
   const [clock, setClock] = useState(() => new Date());
   const [datePickerVisible, setDatePickerVisible] = useState(false);
@@ -100,11 +91,19 @@ export default function CalendarScreen({ profile, onBack, onProfileChange }: Pro
   const [caDao, setCaDao] = useState<CaDaoItem | null>(null);
   const [modalType, setModalType] = useState<ModalType>(null);
   const [profilePickerVisible, setProfilePickerVisible] = useState(false);
-  const [selectedProfiles, setSelectedProfiles] = useState<ProfileItem[]>([]);
   const [hourSheetVisible, setHourSheetVisible] = useState(false);
   const [isHourSheetDragging, setIsHourSheetDragging] = useState(false);
   const hourSheetProgress = useRef(new Animated.Value(0)).current;
   const hourSheetPullDistance = winHeight * 0.95;
+  const viewProfileItem = profiles.find((item) => item.id === viewProfileId)
+    ?? profiles.find((item) => item.id === primaryProfileId)
+    ?? null;
+  const profile = (viewProfileItem && profileItemToUserProfile(viewProfileItem)) || primaryProfile;
+  const selectedProfiles = useMemo(() => viewProfileItem ? [viewProfileItem] : [], [viewProfileItem]);
+
+  useFocusEffect(useCallback(() => {
+    setViewProfileId(primaryProfileId);
+  }, [primaryProfileId]));
 
   const day = date.getDate();
   const month = date.getMonth() + 1;
@@ -139,12 +138,8 @@ export default function CalendarScreen({ profile, onBack, onProfileChange }: Pro
   }, []);
 
   useEffect(() => {
-    let mounted = true;
-    void getActiveProfile().then((item) => {
-      if (mounted && item) setSelectedProfiles([item]);
-    });
-    return () => { mounted = false; };
-  }, [profile.birthDate, profile.fullName]);
+    if (!viewProfileItem && primaryProfileId) setViewProfileId(primaryProfileId);
+  }, [primaryProfileId, viewProfileItem]);
 
   useEffect(() => {
     let active = true;
@@ -263,16 +258,22 @@ export default function CalendarScreen({ profile, onBack, onProfileChange }: Pro
             <TouchableOpacity activeOpacity={0.72} style={styles.headerButton} onPress={onBack} accessibilityRole="button" accessibilityLabel={t('common.back')}>
               <Ionicons name="arrow-back" size={24} color="#FFF1DA" />
             </TouchableOpacity>
-            <Text style={styles.brand}>Numelyra<Text style={styles.brandStar}> ✦</Text></Text>
             <TouchableOpacity
               activeOpacity={0.72}
-              style={styles.headerButton}
+              style={styles.profileChip}
               onPress={() => setProfilePickerVisible(true)}
               accessibilityRole="button"
               accessibilityLabel={l(`Chọn hồ sơ, hiện tại là ${profile.fullName}`, `Choose profile, currently ${profile.fullName}`)}
             >
-              <Ionicons name="person-outline" size={23} color="#FFF1DA" />
+              <Ionicons name="person-circle-outline" size={22} color="#FFD793" />
+              <View style={styles.profileChipCopy}>
+                <Text style={styles.profileChipLabel}>{l('Dành cho', 'For')}</Text>
+                <Text numberOfLines={1} style={styles.profileChipName}>{profile.fullName}</Text>
+              </View>
+              {viewProfileId === primaryProfileId && <Text style={styles.primaryBadge}>{l('Tôi', 'Me')}</Text>}
+              <Ionicons name="chevron-down" size={14} color="#FFF1DA" />
             </TouchableOpacity>
+            <View style={styles.headerSideSpacer} />
           </View>
 
           <View style={styles.monthRow}>
@@ -463,9 +464,12 @@ export default function CalendarScreen({ profile, onBack, onProfileChange }: Pro
           onProfilesSelected={(items) => {
             const selected = items[0];
             if (!selected) return;
-            setSelectedProfiles([selected]);
-            onProfileChange(profileItemToUserProfile(selected));
+            setViewProfileId(selected.id);
           }}
+          managementMode="add-only"
+          onProfilesChanged={refreshProfiles}
+          primaryProfileId={primaryProfileId}
+          title={l('Xem lịch cho ai?', 'Whose calendar?')}
         />
       </SafeAreaView>
     </View>
@@ -483,8 +487,12 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 16 },
   header: { height: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerButton: { width: 42, height: 42, borderRadius: 22, borderWidth: 1, borderColor: 'rgba(239, 190, 255, 0.52)', backgroundColor: 'rgba(35, 15, 91, 0.58)', alignItems: 'center', justifyContent: 'center' },
-  brand: { color: '#FFF4E4', fontSize: 25, fontWeight: '600', letterSpacing: -0.7, textShadowColor: 'rgba(32, 9, 73, 0.8)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8 },
-  brandStar: { color: '#FFD48A', fontSize: 18 },
+  headerSideSpacer: { width: 42, height: 42 },
+  profileChip: { flex: 1, maxWidth: 250, minHeight: 42, marginHorizontal: 8, paddingHorizontal: 10, borderRadius: 22, borderWidth: 1, borderColor: 'rgba(239, 190, 255, 0.52)', backgroundColor: 'rgba(35, 15, 91, 0.72)', flexDirection: 'row', alignItems: 'center', gap: 7 },
+  profileChipCopy: { flex: 1, minWidth: 0 },
+  profileChipLabel: { color: '#CDB6DF', fontSize: 8, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+  profileChipName: { color: '#FFF4E4', fontSize: 13, fontWeight: '800' },
+  primaryBadge: { color: '#4B256F', backgroundColor: '#FFD793', borderRadius: 9, paddingHorizontal: 6, paddingVertical: 2, fontSize: 8, fontWeight: '900', overflow: 'hidden' },
   monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 7 },
   monthArrow: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(75, 38, 139, 0.82)', borderWidth: 1, borderColor: 'rgba(222, 139, 255, 0.58)', alignItems: 'center', justifyContent: 'center' },
   monthChip: { height: 42, minWidth: 190, paddingHorizontal: 24, borderRadius: 22, backgroundColor: 'rgba(76, 37, 139, 0.86)', borderWidth: 1, borderColor: 'rgba(240, 151, 255, 0.65)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, shadowColor: '#10052F', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.42, shadowRadius: 10, elevation: 6 },

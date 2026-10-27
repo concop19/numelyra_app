@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
@@ -17,11 +17,13 @@ import type {
 } from '../features/astrology/astrologyPresentation';
 import { useDailyAstroFortune } from '../features/astrology/useDailyAstroFortune';
 import {
-  getActiveProfile,
+  profileItemToUserProfile,
   saveAstrologyBirthData,
   type ProfileItem,
   type UserProfile,
 } from '../store/userProfile';
+import { useProfiles } from '../store/profileContext';
+import { useLocalization } from '../i18n/LocalizationContext';
 
 type AstrologyStackParamList = {
   Today: undefined;
@@ -54,28 +56,19 @@ function afterWebFocusReleased(action: () => void): void {
 interface Props {
   profile?: UserProfile | null;
   onBack?: () => void;
-  onProfileChange?: (profile: UserProfile) => void;
   onOpenCalendar?: () => void;
 }
 
-function profileItemToUserProfile(item: ProfileItem): UserProfile {
-  return {
-    fullName: item.fullName,
-    birthDate: item.birthDate,
-    gender: item.gender ?? 'female',
-    birthTime: item.birthTime,
-    birthPlace: item.birthPlace,
-    birthLocation: item.birthLocation,
-    birthTimeAccuracy: item.birthTimeAccuracy,
-  };
-}
-
-export default function AstrologyScreen({ profile, onBack, onProfileChange, onOpenCalendar }: Props) {
+export default function AstrologyScreen({ profile, onBack, onOpenCalendar }: Props) {
+  const { l } = useLocalization();
+  const { profiles, primaryProfileId, refreshProfiles } = useProfiles();
+  const [viewProfileId, setViewProfileId] = useState(primaryProfileId);
   const [activeProfile, setActiveProfile] = useState<UserProfile | null>(profile ?? null);
-  const [selectedProfiles, setSelectedProfiles] = useState<ProfileItem[]>([]);
   const [profilePickerVisible, setProfilePickerVisible] = useState(false);
   const [birthDataVisible, setBirthDataVisible] = useState(false);
   const [insightVisible, setInsightVisible] = useState(false);
+  const primaryProfileRef = useRef<UserProfile | null>(profile ?? null);
+  primaryProfileRef.current = profile ?? null;
   const {
     currentDate,
     fortune,
@@ -85,43 +78,56 @@ export default function AstrologyScreen({ profile, onBack, onProfileChange, onOp
     calculationError,
     retry,
     share,
-  } = useDailyAstroFortune(activeProfile);
+  } = useDailyAstroFortune(activeProfile, viewProfileId);
+  const selectedProfileItem = profiles.find((item) => item.id === viewProfileId)
+    ?? profiles.find((item) => item.id === primaryProfileId)
+    ?? null;
+  const selectedProfiles = useMemo(
+    () => selectedProfileItem ? [selectedProfileItem] : [],
+    [selectedProfileItem],
+  );
+
+  useFocusEffect(useCallback(() => {
+    setViewProfileId(primaryProfileId);
+    setActiveProfile(primaryProfileRef.current);
+    setInsightVisible(false);
+  }, [primaryProfileId]));
 
   useEffect(() => {
-    if (profile) setActiveProfile(profile);
+    if (profile && viewProfileId === primaryProfileId) setActiveProfile(profile);
   }, [
     profile?.birthDate,
     profile?.birthLocation?.placeId,
     profile?.birthTime,
     profile?.birthTimeAccuracy,
     profile?.fullName,
+    primaryProfileId,
+    viewProfileId,
   ]);
 
-  useFocusEffect(useCallback(() => {
-    let mounted = true;
-    void getActiveProfile().then((item) => {
-      if (!mounted || !item) return;
-      setSelectedProfiles([item]);
-      setActiveProfile(profileItemToUserProfile(item));
-    });
-    return () => { mounted = false; };
-  }, []));
+  useEffect(() => {
+    if (selectedProfileItem) {
+      const next = profileItemToUserProfile(selectedProfileItem);
+      if (next) setActiveProfile(next);
+      return;
+    }
+    if (primaryProfileId) setViewProfileId(primaryProfileId);
+  }, [primaryProfileId, selectedProfileItem]);
 
   const applySelectedProfile = useCallback((item: ProfileItem) => {
     const next = profileItemToUserProfile(item);
-    setSelectedProfiles([item]);
+    if (!next) return;
+    setViewProfileId(item.id);
     setActiveProfile(next);
     setInsightVisible(false);
-    onProfileChange?.(next);
-  }, [onProfileChange]);
+  }, []);
 
   const saveBirthData = useCallback(async (next: UserProfile) => {
-    await saveAstrologyBirthData(next);
+    await saveAstrologyBirthData(next, viewProfileId ?? undefined);
+    await refreshProfiles();
     setActiveProfile(next);
-    setSelectedProfiles((current) => current.length > 0 ? [{ ...current[0], ...next }] : current);
     setInsightVisible(false);
-    onProfileChange?.(next);
-  }, [onProfileChange]);
+  }, [refreshProfiles, viewProfileId]);
 
   return (
     <GestureHandlerRootView style={styles.root}>
@@ -138,6 +144,7 @@ export default function AstrologyScreen({ profile, onBack, onProfileChange, onOp
           {({ navigation }) => (
             <AstrologyTodayView
               profile={activeProfile}
+              isPrimaryProfile={viewProfileId === primaryProfileId}
               currentDate={currentDate}
               metadata={metadata}
               fortune={fortune}
@@ -155,8 +162,8 @@ export default function AstrologyScreen({ profile, onBack, onProfileChange, onOp
               }))}
               onOpenInterpretation={() => afterWebFocusReleased(() => {
                 void (async () => {
-                  if (!fortune) await retry();
-                  setInsightVisible(true);
+                  const availableFortune = fortune ?? await retry();
+                  if (availableFortune) setInsightVisible(true);
                 })();
               })}
               onRetry={() => void retry()}
@@ -201,6 +208,10 @@ export default function AstrologyScreen({ profile, onBack, onProfileChange, onOp
           const selected = items[0];
           if (selected) applySelectedProfile(selected);
         }}
+        managementMode="add-only"
+        onProfilesChanged={refreshProfiles}
+        primaryProfileId={primaryProfileId}
+        title={l('Xem chiêm tinh cho ai?', 'Whose astrology?')}
       />
 
       {!!activeProfile && (

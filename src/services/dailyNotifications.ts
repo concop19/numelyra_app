@@ -22,7 +22,7 @@ export interface DailyReminderSettings {
 }
 
 export interface DailyNotificationContext {
-  profile: UserProfile;
+  profile: UserProfile & { id?: string | null };
   locale: AppLocale;
 }
 

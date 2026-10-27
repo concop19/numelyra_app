@@ -43,13 +43,14 @@ interface Props {
   visible: boolean;
   insight: DailyInsight;
   fortune?: AstroFortuneSlip | null;
+  profileName?: string;
   onClose(): void;
   onAsk(question: string): void;
   backUnlocked?: boolean;
   onUnlockBack?(): Promise<boolean>;
 }
 
-export default function DailyInsightSheet({ visible, insight, fortune, onClose, onAsk, backUnlocked = false, onUnlockBack }: Props) {
+export default function DailyInsightSheet({ visible, insight, fortune, profileName, onClose, onAsk, backUnlocked = false, onUnlockBack }: Props) {
   const { t, formatDate, locale } = useLocalization();
   const { height, width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -243,6 +244,8 @@ export default function DailyInsightSheet({ visible, insight, fortune, onClose, 
                     </View>
                   )}
                 </View>
+
+                {!!profileName && <Text style={styles.profileName}>{locale === 'en' ? 'For' : 'Dành cho'} {profileName}</Text>}
 
                 {/* Header: Date Subtitle */}
                 <View style={styles.dateRow}>
@@ -728,6 +731,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 2,
   },
+  profileName: { color: '#6D3FA5', fontSize: 11, fontWeight: '900', textAlign: 'center', marginTop: 4 },
   dateStar: {
     marginRight: 5,
   },

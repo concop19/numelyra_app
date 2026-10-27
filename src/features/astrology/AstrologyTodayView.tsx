@@ -47,6 +47,7 @@ import { useLocalization } from '../../i18n/LocalizationContext';
 
 interface Props {
   profile: UserProfile | null;
+  isPrimaryProfile?: boolean;
   currentDate: Date;
   metadata?: PureAstroFeatureMetadata;
   fortune: AstroFortuneSlip | null;
@@ -114,6 +115,7 @@ function formatDateTitle(date: Date, locale: string): string {
 
 export function AstrologyTodayView({
   profile,
+  isPrimaryProfile = false,
   currentDate,
   metadata,
   fortune,
@@ -198,6 +200,7 @@ export function AstrologyTodayView({
         ) : (
           <AstrologySkyHero
             profile={profile}
+            isPrimaryProfile={isPrimaryProfile}
             currentDate={currentDate}
             metadata={metadata}
             fortune={fortune}

@@ -5,12 +5,15 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 
 import {
+  ensurePrimaryProfileId,
+  getPrimaryProfileState,
   loadAllProfiles,
+  markPrimaryProfileSynced,
   saveAllProfiles,
-  getActiveProfileId,
   isMissingGenderColumnError,
+  isMissingPrimaryColumnError,
   isProfileGender,
-  setActiveProfileId,
+  setPrimaryProfileId,
   type ProfileItem
 } from './userProfile';
 import { isSupabaseConfigured, supabase } from '../services/supabaseClient';
@@ -42,23 +45,28 @@ async function syncProfilesForUser(user: User): Promise<void> {
 
   try {
     const localProfiles = await loadAllProfiles();
-    const primaryProfile = localProfiles.find((profile) => profile.isDefault) || localProfiles[0];
+    const localPrimaryId = await ensurePrimaryProfileId(localProfiles);
+    const localPrimaryState = await getPrimaryProfileState();
+    const localPrimary = localProfiles.find((profile) => profile.id === localPrimaryId) ?? localProfiles[0];
+    const identityKey = (profile: Pick<ProfileItem, 'fullName' | 'birthDate'>) => (
+      `${profile.fullName.trim().toLocaleLowerCase('vi-VN')}|${profile.birthDate}`
+    );
 
-    // 1. Đồng bộ thông tin cơ bản tài khoản (profiles)
-    const { error: accountError } = await supabase.from('profiles').upsert({
-      id: user.id,
-      email: user.email || null,
-      full_name: primaryProfile?.fullName || user.user_metadata?.full_name || null,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'id' });
-    if (accountError) throw accountError;
-
-    // 2. Kéo toàn bộ hồ sơ đám mây từ Supabase về (Cloud -> Local)
+    // 1. Kéo toàn bộ hồ sơ đám mây từ Supabase về (Cloud -> Local).
     let { data: remoteProfiles, error: selectError } = await supabase
       .from('user_numerology_profiles')
-      .select('id, name, birth_date, gender, created_at')
+      .select('id, name, birth_date, gender, is_primary, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
+    if (selectError && isMissingPrimaryColumnError(selectError)) {
+      const legacyPrimaryResult = await supabase
+        .from('user_numerology_profiles')
+        .select('id, name, birth_date, gender, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      remoteProfiles = legacyPrimaryResult.data as typeof remoteProfiles;
+      selectError = legacyPrimaryResult.error;
+    }
     if (selectError && isMissingGenderColumnError(selectError)) {
       const legacyResult = await supabase
         .from('user_numerology_profiles')
@@ -77,15 +85,16 @@ async function syncProfilesForUser(user: User): Promise<void> {
         fullName: r.name,
         birthDate: r.birth_date,
         gender: isProfileGender(remoteGender) ? remoteGender : undefined,
+        isPrimary: 'is_primary' in r && r.is_primary === true,
       };
     });
 
-    // 3. Tìm các hồ sơ ở máy cục bộ chưa có trên Cloud để đẩy lên (Local -> Cloud)
+    // 2. Tìm các hồ sơ ở máy cục bộ chưa có trên Cloud để đẩy lên (Local -> Cloud).
     const remoteKeySet = new Set(
-      remoteItems.map((p) => `${p.fullName.trim().toLowerCase()}|${p.birthDate}`)
+      remoteItems.map(identityKey)
     );
     const localOnlyProfiles = localProfiles.filter((p: ProfileItem) =>
-      !remoteKeySet.has(`${p.fullName.trim().toLowerCase()}|${p.birthDate}`)
+      !remoteKeySet.has(identityKey(p))
     );
 
     if (localOnlyProfiles.length > 0) {
@@ -132,17 +141,21 @@ async function syncProfilesForUser(user: User): Promise<void> {
       }
     }
 
-    // 4. Hợp nhất 2 nguồn thành 1 danh sách duy nhất không trùng lặp và lưu vào máy
+    // 3. Hợp nhất hai nguồn, giữ UUID cloud và remap primary local theo identity.
     const mergedMap = new Map<string, ProfileItem>();
     for (const item of remoteItems) {
-      const key = `${item.fullName.trim().toLowerCase()}|${item.birthDate}`;
-      mergedMap.set(key, item);
+      mergedMap.set(identityKey(item), item);
     }
     for (const item of localProfiles) {
-      const key = `${item.fullName.trim().toLowerCase()}|${item.birthDate}`;
+      const key = identityKey(item);
       if (mergedMap.has(key)) {
         const existing = mergedMap.get(key)!;
-        mergedMap.set(key, { ...existing, gender: item.gender || existing.gender });
+        mergedMap.set(key, {
+          ...item,
+          ...existing,
+          gender: item.gender || existing.gender,
+          isPrimary: existing.isPrimary,
+        });
       } else {
         mergedMap.set(key, item);
       }
@@ -151,10 +164,35 @@ async function syncProfilesForUser(user: User): Promise<void> {
     const unifiedProfiles = Array.from(mergedMap.values());
     if (unifiedProfiles.length > 0) {
       await saveAllProfiles(unifiedProfiles);
-      const activeId = await getActiveProfileId();
-      if (!activeId || !unifiedProfiles.some((p) => p.id === activeId)) {
-        await setActiveProfileId(unifiedProfiles[0].id);
+
+      const mappedLocalPrimary = localPrimary
+        ? unifiedProfiles.find((profile) => identityKey(profile) === identityKey(localPrimary))
+        : undefined;
+      const cloudPrimary = unifiedProfiles.find((profile) => profile.isPrimary);
+      const shouldPushLocalPrimary = localPrimaryState?.pendingCloudSync === true || !cloudPrimary;
+      const chosenPrimary = shouldPushLocalPrimary
+        ? mappedLocalPrimary ?? cloudPrimary ?? unifiedProfiles[0]
+        : cloudPrimary ?? mappedLocalPrimary ?? unifiedProfiles[0];
+
+      await setPrimaryProfileId(chosenPrimary.id, {
+        pendingCloudSync: shouldPushLocalPrimary,
+      });
+
+      if (shouldPushLocalPrimary) {
+        const { error: primaryError } = await supabase.rpc('set_primary_numerology_profile', {
+          profile_id: chosenPrimary.id,
+        });
+        if (!primaryError) await markPrimaryProfileSynced(chosenPrimary.id);
       }
+
+      // 4. Thông tin tài khoản luôn phản ánh hồ sơ chính đã resolve.
+      const { error: accountError } = await supabase.from('profiles').upsert({
+        id: user.id,
+        email: user.email || null,
+        full_name: chosenPrimary.fullName || user.user_metadata?.full_name || null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
+      if (accountError) throw accountError;
     }
   } catch (error) {
     console.warn('[Auth] Could not sync local profiles with Supabase:', error);

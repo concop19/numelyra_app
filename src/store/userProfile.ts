@@ -25,6 +25,17 @@ export function isMissingGenderColumnError(error: unknown): boolean {
     && (text.includes('column') || text.includes('schema cache'));
 }
 
+export function isMissingPrimaryColumnError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as { message?: unknown; details?: unknown; hint?: unknown };
+  const text = [candidate.message, candidate.details, candidate.hint]
+    .filter((value): value is string => typeof value === 'string')
+    .join(' ')
+    .toLowerCase();
+  return text.includes('is_primary')
+    && (text.includes('column') || text.includes('schema cache'));
+}
+
 /**
  * Dữ liệu đã phân giải từ tên nơi sinh. Chỉ được lưu cục bộ để dựng lá số;
  * request AI chỉ nhận các kết quả đã suy ra (ASC/MC/nhà), không nhận tọa độ thô.
@@ -54,6 +65,7 @@ export interface ProfileItem {
   birthDate: string; // ISO string (dương lịch), vd: '1998-10-20'
   gender?: ProfileGender;
   isDefault?: boolean;
+  isPrimary?: boolean;
   birthTime?: string; // vd: '14:30' (tùy chọn)
   birthPlace?: string; // vd: 'Hà Nội' (tùy chọn)
   birthLocation?: ResolvedBirthLocation;
@@ -62,21 +74,40 @@ export interface ProfileItem {
 
 const PROFILES_LIST_KEY = '@numelyra_profiles_list';
 const ACTIVE_PROFILE_ID_KEY = '@numelyra_active_profile_id';
+const PRIMARY_PROFILE_STATE_KEY = '@numelyra_primary_profile:v1';
+
+export interface PrimaryProfileState {
+  id: string;
+  pendingCloudSync: boolean;
+}
+
+export function profileItemToUserProfile(item: ProfileItem): UserProfile | null {
+  if (!item.gender) return null;
+  return {
+    fullName: item.fullName,
+    birthDate: item.birthDate,
+    gender: item.gender,
+    birthTime: item.birthTime,
+    birthPlace: item.birthPlace,
+    birthLocation: item.birthLocation,
+    birthTimeAccuracy: item.birthTimeAccuracy,
+  };
+}
 
 export async function saveProfile(profile: UserProfile): Promise<void> {
   await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
 }
 
 /** Lưu dữ liệu lá số và đồng bộ vào hồ sơ đang hoạt động nếu danh sách đã tồn tại. */
-export async function saveAstrologyBirthData(profile: UserProfile): Promise<void> {
-  await saveProfile(profile);
+export async function saveAstrologyBirthData(profile: UserProfile, profileId?: string): Promise<void> {
   const rawList = await AsyncStorage.getItem(PROFILES_LIST_KEY);
   if (!rawList) return;
   try {
     const profiles = JSON.parse(rawList) as ProfileItem[];
     if (!Array.isArray(profiles) || profiles.length === 0) return;
-    const activeId = await getActiveProfileId();
-    const matchIndex = profiles.findIndex((item) => item.id === activeId);
+    const primaryId = await getPrimaryProfileId();
+    const targetId = profileId || primaryId;
+    const matchIndex = profiles.findIndex((item) => item.id === targetId);
     const fallbackIndex = profiles.findIndex(
       (item) => item.fullName === profile.fullName && item.birthDate === profile.birthDate
     );
@@ -90,6 +121,7 @@ export async function saveAstrologyBirthData(profile: UserProfile): Promise<void
       birthTimeAccuracy: profile.birthTimeAccuracy,
     };
     await saveAllProfiles(profiles);
+    if (profiles[index].id === primaryId) await saveProfile(profile);
   } catch {
     // Legacy profile remains valid even if a stale profile-list payload is corrupt.
   }
@@ -137,7 +169,7 @@ export async function loadAllProfiles(): Promise<ProfileItem[]> {
         birthTimeAccuracy: legacy.birthTimeAccuracy,
       };
       await saveAllProfiles([initial]);
-      await setActiveProfileId(initial.id);
+      await setPrimaryProfileId(initial.id, { pendingCloudSync: true });
       return [initial];
     }
     return [];
@@ -200,18 +232,9 @@ export async function addProfile(
   };
   const updated = [newProfile, ...all.filter(p => p.id !== generatedId)];
   await saveAllProfiles(updated);
-  await setActiveProfileId(newProfile.id);
-
-  // Đồng bộ sang legacy profile để tương thích các component cũ
-  await saveProfile({
-    fullName: newProfile.fullName,
-    birthDate: newProfile.birthDate,
-    gender: newProfile.gender,
-    birthTime: newProfile.birthTime,
-    birthPlace: newProfile.birthPlace,
-    birthLocation: newProfile.birthLocation,
-    birthTimeAccuracy: newProfile.birthTimeAccuracy,
-  });
+  if (all.length === 0) {
+    await setPrimaryProfileId(newProfile.id, { pendingCloudSync: true });
+  }
 
   return newProfile;
 }
@@ -235,8 +258,8 @@ export async function updateProfile(
   ));
   await saveAllProfiles(updatedProfiles);
 
-  const activeId = await getActiveProfileId();
-  if (activeId === id) {
+  const primaryId = await getPrimaryProfileId();
+  if (primaryId === id) {
     await saveProfile({
       fullName: updatedProfile.fullName,
       birthDate: updatedProfile.birthDate,
@@ -281,6 +304,13 @@ export async function updateProfile(
           ({ error } = await applyRemoteUpdate(false));
         }
         if (error) throw error;
+        if (primaryId === id) {
+          const { error: accountError } = await supabaseClient.from('profiles').update({
+            full_name: updatedProfile.fullName,
+            updated_at: new Date().toISOString(),
+          }).eq('id', user.id);
+          if (accountError) throw accountError;
+        }
       }
     } catch (err) {
       console.warn('[userProfile] Supabase updateProfile kept local changes only:', err);
@@ -316,23 +346,72 @@ export async function deleteProfile(id: string): Promise<ProfileItem[]> {
     }
   }
 
-  const activeId = await getActiveProfileId();
-  if (activeId === id && updated.length > 0) {
-    await setActiveProfileId(updated[0].id);
+  const primaryId = await getPrimaryProfileId();
+  if (primaryId === id && updated.length > 0) {
+    await setPrimaryProfileId(updated[0].id, { pendingCloudSync: true });
   }
   return updated;
 }
 
-export async function getActiveProfileId(): Promise<string | null> {
-  return await AsyncStorage.getItem(ACTIVE_PROFILE_ID_KEY);
+function parsePrimaryProfileState(raw: string | null): PrimaryProfileState | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<PrimaryProfileState>;
+    return typeof parsed.id === 'string' && parsed.id
+      ? { id: parsed.id, pendingCloudSync: parsed.pendingCloudSync === true }
+      : null;
+  } catch {
+    return null;
+  }
 }
 
-export async function setActiveProfileId(id: string): Promise<void> {
-  await AsyncStorage.setItem(ACTIVE_PROFILE_ID_KEY, id);
-  // Đồng bộ legacy profile
+export async function getPrimaryProfileState(): Promise<PrimaryProfileState | null> {
+  return parsePrimaryProfileState(await AsyncStorage.getItem(PRIMARY_PROFILE_STATE_KEY));
+}
+
+export async function ensurePrimaryProfileId(profiles?: ProfileItem[]): Promise<string | null> {
+  const list = profiles ?? await loadAllProfiles();
+  if (list.length === 0) return null;
+
+  const stored = await getPrimaryProfileState();
+  if (stored && list.some((item) => item.id === stored.id)) return stored.id;
+
+  const legacyActiveId = await AsyncStorage.getItem(ACTIVE_PROFILE_ID_KEY);
+  const legacyProfile = await loadProfile();
+  const candidate = list.find((item) => item.isDefault)
+    ?? list.find((item) => item.id === 'default-profile')
+    ?? list.find((item) => (
+      legacyProfile
+      && item.fullName === legacyProfile.fullName
+      && item.birthDate === legacyProfile.birthDate
+    ))
+    ?? list.find((item) => item.id === legacyActiveId)
+    ?? list[0];
+
+  await setPrimaryProfileId(candidate.id, { pendingCloudSync: true });
+  return candidate.id;
+}
+
+export async function getPrimaryProfileId(): Promise<string | null> {
+  const stored = await getPrimaryProfileState();
+  if (stored?.id) return stored.id;
+  return ensurePrimaryProfileId();
+}
+
+export async function setPrimaryProfileId(
+  id: string,
+  options: { pendingCloudSync?: boolean; syncLegacy?: boolean } = {},
+): Promise<void> {
   const all = await loadAllProfiles();
-  const found = all.find(p => p.id === id);
-  if (found?.gender) {
+  const found = all.find((item) => item.id === id);
+  if (!found) throw new Error('Profile not found');
+
+  await AsyncStorage.setItem(PRIMARY_PROFILE_STATE_KEY, JSON.stringify({
+    id,
+    pendingCloudSync: options.pendingCloudSync ?? true,
+  } satisfies PrimaryProfileState));
+
+  if (options.syncLegacy !== false && found.gender) {
     await saveProfile({
       fullName: found.fullName,
       birthDate: found.birthDate,
@@ -345,12 +424,35 @@ export async function setActiveProfileId(id: string): Promise<void> {
   }
 }
 
-export async function getActiveProfile(): Promise<ProfileItem | null> {
+export async function markPrimaryProfileSynced(id: string): Promise<void> {
+  const current = await getPrimaryProfileState();
+  if (current?.id !== id) return;
+  await AsyncStorage.setItem(PRIMARY_PROFILE_STATE_KEY, JSON.stringify({
+    id,
+    pendingCloudSync: false,
+  } satisfies PrimaryProfileState));
+}
+
+export async function getPrimaryProfile(): Promise<ProfileItem | null> {
   const all = await loadAllProfiles();
   if (all.length === 0) return null;
-  const activeId = await getActiveProfileId();
-  const found = all.find(p => p.id === activeId);
-  return found || all[0];
+  const primaryId = await ensurePrimaryProfileId(all);
+  return all.find((item) => item.id === primaryId) ?? all[0];
+}
+
+/** @deprecated Compatibility alias. New code must use getPrimaryProfileId. */
+export async function getActiveProfileId(): Promise<string | null> {
+  return getPrimaryProfileId();
+}
+
+/** @deprecated Compatibility alias. Only Settings may change the primary profile. */
+export async function setActiveProfileId(id: string): Promise<void> {
+  await setPrimaryProfileId(id, { pendingCloudSync: true });
+}
+
+/** @deprecated Compatibility alias. New code must use getPrimaryProfile. */
+export async function getActiveProfile(): Promise<ProfileItem | null> {
+  return getPrimaryProfile();
 }
 
 /**
