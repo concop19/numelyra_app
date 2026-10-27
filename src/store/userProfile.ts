@@ -82,11 +82,11 @@ export interface PrimaryProfileState {
 }
 
 export function profileItemToUserProfile(item: ProfileItem): UserProfile | null {
-  if (!item.gender) return null;
+  if (!item.fullName || !item.birthDate) return null;
   return {
     fullName: item.fullName,
     birthDate: item.birthDate,
-    gender: item.gender,
+    gender: item.gender || 'female',
     birthTime: item.birthTime,
     birthPlace: item.birthPlace,
     birthLocation: item.birthLocation,
@@ -96,6 +96,71 @@ export function profileItemToUserProfile(item: ProfileItem): UserProfile | null 
 
 export async function saveProfile(profile: UserProfile): Promise<void> {
   await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  try {
+    const rawList = await AsyncStorage.getItem(PROFILES_LIST_KEY);
+    let list: ProfileItem[] = [];
+    if (rawList) {
+      try {
+        const parsed = JSON.parse(rawList);
+        if (Array.isArray(parsed)) list = parsed;
+      } catch {}
+    }
+    const primaryId = await getPrimaryProfileId();
+    let index = list.findIndex((item) => item.id === primaryId);
+    if (index < 0) {
+      index = list.findIndex(
+        (item) => item.fullName === profile.fullName && item.birthDate === profile.birthDate
+      );
+    }
+    if (index < 0) {
+      index = list.findIndex((item) => item.isPrimary || item.isDefault || item.id === 'default-profile');
+    }
+
+    if (index >= 0) {
+      list[index] = {
+        ...list[index],
+        fullName: profile.fullName,
+        birthDate: profile.birthDate,
+        gender: profile.gender,
+        birthTime: profile.birthTime,
+        birthPlace: profile.birthPlace,
+        birthLocation: profile.birthLocation,
+        birthTimeAccuracy: profile.birthTimeAccuracy,
+      };
+      await saveAllProfiles(list);
+      await setPrimaryProfileId(list[index].id, { pendingCloudSync: true, syncLegacy: false });
+    } else if (list.length > 0) {
+      list[0] = {
+        ...list[0],
+        fullName: profile.fullName,
+        birthDate: profile.birthDate,
+        gender: profile.gender,
+        birthTime: profile.birthTime,
+        birthPlace: profile.birthPlace,
+        birthLocation: profile.birthLocation,
+        birthTimeAccuracy: profile.birthTimeAccuracy,
+      };
+      await saveAllProfiles(list);
+      await setPrimaryProfileId(list[0].id, { pendingCloudSync: true, syncLegacy: false });
+    } else {
+      const initial: ProfileItem = {
+        id: 'default-profile',
+        fullName: profile.fullName,
+        birthDate: profile.birthDate,
+        gender: profile.gender,
+        isDefault: true,
+        isPrimary: true,
+        birthTime: profile.birthTime,
+        birthPlace: profile.birthPlace,
+        birthLocation: profile.birthLocation,
+        birthTimeAccuracy: profile.birthTimeAccuracy,
+      };
+      await saveAllProfiles([initial]);
+      await setPrimaryProfileId(initial.id, { pendingCloudSync: true, syncLegacy: false });
+    }
+  } catch (err) {
+    console.warn('[userProfile] saveProfile sync to list failed:', err);
+  }
 }
 
 /** Lưu dữ liệu lá số và đồng bộ vào hồ sơ đang hoạt động nếu danh sách đã tồn tại. */

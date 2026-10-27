@@ -41,6 +41,11 @@ import {
 import type { UserProfile } from '../store/userProfile';
 import { useLocalization } from '../i18n/LocalizationContext';
 import type { LanguagePreference } from '../i18n/translations';
+import { getGlobalPendingMessageCount } from '../db/chatDatabaseService';
+import {
+  downloadAndSyncAllUserData,
+  syncPendingMessagesBatch,
+} from '../services/chatSessionSyncService';
 
 const SKY_BACKGROUND = require('../../assets/giao_dien/giaodien1/setting/background.webp');
 const GROUND_BACKGROUND = require('../../assets/giao_dien/giaodien1/setting/background_ground.webp');
@@ -78,15 +83,82 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
   const [playPrice, setPlayPrice] = useState<string | null>(null);
   const [dailyReminder, setDailyReminder] = useState<DailyReminderSettings>({ ...DEFAULT_DAILY_REMINDER_SETTINGS });
   const [profileManagerVisible, setProfileManagerVisible] = useState(false);
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
 
   useFocusEffect(useCallback(() => {
     void loadDailyReminderSettings().then(setDailyReminder);
+    void getGlobalPendingMessageCount().then(setPendingSyncCount).catch(() => undefined);
     if (Platform.OS === 'android' && user) {
       void getGooglePlayProduct()
         .then((product) => setPlayPrice(getGooglePlayMonthlyDisplayPrice(product)))
         .catch(() => setPlayPrice(null));
     }
   }, [user?.id]));
+
+  const openCloudSyncActions = () => {
+    void Haptics.selectionAsync();
+    if (!user) {
+      Alert.alert(
+        l('Cần đăng nhập', 'Sign in required'),
+        l('Vui lòng đăng nhập để đồng bộ dữ liệu đám mây.', 'Please sign in to sync cloud data.'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: l('Đăng nhập', 'Sign in'), onPress: onRequestLogin },
+        ]
+      );
+      return;
+    }
+
+    Alert.alert(
+      l('Đồng bộ đám mây', 'Cloud sync'),
+      l(
+        `Hiện có ${pendingSyncCount} tin nhắn đang chờ đồng bộ.\n(Hệ thống tự động đồng bộ lên máy chủ mỗi khi tích lũy đủ 10 tin nhắn).`,
+        `Currently ${pendingSyncCount} pending messages waiting to sync.\n(Automatically syncs to server every 10 messages).`
+      ),
+      [
+        {
+          text: l('Tải toàn bộ từ máy chủ về', 'Download all from server'),
+          onPress: async () => {
+            setBusy(true);
+            try {
+              const res = await downloadAndSyncAllUserData();
+              await refreshProfiles();
+              const count = await getGlobalPendingMessageCount();
+              setPendingSyncCount(count);
+              Alert.alert(
+                l('Tải về thành công', 'Download successful'),
+                l(`Đã tải về ${res.profilesCount} hồ sơ và ${res.messagesCount} tin nhắn từ máy chủ.`, `Successfully downloaded ${res.profilesCount} profiles and ${res.messagesCount} messages from server.`)
+              );
+            } catch {
+              Alert.alert(l('Thất bại', 'Failed'), l('Không thể tải dữ liệu từ máy chủ.', 'Could not download data from server.'));
+            } finally {
+              setBusy(false);
+            }
+          },
+        },
+        {
+          text: l('Đồng bộ ngay lên máy chủ', 'Sync now to server'),
+          onPress: async () => {
+            setBusy(true);
+            try {
+              const res = await syncPendingMessagesBatch(1, true);
+              const count = await getGlobalPendingMessageCount();
+              setPendingSyncCount(count);
+              Alert.alert(
+                l('Đồng bộ thành công', 'Sync successful'),
+                l(`Đã đồng bộ ${res.syncedCount} tin nhắn lên máy chủ.`, `Synced ${res.syncedCount} messages to server.`)
+              );
+            } catch {
+              Alert.alert(l('Thất bại', 'Failed'), l('Không thể đồng bộ tin nhắn.', 'Could not sync messages.'));
+            } finally {
+              setBusy(false);
+            }
+          },
+        },
+        { text: t('common.close'), style: 'cancel' },
+      ]
+    );
+  };
 
   const handleSignOut = async () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -324,6 +396,16 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
               label={t('settings.personal')}
               detail={user?.email ?? (isConfigured ? l('Đăng nhập để đồng bộ hồ sơ', 'Sign in to sync profiles') : l('Tài khoản khách', 'Guest account'))}
               onPress={openAccountActions}
+            />
+            <SettingItem
+              icon="cloud-done-outline"
+              iconColor="#3B82F6"
+              iconBackground="#DBEAFE"
+              label={l('Đồng bộ đám mây', 'Cloud sync')}
+              detail={pendingSyncCount > 0
+                ? `${pendingSyncCount} ${l('tin nhắn chờ đồng bộ (10 tin/lô)', 'pending messages (10/batch)')}`
+                : l('Đã đồng bộ toàn bộ', 'All messages synced')}
+              onPress={openCloudSyncActions}
             />
             <SettingItem
               icon="diamond"

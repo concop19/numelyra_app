@@ -40,6 +40,8 @@ const configurationError = () => new Error(
   'Đăng nhập chưa được cấu hình. Hãy thêm EXPO_PUBLIC_SUPABASE_URL và EXPO_PUBLIC_SUPABASE_ANON_KEY vào mobile_app/.env.'
 );
 
+let isSetPrimaryRpcSupported = true;
+
 async function syncProfilesForUser(user: User): Promise<void> {
   if (!supabase) return;
 
@@ -52,33 +54,15 @@ async function syncProfilesForUser(user: User): Promise<void> {
       `${profile.fullName.trim().toLocaleLowerCase('vi-VN')}|${profile.birthDate}`
     );
 
-    // 1. Kéo toàn bộ hồ sơ đám mây từ Supabase về (Cloud -> Local).
-    let { data: remoteProfiles, error: selectError } = await supabase
+    // 1. Kéo toàn bộ hồ sơ đám mây từ Supabase về (Cloud -> Local) an toàn bằng select('*').
+    const { data: remoteProfiles, error: selectError } = await supabase
       .from('user_numerology_profiles')
-      .select('id, name, birth_date, gender, is_primary, created_at')
+      .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
-    if (selectError && isMissingPrimaryColumnError(selectError)) {
-      const legacyPrimaryResult = await supabase
-        .from('user_numerology_profiles')
-        .select('id, name, birth_date, gender, created_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      remoteProfiles = legacyPrimaryResult.data as typeof remoteProfiles;
-      selectError = legacyPrimaryResult.error;
-    }
-    if (selectError && isMissingGenderColumnError(selectError)) {
-      const legacyResult = await supabase
-        .from('user_numerology_profiles')
-        .select('id, name, birth_date, created_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      remoteProfiles = legacyResult.data as typeof remoteProfiles;
-      selectError = legacyResult.error;
-    }
     if (selectError) throw selectError;
 
-    const remoteItems: ProfileItem[] = (remoteProfiles || []).map((r) => {
+    const remoteItems: ProfileItem[] = (remoteProfiles || []).map((r: any) => {
       const remoteGender = 'gender' in r ? r.gender : undefined;
       return {
         id: r.id,
@@ -153,8 +137,12 @@ async function syncProfilesForUser(user: User): Promise<void> {
         mergedMap.set(key, {
           ...item,
           ...existing,
+          birthTime: item.birthTime || existing.birthTime,
+          birthPlace: item.birthPlace || existing.birthPlace,
+          birthLocation: item.birthLocation || existing.birthLocation,
+          birthTimeAccuracy: item.birthTimeAccuracy || existing.birthTimeAccuracy,
           gender: item.gender || existing.gender,
-          isPrimary: existing.isPrimary,
+          isPrimary: existing.isPrimary ?? item.isPrimary,
         });
       } else {
         mergedMap.set(key, item);
@@ -178,11 +166,19 @@ async function syncProfilesForUser(user: User): Promise<void> {
         pendingCloudSync: shouldPushLocalPrimary,
       });
 
-      if (shouldPushLocalPrimary) {
-        const { error: primaryError } = await supabase.rpc('set_primary_numerology_profile', {
-          profile_id: chosenPrimary.id,
-        });
-        if (!primaryError) await markPrimaryProfileSynced(chosenPrimary.id);
+      if (shouldPushLocalPrimary && isSetPrimaryRpcSupported) {
+        try {
+          const { error: primaryError } = await supabase.rpc('set_primary_numerology_profile', {
+            profile_id: chosenPrimary.id,
+          });
+          if (!primaryError) {
+            await markPrimaryProfileSynced(chosenPrimary.id);
+          } else if (primaryError.code === 'PGRST202' || (primaryError as any).status === 404) {
+            isSetPrimaryRpcSupported = false;
+          }
+        } catch {
+          isSetPrimaryRpcSupported = false;
+        }
       }
 
       // 4. Thông tin tài khoản luôn phản ánh hồ sơ chính đã resolve.

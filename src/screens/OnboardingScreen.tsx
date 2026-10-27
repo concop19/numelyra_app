@@ -44,7 +44,7 @@ import { useLocalization } from '../i18n/LocalizationContext';
 import type { AppLocale, TranslationKey } from '../i18n/translations';
 
 interface Props {
-  onComplete: () => void;
+  onComplete: () => void | Promise<void>;
 }
 
 type Draft = {
@@ -671,7 +671,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
       await saveProfile(parsedProfile);
       await AsyncStorage.removeItem(PROGRESS_KEY);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      onComplete();
+      await onComplete();
     } catch {
       Alert.alert(en ? 'Unable to finish' : 'Không thể hoàn tất', en ? 'Your data was not saved. Please try again.' : 'Dữ liệu của bạn chưa được lưu. Vui lòng thử lại.');
     } finally {

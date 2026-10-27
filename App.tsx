@@ -158,7 +158,11 @@ function AppContent() {
     content = (
       <OnboardingScreen
         onComplete={async () => {
-          await syncLocalProfiles();
+          try {
+            await syncLocalProfiles();
+          } catch (err) {
+            console.warn('[App] syncLocalProfiles in onComplete failed:', err);
+          }
           await refreshProfiles();
         }}
       />

@@ -74,7 +74,19 @@ import {
   MAX_STORED_CHAT_MESSAGES,
   orderChatHistoryMessages,
   saveChatHistory,
+  type ChatMessageSyncStatus,
 } from '../services/chatHistoryStorage';
+import {
+  ensureMainUserChatSession,
+  upsertLocalChatMessage,
+  type LocalChatMessage,
+} from '../db/chatDatabaseService';
+import {
+  downloadAllCloudChatData,
+  downloadAndSyncAllUserData,
+  syncPendingMessagesBatch,
+  PENDING_SYNC_THRESHOLD,
+} from '../services/chatSessionSyncService';
 import { useLocalization } from '../i18n/LocalizationContext';
 import { buildDailyInsight, cacheDailyInsight } from '../features/daily-insight/dailyInsight';
 import DailyInsightSheet from '../features/daily-insight/DailyInsightSheet';
@@ -98,6 +110,8 @@ export interface MessageItem {
   createdAt?: number;
   card?: any;
   isTypingCompleted?: boolean;
+  syncStatus?: ChatMessageSyncStatus;
+  syncedAt?: string | null;
 }
 
 const isCompatibilityMessage = (message: MessageItem) => (
@@ -317,6 +331,14 @@ const AssistantPreviewBubble: React.FC<AssistantPreviewBubbleProps> = ({
             {!message.isTypingCompleted ? <Text style={styles.assistantTypingCursor}> ▌</Text> : null}
           </Text>
         </TouchableOpacity>
+        <View style={styles.assistantMetaRow}>
+          <Text style={styles.assistantTimeText}>{message.time}</Text>
+          {message.syncStatus === 'synced' ? (
+            <Ionicons name="checkmark-done" size={13} color="#B388FF" style={styles.syncIcon} />
+          ) : (
+            <Ionicons name="time-outline" size={12} color="#D1C4E9" style={styles.syncIcon} />
+          )}
+        </View>
         {message.isTypingCompleted && onContinue ? (
           <TouchableOpacity
             activeOpacity={0.82}
@@ -950,6 +972,73 @@ export default function ChatScreen({
     setVisibleMessageCount(message.sender === 'mascot' ? 2 : 1);
   }, []);
 
+  const [isDownloadingCloud, setIsDownloadingCloud] = useState(false);
+
+  /** Lưu tin nhắn vào local SQLite và tự động kích hoạt batch sync khi tích lũy đủ 10 tin pending */
+  const recordAndCheckPendingMessage = useCallback(async (msg: MessageItem) => {
+    try {
+      const session = await ensureMainUserChatSession(chatHistoryOwner);
+      const localMsg: LocalChatMessage = {
+        id: msg.id,
+        sessionId: session.id,
+        turnIndex: 0,
+        sender: msg.sender,
+        text: msg.text,
+        cardPayload: msg.card || null,
+        syncStatus: 'pending',
+        createdAt: new Date(msg.createdAt || Date.now()).toISOString(),
+        syncedAt: null,
+      };
+      await upsertLocalChatMessage(localMsg);
+
+      // Kiểm tra nếu đủ 10 tin nhắn pending thì kích hoạt batch sync
+      const syncResult = await syncPendingMessagesBatch(PENDING_SYNC_THRESHOLD);
+      if (syncResult.success && syncResult.syncedCount > 0) {
+        setMessages((current) => current.map((m) => ({
+          ...m,
+          syncStatus: 'synced',
+        })));
+      }
+    } catch (e) {
+      console.warn('[ChatScreen] Could not record local message or batch sync:', e);
+    }
+  }, [chatHistoryOwner]);
+
+  /** Tải về toàn bộ hồ sơ và tin nhắn từ server về app */
+  const handleDownloadAllData = useCallback(async () => {
+    if (!user) {
+      Alert.alert(
+        l('Cần đăng nhập', 'Sign in required'),
+        l('Vui lòng đăng nhập để tải toàn bộ dữ liệu từ máy chủ.', 'Please sign in to download all data from server.')
+      );
+      return;
+    }
+    setIsDownloadingCloud(true);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const res = await downloadAndSyncAllUserData();
+      const refreshed = await loadChatHistory(chatHistoryOwner);
+      setMessages(refreshed);
+      setVisibleMessageCount(getLatestConversationCount(refreshed));
+      Alert.alert(
+        l('Tải về thành công', 'Download successful'),
+        l(
+          `Đã tải về toàn bộ ${res.profilesCount} hồ sơ và ${res.messagesCount} tin nhắn từ máy chủ.`,
+          `Successfully downloaded ${res.profilesCount} profiles and ${res.messagesCount} messages from server.`
+        )
+      );
+    } catch (err) {
+      console.warn('[ChatScreen] Full download error:', err);
+      Alert.alert(
+        l('Không thể tải về', 'Download failed'),
+        l('Đã có lỗi khi tải dữ liệu từ máy chủ. Vui lòng thử lại sau.', 'Could not download data from server. Please try again.')
+      );
+    } finally {
+      setIsDownloadingCloud(false);
+    }
+  }, [chatHistoryOwner, user, l]);
+
+
   const openRawReading = useCallback((message: MessageItem) => {
     if (message.sender !== 'mascot' || (!message.isTypingCompleted && !isCompatibilityMessage(message))) return;
     const messageIndex = messages.findIndex((item) => item.id === message.id);
@@ -1053,6 +1142,28 @@ export default function ChatScreen({
       setFlippedCards(getRestoredFlippedCards(restoredHistory));
       setHydratedHistoryOwner(chatHistoryOwner);
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 0);
+
+      // Tự động tải tin nhắn từ server về app khi đã đăng nhập (Cloud -> Local)
+      if (chatHistoryOwner !== 'guest') {
+        void downloadAllCloudChatData(chatHistoryOwner).then((result) => {
+          if (!isCurrentOwner) return;
+          if (result.messagesCount > 0) {
+            void loadChatHistory(chatHistoryOwner).then((cloudMergedHistory) => {
+              if (!isCurrentOwner) return;
+              const refreshedHistory = cloudMergedHistory as MessageItem[];
+              setMessages(refreshedHistory);
+              setVisibleMessageCount(getLatestConversationCount(refreshedHistory));
+              setFlippedCards(getRestoredFlippedCards(refreshedHistory));
+              setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+            });
+          }
+        }).catch((err) => {
+          console.warn('[ChatScreen] Auto cloud chat download error:', err);
+        });
+
+        // Kiểm tra và đẩy các tin nhắn pending tích lũy nếu đạt ngưỡng 10 tin
+        void syncPendingMessagesBatch(PENDING_SYNC_THRESHOLD).catch(() => {});
+      }
     });
 
     return () => {
@@ -1494,9 +1605,11 @@ export default function ChatScreen({
       time: new Date(turnCreatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
       turnId,
       createdAt: turnCreatedAt,
+      syncStatus: 'pending',
     };
 
     appendMessage(userMsg);
+    void recordAndCheckPendingMessage(userMsg);
     setInputVal('');
 
     // Màu hợp mệnh là trải nghiệm cá nhân. Với hai hồ sơ, giữ lại đúng câu
@@ -1585,15 +1698,18 @@ export default function ChatScreen({
     // không tính chỉ số, không rút Tarot và không gọi thêm /agent.
     if (decision.intent === 'trash') {
       setMascotState('explain');
-      appendMessage({
+      const trashMsg: MessageItem = {
         id: `mascot-${Date.now()}`,
         sender: 'mascot',
         text: decision.replyText || l('Câu hỏi của bạn chưa có chủ đề rõ ràng. Bạn có thể cho Tiểu Linh Miêu biết điều bạn đang muốn tìm hiểu không?', 'Your question does not have a clear topic yet. What would you like to explore?'),
         time: new Date().toLocaleTimeString(locale === 'en' ? 'en-US' : 'vi-VN', { hour: '2-digit', minute: '2-digit' }),
         turnId,
         createdAt: Date.now(),
-        isTypingCompleted: false
-      });
+        isTypingCompleted: false,
+        syncStatus: 'pending',
+      };
+      appendMessage(trashMsg);
+      void recordAndCheckPendingMessage(trashMsg);
       setLoading(false);
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
       setTimeout(() => setMascotState('idle'), 6000);
@@ -1608,7 +1724,7 @@ export default function ChatScreen({
       const selectedContext = await requestPlaceContext();
       if (!selectedContext) {
         setMascotState('explain');
-        appendMessage({
+        const placeMsg: MessageItem = {
           id: `mascot-${Date.now()}`,
           sender: 'mascot',
           text: l('✦ TIỂU LINH MIÊU CẦN VỊ TRÍ HIỆN TẠI:\nĐể lọc địa điểm theo khoảng cách thực tế, bạn hãy cho phép dùng vị trí một lần nhé.', '✦ LITTLE SPIRIT CAT NEEDS YOUR CURRENT LOCATION:\nAllow one-time location access so places can be filtered by real distance.'),
@@ -1616,7 +1732,10 @@ export default function ChatScreen({
           turnId,
           createdAt: Date.now(),
           isTypingCompleted: false,
-        });
+          syncStatus: 'pending',
+        };
+        appendMessage(placeMsg);
+        void recordAndCheckPendingMessage(placeMsg);
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
         setTimeout(() => setMascotState('idle'), 6000);
         return;
@@ -1754,8 +1873,10 @@ export default function ChatScreen({
         turnId,
         createdAt: tarotMessageCreatedAt,
         isTypingCompleted: decision.mode === 'compatibility' || drawnCards.length > 0,
+        syncStatus: 'pending',
       };
       appendMessage(mascotMsg);
+      void recordAndCheckPendingMessage(mascotMsg);
 
       if (decision.mode === 'compatibility') openCompatibilityDetail(mascotMsg, prompt);
       if (drawnCards.length > 0) {
@@ -1785,7 +1906,8 @@ export default function ChatScreen({
         time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
         turnId,
         createdAt: tarotMessageCreatedAt,
-        isTypingCompleted: decision.mode === 'compatibility' || drawnCards.length > 0
+        isTypingCompleted: decision.mode === 'compatibility' || drawnCards.length > 0,
+        syncStatus: 'pending',
       };
       setMessages((current) => {
         const alreadyStarted = current.some((item) => item.id === tarotMessageId);
@@ -1793,6 +1915,7 @@ export default function ChatScreen({
           ? current.map((item) => item.id === tarotMessageId ? mascotMsg : item)
           : orderChatHistoryMessages([...current, mascotMsg]).slice(-MAX_STORED_CHAT_MESSAGES);
       });
+      void recordAndCheckPendingMessage(mascotMsg);
       setVisibleMessageCount(2);
 
       if (decision.mode === 'compatibility') {
@@ -2335,7 +2458,19 @@ export default function ChatScreen({
         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
       >
         <View style={styles.numelyraHeader}>
-          <View style={styles.headerSideSpacer} />
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={l('Tải toàn bộ dữ liệu từ máy chủ', 'Download all data from server')}
+            disabled={isDownloadingCloud}
+            onPress={handleDownloadAllData}
+            style={styles.headerCircleBtn}
+          >
+            {isDownloadingCloud ? (
+              <ActivityIndicator size="small" color="#E0AAFF" />
+            ) : (
+              <Ionicons name="cloud-download-outline" size={20} color="#E0AAFF" />
+            )}
+          </TouchableOpacity>
           <View style={styles.headerTitleWrap}>
             <Text style={styles.numelyraBrandTitle}>Numelyra</Text>
             <MonthlyChatQuotaBar
@@ -2382,6 +2517,14 @@ export default function ChatScreen({
                   style={styles.userTimelineBubble}
                 >
                   <Text style={styles.userTimelineText}>{item.text}</Text>
+                  <View style={styles.userMetaRow}>
+                    <Text style={styles.userTimeText}>{item.time}</Text>
+                    {item.syncStatus === 'synced' ? (
+                      <Ionicons name="checkmark-done" size={13} color="#E9D5FF" style={styles.syncIcon} />
+                    ) : (
+                      <Ionicons name="time-outline" size={12} color="#D1C4E9" style={styles.syncIcon} />
+                    )}
+                  </View>
                 </LinearGradient>
               </View>
             ) : (
@@ -4334,4 +4477,31 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
   },
+  userMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: 4,
+    gap: 4,
+  },
+  userTimeText: {
+    fontSize: 10,
+    color: 'rgba(235, 220, 255, 0.75)',
+  },
+  assistantMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: 4,
+    paddingHorizontal: 4,
+    gap: 4,
+  },
+  assistantTimeText: {
+    fontSize: 10,
+    color: 'rgba(200, 190, 225, 0.7)',
+  },
+  syncIcon: {
+    marginLeft: 2,
+  },
 });
+

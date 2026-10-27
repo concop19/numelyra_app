@@ -24,6 +24,8 @@ interface ProfileContextValue {
 
 const ProfileContext = createContext<ProfileContextValue | undefined>(undefined);
 
+let isSetPrimaryRpcSupported = true;
+
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const { user, isReady: isAuthReady, syncLocalProfiles } = useAuth();
   const [isReady, setIsReady] = useState(false);
@@ -74,8 +76,14 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     let synced = !user;
     if (user && supabase) {
       try {
-        const { error } = await supabase.rpc('set_primary_numerology_profile', { profile_id: id });
-        if (error) throw error;
+        if (isSetPrimaryRpcSupported) {
+          const { error } = await supabase.rpc('set_primary_numerology_profile', { profile_id: id });
+          if (error) {
+            if (error.code === 'PGRST202' || (error as any).status === 404) {
+              isSetPrimaryRpcSupported = false;
+            }
+          }
+        }
         const { error: accountError } = await supabase.from('profiles').upsert({
           id: user.id,
           email: user.email || null,
