@@ -27,13 +27,16 @@ jest.mock('../db/chatDatabaseService', () => ({
 }));
 
 jest.mock('./chatHistoryStorage', () => ({
+  mergeCloudChatHistory: jest.fn(),
   updateMessagesSyncStatus: jest.fn(),
   replaceChatHistory: jest.fn(),
 }));
 
 jest.mock('../store/userProfile', () => ({
+  clearLocalProfiles: jest.fn().mockResolvedValue(undefined),
   loadAllProfiles: jest.fn().mockResolvedValue([]),
   saveAllProfiles: jest.fn().mockResolvedValue(undefined),
+  setProfileCacheOwnerId: jest.fn().mockResolvedValue(undefined),
   setPrimaryProfileId: jest.fn().mockResolvedValue(undefined),
   isProfileGender: jest.fn((g) => g === 'male' || g === 'female'),
   isMissingPrimaryColumnError: jest.fn(() => false),
@@ -234,7 +237,7 @@ describe('chatSessionSyncService - 10-message batch sync & full download', () =>
 
     expect(result).toEqual({ sessionsCount: 1, messagesCount: 2 });
     expect(chatDb.bulkHydrateChatData).toHaveBeenCalled();
-    expect(chatHistory.replaceChatHistory).toHaveBeenCalledWith(
+    expect(chatHistory.mergeCloudChatHistory).toHaveBeenCalledWith(
       'test-user-123',
       expect.arrayContaining([
         expect.objectContaining({ id: 'msg-1', syncStatus: 'synced' }),

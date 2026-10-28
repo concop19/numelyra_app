@@ -21,14 +21,13 @@ import {
   type StoredChatMessage,
 } from './chatHistoryStorage';
 import {
-  isMissingGenderColumnError,
-  isMissingPrimaryColumnError,
-  isProfileGender,
-  loadAllProfiles,
+  clearLocalProfiles,
   saveAllProfiles,
+  setProfileCacheOwnerId,
   setPrimaryProfileId,
   type ProfileItem,
 } from '../store/userProfile';
+import { cloudRowToProfileItem, type CloudNumerologyProfileRow } from './profileSync';
 import { supabase } from './supabaseClient';
 
 export const PENDING_SYNC_THRESHOLD = 10;
@@ -294,40 +293,18 @@ export async function downloadAllCloudProfiles(user?: User | null): Promise<Prof
     return [];
   }
 
-  const downloadedItems: ProfileItem[] = remoteProfiles.map((r: any) => ({
-    id: r.id,
-    fullName: r.name,
-    birthDate: r.birth_date,
-    gender: isProfileGender(r.gender) ? r.gender : undefined,
-    isPrimary: 'is_primary' in r && r.is_primary === true,
-  }));
-
-  const localProfiles = await loadAllProfiles();
-  const identityKey = (p: Pick<ProfileItem, 'fullName' | 'birthDate'>) =>
-    `${p.fullName.trim().toLocaleLowerCase('vi-VN')}|${p.birthDate}`;
-
-  const mergedMap = new Map<string, ProfileItem>();
-  for (const item of downloadedItems) {
-    mergedMap.set(identityKey(item), item);
-  }
-  for (const item of localProfiles) {
-    const key = identityKey(item);
-    if (mergedMap.has(key)) {
-      const existing = mergedMap.get(key)!;
-      mergedMap.set(key, { ...item, ...existing, gender: item.gender || existing.gender });
-    } else {
-      mergedMap.set(key, item);
-    }
-  }
-
-  const unified = Array.from(mergedMap.values());
-  if (unified.length > 0) {
-    await saveAllProfiles(unified);
-    const primary = unified.find((p) => p.isPrimary) || unified[0];
+  const downloadedItems = (remoteProfiles as CloudNumerologyProfileRow[]).map(cloudRowToProfileItem);
+  if (downloadedItems.length > 0) {
+    await saveAllProfiles(downloadedItems);
+    await setProfileCacheOwnerId(currentUser.id);
+    const primary = downloadedItems.find((p) => p.isPrimary) || downloadedItems[0];
     await setPrimaryProfileId(primary.id, { pendingCloudSync: false });
+  } else {
+    await clearLocalProfiles();
+    await setProfileCacheOwnerId(currentUser.id);
   }
 
-  return unified;
+  return downloadedItems;
 }
 
 /** Tải toàn bộ phiên trò chuyện và tin nhắn từ máy chủ về máy cục bộ */

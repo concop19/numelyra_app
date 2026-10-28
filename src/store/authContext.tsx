@@ -5,18 +5,28 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 
 import {
+  clearLocalProfiles,
   ensurePrimaryProfileId,
+  getProfileCacheOwnerId,
   getPrimaryProfileState,
+  isMissingProfileDetailColumnError,
   loadAllProfiles,
   markPrimaryProfileSynced,
   saveAllProfiles,
   isMissingGenderColumnError,
-  isMissingPrimaryColumnError,
-  isProfileGender,
+  setProfileCacheOwnerId,
   setPrimaryProfileId,
   type ProfileItem
 } from './userProfile';
 import { isSupabaseConfigured, supabase } from '../services/supabaseClient';
+import {
+  cloudRowToProfileItem,
+  isCloudProfileId,
+  mergeCloudAndLocalProfiles,
+  profileIdentityKey,
+  profileItemToCloudPayload,
+  type CloudNumerologyProfileRow,
+} from '../services/profileSync';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -41,123 +51,154 @@ const configurationError = () => new Error(
 );
 
 let isSetPrimaryRpcSupported = true;
+const profileSyncInFlight = new Map<string, Promise<void>>();
+let profileSyncQueue: Promise<void> = Promise.resolve();
+let activeProfileSyncUserId: string | null = null;
+let profileSyncGeneration = 0;
 
 async function syncProfilesForUser(user: User): Promise<void> {
   if (!supabase) return;
 
+  if (activeProfileSyncUserId !== user.id) {
+    activeProfileSyncUserId = user.id;
+    profileSyncGeneration += 1;
+  }
+  const generation = profileSyncGeneration;
+
+  const existing = profileSyncInFlight.get(user.id);
+  if (existing) return existing;
+
+  const promise = profileSyncQueue.then(() => syncProfilesForUserInternal(user, generation)).finally(() => {
+    if (profileSyncInFlight.get(user.id) === promise) profileSyncInFlight.delete(user.id);
+  });
+  profileSyncQueue = promise.catch(() => undefined);
+  profileSyncInFlight.set(user.id, promise);
+  return promise;
+}
+
+async function syncProfilesForUserInternal(user: User, generation: number): Promise<void> {
+  if (!supabase) return;
   try {
-    const localProfiles = await loadAllProfiles();
+    const cacheOwnerId = await getProfileCacheOwnerId();
+    const canClaimLocalProfiles = cacheOwnerId === null || cacheOwnerId === user.id;
+    if (cacheOwnerId && cacheOwnerId !== user.id) {
+      await clearLocalProfiles();
+    }
+
+    const localProfiles = canClaimLocalProfiles ? await loadAllProfiles() : [];
     const localPrimaryId = await ensurePrimaryProfileId(localProfiles);
     const localPrimaryState = await getPrimaryProfileState();
     const localPrimary = localProfiles.find((profile) => profile.id === localPrimaryId) ?? localProfiles[0];
-    const identityKey = (profile: Pick<ProfileItem, 'fullName' | 'birthDate'>) => (
-      `${profile.fullName.trim().toLocaleLowerCase('vi-VN')}|${profile.birthDate}`
-    );
 
-    // 1. Kéo toàn bộ hồ sơ đám mây từ Supabase về (Cloud -> Local) an toàn bằng select('*').
+    // 1. Pull every cloud profile. RLS limits this result to the signed-in user.
     const { data: remoteProfiles, error: selectError } = await supabase
       .from('user_numerology_profiles')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
     if (selectError) throw selectError;
+    if (generation !== profileSyncGeneration || activeProfileSyncUserId !== user.id) return;
 
-    const remoteItems: ProfileItem[] = (remoteProfiles || []).map((r: any) => {
-      const remoteGender = 'gender' in r ? r.gender : undefined;
-      return {
-        id: r.id,
-        fullName: r.name,
-        birthDate: r.birth_date,
-        gender: isProfileGender(remoteGender) ? remoteGender : undefined,
-        isPrimary: 'is_primary' in r && r.is_primary === true,
-      };
-    });
+    let remoteItems = ((remoteProfiles || []) as CloudNumerologyProfileRow[])
+      .map(cloudRowToProfileItem);
+    let mergeResult = mergeCloudAndLocalProfiles(remoteItems, localProfiles, canClaimLocalProfiles);
 
-    // 2. Tìm các hồ sơ ở máy cục bộ chưa có trên Cloud để đẩy lên (Local -> Cloud).
-    const remoteKeySet = new Set(
-      remoteItems.map(identityKey)
-    );
-    const localOnlyProfiles = localProfiles.filter((p: ProfileItem) =>
-      !remoteKeySet.has(identityKey(p))
-    );
-
-    if (localOnlyProfiles.length > 0) {
+    // 2. Upload only explicit offline/guest creations. UUID rows missing from
+    // cloud are treated as remotely deleted and must not be resurrected.
+    if (mergeResult.pendingLocalCreates.length > 0) {
       let { data: insertedData, error: insertError } = await supabase
         .from('user_numerology_profiles')
-        .insert(
-          localOnlyProfiles.map((p) => ({
+        .insert(mergeResult.pendingLocalCreates.map((profile) => profileItemToCloudPayload(profile, user.id)))
+        .select('*');
+
+      if (insertError && isMissingProfileDetailColumnError(insertError)) {
+        const coreInsert = await supabase
+          .from('user_numerology_profiles')
+          .insert(mergeResult.pendingLocalCreates.map((profile) => ({
             user_id: user.id,
-            name: p.fullName,
-            birth_date: p.birthDate,
-            gender: p.gender,
-          }))
-        )
-        .select('id, name, birth_date, gender');
+            name: profile.fullName,
+            birth_date: profile.birthDate,
+            gender: profile.gender,
+          })))
+          .select('*');
+        insertedData = coreInsert.data;
+        insertError = coreInsert.error;
+      }
 
       if (insertError && isMissingGenderColumnError(insertError)) {
         const legacyInsert = await supabase
           .from('user_numerology_profiles')
           .insert(
-            localOnlyProfiles.map((p) => ({
+            mergeResult.pendingLocalCreates.map((p) => ({
               user_id: user.id,
               name: p.fullName,
               birth_date: p.birthDate,
             }))
           )
-          .select('id, name, birth_date');
+          .select('*');
         insertedData = legacyInsert.data as typeof insertedData;
         insertError = legacyInsert.error;
       }
 
       if (!insertError && insertedData) {
-        insertedData.forEach((ins) => {
-          const localMatch = localOnlyProfiles.find((profile) => (
-            profile.fullName === ins.name && profile.birthDate === ins.birth_date
-          ));
-          const insertedGender = 'gender' in ins ? ins.gender : undefined;
-          remoteItems.unshift({
-            id: ins.id,
-            fullName: ins.name,
-            birthDate: ins.birth_date,
-            gender: isProfileGender(insertedGender) ? insertedGender : localMatch?.gender,
-          });
-        });
+        remoteItems = [
+          ...(insertedData as CloudNumerologyProfileRow[]).map(cloudRowToProfileItem),
+          ...remoteItems,
+        ];
+        mergeResult = mergeCloudAndLocalProfiles(remoteItems, localProfiles, true);
+      } else if (insertError) {
+        console.warn('[Auth] Offline profiles remain queued locally:', insertError);
       }
     }
 
-    // 3. Hợp nhất hai nguồn, giữ UUID cloud và remap primary local theo identity.
-    const mergedMap = new Map<string, ProfileItem>();
-    for (const item of remoteItems) {
-      mergedMap.set(identityKey(item), item);
-    }
-    for (const item of localProfiles) {
-      const key = identityKey(item);
-      if (mergedMap.has(key)) {
-        const existing = mergedMap.get(key)!;
-        mergedMap.set(key, {
-          ...item,
-          ...existing,
-          birthTime: item.birthTime || existing.birthTime,
-          birthPlace: item.birthPlace || existing.birthPlace,
-          birthLocation: item.birthLocation || existing.birthLocation,
-          birthTimeAccuracy: item.birthTimeAccuracy || existing.birthTimeAccuracy,
-          gender: item.gender || existing.gender,
-          isPrimary: existing.isPrimary ?? item.isPrimary,
-        });
-      } else {
-        mergedMap.set(key, item);
-      }
-    }
+    // 3. Atomically replace the active cache with this account's resolved set.
+    const unifiedProfiles = mergeResult.profiles;
+    if (generation !== profileSyncGeneration || activeProfileSyncUserId !== user.id) return;
 
-    const unifiedProfiles = Array.from(mergedMap.values());
+    // Backfill portable details from an existing installation after the schema
+    // migration. This makes those fields available to the next fresh device.
+    const remoteById = new Map(remoteItems.map((profile) => [profile.id, profile]));
+    const detailBackfills = unifiedProfiles.filter((profile) => {
+      if (!isCloudProfileId(profile.id)) return false;
+      const remote = remoteById.get(profile.id);
+      if (!remote) return false;
+      return Boolean(
+        (!remote.birthTime && profile.birthTime)
+        || (!remote.birthPlace && profile.birthPlace)
+        || (!remote.birthLocation && profile.birthLocation)
+        || (!remote.birthTimeAccuracy && profile.birthTimeAccuracy)
+      );
+    });
+    await Promise.all(detailBackfills.map(async (profile) => {
+      const { error } = await supabase!
+        .from('user_numerology_profiles')
+        .update({
+          birth_time: profile.birthTime || null,
+          birth_place: profile.birthPlace || null,
+          birth_location: profile.birthLocation || null,
+          birth_time_accuracy: profile.birthTimeAccuracy || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', profile.id)
+        .eq('user_id', user.id);
+      if (error && !isMissingProfileDetailColumnError(error)) {
+        console.warn('[Auth] Could not backfill portable profile details:', error);
+      }
+    }));
+
+    await saveAllProfiles(unifiedProfiles);
+    await setProfileCacheOwnerId(user.id);
+
     if (unifiedProfiles.length > 0) {
-      await saveAllProfiles(unifiedProfiles);
-
       const mappedLocalPrimary = localPrimary
-        ? unifiedProfiles.find((profile) => identityKey(profile) === identityKey(localPrimary))
+        ? unifiedProfiles.find((profile) => profileIdentityKey(profile) === profileIdentityKey(localPrimary))
         : undefined;
       const cloudPrimary = unifiedProfiles.find((profile) => profile.isPrimary);
-      const shouldPushLocalPrimary = localPrimaryState?.pendingCloudSync === true || !cloudPrimary;
+      const shouldPushLocalPrimary = (
+        canClaimLocalProfiles
+        && localPrimaryState?.pendingCloudSync === true
+        && Boolean(mappedLocalPrimary)
+      ) || !cloudPrimary;
       const chosenPrimary = shouldPushLocalPrimary
         ? mappedLocalPrimary ?? cloudPrimary ?? unifiedProfiles[0]
         : cloudPrimary ?? mappedLocalPrimary ?? unifiedProfiles[0];
@@ -189,6 +230,8 @@ async function syncProfilesForUser(user: User): Promise<void> {
         updated_at: new Date().toISOString(),
       }, { onConflict: 'id' });
       if (accountError) throw accountError;
+    } else {
+      await clearLocalProfiles({ preserveOwner: true });
     }
   } catch (error) {
     console.warn('[Auth] Could not sync local profiles with Supabase:', error);
@@ -284,7 +327,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (active) setIsReady(true);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (event === 'SIGNED_OUT') {
+        activeProfileSyncUserId = null;
+        profileSyncGeneration += 1;
+        profileSyncInFlight.clear();
+        void clearLocalProfiles().finally(() => setSession(null));
+        return;
+      }
       setSession(nextSession);
       if (nextSession?.user) void syncProfilesForUser(nextSession.user);
     });
@@ -321,6 +371,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!supabase) return;
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      activeProfileSyncUserId = null;
+      profileSyncGeneration += 1;
+      profileSyncInFlight.clear();
+      await clearLocalProfiles();
     },
     async signInWithGoogle() {
       await performGoogleSignIn();

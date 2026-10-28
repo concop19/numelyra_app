@@ -6,13 +6,16 @@ jest.mock('../services/supabaseClient', () => ({ supabase: null }));
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   addProfile,
+  clearLocalProfiles,
   ensurePrimaryProfileId,
+  getProfileCacheOwnerId,
   getPrimaryProfileId,
   getPrimaryProfileState,
   loadAllProfiles,
   profileItemToUserProfile,
   saveAllProfiles,
   saveProfile,
+  setProfileCacheOwnerId,
   setPrimaryProfileId,
 } from './userProfile';
 
@@ -74,5 +77,19 @@ describe('primary profile storage', () => {
     });
     expect(profile).not.toBeNull();
     expect(profile?.gender).toBe('female');
+  });
+
+  it('clears account-scoped profile data on sign-out', async () => {
+    await saveAllProfiles([
+      { id: 'self', fullName: 'Minh Anh', birthDate: '1998-10-20', gender: 'female' },
+    ]);
+    await setPrimaryProfileId('self', { pendingCloudSync: false });
+    await setProfileCacheOwnerId('user-a');
+
+    await clearLocalProfiles();
+
+    await expect(loadAllProfiles()).resolves.toEqual([]);
+    await expect(getPrimaryProfileId()).resolves.toBeNull();
+    await expect(getProfileCacheOwnerId()).resolves.toBeNull();
   });
 });

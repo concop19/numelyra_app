@@ -3,7 +3,9 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { supabase } from '../services/supabaseClient';
 import { useAuth } from './authContext';
 import {
+  clearLocalProfiles,
   ensurePrimaryProfileId,
+  getProfileCacheOwnerId,
   loadAllProfiles,
   markPrimaryProfileSynced,
   profileItemToUserProfile,
@@ -44,7 +46,13 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     let mounted = true;
     setIsReady(false);
     void (async () => {
-      if (user) await syncLocalProfiles();
+      if (user) {
+        await syncLocalProfiles();
+      } else if (await getProfileCacheOwnerId()) {
+        // An authenticated cache must never silently become guest data after
+        // a session expires or a different person opens the app.
+        await clearLocalProfiles();
+      }
       const nextProfiles = await loadAllProfiles();
       const nextPrimaryId = await ensurePrimaryProfileId(nextProfiles);
       if (!mounted) return;
