@@ -43,6 +43,9 @@ export interface RequestFortuneSlipOptions {
   recentCaDao?: Array<{ id?: number; content: string }>;
   caDaoMode?: 'daily' | 'random';
   customCaDao?: CaDaoItem;
+  profileKey?: string;
+  localDate?: string;
+  requestId?: string;
 }
 
 export interface AstrologyRuleRequestContext {
@@ -77,6 +80,9 @@ export interface AstroFortuneRequestPayload {
   recentAdvice?: string[];
   userContext?: string;
   ruleContext?: AstrologyRuleRequestContext;
+  profileKey?: string;
+  localDate?: string;
+  requestId?: string;
 }
 
 type RuleContextCapability = 'unknown' | 'supported' | 'legacy';
@@ -175,6 +181,9 @@ export function buildAstroFortuneRequestPayload(
     ? makeAstrologyRuleRequestContext(options.astroMetadata?.ruleEvaluation)
     : undefined;
   return {
+    profileKey: options.profileKey,
+    localDate: options.localDate,
+    requestId: options.requestId,
     locale: options.locale ?? 'vi',
     caDaoSample: sampleText,
     caDaoCategory: sampleCategory,

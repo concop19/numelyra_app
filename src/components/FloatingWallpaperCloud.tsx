@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Image, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Animated, Easing, Image, Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 const CLOUD_SPRITE = require('../../assets/giao_dien/giaodien1/wallpaper_asset/decorate/Dreamy Sunset Cloud Animation Frames.png');
 
@@ -45,7 +45,7 @@ export default function FloatingWallpaperCloud({
       toValue: screenWidth + 24,
       duration: driftDurationMs,
       easing: Easing.linear,
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
       isInteraction: false,
     });
     const drift = Animated.loop(

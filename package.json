@@ -16,12 +16,13 @@
     "@shopify/react-native-skia": "2.6.2",
     "@supabase/supabase-js": "^2.116.0",
     "astronomy-engine": "^2.1.19",
-    "expo": "~57.0.25",
+    "expo": "~57.0.31",
     "expo-asset": "^57.0.17",
     "expo-audio": "~57.0.5",
     "expo-file-system": "^57.0.7",
     "expo-font": "~57.0.4",
     "expo-haptics": "~57.0.3",
+    "expo-iap": "^6.2.0",
     "expo-image": "~57.0.5",
     "expo-linear-gradient": "~57.0.2",
     "expo-linking": "~57.0.11",
@@ -79,7 +80,7 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "testRegex": "(src/services/(agentDecisionEngine|chatNumerologyContextService|colorGuidance|chatHistoryStorage|chatStreamClient|dailyNotifications|ttsService|lunarService|numerologyKnowledge|numerologySummaryService|numerologyCatalogValidation|tarotService|astro/.*|activityRuleEngine)|src/db/numerologyKnowledgeService|src/features/constellation/constellationGeometry|src/features/astrology/dailyAstroFortune|src/features/daily-insight/dailyInsight|src/components/chat/mascotVisualLayout|src/i18n/(LocalizationContext|translations))\\.test\\.ts$"
+    "testRegex": "(src/services/(agentDecisionEngine|chatNumerologyContextService|colorGuidance|chatHistoryStorage|chatSessionSyncService|chatStreamClient|dailyNotifications|ttsService|lunarService|numerologyKnowledge|numerologySummaryService|numerologyCatalogValidation|tarotService|astro/.*|activityRuleEngine)|src/db/numerologyKnowledgeService|src/store/userProfile|src/features/constellation/constellationGeometry|src/features/astrology/dailyAstroFortune|src/features/daily-insight/(dailyInsight|dailyProfile)|src/components/chat/mascotVisualLayout|src/i18n/(LocalizationContext|translations))\\.test\\.ts$"
   },
   "private": true
 }

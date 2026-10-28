@@ -14,6 +14,7 @@ import {
 } from '../../services/astro/astroFortuneService';
 import {
   formatLocalDateKey,
+  getAstrologyProfileFingerprint,
   loadCachedAstroFortune,
   loadRecentAstroAdvice,
   loadRecentAstroCaDao,
@@ -29,8 +30,13 @@ export interface DailyAstroFortuneState {
   loading: boolean;
   error: string | null;
   calculationError: string | null;
-  retry(): Promise<void>;
+  retry(): Promise<AstroFortuneSlip | null>;
   share(): Promise<void>;
+}
+
+interface PendingFortuneRequest {
+  key: string;
+  promise: Promise<AstroFortuneSlip | null>;
 }
 
 function createAstroMetadata(profile: UserProfile, date: Date) {
@@ -43,14 +49,23 @@ function createAstroMetadata(profile: UserProfile, date: Date) {
   }, date).metadata;
 }
 
-export function useDailyAstroFortune(profile?: UserProfile | null): DailyAstroFortuneState {
+export function useDailyAstroFortune(profile?: UserProfile | null, profileId?: string | null): DailyAstroFortuneState {
   const { locale } = useLocalization();
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [fortune, setFortune] = useState<AstroFortuneSlip | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const requestVersion = useRef(0);
+  const activeRequestKey = useRef('');
+  const hydrationRequest = useRef<PendingFortuneRequest | null>(null);
+  const generationRequest = useRef<PendingFortuneRequest | null>(null);
+  const cacheProfile = useMemo(() => profile ? { ...profile, id: profileId } : null, [
+    profile,
+    profileId,
+  ]);
   const localDateKey = formatLocalDateKey(currentDate);
+  const requestKey = `${locale}:${localDateKey}:${getAstrologyProfileFingerprint(cacheProfile)}`;
+  activeRequestKey.current = requestKey;
 
   const localAstro = useMemo(() => {
     if (!profile?.fullName || !profile.birthDate) {
@@ -80,7 +95,7 @@ export function useDailyAstroFortune(profile?: UserProfile | null): DailyAstroFo
   ]);
   const metadata = localAstro.metadata;
 
-  const fetchFortune = useCallback(async (allowCache: boolean) => {
+  const hydrateCachedFortune = useCallback(async (): Promise<AstroFortuneSlip | null> => {
     const version = ++requestVersion.current;
     setLoading(true);
     setError(null);
@@ -88,29 +103,57 @@ export function useDailyAstroFortune(profile?: UserProfile | null): DailyAstroFo
     if (!metadata) {
       setFortune(null);
       setLoading(false);
-      return;
+      return null;
     }
 
     try {
-      if (allowCache) {
-        const cached = await loadCachedAstroFortune(AsyncStorage, currentDate, profile, locale);
-        if (cached) {
-          const refreshed = refreshCachedAstroMetadata(cached.fortune, metadata);
-          if (refreshed.metadataChanged) {
-            try {
-              await saveCachedAstroFortune(AsyncStorage, currentDate, profile, refreshed.fortune, locale);
-            } catch {
-              // Cache migration should never prevent a valid fortune from rendering.
-            }
-          }
-          if (requestVersion.current === version) setFortune(refreshed.fortune);
-          return;
+      const cached = await loadCachedAstroFortune(AsyncStorage, currentDate, cacheProfile, locale);
+      if (!cached) return null;
+
+      const refreshed = refreshCachedAstroMetadata(cached.fortune, metadata);
+      if (refreshed.metadataChanged) {
+        try {
+          await saveCachedAstroFortune(AsyncStorage, currentDate, cacheProfile, refreshed.fortune, locale);
+        } catch {
+          // Cache migration should never prevent a valid fortune from rendering.
         }
       }
+      if (requestVersion.current !== version || activeRequestKey.current !== requestKey) return null;
+      setFortune(refreshed.fortune);
+      return refreshed.fortune;
+    } finally {
+      if (requestVersion.current === version) setLoading(false);
+    }
+  }, [cacheProfile, currentDate, locale, metadata, requestKey]);
 
+  const readCache = useCallback((): Promise<AstroFortuneSlip | null> => {
+    const pending = hydrationRequest.current;
+    if (pending?.key === requestKey) return pending.promise;
+
+    const promise = hydrateCachedFortune();
+    hydrationRequest.current = { key: requestKey, promise };
+    void promise.finally(() => {
+      if (hydrationRequest.current?.promise === promise) hydrationRequest.current = null;
+    });
+    return promise;
+  }, [hydrateCachedFortune, requestKey]);
+
+  const generateFortune = useCallback(async (): Promise<AstroFortuneSlip | null> => {
+    if (activeRequestKey.current !== requestKey) return null;
+    const version = ++requestVersion.current;
+    setLoading(true);
+    setError(null);
+
+    if (!metadata) {
+      setFortune(null);
+      setLoading(false);
+      return null;
+    }
+
+    try {
       const [recentAdvice, recentCaDao] = await Promise.all([
-        loadRecentAstroAdvice(AsyncStorage, currentDate, profile, 7, locale),
-        loadRecentAstroCaDao(AsyncStorage, currentDate, profile, 14, locale),
+        loadRecentAstroAdvice(AsyncStorage, currentDate, cacheProfile, 7, locale),
+        loadRecentAstroCaDao(AsyncStorage, currentDate, cacheProfile, 14, locale),
       ]);
       const result = await requestAstroFortuneSlip({
         locale,
@@ -118,18 +161,21 @@ export function useDailyAstroFortune(profile?: UserProfile | null): DailyAstroFo
         caDaoMode: 'daily',
         recentAdvice,
         recentCaDao,
+        profileKey: getAstrologyProfileFingerprint(cacheProfile),
+        localDate: formatLocalDateKey(currentDate),
+        requestId: `cadao-${getAstrologyProfileFingerprint(cacheProfile)}-${formatLocalDateKey(currentDate)}`,
       });
       result.astroMetadata = metadata;
       try {
-        await saveCachedAstroFortune(AsyncStorage, currentDate, profile, result, locale);
+        await saveCachedAstroFortune(AsyncStorage, currentDate, cacheProfile, result, locale);
       } catch {
         // The freshly loaded result is still useful when local storage is unavailable.
       }
 
-      if (requestVersion.current === version) {
-        setFortune(result);
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      }
+      if (requestVersion.current !== version || activeRequestKey.current !== requestKey) return null;
+      setFortune(result);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      return result;
     } catch (caught) {
       if (requestVersion.current === version) {
         setFortune(null);
@@ -139,27 +185,38 @@ export function useDailyAstroFortune(profile?: UserProfile | null): DailyAstroFo
             : 'Không thể kết nối máy chủ chiêm tinh. Vui lòng thử lại.'
         );
       }
+      return null;
     } finally {
       if (requestVersion.current === version) setLoading(false);
     }
-  }, [
-    currentDate,
-    metadata,
-    locale,
-    profile?.birthDate,
-    profile?.birthLocation?.placeId,
-    profile?.birthTime,
-    profile?.birthTimeAccuracy,
-    profile?.fullName,
-  ]);
+  }, [cacheProfile, currentDate, locale, metadata, requestKey]);
+
+  const ensureFortune = useCallback(async (): Promise<AstroFortuneSlip | null> => {
+    if (fortune) return fortune;
+
+    const cached = await readCache();
+    if (cached) return cached;
+    if (activeRequestKey.current !== requestKey) return null;
+
+    const pending = generationRequest.current;
+    if (pending?.key === requestKey) return pending.promise;
+
+    const promise = generateFortune();
+    generationRequest.current = { key: requestKey, promise };
+    try {
+      return await promise;
+    } finally {
+      if (generationRequest.current?.promise === promise) generationRequest.current = null;
+    }
+  }, [fortune, generateFortune, readCache, requestKey]);
 
   useEffect(() => {
     setFortune(null);
-    void fetchFortune(true);
+    void readCache();
     return () => {
       requestVersion.current += 1;
     };
-  }, [fetchFortune, localDateKey]);
+  }, [readCache]);
 
   useEffect(() => {
     let midnightTimer: ReturnType<typeof setTimeout>;
@@ -175,10 +232,10 @@ export function useDailyAstroFortune(profile?: UserProfile | null): DailyAstroFo
     return () => clearTimeout(midnightTimer);
   }, []);
 
-  const retry = useCallback(async () => {
+  const retry = useCallback(async (): Promise<AstroFortuneSlip | null> => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-    await fetchFortune(false);
-  }, [fetchFortune]);
+    return ensureFortune();
+  }, [ensureFortune]);
 
   const share = useCallback(async () => {
     if (!fortune) return;

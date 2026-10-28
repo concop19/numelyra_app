@@ -1,5 +1,6 @@
 import type { AstroFortuneSlip } from '../../services/astro/astroFortuneService';
 import type { PureAstroFeatureMetadata } from '../../services/astro/astroVectorEngine';
+import { ASTRO_ENGINE_VERSION } from '../../services/astro/astroVersion';
 import {
   formatLocalDateKey,
   getAstroFortuneStorageKey,
@@ -34,6 +35,15 @@ function createStorage(initial: Record<string, string> = {}) {
   return { storage, values };
 }
 
+function hashProfileKey(value: string): string {
+  let hash = 2_166_136_261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16_777_619);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
 describe('daily astrology fortune cache', () => {
   const date = new Date(2026, 9, 5, 23, 45, 0);
   const profile = { fullName: '  An Nguyễn  ', birthDate: '1998-10-20' };
@@ -53,6 +63,50 @@ describe('daily astrology fortune cache', () => {
       .not.toBe(getAstroFortuneStorageKey(date, profile));
     expect(getAstroFortuneStorageKey(date, { ...profile, fullName: 'Bình Trần' }))
       .not.toBe(getAstroFortuneStorageKey(date, profile));
+    expect(getAstroFortuneStorageKey(date, { ...profile, id: 'profile-a' }))
+      .toBe(getAstroFortuneStorageKey(date, { ...profile, id: 'profile-b' }));
+  });
+
+  it('keeps the cache stable when local profile IDs are replaced by cloud IDs', () => {
+    const localProfile = {
+      ...profile,
+      id: 'prof-local',
+      birthTime: '14:30',
+      birthTimeAccuracy: 'exact' as const,
+      birthLocation: { placeId: 'hanoi' },
+    };
+    const cloudProfile = { ...localProfile, id: '54c437a9-4ca7-45c4-a9c7-d238576bfa54' };
+
+    expect(getAstroFortuneStorageKey(date, localProfile))
+      .toBe(getAstroFortuneStorageKey(date, cloudProfile));
+  });
+
+  it('reads and migrates the previous ID-bound v7 cache key', async () => {
+    const idBoundProfile = {
+      ...profile,
+      id: 'profile-a',
+      birthTime: '14:30',
+      birthTimeAccuracy: 'exact' as const,
+      birthLocation: { placeId: 'hanoi' },
+    };
+    const oldFingerprint = hashProfileKey([
+      idBoundProfile.id,
+      idBoundProfile.birthDate,
+      idBoundProfile.birthTime,
+      idBoundProfile.birthLocation.placeId,
+      'exact',
+      'porphyry',
+      ASTRO_ENGINE_VERSION,
+    ].join('|'));
+    const oldKey = `@astro_fortune_v7_vi_${formatLocalDateKey(date)}_${oldFingerprint}`;
+    const currentKey = getAstroFortuneStorageKey(date, idBoundProfile);
+    const { storage, values } = createStorage({ [oldKey]: JSON.stringify(fortune) });
+
+    await expect(loadCachedAstroFortune(storage, date, idBoundProfile)).resolves.toEqual({
+      fortune,
+      currentKey,
+    });
+    expect(JSON.parse(values.get(currentKey)!)).toEqual(fortune);
   });
 
   it('uses locale-aware v7 and invalidates a same-day v5 fortune', async () => {
@@ -123,7 +177,7 @@ describe('daily astrology fortune cache', () => {
     ]);
   });
 
-  it('saves the contextual-ca-dao fortune under the v6 key', async () => {
+  it('saves the contextual-ca-dao fortune under the current v7 key', async () => {
     const { storage, values } = createStorage();
     await saveCachedAstroFortune(storage, date, profile, fortune);
     expect(JSON.parse(values.get(getAstroFortuneStorageKey(date, profile))!)).toEqual(fortune);

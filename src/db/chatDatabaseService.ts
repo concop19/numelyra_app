@@ -289,3 +289,102 @@ export function markChatDataSynced(sessionId: string, messageIds: string[]): Pro
   }));
 }
 
+/** Đếm tổng số tin nhắn đang ở trạng thái pending hoặc failed cần đồng bộ */
+export function getGlobalPendingMessageCount(): Promise<number> {
+  return serialized(async (db) => {
+    const row = await db.getFirstAsync<{ count: number }>(
+      `SELECT COUNT(*) as count FROM chat_messages WHERE sync_status IN ('pending', 'failed')`
+    );
+    return row?.count ?? 0;
+  });
+}
+
+/** Lấy lô tin nhắn pending (mặc định 10 tin nhắn) */
+export function getPendingMessagesBatch(limit: number = 10): Promise<LocalChatMessage[]> {
+  return serialized(async (db) => {
+    const rows = await db.getAllAsync<MessageRow>(
+      `SELECT * FROM chat_messages WHERE sync_status IN ('pending', 'failed') ORDER BY created_at ASC LIMIT ?`,
+      limit
+    );
+    return rows.map(mapMessage);
+  });
+}
+
+/** Đánh dấu thành công (synced) cho danh sách tin nhắn sau khi server xác nhận */
+export function markMessagesBatchSynced(messageIds: string[]): Promise<void> {
+  if (messageIds.length === 0) return Promise.resolve();
+  const now = new Date().toISOString();
+  return serialized((db) => db.withTransactionAsync(async () => {
+    const placeholders = messageIds.map(() => '?').join(',');
+    await db.runAsync(
+      `UPDATE chat_messages SET sync_status='synced', synced_at=? WHERE id IN (${placeholders})`,
+      now,
+      ...messageIds
+    );
+    // Cập nhật session tương ứng nếu tất cả tin nhắn trong session đã sync
+    await db.runAsync(
+      `UPDATE chat_sessions SET sync_status='synced', synced_at=?
+       WHERE id IN (SELECT DISTINCT session_id FROM chat_messages WHERE id IN (${placeholders}))
+         AND id NOT IN (SELECT DISTINCT session_id FROM chat_messages WHERE sync_status IN ('pending', 'failed'))`,
+      now,
+      ...messageIds
+    );
+  }));
+}
+
+/** Nạp (Hydrate) toàn bộ danh sách phiên và tin nhắn từ server về máy cục bộ */
+export function bulkHydrateChatData(
+  sessions: LocalChatSession[],
+  messages: LocalChatMessage[]
+): Promise<void> {
+  return serialized((db) => db.withTransactionAsync(async () => {
+    for (const session of sessions) {
+      await writeSession(db, session);
+    }
+    for (const message of messages) {
+      await writeMessage(db, message);
+    }
+  }));
+}
+
+/** Đảm bảo luôn có 1 phiên chính cho tài khoản người dùng trên ChatScreen */
+export async function ensureMainUserChatSession(userId: string): Promise<LocalChatSession> {
+  const sessionId = `main-chat-${userId}`;
+  const existing = await getLocalChatSession(sessionId);
+  if (existing) return existing;
+
+  const now = new Date().toISOString();
+  const newSession: LocalChatSession = {
+    id: sessionId,
+    userId,
+    title: 'Hội thoại chính',
+    intent: 'general',
+    mode: 'single',
+    contextData: null,
+    questionCount: 0,
+    maxQuestions: 1000,
+    status: 'active',
+    syncStatus: 'pending',
+    createdAt: now,
+    updatedAt: now,
+    syncedAt: null,
+  };
+  await upsertLocalChatSession(newSession);
+  return newSession;
+}
+
+/** Lấy tất cả tin nhắn cục bộ theo user id để hiển thị trên UI */
+export function getAllLocalMessagesForUser(userId: string): Promise<LocalChatMessage[]> {
+  return serialized(async (db) => {
+    const rows = await db.getAllAsync<MessageRow>(
+      `SELECT m.* FROM chat_messages m
+       INNER JOIN chat_sessions s ON m.session_id = s.id
+       WHERE s.user_id = ?
+       ORDER BY m.created_at ASC`,
+      userId
+    );
+    return rows.map(mapMessage);
+  });
+}
+
+

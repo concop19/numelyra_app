@@ -78,7 +78,8 @@ function hashProfileKey(value: string): string {
 
 function getAstrologyProfileFingerprintForEngine(
   profile: AstroProfileIdentity | null | undefined,
-  engineVersion: string
+  engineVersion: string,
+  useStorageId = false,
 ): string {
   if (!profile) {
     return hashProfileKey(`guest|unknown-date|unknown-time|unknown-place|unknown|porphyry|${engineVersion}`);
@@ -87,7 +88,9 @@ function getAstrologyProfileFingerprintForEngine(
     ? profile.birthTimeAccuracy === 'exact'
     : !!profile.birthTime?.trim();
   return hashProfileKey([
-    profile.id?.trim() || getAstrologyProfileKey(profile),
+    useStorageId && profile.id?.trim()
+      ? profile.id.trim()
+      : getAstrologyProfileKey(profile),
     profile.birthDate?.trim() || 'unknown-date',
     profile.birthTime?.trim() || 'unknown-time',
     profile.birthLocation?.placeId || 'unknown-place',
@@ -109,6 +112,16 @@ export function getAstroFortuneStorageKey(
   locale: AppLocale = 'vi',
 ): string {
   return `@astro_fortune_v7_${locale}_${formatLocalDateKey(date)}_${getAstrologyProfileFingerprint(profile)}`;
+}
+
+function getIdBoundAstroFortuneStorageKey(
+  date: Date,
+  profile?: AstroProfileIdentity | null,
+  locale: AppLocale = 'vi',
+): string | null {
+  if (!profile?.id?.trim()) return null;
+  const fingerprint = getAstrologyProfileFingerprintForEngine(profile, ASTRO_ENGINE_VERSION, true);
+  return `@astro_fortune_v7_${locale}_${formatLocalDateKey(date)}_${fingerprint}`;
 }
 
 export function getAstroFortuneV5StorageKey(
@@ -156,15 +169,29 @@ export async function loadCachedAstroFortune(
   locale: AppLocale = 'vi',
 ): Promise<CachedAstroFortune | null> {
   const currentKey = getAstroFortuneStorageKey(date, profile, locale);
-  try {
-    const stored = await storage.getItem(currentKey);
-    if (!stored) return null;
-    const parsed: unknown = JSON.parse(stored);
-    if (isAstroFortuneSlip(parsed)) {
+  const legacyIdBoundKey = getIdBoundAstroFortuneStorageKey(date, profile, locale);
+  const candidateKeys = legacyIdBoundKey && legacyIdBoundKey !== currentKey
+    ? [currentKey, legacyIdBoundKey]
+    : [currentKey];
+
+  for (const key of candidateKeys) {
+    try {
+      const stored = await storage.getItem(key);
+      if (!stored) continue;
+      const parsed: unknown = JSON.parse(stored);
+      if (!isAstroFortuneSlip(parsed)) continue;
+
+      if (key !== currentKey) {
+        try {
+          await storage.setItem(currentKey, JSON.stringify(parsed));
+        } catch {
+          // A legacy cache hit is still usable if migration cannot be persisted.
+        }
+      }
       return { fortune: parsed, currentKey };
+    } catch {
+      // Continue with the next compatible cache key.
     }
-  } catch {
-    // A corrupt v3 entry is ignored so the corrected fortune can be regenerated.
   }
 
   return null;

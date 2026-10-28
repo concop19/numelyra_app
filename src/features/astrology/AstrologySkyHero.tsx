@@ -19,6 +19,7 @@ import { useLocalization } from '../../i18n/LocalizationContext';
 
 interface Props {
   profile: UserProfile;
+  isPrimaryProfile?: boolean;
   currentDate: Date;
   metadata?: PureAstroFeatureMetadata;
   fortune: AstroFortuneSlip | null;
@@ -31,6 +32,7 @@ interface Props {
 
 export function AstrologySkyHero({
   profile,
+  isPrimaryProfile = false,
   metadata,
   fortune,
   loading,
@@ -103,6 +105,7 @@ export function AstrologySkyHero({
               {new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(`${profile.birthDate.split('T', 1)[0]}T12:00:00`))}{metadata ? ` · ${zodiacLabel(metadata.natalSunSign, locale)}` : ''}
             </Text>
           </View>
+          {isPrimaryProfile && <Text style={styles.primaryBadge}>{l('Tôi', 'Me')}</Text>}
           <Ionicons name="chevron-down" size={16} color={ASTRO_COLORS.muted} />
         </TouchableOpacity>
         <TouchableOpacity
@@ -174,6 +177,7 @@ const styles = StyleSheet.create({
   profileCopy: { flex: 1, marginLeft: 8 },
   profileName: { color: ASTRO_COLORS.text, fontSize: 17, fontFamily: 'serif', fontWeight: '800' },
   profileMeta: { color: ASTRO_COLORS.muted, fontSize: 10.5, marginTop: 3 },
+  primaryBadge: { color: '#251245', backgroundColor: ASTRO_COLORS.gold, borderRadius: 9, paddingHorizontal: 7, paddingVertical: 3, fontSize: 9, fontWeight: '900', overflow: 'hidden' },
   actionIcon: { width: 24, height: 24 },
   disabled: { opacity: 0.46 },
   quoteArea: {

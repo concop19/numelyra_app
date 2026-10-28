@@ -1,8 +1,8 @@
 import React, { useCallback, useState } from 'react';
 import {
   Alert,
-  AppState,
   Image,
+  Platform,
   ScrollView,
   StyleSheet,
   Switch,
@@ -20,8 +20,17 @@ import { useFocusEffect } from '@react-navigation/native';
 
 import FlameMascot from '../components/chat/FlameMascot';
 import ThreeDButton from '../components/ThreeDButton';
+import ProfilePickerModal from '../components/ProfilePickerModal';
 import { useAuth } from '../store/authContext';
-import { beginCheckout, getBillingStatus, type BillingProvider, type BillingStatus } from '../services/billingService';
+import { useProfiles } from '../store/profileContext';
+import {
+  beginCheckout,
+  getGooglePlayMonthlyDisplayPrice,
+  getGooglePlayProduct,
+  restoreGooglePlayPurchases,
+  type BillingProvider,
+} from '../services/billingService';
+import { useBilling } from '../store/billingContext';
 import {
   canUseNativeNotifications,
   DEFAULT_DAILY_REMINDER_SETTINGS,
@@ -32,6 +41,11 @@ import {
 import type { UserProfile } from '../store/userProfile';
 import { useLocalization } from '../i18n/LocalizationContext';
 import type { LanguagePreference } from '../i18n/translations';
+import { getGlobalPendingMessageCount } from '../db/chatDatabaseService';
+import {
+  downloadAndSyncAllUserData,
+  syncPendingMessagesBatch,
+} from '../services/chatSessionSyncService';
 
 const SKY_BACKGROUND = require('../../assets/giao_dien/giaodien1/setting/background.webp');
 const GROUND_BACKGROUND = require('../../assets/giao_dien/giaodien1/setting/background_ground.webp');
@@ -56,41 +70,95 @@ type SettingItemProps = {
 export default function SettingsScreen({ profile, onBack, onRequestLogin }: Props) {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { user, isConfigured, signOut, syncLocalProfiles } = useAuth();
+  const { billing, error: initialBillingError, reloadBilling } = useBilling();
   const { locale, preference, setPreference, t, l } = useLocalization();
+  const {
+    primaryProfileId,
+    primaryProfileItem,
+    refreshProfiles,
+    setPrimaryProfile,
+  } = useProfiles();
   const [busy, setBusy] = useState(false);
-  const [billing, setBilling] = useState<BillingStatus | null>(null);
   const [billingError, setBillingError] = useState('');
+  const [playPrice, setPlayPrice] = useState<string | null>(null);
   const [dailyReminder, setDailyReminder] = useState<DailyReminderSettings>({ ...DEFAULT_DAILY_REMINDER_SETTINGS });
-
-  const refreshBilling = useCallback(async () => {
-    if (!user) {
-      setBilling(null);
-      setBillingError('');
-      return;
-    }
-
-    try {
-      setBillingError('');
-      setBilling(await getBillingStatus());
-    } catch (error) {
-      setBillingError(error instanceof Error ? error.message : l('Không thể tải trạng thái gói Pro.', 'Unable to load your Pro plan status.'));
-    }
-  }, [l, user]);
-
-  useFocusEffect(useCallback(() => {
-    void refreshBilling();
-  }, [refreshBilling]));
+  const [profileManagerVisible, setProfileManagerVisible] = useState(false);
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
 
   useFocusEffect(useCallback(() => {
     void loadDailyReminderSettings().then(setDailyReminder);
-  }, []));
+    void getGlobalPendingMessageCount().then(setPendingSyncCount).catch(() => undefined);
+    if (Platform.OS === 'android' && user) {
+      void getGooglePlayProduct()
+        .then((product) => setPlayPrice(getGooglePlayMonthlyDisplayPrice(product)))
+        .catch(() => setPlayPrice(null));
+    }
+  }, [user?.id]));
 
-  useFocusEffect(useCallback(() => {
-    const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') void refreshBilling();
-    });
-    return () => subscription.remove();
-  }, [refreshBilling]));
+  const openCloudSyncActions = () => {
+    void Haptics.selectionAsync();
+    if (!user) {
+      Alert.alert(
+        l('Cần đăng nhập', 'Sign in required'),
+        l('Vui lòng đăng nhập để đồng bộ dữ liệu đám mây.', 'Please sign in to sync cloud data.'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: l('Đăng nhập', 'Sign in'), onPress: onRequestLogin },
+        ]
+      );
+      return;
+    }
+
+    Alert.alert(
+      l('Đồng bộ đám mây', 'Cloud sync'),
+      l(
+        `Hiện có ${pendingSyncCount} tin nhắn đang chờ đồng bộ.\n(Hệ thống tự động đồng bộ lên máy chủ mỗi khi tích lũy đủ 10 tin nhắn).`,
+        `Currently ${pendingSyncCount} pending messages waiting to sync.\n(Automatically syncs to server every 10 messages).`
+      ),
+      [
+        {
+          text: l('Tải toàn bộ từ máy chủ về', 'Download all from server'),
+          onPress: async () => {
+            setBusy(true);
+            try {
+              const res = await downloadAndSyncAllUserData();
+              await refreshProfiles();
+              const count = await getGlobalPendingMessageCount();
+              setPendingSyncCount(count);
+              Alert.alert(
+                l('Tải về thành công', 'Download successful'),
+                l(`Đã tải về ${res.profilesCount} hồ sơ và ${res.messagesCount} tin nhắn từ máy chủ.`, `Successfully downloaded ${res.profilesCount} profiles and ${res.messagesCount} messages from server.`)
+              );
+            } catch {
+              Alert.alert(l('Thất bại', 'Failed'), l('Không thể tải dữ liệu từ máy chủ.', 'Could not download data from server.'));
+            } finally {
+              setBusy(false);
+            }
+          },
+        },
+        {
+          text: l('Đồng bộ ngay lên máy chủ', 'Sync now to server'),
+          onPress: async () => {
+            setBusy(true);
+            try {
+              const res = await syncPendingMessagesBatch(1, true);
+              const count = await getGlobalPendingMessageCount();
+              setPendingSyncCount(count);
+              Alert.alert(
+                l('Đồng bộ thành công', 'Sync successful'),
+                l(`Đã đồng bộ ${res.syncedCount} tin nhắn lên máy chủ.`, `Synced ${res.syncedCount} messages to server.`)
+              );
+            } catch {
+              Alert.alert(l('Thất bại', 'Failed'), l('Không thể đồng bộ tin nhắn.', 'Could not sync messages.'));
+            } finally {
+              setBusy(false);
+            }
+          },
+        },
+        { text: t('common.close'), style: 'cancel' },
+      ]
+    );
+  };
 
   const handleSignOut = async () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -108,6 +176,7 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
     setBusy(true);
     try {
       await syncLocalProfiles();
+      await refreshProfiles();
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(l('Đã đồng bộ', 'Sync complete'), l('Hồ sơ trên thiết bị đã được liên kết với tài khoản của bạn.', 'The profiles on this device are now linked to your account.'));
     } catch (error) {
@@ -128,7 +197,7 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
     setBillingError('');
     try {
       await beginCheckout(provider, locale);
-      await refreshBilling();
+      await reloadBilling();
     } catch (error) {
       const message = error instanceof Error ? error.message : l('Không thể mở trang thanh toán.', 'Unable to open the payment page.');
       if (/sign in|đăng nhập|not_authenticated/i.test(message)) onRequestLogin();
@@ -139,7 +208,7 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
   };
 
   const updateDailyReminder = async (next: DailyReminderSettings) => {
-    const saved = await saveDailyReminderSettings(next, { profile, locale });
+    const saved = await saveDailyReminderSettings(next, { profile: { ...profile, id: primaryProfileId }, locale });
     setDailyReminder(saved);
     if (next.enabled && !saved.enabled) {
       Alert.alert(l('Chưa bật thông báo', 'Notifications are off'), l('Bạn có thể bật lại quyền thông báo trong Cài đặt thiết bị bất kỳ lúc nào.', 'You can enable notification permission later in your device settings.'));
@@ -180,14 +249,23 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
     }
     if (isPro) {
       Alert.alert(l('Gói Premium', 'Premium plan'), activeUntil ? l(`Gói của bạn có hiệu lực đến ${activeUntil}.`, `Your plan is active until ${activeUntil}.`) : l('Gói Premium đang hoạt động.', 'Your Premium plan is active.'), [
-        { text: l('Cập nhật trạng thái', 'Refresh status'), onPress: () => { void refreshBilling(); } },
+        ...(Platform.OS === 'android' ? [{ text: l('Khôi phục giao dịch', 'Restore purchases'), onPress: () => { void restoreGooglePlayPurchases().then(() => reloadBilling()).catch((error) => setBillingError(error.message)); } }] : []),
+        { text: l('Cập nhật trạng thái', 'Refresh status'), onPress: () => { void reloadBilling(); } },
         { text: t('common.close'), style: 'cancel' },
       ]);
       return;
     }
+    if (Platform.OS === 'android') {
+      Alert.alert('NUMELYRA Pro', l(`200 lượt AI/tháng · ${playPrice || 'giá hiển thị bởi Google Play'}`, `200 AI responses/month · ${playPrice || 'localized Google Play price'}`), [
+        { text: l('Đăng ký qua Google Play', 'Subscribe with Google Play'), onPress: () => { void upgrade('google_play'); } },
+        { text: l('Khôi phục giao dịch', 'Restore purchases'), onPress: () => { void restoreGooglePlayPurchases().then((restored) => restored ? reloadBilling() : setBillingError(l('Không tìm thấy giao dịch hợp lệ.', 'No valid purchase was found.'))).catch((error) => setBillingError(error.message)); } },
+        { text: l('Để sau', 'Not now'), style: 'cancel' },
+      ]);
+      return;
+    }
     Alert.alert(l('Nâng cấp Premium', 'Upgrade to Premium'), l('Chọn phương thức thanh toán', 'Choose a payment method'), [
-      { text: 'VietQR / PayOS', onPress: () => { void upgrade('payos'); } },
-      { text: 'PayPal', onPress: () => { void upgrade('paypal'); } },
+      { text: 'VietQR / PayOS · 249.000đ', onPress: () => { void upgrade('payos'); } },
+      { text: 'PayPal · $9.99', onPress: () => { void upgrade('paypal'); } },
       { text: l('Để sau', 'Not now'), style: 'cancel' },
     ]);
   };
@@ -213,6 +291,36 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
       { text: `${preference === 'en' ? '✓ ' : ''}${t('language.en')}`, onPress: () => apply('en') },
       { text: t('common.cancel'), style: 'cancel' },
     ]);
+  };
+
+  const requestPrimaryProfileChange = (nextId: string) => {
+    if (nextId === primaryProfileId) {
+      setProfileManagerVisible(false);
+      return;
+    }
+    const apply = async () => {
+      setBusy(true);
+      try {
+        const result = await setPrimaryProfile(nextId);
+        setProfileManagerVisible(false);
+        if (!result.synced && user) {
+          Alert.alert(
+            l('Đã lưu trên thiết bị', 'Saved on this device'),
+            l('Hồ sơ chính sẽ được đồng bộ khi thiết bị có mạng.', 'The primary profile will sync when the device is online.'),
+          );
+        }
+      } finally {
+        setBusy(false);
+      }
+    };
+    Alert.alert(
+      l('Đổi hồ sơ chính?', 'Change primary profile?'),
+      l('Daily Insight, vận hôm nay và thông báo sẽ được cá nhân hóa theo hồ sơ này.', 'Daily Insight, today’s fortune and notifications will use this profile.'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: l('Đặt làm hồ sơ chính', 'Set as primary'), onPress: () => { void apply(); } },
+      ],
+    );
   };
 
   const contentWidth = Math.min(windowWidth - 36, 504);
@@ -274,12 +382,30 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
 
           <View style={styles.settingsPanel}>
             <SettingItem
+              icon="person-circle"
+              iconColor="#5D238B"
+              iconBackground="#FFF0C9"
+              label={l('Hồ sơ chính', 'Primary profile')}
+              detail={primaryProfileItem?.fullName || profile.fullName}
+              onPress={() => setProfileManagerVisible(true)}
+            />
+            <SettingItem
               icon={user ? 'person' : 'person-add'}
               iconColor="#5D238B"
               iconBackground="#FFEADB"
               label={t('settings.personal')}
               detail={user?.email ?? (isConfigured ? l('Đăng nhập để đồng bộ hồ sơ', 'Sign in to sync profiles') : l('Tài khoản khách', 'Guest account'))}
               onPress={openAccountActions}
+            />
+            <SettingItem
+              icon="cloud-done-outline"
+              iconColor="#3B82F6"
+              iconBackground="#DBEAFE"
+              label={l('Đồng bộ đám mây', 'Cloud sync')}
+              detail={pendingSyncCount > 0
+                ? `${pendingSyncCount} ${l('tin nhắn chờ đồng bộ (10 tin/lô)', 'pending messages (10/batch)')}`
+                : l('Đã đồng bộ toàn bộ', 'All messages synced')}
+              onPress={openCloudSyncActions}
             />
             <SettingItem
               icon="diamond"
@@ -406,9 +532,24 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
           {!!billing?.checkoutPending && (
             <Text style={styles.warning}>{l('Bạn có một yêu cầu PayPal chưa hoàn tất. Hãy hoàn tất hoặc hủy yêu cầu trước khi thử lại.', 'You have an unfinished PayPal request. Complete or cancel it before trying again.')}</Text>
           )}
-          {!!billingError && <Text accessibilityRole="alert" style={styles.error}>{billingError}</Text>}
+          {!!(billingError || initialBillingError) && <Text accessibilityRole="alert" style={styles.error}>{billingError || initialBillingError}</Text>}
         </ScrollView>
       </SafeAreaView>
+      <ProfilePickerModal
+        visible={profileManagerVisible}
+        onClose={() => setProfileManagerVisible(false)}
+        selectedProfiles={primaryProfileItem ? [primaryProfileItem] : []}
+        onProfilesSelected={(items) => {
+          const selected = items[0];
+          if (selected) requestPrimaryProfileChange(selected.id);
+        }}
+        allowCoupleMode={false}
+        managementMode="full"
+        onProfilesChanged={refreshProfiles}
+        primaryProfileId={primaryProfileId}
+        title={l('Quản lý hồ sơ', 'Manage profiles')}
+        selectCreatedProfile={false}
+      />
     </View>
   );
 }

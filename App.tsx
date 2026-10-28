@@ -24,8 +24,9 @@ import WallpaperStudioScreen from './src/screens/WallpaperStudioScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import ChatContinuationScreen from './src/screens/ChatContinuationScreen';
-import { loadProfile, hasProfile, UserProfile } from './src/store/userProfile';
 import { AuthProvider, useAuth } from './src/store/authContext';
+import { BillingProvider } from './src/store/billingContext';
+import { ProfileProvider, useProfiles } from './src/store/profileContext';
 import { getNotifications } from './src/services/dailyNotifications';
 import { refreshDailyInsightNotifications } from './src/services/dailyNotifications';
 import { LocalizationProvider, useLocalization } from './src/i18n/LocalizationContext';
@@ -85,7 +86,11 @@ export default function App() {
     <SafeAreaProvider>
       <LocalizationProvider>
         <AuthProvider>
-          <AppContent />
+          <ProfileProvider>
+            <BillingProvider>
+              <AppContent />
+            </BillingProvider>
+          </ProfileProvider>
         </AuthProvider>
       </LocalizationProvider>
     </SafeAreaProvider>
@@ -95,44 +100,35 @@ export default function App() {
 function AppContent() {
   const { locale, ready: isLocaleReady, t } = useLocalization();
   const { isReady: isAuthReady, user, syncLocalProfiles } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const {
+    isReady: isProfileReady,
+    primaryProfile: profile,
+    primaryProfileId,
+    refreshProfiles,
+  } = useProfiles();
   const [continueAsGuest, setContinueAsGuest] = useState(false);
   const [loginRequested, setLoginRequested] = useState(false);
 
-  const checkProfile = async () => {
-    setIsLoading(true);
-    try {
-      const exists = await hasProfile();
-      if (exists) {
-        const p = await loadProfile();
-        setProfile(p);
-      } else {
-        setProfile(null);
-      }
-    } catch {
-      setProfile(null);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!isAuthReady) return;
-    checkProfile();
-  }, [isAuthReady, user?.id]);
-
   useEffect(() => {
     if (!profile || !isLocaleReady) return;
-    void refreshDailyInsightNotifications({ profile, locale }).catch(() => {
+    void refreshDailyInsightNotifications({ profile: { ...profile, id: primaryProfileId }, locale }).catch(() => {
       // Notification refresh must never block the application shell.
     });
-  }, [isLocaleReady, locale, profile?.birthDate, profile?.birthTime, profile?.fullName]);
+  }, [
+    isLocaleReady,
+    locale,
+    primaryProfileId,
+    profile?.birthDate,
+    profile?.birthLocation?.placeId,
+    profile?.birthTime,
+    profile?.birthTimeAccuracy,
+    profile?.fullName,
+  ]);
 
   let content = null;
 
   // Loading
-  if (isLoading || !isAuthReady || !isLocaleReady) {
+  if (!isProfileReady || !isAuthReady || !isLocaleReady) {
     content = (
       <SafeAreaView style={styles.loadingContainer}>
         <StatusBar style="light" />
@@ -151,7 +147,7 @@ function AppContent() {
       <LoginScreen
         onAuthenticated={() => {
           setLoginRequested(false);
-          checkProfile();
+          void refreshProfiles();
         }}
         onContinueAsGuest={() => setContinueAsGuest(true)}
       />
@@ -162,8 +158,12 @@ function AppContent() {
     content = (
       <OnboardingScreen
         onComplete={async () => {
-          await syncLocalProfiles();
-          await checkProfile();
+          try {
+            await syncLocalProfiles();
+          } catch (err) {
+            console.warn('[App] syncLocalProfiles in onComplete failed:', err);
+          }
+          await refreshProfiles();
         }}
       />
     );
@@ -190,6 +190,7 @@ function AppContent() {
             {({ navigation, route }) => (
               <ChatScreen
                 profile={profile}
+                primaryProfileId={primaryProfileId}
                 openDailyDate={route.params?.dailyDate}
                 onOpenSettings={() => navigation.navigate('Settings')}
                 onOpenCalendar={() => navigation.navigate('Calendar')}
@@ -210,7 +211,6 @@ function AppContent() {
               <CalendarScreen
                 profile={profile}
                 onBack={() => goBackOrMain(navigation)}
-                onOpenSettings={() => navigation.navigate('Settings')}
               />
             )}
           </Stack.Screen>
@@ -226,7 +226,6 @@ function AppContent() {
                 profile={profile}
                 onBack={() => goBackOrMain(navigation)}
                 onOpenCalendar={() => navigation.navigate('Calendar')}
-                onProfileChange={setProfile}
               />
             )}
           </Stack.Screen>

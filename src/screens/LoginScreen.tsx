@@ -31,7 +31,7 @@ interface Props {
 }
 
 export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowGuest = true }: Props) {
-  const { signIn, signUp, signInWithGoogle, signInWithFacebook, isConfigured } = useAuth();
+  const { signIn, signUp, signInWithGoogle, isConfigured } = useAuth();
   const { locale } = useLocalization();
   const en = locale === 'en';
   const [isSignUp, setIsSignUp] = useState(false);
@@ -41,7 +41,6 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [facebookLoading, setFacebookLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const scrollRef = useRef<ScrollView>(null);
@@ -65,21 +64,6 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
       setError(authError instanceof Error ? authError.message : (en ? 'Google sign-in failed. Please try again.' : 'Đăng nhập Google thất bại. Vui lòng thử lại.'));
     } finally {
       setGoogleLoading(false);
-    }
-  };
-
-  const handleFacebookSignIn = async () => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setFacebookLoading(true);
-    setError('');
-    setMessage('');
-    try {
-      await signInWithFacebook();
-      onAuthenticated();
-    } catch (authError) {
-      setError(authError instanceof Error ? authError.message : (en ? 'Facebook sign-in failed. Please try again.' : 'Đăng nhập Facebook thất bại. Vui lòng thử lại.'));
-    } finally {
-      setFacebookLoading(false);
     }
   };
 
@@ -159,7 +143,7 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
             {/* NÚT ĐĂNG NHẬP GOOGLE */}
             <ThreeDButton
               accessibilityLabel={en ? 'Continue with Google' : 'Tiếp tục với Google'}
-              disabled={loading || googleLoading || facebookLoading || !isConfigured}
+              disabled={loading || googleLoading || !isConfigured}
               fullWidth
               label={en ? 'Continue with Google' : 'Tiếp tục với Google'}
               leadingIcon={(
@@ -169,24 +153,6 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
               )}
               loading={googleLoading}
               onPress={handleGoogleSignIn}
-              style={styles.oauthButton3d}
-              textStyle={styles.oauthButtonText}
-              variant="light"
-            />
-
-            {/* NÚT ĐĂNG NHẬP FACEBOOK */}
-            <ThreeDButton
-              accessibilityLabel={en ? 'Continue with Facebook' : 'Tiếp tục với Facebook'}
-              disabled={loading || googleLoading || facebookLoading || !isConfigured}
-              fullWidth
-              label={en ? 'Continue with Facebook' : 'Tiếp tục với Facebook'}
-              leadingIcon={(
-                <View style={styles.fbIconBadge}>
-                  <Ionicons name="logo-facebook" size={16} color="#FFFFFF" />
-                </View>
-              )}
-              loading={facebookLoading}
-              onPress={handleFacebookSignIn}
               style={styles.oauthButton3d}
               textStyle={styles.oauthButtonText}
               variant="light"
@@ -242,7 +208,7 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
             {!!message && <Text style={styles.message}>{message}</Text>}
 
             <ThreeDButton
-              disabled={loading || googleLoading || facebookLoading || !isConfigured}
+              disabled={loading || googleLoading || !isConfigured}
               fullWidth
               label={isSignUp ? (en ? 'CREATE ACCOUNT' : 'TẠO TÀI KHOẢN') : (en ? 'SIGN IN' : 'ĐĂNG NHẬP')}
               loading={loading}
@@ -321,14 +287,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '900',
     fontSize: 14,
-  },
-  fbIconBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#1877F2',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   googleButtonText: {
     color: '#3C4043',

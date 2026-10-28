@@ -12,7 +12,7 @@ import * as Haptics from 'expo-haptics';
 import ThreeDButton from './ThreeDButton';
 import {
   ProfileItem, loadAllProfiles, addProfile, deleteProfile,
-  setActiveProfileId, updateProfile, getZodiac, getZodiacEmoji, getNguHanh, getNguHanhEmoji,
+  updateProfile, getZodiac, getZodiacEmoji, getNguHanh, getNguHanhEmoji,
   type ProfileGender,
 } from '../store/userProfile';
 import { extractBirthYear } from '../services/lunarService';
@@ -25,6 +25,11 @@ interface Props {
   onProfilesSelected: (profiles: ProfileItem[]) => void;
   promptNotice?: string;
   allowCoupleMode?: boolean;
+  managementMode?: 'full' | 'add-only' | 'none';
+  onProfilesChanged?: () => void | Promise<void>;
+  primaryProfileId?: string | null;
+  title?: string;
+  selectCreatedProfile?: boolean;
 }
 
 export default function ProfilePickerModal({
@@ -33,7 +38,12 @@ export default function ProfilePickerModal({
   selectedProfiles,
   onProfilesSelected,
   promptNotice,
-  allowCoupleMode = true
+  allowCoupleMode = true,
+  managementMode = 'full',
+  onProfilesChanged,
+  primaryProfileId,
+  title,
+  selectCreatedProfile = true,
 }: Props) {
   const { t, l } = useLocalization();
   const [profiles, setProfiles] = useState<ProfileItem[]>([]);
@@ -41,6 +51,7 @@ export default function ProfilePickerModal({
   const [tempSelectedIds, setTempSelectedIds] = useState<string[]>(
     selectedProfiles.map(p => p.id)
   );
+  const selectedProfileIdsKey = selectedProfiles.map((profile) => profile.id).join('|');
 
   const [isAdding, setIsAdding] = useState(false);
   const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
@@ -76,10 +87,6 @@ export default function ProfilePickerModal({
   const fetchProfiles = async () => {
     const list = await loadAllProfiles();
     setProfiles(list);
-    if (selectedProfiles.length === 0 && list.length > 0) {
-      setTempSelectedIds([list[0].id]);
-      onProfilesSelected([list[0]]);
-    }
   };
 
   useEffect(() => {
@@ -91,7 +98,7 @@ export default function ProfilePickerModal({
       setIsCoupleMode(forcedSingleMode ? false : selectedProfiles.length >= 2);
       setTempSelectedIds((forcedSingleMode ? selectedProfiles.slice(0, 1) : selectedProfiles).map(p => p.id));
     }
-  }, [visible, allowCoupleMode, selectedProfiles]);
+  }, [visible, allowCoupleMode, selectedProfileIdsKey]);
 
   const handleSelectProfile = async (item: ProfileItem) => {
     void Haptics.selectionAsync();
@@ -101,7 +108,6 @@ export default function ProfilePickerModal({
     }
     if (!allowCoupleMode || !isCoupleMode) {
       // Chế độ 1 người: Chọn ngay và đóng modal
-      await setActiveProfileId(item.id);
       onProfilesSelected([item]);
       onClose();
       return;
@@ -155,6 +161,7 @@ export default function ProfilePickerModal({
     const doDelete = async () => {
       const updated = await deleteProfile(id);
       setProfiles(updated);
+      await onProfilesChanged?.();
       setTempSelectedIds(prev => prev.filter(pId => pId !== id));
       if (updated.length > 0 && selectedProfiles.some(p => p.id === id)) {
         onProfilesSelected([updated[0]]);
@@ -217,6 +224,7 @@ export default function ProfilePickerModal({
             profile.id === updated.id ? updated : profile
           )));
         }
+        await onProfilesChanged?.();
         resetProfileForm();
         setIsAdding(false);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -228,11 +236,15 @@ export default function ProfilePickerModal({
         birthDate: formattedDate,
         gender: newGender
       });
+      await onProfilesChanged?.();
       resetProfileForm();
       setIsAdding(false);
       await fetchProfiles();
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
+      if (!selectCreatedProfile) {
+        return;
+      }
       if (allowCoupleMode && isCoupleMode) {
         setTempSelectedIds(prev => [...prev.slice(0, 1), created.id]);
       } else {
@@ -270,7 +282,7 @@ export default function ProfilePickerModal({
           <View style={styles.modalHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="sparkles" size={16} color="#F5BA5B" style={styles.headerIcon} />
-              <Text style={styles.headerTitle}>{l('Chọn Hồ Sơ Luận Giải', 'Choose a Reading Profile')}</Text>
+              <Text style={styles.headerTitle}>{title || l('Chọn Hồ Sơ Luận Giải', 'Choose a Reading Profile')}</Text>
             </View>
             <TouchableOpacity activeOpacity={0.7} onPress={onClose} style={styles.closeBtn}>
               <Ionicons name="close" size={20} color="#94A3B8" />
@@ -360,6 +372,11 @@ export default function ProfilePickerModal({
                               </Text>
                             </View>
                           )}
+                          {p.id === primaryProfileId && (
+                            <View style={styles.primaryProfileBadge}>
+                              <Text style={styles.primaryProfileBadgeText}>{l('Hồ sơ chính', 'Primary')}</Text>
+                            </View>
+                          )}
                         </View>
                         <Text style={[styles.profileDetails, !p.gender && styles.profileDetailsWarning]}>
                           📅 {p.birthDate} · {nguHanhEmoji} {nguHanh} · {zodiac} · {' '}
@@ -369,7 +386,7 @@ export default function ProfilePickerModal({
                     </View>
 
                     <View style={styles.profileRight}>
-                      <TouchableOpacity
+                      {managementMode === 'full' && <TouchableOpacity
                         accessibilityRole="button"
                         accessibilityLabel={`${l('Chỉnh sửa hồ sơ', 'Edit profile')} ${p.fullName}`}
                         activeOpacity={0.7}
@@ -381,8 +398,8 @@ export default function ProfilePickerModal({
                         }}
                       >
                         <Ionicons name="pencil-outline" size={16} color="#93C5FD" />
-                      </TouchableOpacity>
-                      {profiles.length > 1 && (
+                      </TouchableOpacity>}
+                      {managementMode === 'full' && profiles.length > 1 && p.id !== primaryProfileId && (
                         <TouchableOpacity
                           activeOpacity={0.7}
                           style={styles.deleteBtn}
@@ -407,7 +424,7 @@ export default function ProfilePickerModal({
             </View>
 
             {/* Add Profile Section */}
-            {isAdding ? (
+            {managementMode !== 'none' && (isAdding ? (
               <View style={styles.formContainer}>
                 <View style={styles.formTitleRow}>
                   <Ionicons
@@ -492,7 +509,7 @@ export default function ProfilePickerModal({
                 <Ionicons name="add-circle-outline" size={16} color="#F5BA5B" style={styles.addTriggerIcon} />
                 <Text style={styles.addTriggerText}>{l('Thêm hồ sơ người thân / bạn bè', 'Add a family or friend profile')}</Text>
               </TouchableOpacity>
-            )}
+            ))}
           </ScrollView>
 
           {/* Confirm Button for Couple Mode */}
@@ -678,6 +695,19 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 10,
     fontWeight: '700'
+  },
+  primaryProfileBadge: {
+    backgroundColor: 'rgba(147, 197, 253, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(147, 197, 253, 0.52)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  primaryProfileBadgeText: {
+    color: '#BFDBFE',
+    fontSize: 9,
+    fontWeight: '800',
   },
   profileDetails: {
     color: '#94A3B8',

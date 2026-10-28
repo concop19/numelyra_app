@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const MAX_STORED_CHAT_MESSAGES = 100;
 
+export type ChatMessageSyncStatus = 'pending' | 'synced' | 'failed';
+
 export interface StoredChatMessage {
   id: string;
   sender: 'user' | 'mascot';
@@ -13,6 +15,8 @@ export interface StoredChatMessage {
   createdAt?: number;
   card?: unknown;
   isTypingCompleted?: boolean;
+  syncStatus?: ChatMessageSyncStatus;
+  syncedAt?: string | null;
 }
 
 const HISTORY_KEY_PREFIX = '@numelyra_chat_history:v1';
@@ -235,3 +239,111 @@ export async function clearChatHistory(ownerId: string): Promise<boolean> {
     return false;
   }
 }
+
+/** Cập nhật syncStatus và syncedAt cho danh sách messageIds trong AsyncStorage */
+export async function updateMessagesSyncStatus(
+  ownerId: string,
+  messageIds: string[],
+  syncStatus: ChatMessageSyncStatus,
+  syncedAt: string = new Date().toISOString()
+): Promise<void> {
+  if (messageIds.length === 0) return;
+  const key = getHistoryKey(ownerId);
+  const targetIdSet = new Set(messageIds);
+
+  try {
+    await enqueueWrite(key, async () => {
+      const raw = await AsyncStorage.getItem(key);
+      if (!raw) return;
+      const parsed: unknown = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return;
+
+      const history = parsed.filter(isStoredChatMessage);
+      let changed = false;
+      const updated = history.map((msg) => {
+        if (targetIdSet.has(msg.id)) {
+          changed = true;
+          return {
+            ...msg,
+            syncStatus,
+            syncedAt: syncStatus === 'synced' ? syncedAt : (msg.syncedAt ?? null),
+          };
+        }
+        return msg;
+      });
+
+      if (changed) {
+        await AsyncStorage.setItem(key, JSON.stringify(normalizeMessages(updated)));
+      }
+    });
+  } catch (error) {
+    console.warn('[chatHistoryStorage] Could not update sync status:', error);
+  }
+}
+
+/** Thay thế toàn bộ lịch sử trò chuyện (dùng khi nạp từ server về) */
+export async function replaceChatHistory(
+  ownerId: string,
+  messages: StoredChatMessage[]
+): Promise<void> {
+  const key = getHistoryKey(ownerId);
+  const normalized = normalizeMessages(messages.filter(isStoredChatMessage));
+
+  try {
+    await enqueueWrite(key, () => AsyncStorage.setItem(key, JSON.stringify(normalized)));
+  } catch (error) {
+    console.warn('[chatHistoryStorage] Could not replace local history:', error);
+  }
+}
+
+/**
+ * Hợp nhất tin nhắn tải từ server với tin nhắn cục bộ (giữ nguyên pending messages)
+ */
+export async function mergeCloudChatHistory(
+  ownerId: string,
+  cloudMessages: StoredChatMessage[]
+): Promise<StoredChatMessage[]> {
+  const key = getHistoryKey(ownerId);
+
+  try {
+    return await enqueueWrite(key, async () => {
+      const raw = await AsyncStorage.getItem(key);
+      const localList: StoredChatMessage[] = raw
+        ? (JSON.parse(raw) as unknown[]).filter(isStoredChatMessage)
+        : [];
+
+      const mergedMap = new Map<string, StoredChatMessage>();
+
+      // Đưa local messages vào map trước
+      for (const msg of localList) {
+        mergedMap.set(msg.id, msg);
+      }
+
+      // Hợp nhất cloud messages vào map
+      for (const cloudMsg of cloudMessages) {
+        if (mergedMap.has(cloudMsg.id)) {
+          const local = mergedMap.get(cloudMsg.id)!;
+          mergedMap.set(cloudMsg.id, {
+            ...local,
+            ...cloudMsg,
+            syncStatus: 'synced',
+            syncedAt: cloudMsg.syncedAt || new Date().toISOString(),
+          });
+        } else {
+          mergedMap.set(cloudMsg.id, {
+            ...cloudMsg,
+            syncStatus: 'synced',
+          });
+        }
+      }
+
+      const mergedList = normalizeMessages(Array.from(mergedMap.values()));
+      await AsyncStorage.setItem(key, JSON.stringify(mergedList));
+      return mergedList;
+    });
+  } catch (error) {
+    console.warn('[chatHistoryStorage] Could not merge cloud history:', error);
+    return [];
+  }
+}
+

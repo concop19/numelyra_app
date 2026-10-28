@@ -51,7 +51,8 @@ import {
 import { createColorGuidance, isColorQuestion, type ColorGuidanceContext } from '../services/colorGuidanceService';
 import { computePersonTuViBazi, evaluateTuViBaziLove, TuViBaziSynastryResult } from '../services/tuViBaziService';
 import { API_ENDPOINTS, authenticatedFetch } from '../services/apiConfig';
-import { getBillingStatus } from '../services/billingService';
+import { unlockDailyInsightBack } from '../services/billingService';
+import { useBilling } from '../store/billingContext';
 import ChatSceneBackground, { ChatMoonButton } from '../components/chat/ChatSceneBackground';
 import FlameMascot, {
   CHAR_ANIMATIONS,
@@ -61,6 +62,7 @@ import FlameMascot, {
 import MeteorShower from '../components/chat/MeteorShower';
 import FloatingWallpaperCloud from '../components/FloatingWallpaperCloud';
 import ChatInputBar from '../components/chat/ChatInputBar';
+import MonthlyChatQuotaBar from '../components/chat/MonthlyChatQuotaBar';
 import HighlightedAnswerText from '../components/chat/HighlightedAnswerText';
 import { PlaceSearchContextModal } from '../components/chat/PlaceSearchContextModal';
 import { PlaceSuggestionsCard } from '../components/chat/PlaceSuggestionsCard';
@@ -72,10 +74,23 @@ import {
   MAX_STORED_CHAT_MESSAGES,
   orderChatHistoryMessages,
   saveChatHistory,
+  type ChatMessageSyncStatus,
 } from '../services/chatHistoryStorage';
+import {
+  ensureMainUserChatSession,
+  upsertLocalChatMessage,
+  type LocalChatMessage,
+} from '../db/chatDatabaseService';
+import {
+  downloadAllCloudChatData,
+  downloadAndSyncAllUserData,
+  syncPendingMessagesBatch,
+  PENDING_SYNC_THRESHOLD,
+} from '../services/chatSessionSyncService';
 import { useLocalization } from '../i18n/LocalizationContext';
 import { buildDailyInsight, cacheDailyInsight } from '../features/daily-insight/dailyInsight';
 import DailyInsightSheet from '../features/daily-insight/DailyInsightSheet';
+import { resolvePrimaryDailyProfile } from '../features/daily-insight/dailyProfile';
 import { formatLocalDateKey } from '../features/astrology/dailyAstroFortune';
 import { useDailyAstroFortune } from '../features/astrology/useDailyAstroFortune';
 
@@ -95,6 +110,8 @@ export interface MessageItem {
   createdAt?: number;
   card?: any;
   isTypingCompleted?: boolean;
+  syncStatus?: ChatMessageSyncStatus;
+  syncedAt?: string | null;
 }
 
 const isCompatibilityMessage = (message: MessageItem) => (
@@ -133,6 +150,7 @@ const getMascotMaxVisualWidth = (size: number, viewportWidth: number) => Math.ma
 
 interface Props {
   profile?: UserProfile;
+  primaryProfileId?: string | null;
   openDailyDate?: string;
   onOpenSettings?: () => void;
   onOpenCalendar?: () => void;
@@ -313,6 +331,14 @@ const AssistantPreviewBubble: React.FC<AssistantPreviewBubbleProps> = ({
             {!message.isTypingCompleted ? <Text style={styles.assistantTypingCursor}> ▌</Text> : null}
           </Text>
         </TouchableOpacity>
+        <View style={styles.assistantMetaRow}>
+          <Text style={styles.assistantTimeText}>{message.time}</Text>
+          {message.syncStatus === 'synced' ? (
+            <Ionicons name="checkmark-done" size={13} color="#B388FF" style={styles.syncIcon} />
+          ) : (
+            <Ionicons name="time-outline" size={12} color="#D1C4E9" style={styles.syncIcon} />
+          )}
+        </View>
         {message.isTypingCompleted && onContinue ? (
           <TouchableOpacity
             activeOpacity={0.82}
@@ -622,6 +648,7 @@ const TypewriterMessage: React.FC<TypewriterMessageProps> = ({
 
 export default function ChatScreen({
   profile,
+  primaryProfileId,
   openDailyDate,
   onOpenSettings,
   onOpenCalendar,
@@ -633,34 +660,34 @@ export default function ChatScreen({
   const insets = useSafeAreaInsets();
   const { width: viewportWidth } = useWindowDimensions();
   const { user } = useAuth();
+  const {
+    billing,
+    loadState: quotaLoadState,
+    reloadBilling,
+    consumeQuota,
+    restoreQuota,
+    markQuotaEmpty,
+  } = useBilling();
   const { locale, t, l } = useLocalization();
   const chatMascotMaxVisualWidth = getMascotMaxVisualWidth(CHAT_MASCOT_SIZE, viewportWidth);
   const thinkingMascotMaxVisualWidth = getMascotMaxVisualWidth(THINKING_MASCOT_SIZE, viewportWidth);
   const chatHistoryOwner = user?.id || 'guest';
-  const [isPro, setIsPro] = useState(false);
+  const isPro = billing?.plan === 'pro';
+  const aiQuota = billing?.quota?.ai_response ?? null;
+  const quotaPeriodEnd = billing?.periodEnd || billing?.subscription?.current_period_end || null;
+  const [dailyBackUnlocked, setDailyBackUnlocked] = useState(false);
   const [dailyClock, setDailyClock] = useState(() => new Date());
   const [dailySheetVisible, setDailySheetVisible] = useState(false);
   const [isDailyInsightUnseen, setIsDailyInsightUnseen] = useState(false);
   const [suggestionOffset, setSuggestionOffset] = useState(0);
+  const dailyUnlockRequestsRef = useRef(new Set<string>());
 
-  const refreshPlan = useCallback(async () => {
-    try {
-      const billing = await getBillingStatus();
-      setIsPro(billing.plan === 'pro');
-    } catch {
-      // Keep the regular flame if the user is a guest or the server is offline.
-      setIsPro(false);
-    }
-  }, []);
-
-  // Re-check whenever the Chat tab becomes visible, including after a user
-  // completes checkout and returns from Cài đặt.
+  // Focus only owns screen resources. Billing is loaded once by BillingProvider.
   useFocusEffect(useCallback(() => {
-    void refreshPlan();
     return () => {
       void ttsService.stop();
     };
-  }, [refreshPlan]));
+  }, []));
   
   // Profile state (Multi-profile requirement: 1 profile or 2 profiles for couple match)
   const [selectedProfiles, setSelectedProfiles] = useState<ProfileItem[]>([]);
@@ -677,19 +704,10 @@ export default function ChatScreen({
     return null;
   }, [selectedProfiles, profile]);
 
-  const dailyProfile = useMemo<UserProfile | null>(() => {
-    const selected = selectedProfiles[0];
-    if (!selected) return profile ?? null;
-    return {
-      fullName: selected.fullName,
-      birthDate: selected.birthDate,
-      gender: selected.gender ?? profile?.gender ?? 'female',
-      birthTime: selected.birthTime,
-      birthPlace: selected.birthPlace,
-      birthLocation: selected.birthLocation,
-      birthTimeAccuracy: selected.birthTimeAccuracy,
-    };
-  }, [profile, selectedProfiles]);
+  const dailyProfile = useMemo(
+    () => resolvePrimaryDailyProfile(profile, primaryProfileId),
+    [primaryProfileId, profile],
+  );
 
   const dailyInsight = useMemo(() => {
     if (!dailyProfile) return null;
@@ -703,7 +721,8 @@ export default function ChatScreen({
   const {
     currentDate: dailyFortuneDate,
     fortune: dailyFortune,
-  } = useDailyAstroFortune(dailyProfile);
+    retry: unlockDailyFortune,
+  } = useDailyAstroFortune(dailyProfile, primaryProfileId);
   const fortuneForDailyInsight = useMemo(() => {
     if (!dailyInsight || !dailyFortune) return null;
     if (formatLocalDateKey(dailyFortuneDate) !== dailyInsight.dateKey) return null;
@@ -818,10 +837,57 @@ export default function ChatScreen({
       return;
     }
     setDailySheetVisible(true);
+    if (!dailyFortune) void unlockDailyFortune().catch(() => undefined);
     setIsDailyInsightUnseen(false);
     const seenKey = `@numelyra:daily-insight-seen:${dailyInsight.profileKey}:${dailyInsight.dateKey}`;
     void AsyncStorage.setItem(seenKey, '1').catch(() => undefined);
-  }, [dailyInsight, dailyProfile, locale]);
+  }, [dailyFortune, dailyInsight, dailyProfile, locale, unlockDailyFortune]);
+
+  useEffect(() => {
+    setDailyBackUnlocked(false);
+  }, [dailyInsight?.dateKey, dailyInsight?.profileKey]);
+
+  const handleUnlockDailyBack = useCallback(async () => {
+    if (!dailyInsight || !user) {
+      Alert.alert(l('Cần đăng nhập', 'Sign in required'), l('Hãy đăng nhập để mở Daily Insight hôm nay.', "Sign in to unlock today's Daily Insight."));
+      return false;
+    }
+
+    if (dailyBackUnlocked) return true;
+    const dailyQuota = billing?.quota?.daily_insight_back;
+    if (!dailyQuota || dailyQuota.remaining <= 0 || !consumeQuota('daily_insight_back')) {
+      Alert.alert(
+        l('Đã hết lượt Daily Insight', 'Daily Insight allowance reached'),
+        l('Bạn có thể xem lại gói hiện tại trong Cài đặt.', 'You can review your current plan in Settings.'),
+        [
+          { text: l('Để sau', 'Not now'), style: 'cancel' },
+          { text: l('Xem gói', 'View plan'), onPress: onOpenSettings },
+        ],
+      );
+      return false;
+    }
+
+    // Unlock the page immediately from the bootstrap quota. Persist the debit
+    // in the background and de-duplicate by profile/date so rapid swipes cannot spam.
+    setDailyBackUnlocked(true);
+    const unlockKey = `${dailyInsight.profileKey}:${dailyInsight.dateKey}`;
+    if (!dailyUnlockRequestsRef.current.has(unlockKey)) {
+      dailyUnlockRequestsRef.current.add(unlockKey);
+      void unlockDailyInsightBack({
+        profileKey: dailyInsight.profileKey,
+        localDate: dailyInsight.dateKey,
+        locale,
+      }).then((result) => {
+        // The server may report that this date was already unlocked earlier.
+        // In that case the bootstrap allowance was not consumed again.
+        if (result.cached) restoreQuota('daily_insight_back');
+      }).catch(() => {
+        dailyUnlockRequestsRef.current.delete(unlockKey);
+        restoreQuota('daily_insight_back');
+      });
+    }
+    return true;
+  }, [billing?.quota?.daily_insight_back, consumeQuota, dailyBackUnlocked, dailyInsight, l, locale, onOpenSettings, restoreQuota, user]);
 
   // Theo dõi trạng thái hiển thị bàn phím để tự động thu gọn Mascot và tối ưu không gian cho ô soạn thảo
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
@@ -905,6 +971,73 @@ export default function ChatScreen({
     setMessages(prev => orderChatHistoryMessages([...prev, message]).slice(-MAX_STORED_CHAT_MESSAGES));
     setVisibleMessageCount(message.sender === 'mascot' ? 2 : 1);
   }, []);
+
+  const [isDownloadingCloud, setIsDownloadingCloud] = useState(false);
+
+  /** Lưu tin nhắn vào local SQLite và tự động kích hoạt batch sync khi tích lũy đủ 10 tin pending */
+  const recordAndCheckPendingMessage = useCallback(async (msg: MessageItem) => {
+    try {
+      const session = await ensureMainUserChatSession(chatHistoryOwner);
+      const localMsg: LocalChatMessage = {
+        id: msg.id,
+        sessionId: session.id,
+        turnIndex: 0,
+        sender: msg.sender,
+        text: msg.text,
+        cardPayload: msg.card || null,
+        syncStatus: 'pending',
+        createdAt: new Date(msg.createdAt || Date.now()).toISOString(),
+        syncedAt: null,
+      };
+      await upsertLocalChatMessage(localMsg);
+
+      // Kiểm tra nếu đủ 10 tin nhắn pending thì kích hoạt batch sync
+      const syncResult = await syncPendingMessagesBatch(PENDING_SYNC_THRESHOLD);
+      if (syncResult.success && syncResult.syncedCount > 0) {
+        setMessages((current) => current.map((m) => ({
+          ...m,
+          syncStatus: 'synced',
+        })));
+      }
+    } catch (e) {
+      console.warn('[ChatScreen] Could not record local message or batch sync:', e);
+    }
+  }, [chatHistoryOwner]);
+
+  /** Tải về toàn bộ hồ sơ và tin nhắn từ server về app */
+  const handleDownloadAllData = useCallback(async () => {
+    if (!user) {
+      Alert.alert(
+        l('Cần đăng nhập', 'Sign in required'),
+        l('Vui lòng đăng nhập để tải toàn bộ dữ liệu từ máy chủ.', 'Please sign in to download all data from server.')
+      );
+      return;
+    }
+    setIsDownloadingCloud(true);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const res = await downloadAndSyncAllUserData();
+      const refreshed = await loadChatHistory(chatHistoryOwner);
+      setMessages(refreshed);
+      setVisibleMessageCount(getLatestConversationCount(refreshed));
+      Alert.alert(
+        l('Tải về thành công', 'Download successful'),
+        l(
+          `Đã tải về toàn bộ ${res.profilesCount} hồ sơ và ${res.messagesCount} tin nhắn từ máy chủ.`,
+          `Successfully downloaded ${res.profilesCount} profiles and ${res.messagesCount} messages from server.`
+        )
+      );
+    } catch (err) {
+      console.warn('[ChatScreen] Full download error:', err);
+      Alert.alert(
+        l('Không thể tải về', 'Download failed'),
+        l('Đã có lỗi khi tải dữ liệu từ máy chủ. Vui lòng thử lại sau.', 'Could not download data from server. Please try again.')
+      );
+    } finally {
+      setIsDownloadingCloud(false);
+    }
+  }, [chatHistoryOwner, user, l]);
+
 
   const openRawReading = useCallback((message: MessageItem) => {
     if (message.sender !== 'mascot' || (!message.isTypingCompleted && !isCompatibilityMessage(message))) return;
@@ -1009,6 +1142,28 @@ export default function ChatScreen({
       setFlippedCards(getRestoredFlippedCards(restoredHistory));
       setHydratedHistoryOwner(chatHistoryOwner);
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 0);
+
+      // Tự động tải tin nhắn từ server về app khi đã đăng nhập (Cloud -> Local)
+      if (chatHistoryOwner !== 'guest') {
+        void downloadAllCloudChatData(chatHistoryOwner).then((result) => {
+          if (!isCurrentOwner) return;
+          if (result.messagesCount > 0) {
+            void loadChatHistory(chatHistoryOwner).then((cloudMergedHistory) => {
+              if (!isCurrentOwner) return;
+              const refreshedHistory = cloudMergedHistory as MessageItem[];
+              setMessages(refreshedHistory);
+              setVisibleMessageCount(getLatestConversationCount(refreshedHistory));
+              setFlippedCards(getRestoredFlippedCards(refreshedHistory));
+              setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+            });
+          }
+        }).catch((err) => {
+          console.warn('[ChatScreen] Auto cloud chat download error:', err);
+        });
+
+        // Kiểm tra và đẩy các tin nhắn pending tích lũy nếu đạt ngưỡng 10 tin
+        void syncPendingMessagesBatch(PENDING_SYNC_THRESHOLD).catch(() => {});
+      }
     });
 
     return () => {
@@ -1442,6 +1597,7 @@ export default function ChatScreen({
     const turnCreatedAt = Date.now();
     const turnSequence = chatTurnSequenceRef.current++;
     const turnId = `turn-${turnCreatedAt}-${turnSequence}`;
+    const requestId = turnId;
     const userMsg: MessageItem = {
       id: `user-${turnCreatedAt}-${turnSequence}`,
       sender: 'user',
@@ -1449,9 +1605,11 @@ export default function ChatScreen({
       time: new Date(turnCreatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
       turnId,
       createdAt: turnCreatedAt,
+      syncStatus: 'pending',
     };
 
     appendMessage(userMsg);
+    void recordAndCheckPendingMessage(userMsg);
     setInputVal('');
 
     // Màu hợp mệnh là trải nghiệm cá nhân. Với hai hồ sơ, giữ lại đúng câu
@@ -1484,9 +1642,30 @@ export default function ChatScreen({
           message: prompt,
           profiles: selectedProfiles,
           locale,
+          requestId,
         })
       });
       const classData = await classRes.json();
+      if (classRes.status === 401 || classData.code === 'MONTHLY_LIMIT_REACHED') {
+        Alert.alert(
+          l('Đã hết lượt AI', 'AI allowance reached'),
+          classData.error || l('Hãy đăng nhập hoặc nâng cấp NUMELYRA Pro để tiếp tục.', 'Sign in or upgrade to NUMELYRA Pro to continue.'),
+          [
+            { text: l('Để sau', 'Not now'), style: 'cancel' },
+            { text: l('Xem gói Pro', 'View Pro'), onPress: onOpenSettings },
+          ],
+        );
+        setLoading(false);
+        setMascotState('idle');
+        markQuotaEmpty('ai_response');
+        return;
+      }
+      if (classData.code === 'RATE_LIMITED' || classData.code === 'QUOTA_UNAVAILABLE') {
+        Alert.alert(l('Vui lòng thử lại', 'Please try again'), classData.error || l('Dịch vụ đang bận trong chốc lát.', 'The service is temporarily busy.'));
+        setLoading(false);
+        setMascotState('idle');
+        return;
+      }
       if (classData.ok && classData.data) {
         decision = classData.data;
       } else {
@@ -1519,15 +1698,18 @@ export default function ChatScreen({
     // không tính chỉ số, không rút Tarot và không gọi thêm /agent.
     if (decision.intent === 'trash') {
       setMascotState('explain');
-      appendMessage({
+      const trashMsg: MessageItem = {
         id: `mascot-${Date.now()}`,
         sender: 'mascot',
         text: decision.replyText || l('Câu hỏi của bạn chưa có chủ đề rõ ràng. Bạn có thể cho Tiểu Linh Miêu biết điều bạn đang muốn tìm hiểu không?', 'Your question does not have a clear topic yet. What would you like to explore?'),
         time: new Date().toLocaleTimeString(locale === 'en' ? 'en-US' : 'vi-VN', { hour: '2-digit', minute: '2-digit' }),
         turnId,
         createdAt: Date.now(),
-        isTypingCompleted: false
-      });
+        isTypingCompleted: false,
+        syncStatus: 'pending',
+      };
+      appendMessage(trashMsg);
+      void recordAndCheckPendingMessage(trashMsg);
       setLoading(false);
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
       setTimeout(() => setMascotState('idle'), 6000);
@@ -1542,7 +1724,7 @@ export default function ChatScreen({
       const selectedContext = await requestPlaceContext();
       if (!selectedContext) {
         setMascotState('explain');
-        appendMessage({
+        const placeMsg: MessageItem = {
           id: `mascot-${Date.now()}`,
           sender: 'mascot',
           text: l('✦ TIỂU LINH MIÊU CẦN VỊ TRÍ HIỆN TẠI:\nĐể lọc địa điểm theo khoảng cách thực tế, bạn hãy cho phép dùng vị trí một lần nhé.', '✦ LITTLE SPIRIT CAT NEEDS YOUR CURRENT LOCATION:\nAllow one-time location access so places can be filtered by real distance.'),
@@ -1550,7 +1732,10 @@ export default function ChatScreen({
           turnId,
           createdAt: Date.now(),
           isTypingCompleted: false,
-        });
+          syncStatus: 'pending',
+        };
+        appendMessage(placeMsg);
+        void recordAndCheckPendingMessage(placeMsg);
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
         setTimeout(() => setMascotState('idle'), 6000);
         return;
@@ -1609,6 +1794,7 @@ export default function ChatScreen({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: prompt,
+          requestId,
           locale,
           decision,
           timeZone: (() => {
@@ -1626,7 +1812,34 @@ export default function ChatScreen({
         }),
       });
       const data = await res.json();
+      if (res.status === 401 || data.code === 'MONTHLY_LIMIT_REACHED') {
+        Alert.alert(
+          l('Đã hết lượt AI', 'AI allowance reached'),
+          data.error || l('Hãy đăng nhập hoặc nâng cấp NUMELYRA Pro để tiếp tục.', 'Sign in or upgrade to NUMELYRA Pro to continue.'),
+          [
+            { text: l('Để sau', 'Not now'), style: 'cancel' },
+            { text: l('Xem gói Pro', 'View Pro'), onPress: onOpenSettings },
+          ],
+        );
+        if (drawnCards.length > 0) {
+          setPendingTarotReveal(null);
+          setLiveTarotReading(null);
+          waitsForTarotReveal = false;
+        }
+        markQuotaEmpty('ai_response');
+        return;
+      }
+      if (data.code === 'RATE_LIMITED' || data.code === 'QUOTA_UNAVAILABLE') {
+        Alert.alert(l('Vui lòng thử lại', 'Please try again'), data.error || l('Dịch vụ đang bận trong chốc lát.', 'The service is temporarily busy.'));
+        if (drawnCards.length > 0) {
+          setPendingTarotReveal(null);
+          setLiveTarotReading(null);
+          waitsForTarotReveal = false;
+        }
+        return;
+      }
       if (!data.ok || !data.data) throw new Error('Fallback to local synthesis engine');
+      consumeQuota('ai_response');
 
       const serverCardPayload = data.data.cardPayload || {};
       const backendScore = typeof serverCardPayload.compatibilityScore === 'number'
@@ -1660,8 +1873,10 @@ export default function ChatScreen({
         turnId,
         createdAt: tarotMessageCreatedAt,
         isTypingCompleted: decision.mode === 'compatibility' || drawnCards.length > 0,
+        syncStatus: 'pending',
       };
       appendMessage(mascotMsg);
+      void recordAndCheckPendingMessage(mascotMsg);
 
       if (decision.mode === 'compatibility') openCompatibilityDetail(mascotMsg, prompt);
       if (drawnCards.length > 0) {
@@ -1691,7 +1906,8 @@ export default function ChatScreen({
         time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
         turnId,
         createdAt: tarotMessageCreatedAt,
-        isTypingCompleted: decision.mode === 'compatibility' || drawnCards.length > 0
+        isTypingCompleted: decision.mode === 'compatibility' || drawnCards.length > 0,
+        syncStatus: 'pending',
       };
       setMessages((current) => {
         const alreadyStarted = current.some((item) => item.id === tarotMessageId);
@@ -1699,6 +1915,7 @@ export default function ChatScreen({
           ? current.map((item) => item.id === tarotMessageId ? mascotMsg : item)
           : orderChatHistoryMessages([...current, mascotMsg]).slice(-MAX_STORED_CHAT_MESSAGES);
       });
+      void recordAndCheckPendingMessage(mascotMsg);
       setVisibleMessageCount(2);
 
       if (decision.mode === 'compatibility') {
@@ -2174,6 +2391,47 @@ export default function ChatScreen({
     handleFlipCard(pendingTarotReveal.messageId, nextIndex);
   }, [flippedCards, pendingTarotReveal]);
 
+  const handleQuotaPress = useCallback(() => {
+    void Haptics.selectionAsync();
+
+    if (quotaLoadState === 'guest') {
+      onOpenSettings?.();
+      return;
+    }
+    if (quotaLoadState === 'loading') return;
+    if (quotaLoadState === 'error' && !aiQuota) {
+      void reloadBilling();
+      return;
+    }
+    if (!aiQuota) return;
+
+    const parsedPeriodEnd = quotaPeriodEnd ? new Date(quotaPeriodEnd) : null;
+    const resetDate = parsedPeriodEnd && !Number.isNaN(parsedPeriodEnd.getTime())
+      ? parsedPeriodEnd.toLocaleDateString(locale === 'en' ? 'en-US' : 'vi-VN')
+      : null;
+    const detailLines = [
+      l(`Còn lại: ${aiQuota.remaining}/${aiQuota.limit} lượt`, `Remaining: ${aiQuota.remaining}/${aiQuota.limit}`),
+      l(`Đã dùng: ${aiQuota.used} lượt`, `Used: ${aiQuota.used}`),
+      ...(resetDate ? [l(`Làm mới vào: ${resetDate}`, `Renews on: ${resetDate}`)] : []),
+      l(`Gói hiện tại: ${isPro ? 'Premium' : 'Miễn phí'}`, `Current plan: ${isPro ? 'Premium' : 'Free'}`),
+      ...(quotaLoadState === 'error'
+        ? [l('Đây là dữ liệu gần nhất. Kết nối mạng để cập nhật.', 'This is the latest cached value. Connect to refresh.')]
+        : []),
+    ];
+
+    Alert.alert(
+      l('Lượt chat tháng này', 'Monthly chat allowance'),
+      detailLines.join('\n'),
+      [
+        ...(quotaLoadState === 'error'
+          ? [{ text: t('common.retry'), onPress: () => { void reloadBilling(); } }]
+          : []),
+        { text: l('Quản lý gói', 'Manage plan'), onPress: onOpenSettings },
+        { text: t('common.close'), style: 'cancel' },
+      ],
+    );
+  }, [aiQuota, isPro, l, locale, onOpenSettings, quotaLoadState, quotaPeriodEnd, reloadBilling, t]);
+
   return (
     <View style={styles.outerScreenWrap}>
       {/* 🌟 1. BỐI CẢNH ĐÊM 3 LỚP PARALLAX + MOON + STARS */}
@@ -2200,9 +2458,27 @@ export default function ChatScreen({
         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
       >
         <View style={styles.numelyraHeader}>
-          <View style={styles.headerSideSpacer} />
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={l('Tải toàn bộ dữ liệu từ máy chủ', 'Download all data from server')}
+            disabled={isDownloadingCloud}
+            onPress={handleDownloadAllData}
+            style={styles.headerCircleBtn}
+          >
+            {isDownloadingCloud ? (
+              <ActivityIndicator size="small" color="#E0AAFF" />
+            ) : (
+              <Ionicons name="cloud-download-outline" size={20} color="#E0AAFF" />
+            )}
+          </TouchableOpacity>
           <View style={styles.headerTitleWrap}>
             <Text style={styles.numelyraBrandTitle}>Numelyra</Text>
+            <MonthlyChatQuotaBar
+              quota={aiQuota}
+              status={quotaLoadState}
+              isPro={isPro}
+              onPress={handleQuotaPress}
+            />
           </View>
           <TouchableOpacity
             accessibilityRole="button"
@@ -2241,6 +2517,14 @@ export default function ChatScreen({
                   style={styles.userTimelineBubble}
                 >
                   <Text style={styles.userTimelineText}>{item.text}</Text>
+                  <View style={styles.userMetaRow}>
+                    <Text style={styles.userTimeText}>{item.time}</Text>
+                    {item.syncStatus === 'synced' ? (
+                      <Ionicons name="checkmark-done" size={13} color="#E9D5FF" style={styles.syncIcon} />
+                    ) : (
+                      <Ionicons name="time-outline" size={12} color="#D1C4E9" style={styles.syncIcon} />
+                    )}
+                  </View>
                 </LinearGradient>
               </View>
             ) : (
@@ -2355,6 +2639,9 @@ export default function ChatScreen({
           visible={dailySheetVisible}
           insight={dailyInsight}
           fortune={fortuneForDailyInsight}
+          profileName={profile?.fullName}
+          backUnlocked={dailyBackUnlocked}
+          onUnlockBack={handleUnlockDailyBack}
           onClose={() => {
             setDailySheetVisible(false);
             setIsDailyInsightUnseen(false);
@@ -2415,6 +2702,8 @@ export default function ChatScreen({
           setSelectedProfiles(list);
           setProfilePromptNotice('');
         }}
+        managementMode="add-only"
+        primaryProfileId={primaryProfileId}
         promptNotice={profilePromptNotice}
       />
 
@@ -3947,9 +4236,11 @@ const styles = StyleSheet.create({
   headerTitleWrap: {
     alignItems: 'center',
     justifyContent: 'center',
+    minWidth: 184,
   },
   numelyraBrandTitle: {
-    fontSize: 19,
+    marginBottom: 1,
+    fontSize: 18,
     fontWeight: '500',
     color: '#F4EFFC',
     letterSpacing: 0.15,
@@ -4186,4 +4477,31 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
   },
+  userMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: 4,
+    gap: 4,
+  },
+  userTimeText: {
+    fontSize: 10,
+    color: 'rgba(235, 220, 255, 0.75)',
+  },
+  assistantMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: 4,
+    paddingHorizontal: 4,
+    gap: 4,
+  },
+  assistantTimeText: {
+    fontSize: 10,
+    color: 'rgba(200, 190, 225, 0.7)',
+  },
+  syncIcon: {
+    marginLeft: 2,
+  },
 });
+

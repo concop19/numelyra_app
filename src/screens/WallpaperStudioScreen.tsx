@@ -22,7 +22,7 @@
  * Phong cách nghệ thuật & Ý niệm thu hút được chọn ngẫu nhiên (randomize) tự động theo tinh thần Thần số học.
  */
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -51,17 +51,13 @@ import { Image as ExpoImage } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { saveWallpaper } from '../services/wallpaperSaver';
-import { ProfileItem, setActiveProfileId, UserProfile } from '../store/userProfile';
+import { profileItemToUserProfile, UserProfile } from '../store/userProfile';
+import { useProfiles } from '../store/profileContext';
 import { NumerologyCalculator, reduceNumber } from '../services/numerology24Service';
 import { API_ENDPOINTS, authenticatedFetch, resolveApiUrl } from '../services/apiConfig';
-import {
-  cacheWallpaperHistory,
-  CachedWallpaperItem,
-  loadWallpaperHistory,
-  MAX_CACHED_WALLPAPERS,
-} from '../services/wallpaperHistoryCache';
 import { NumerologyCardsModal } from '../components/NumerologyCardsModal';
 import ProfilePickerModal from '../components/ProfilePickerModal';
 import FloatingWallpaperCloud from '../components/FloatingWallpaperCloud';
@@ -100,7 +96,6 @@ interface WallpaperItem {
   id: string;
   source: ImageSourcePropType | { uri: string };
   isUri: boolean;
-  remoteUri?: string;
   title: string;
   affirmation_vi: string;
   affirmation_en?: string;
@@ -112,37 +107,6 @@ interface WallpaperItem {
   styleNameEn?: string;
   intentionName: string;
   intentionNameEn?: string;
-}
-
-function toCachedWallpaperItem(item: WallpaperItem): CachedWallpaperItem | null {
-  if (!item.isUri || typeof item.source !== 'object' || !('uri' in item.source) || !item.source.uri) {
-    return null;
-  }
-
-  return {
-    id: item.id,
-    imageUri: item.source.uri,
-    remoteUri: item.remoteUri,
-    title: item.title,
-    affirmation_vi: item.affirmation_vi,
-    affirmation_en: item.affirmation_en,
-    explanation_vi: item.explanation_vi,
-    explanation_en: item.explanation_en,
-    luckyColors_vi: item.luckyColors_vi,
-    luckyColors_en: item.luckyColors_en,
-    styleName: item.styleName,
-    styleNameEn: item.styleNameEn,
-    intentionName: item.intentionName,
-    intentionNameEn: item.intentionNameEn,
-  };
-}
-
-function fromCachedWallpaperItem(item: CachedWallpaperItem): WallpaperItem {
-  return {
-    ...item,
-    source: { uri: item.imageUri },
-    isUri: true,
-  };
 }
 
 const STYLES = [
@@ -215,7 +179,9 @@ function getRandomAffirmation(lifePath: number, intention: string): string {
   return `${q} (Ý niệm: ${intention})`;
 }
 
-export default function WallpaperStudioScreen({ profile, onBack }: Props) {
+export default function WallpaperStudioScreen({ profile: primaryProfile, onBack }: Props) {
+  const { profiles, primaryProfileId, refreshProfiles } = useProfiles();
+  const [viewProfileId, setViewProfileId] = useState(primaryProfileId);
   const { locale, t, l } = useLocalization();
   // State quản lý luồng màn hình: 'input' -> 'generating' -> 'result'
   const [step, setStep] = useState<ScreenStep>('input');
@@ -305,32 +271,24 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
   const [showMenuModal, setShowMenuModal] = useState(false);
   const [showCardsModal, setShowCardsModal] = useState(false);
   const [isProfilePickerOpen, setIsProfilePickerOpen] = useState(false);
-  const [selectedProfiles, setSelectedProfiles] = useState<ProfileItem[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isSavingWallpaper, setIsSavingWallpaper] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
+  const viewProfileItem = profiles.find((item) => item.id === viewProfileId)
+    ?? profiles.find((item) => item.id === primaryProfileId)
+    ?? null;
+  const selectedProfiles = useMemo(() => viewProfileItem ? [viewProfileItem] : [], [viewProfileItem]);
+  const activeWallpaperProfile = (viewProfileItem && profileItemToUserProfile(viewProfileItem))
+    || primaryProfile
+    || null;
 
-    void loadWallpaperHistory().then((cachedItems) => {
-      if (!cancelled && cachedItems.length > 0) {
-        setHistory(cachedItems.map(fromCachedWallpaperItem));
-        setActiveCarouselIndex(0);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  useFocusEffect(useCallback(() => {
+    setViewProfileId(primaryProfileId);
+  }, [primaryProfileId]));
 
   useEffect(() => {
-    if (profile && selectedProfiles.length === 0) {
-      setSelectedProfiles([{ id: 'default-profile', ...profile, gender: profile.gender }]);
-    }
-  }, [profile, selectedProfiles.length]);
-
-  const activeWallpaperProfile = selectedProfiles[0] ?? profile ?? null;
+    if (!viewProfileItem && primaryProfileId) setViewProfileId(primaryProfileId);
+  }, [primaryProfileId, viewProfileItem]);
   const activeWallpaperProfileForModal: UserProfile | null = activeWallpaperProfile
     ? {
         fullName: activeWallpaperProfile.fullName,
@@ -532,6 +490,7 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          requestId: `wallpaper-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
           fullName: activeWallpaperProfile?.fullName || 'Numelyra Seeker',
           birthDate: activeWallpaperProfile?.birthDate || '2000-01-01',
           ...numbers,
@@ -539,13 +498,18 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
           styleId: randomStyle.id,
           deviceType: 'mobile',
           customWish: effectivePrompt,
-          locale,
           count: 4,
         }),
       });
 
       const data = await res.json().catch(() => ({}));
-      console.log('[LuckyWallpaper] Response status:', res.status, 'success:', data?.success, 'imageUrls count:', data?.imageUrls?.length, 'imageUrl:', data?.imageUrl);
+      console.log(
+        '[LuckyWallpaper] Response status:', res.status,
+        'success:', data?.success,
+        'error:', data?.error,
+        'imageUrls count:', data?.imageUrls?.length,
+        'imageUrl:', data?.imageUrl
+      );
 
       if (res.ok && data.success && (data.imageUrls?.length || data.imageUrl)) {
         const rawUrls: string[] = Array.isArray(data.imageUrls) && data.imageUrls.length > 0
@@ -558,7 +522,6 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
             id: `ai-${Date.now()}-${idx}`,
             source: { uri: fullImageUrl },
             isUri: true,
-            remoteUri: fullImageUrl,
             title: `${effectivePrompt} • ${l('Bản', 'Version')} #${idx + 1}`,
             affirmation_vi: data.affirmation_vi || getRandomAffirmation(numbers.lifePathNumber, randomIntention.label),
             affirmation_en: data.affirmation_en || `I welcome ${randomIntention.labelEn.toLowerCase()} with calm confidence.`,
@@ -587,16 +550,10 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
     await minWaitPromise;
 
     if (newItems.length > 0) {
-      // Giữ tối đa 8 ảnh AI gần nhất và lưu file cục bộ để xem lại sau khi mở app.
-      const nextHistory = [...newItems, ...history.filter((item) => item.isUri)]
-        .slice(0, MAX_CACHED_WALLPAPERS);
-      setHistory(nextHistory);
-      void cacheWallpaperHistory(
-        nextHistory
-          .map(toCachedWallpaperItem)
-          .filter((item): item is CachedWallpaperItem => item !== null)
-      ).catch((error) => {
-        console.warn('[LuckyWallpaper] Unable to persist generated history:', error);
+      // Hiển thị trực tiếp các URL trả về như luồng cũ; không tải lại file để cache.
+      setHistory((prev) => {
+        const prevAiOnly = prev.filter((item) => item.isUri);
+        return [...newItems, ...prevAiOnly].slice(0, 20);
       });
       setActiveCarouselIndex(0);
       setStep('result');
@@ -684,10 +641,13 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => setIsProfilePickerOpen(true)}
-              style={styles.headerIconButton}
-              accessibilityLabel={l('Chọn hồ sơ', 'Choose profile')}
+              style={styles.profileHeaderChip}
+              accessibilityLabel={l(`Chọn hồ sơ, hiện tại là ${activeWallpaperProfile?.fullName || ''}`, `Choose profile, currently ${activeWallpaperProfile?.fullName || ''}`)}
             >
-              <Ionicons name="search-outline" size={23} color="#F7CC6A" />
+              <Ionicons name="person-circle-outline" size={20} color="#F7CC6A" />
+              <Text numberOfLines={1} style={styles.profileHeaderName}>{activeWallpaperProfile?.fullName}</Text>
+              {viewProfileId === primaryProfileId && <Text style={styles.profileHeaderBadge}>{l('Tôi', 'Me')}</Text>}
+              <Ionicons name="chevron-down" size={13} color="#C8B9E4" />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -733,6 +693,7 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
                     <Text style={[styles.inputSubtitle, isKeyboardVisible && styles.inputSubtitleKeyboard]}>
                       {l('Mô tả cảm xúc, tâm trạng hoặc điều bạn đang cần.', 'Describe your vibe, mood or what you need right now.')}
                     </Text>
+                    <Text style={styles.profileContextText}>{l('Tạo cho', 'Creating for')} {activeWallpaperProfile?.fullName}</Text>
                   </View>
 
                   {/* Minh họa trăng khuyết và sao lấp lánh ở góc trên phải */}
@@ -854,6 +815,7 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
             <Text style={styles.loadingSubtitle}>
               {l('Biến lời bạn thành một khung cảnh ✨', 'Turning your words into a scene ✨')}
             </Text>
+            <Text style={styles.loadingProfileText}>{l('Dành cho', 'For')} {activeWallpaperProfile?.fullName}</Text>
           </View>
 
           {/* Khung 4 tấm hình nổi xếp chồng nhau với chuyển động bay bổng */}
@@ -970,8 +932,9 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
               {l('Hình nền may mắn của bạn ✨', 'Here’s your lucky wallpaper ✨')}
             </Text>
             <Text style={styles.resultSubtitle}>
-              {l('Vuốt để xem tối đa 8 ảnh gần nhất ✨ hoặc chạm vào ảnh để xem toàn màn hình.', 'Swipe through your 8 most recent images ✨ or tap any card to view fullscreen.')}
+              {l('Vuốt để xem 4 phiên bản ✨ hoặc chạm vào ảnh để xem toàn màn hình.', 'Swipe to explore all 4 variations ✨ or tap any card to view fullscreen.')}
             </Text>
+            <Text style={styles.resultProfileText}>{l('Đã tạo cho', 'Created for')} {activeWallpaperProfile?.fullName}</Text>
           </View>
 
           {/* Carousel ngang hiển thị hình nền */}
@@ -1013,15 +976,12 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
                       isActive ? styles.carouselCardActive : styles.carouselCardInactive,
                     ]}
                   >
-                    <ExpoImage
+                    <Image
                       source={item.source}
                       style={styles.carouselCardImage}
-                      contentFit="cover"
-                      cachePolicy="memory-disk"
-                      recyclingKey={item.id}
+                      resizeMode="cover"
                     />
 
-                    {/* Vầng sáng nhẹ trên thẻ đang chọn */}
                     {isActive && <View style={styles.carouselActiveBorderGlow} pointerEvents="none" />}
                   </TouchableOpacity>
                 );
@@ -1030,7 +990,7 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
 
             {/* Dải chấm pagination tinh tế */}
             <View style={styles.paginationDotsRow}>
-              {history.map((_, idx) => (
+              {history.slice(0, 4).map((_, idx) => (
                 <View
                   key={`dot-${idx}`}
                   style={[
@@ -1041,14 +1001,9 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
               ))}
             </View>
 
-            {/* Thanh chọn tối đa 8 ảnh gần nhất */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.variationScroll}
-              contentContainerStyle={styles.variationRow}
-            >
-              {history.map((item, idx) => {
+            {/* Thanh chọn 4 phiên bản thu nhỏ trực quan */}
+            <View style={styles.variationRow}>
+              {history.slice(0, 4).map((item, idx) => {
                 const isActive = idx === activeCarouselIndex;
                 return (
                   <TouchableOpacity
@@ -1071,12 +1026,10 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
                       isActive && styles.variationThumbActive,
                     ]}
                   >
-                    <ExpoImage
+                    <Image
                       source={item.source}
                       style={styles.variationThumbImg}
-                      contentFit="cover"
-                      cachePolicy="memory-disk"
-                      recyclingKey={`thumb-${item.id}`}
+                      resizeMode="cover"
                     />
                     <View style={[styles.variationBadge, isActive && styles.variationBadgeActive]}>
                       <Text style={[styles.variationBadgeText, isActive && styles.variationBadgeTextActive]}>
@@ -1086,7 +1039,7 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
                   </TouchableOpacity>
                 );
               })}
-            </ScrollView>
+            </View>
           </View>
 
           {/* Bộ nút đôi dưới đáy: "Try another" & "Save wallpaper" */}
@@ -1166,11 +1119,10 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
             {/* Ảnh lớn */}
             <View style={styles.fullscreenImageWrap}>
               {fullscreenItem && (
-                <ExpoImage
+                <Image
                   source={fullscreenItem.source}
                   style={styles.fullscreenImage}
-                  contentFit="contain"
-                  cachePolicy="memory-disk"
+                  resizeMode="contain"
                 />
               )}
             </View>
@@ -1285,12 +1237,15 @@ export default function WallpaperStudioScreen({ profile, onBack }: Props) {
         selectedProfiles={selectedProfiles}
         allowCoupleMode={false}
         onProfilesSelected={async (list) => {
-          setSelectedProfiles(list.slice(0, 1));
           if (list.length > 0) {
-            await setActiveProfileId(list[0].id);
+            setViewProfileId(list[0].id);
           }
           setIsProfilePickerOpen(false);
         }}
+        managementMode="add-only"
+        onProfilesChanged={refreshProfiles}
+        primaryProfileId={primaryProfileId}
+        title={l('Tạo hình nền cho ai?', 'Create a wallpaper for whom?')}
       />
 
       {/* Modal 24 Lá Bài Thần Số Học */}
@@ -1369,6 +1324,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  profileHeaderChip: {
+    maxWidth: Math.min(230, SCREEN_WIDTH - 108),
+    minHeight: 40,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(247, 204, 106, 0.38)',
+    backgroundColor: 'rgba(33, 20, 56, 0.72)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  profileHeaderName: { flexShrink: 1, color: '#FFF7DF', fontSize: 12, fontWeight: '800' },
+  profileHeaderBadge: { color: '#2B1A42', backgroundColor: '#F7CC6A', borderRadius: 8, paddingHorizontal: 5, paddingVertical: 2, fontSize: 8, fontWeight: '900', overflow: 'hidden' },
   headerBackArrow: {
     color: '#FFFFFF',
     fontSize: 28,
@@ -1423,6 +1392,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 4,
   },
+  profileContextText: { color: '#F7CC6A', fontSize: 12, fontWeight: '800', marginTop: 7 },
   moonDecorWrapper: {
     position: 'absolute',
     top: 6,
@@ -1565,6 +1535,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontWeight: '400',
   },
+  loadingProfileText: { color: '#F7CC6A', fontSize: 12, fontWeight: '800', marginTop: 7 },
   stackedCardsArea: {
     flex: 1,
     alignItems: 'center',
@@ -1676,6 +1647,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontWeight: '400',
   },
+  resultProfileText: { color: '#F7CC6A', fontSize: 12, fontWeight: '800', marginTop: 6 },
   carouselContainer: {
     flex: 1,
     justifyContent: 'center',

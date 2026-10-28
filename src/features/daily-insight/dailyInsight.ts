@@ -328,7 +328,7 @@ function suggestions(locale: AppLocale, insight: Pick<DailyInsight, 'luckyTime' 
 }
 
 export function buildDailyInsight(
-  profile: UserProfile,
+  profile: UserProfile & { id?: string | null },
   date = new Date(),
   locale: AppLocale = 'vi',
 ): DailyInsight {
