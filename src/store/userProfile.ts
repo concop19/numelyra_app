@@ -466,29 +466,28 @@ export async function updateProfile(
 export async function deleteProfile(id: string): Promise<ProfileItem[]> {
   const all = await loadAllProfiles();
   const target = all.find(p => p.id === id);
+  if (!target) return all;
   const updated = all.filter(p => p.id !== id);
-  await saveAllProfiles(updated);
 
-  // Nếu người dùng đã đăng nhập Supabase, xóa luôn trên Supabase cloud
+  // For cloud-backed rows, delete remotely first. A failed request must keep
+  // the local row visible, otherwise the next cloud pull would resurrect it.
   if (supabase) {
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const user = sessionData?.session?.user;
-      if (user) {
-        if (id.length === 36 && id.includes('-')) {
-          await supabase.from('user_numerology_profiles').delete().eq('id', id).eq('user_id', user.id);
-        } else if (target) {
-          await supabase.from('user_numerology_profiles').delete()
-            .eq('user_id', user.id)
-            .eq('name', target.fullName)
-            .eq('birth_date', target.birthDate);
-        }
+    const { data: sessionData } = await supabase.auth.getSession();
+    const user = sessionData?.session?.user;
+    if (user && id.length === 36 && id.includes('-')) {
+      const { error } = await supabase
+        .from('user_numerology_profiles')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+      if (error) {
+        console.warn('[userProfile] Supabase deleteProfile failed:', error);
+        throw error;
       }
-    } catch (err) {
-      console.warn('[userProfile] Supabase deleteProfile failed:', err);
     }
   }
 
+  await saveAllProfiles(updated);
   const primaryId = await getPrimaryProfileId();
   if (primaryId === id && updated.length > 0) {
     await setPrimaryProfileId(updated[0].id, { pendingCloudSync: true });

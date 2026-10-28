@@ -80,7 +80,7 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "testRegex": "(src/services/(agentDecisionEngine|chatNumerologyContextService|colorGuidance|chatHistoryStorage|chatSessionSyncService|chatStreamClient|dailyNotifications|profileSync|ttsService|lunarService|numerologyKnowledge|numerologySummaryService|numerologyCatalogValidation|tarotService|astro/.*|activityRuleEngine)|src/db/numerologyKnowledgeService|src/store/userProfile|src/features/constellation/constellationGeometry|src/features/astrology/dailyAstroFortune|src/features/daily-insight/(dailyInsight|dailyProfile)|src/components/chat/mascotVisualLayout|src/i18n/(LocalizationContext|translations))\\.test\\.ts$"
+    "testRegex": "(src/services/(agentDecisionEngine|chatNumerologyContextService|colorGuidance|chatHistoryStorage|chatSessionSyncService|chatStreamClient|dailyNotifications|profileSync|ttsService|lunarService|numerologyKnowledge|numerologySummaryService|numerologyCatalogValidation|tarotService|astro/.*|activityRuleEngine)|src/db/numerologyKnowledgeService|src/store/userProfile(?:Delete)?|src/features/constellation/constellationGeometry|src/features/astrology/dailyAstroFortune|src/features/daily-insight/(dailyInsight|dailyProfile)|src/components/chat/mascotVisualLayout|src/i18n/(LocalizationContext|translations))\\.test\\.ts$"
   },
   "private": true
 }

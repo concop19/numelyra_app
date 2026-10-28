@@ -2,10 +2,10 @@
  * ProfilePickerModal.tsx - Modal quản lý & chọn Profile (1 người hoặc 2 người để ghép đôi tình duyên)
  * Kích hoạt khi bấm nút Kính Lúp (🔍) ở thanh chat hoặc khi gửi câu hỏi.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  StyleSheet, View, Text, Modal, TouchableOpacity,
-  ScrollView, TextInput, Alert, Platform
+  Animated, StyleSheet, View, Text, Modal, TouchableOpacity,
+  ScrollView, TextInput, Alert, PanResponder, Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -55,6 +55,7 @@ export default function ProfilePickerModal({
 
   const [isAdding, setIsAdding] = useState(false);
   const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
+  const [revealedProfileId, setRevealedProfileId] = useState<string | null>(null);
   
   // Form state
   const [newName, setNewName] = useState('');
@@ -93,6 +94,7 @@ export default function ProfilePickerModal({
     if (visible) {
       fetchProfiles();
       setIsAdding(false);
+      setRevealedProfileId(null);
       resetProfileForm();
       const forcedSingleMode = !allowCoupleMode;
       setIsCoupleMode(forcedSingleMode ? false : selectedProfiles.length >= 2);
@@ -159,12 +161,20 @@ export default function ProfilePickerModal({
 
   const handleDelete = async (id: string, name: string) => {
     const doDelete = async () => {
-      const updated = await deleteProfile(id);
-      setProfiles(updated);
-      await onProfilesChanged?.();
-      setTempSelectedIds(prev => prev.filter(pId => pId !== id));
-      if (updated.length > 0 && selectedProfiles.some(p => p.id === id)) {
-        onProfilesSelected([updated[0]]);
+      try {
+        const updated = await deleteProfile(id);
+        setProfiles(updated);
+        await onProfilesChanged?.();
+        setTempSelectedIds(prev => prev.filter(pId => pId !== id));
+        if (updated.length > 0 && selectedProfiles.some(p => p.id === id)) {
+          onProfilesSelected([updated[0]]);
+        }
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch {
+        Alert.alert(
+          l('Không thể xóa hồ sơ', 'Unable to delete profile'),
+          l('Hồ sơ vẫn được giữ nguyên. Vui lòng kiểm tra kết nối và thử lại.', 'The profile was kept. Check your connection and try again.'),
+        );
       }
     };
 
@@ -331,7 +341,9 @@ export default function ProfilePickerModal({
             <Text style={styles.headerSubtitle}>
               {isCoupleMode
                 ? coupleNamingNotice
-                : l('Chọn 1 hồ sơ để Tiểu Linh Miêu giải mã vận mệnh, công danh và năng lượng cá nhân.', 'Choose one profile for a personal destiny, career and energy reading.')}
+                : managementMode === 'full'
+                  ? l('Chạm bút để sửa. Vuốt hồ sơ phụ sang trái để hiện nút xóa.', 'Tap the pencil to edit. Swipe a secondary profile left to reveal delete.')
+                  : l('Chọn 1 hồ sơ để Tiểu Linh Miêu giải mã vận mệnh, công danh và năng lượng cá nhân.', 'Choose one profile for a personal destiny, career and energy reading.')}
             </Text>
           )}
 
@@ -346,73 +358,83 @@ export default function ProfilePickerModal({
                 const zodiacEmoji = getZodiacEmoji(zodiac);
                 const nguHanh = getNguHanh(birthYear);
                 const nguHanhEmoji = getNguHanhEmoji(nguHanh);
+                const canDelete = managementMode === 'full'
+                  && profiles.length > 1
+                  && p.id !== primaryProfileId;
 
                 return (
-                  <TouchableOpacity
+                  <SwipeRevealProfileRow
                     key={p.id}
-                    style={[
-                      styles.profileCard,
-                      isSelected && styles.profileCardSelected,
-                      isSelected && isCoupleMode && styles.profileCardCoupleSelected
-                    ]}
-                    onPress={() => handleSelectProfile(p)}
-                    activeOpacity={0.8}
+                    deleteLabel={`${l('Xóa hồ sơ', 'Delete profile')} ${p.fullName}`}
+                    deleteText={l('Xóa', 'Delete')}
+                    enabled={canDelete}
+                    onDelete={() => {
+                      setRevealedProfileId(null);
+                      handleDelete(p.id, p.fullName);
+                    }}
+                    onReveal={(revealed) => setRevealedProfileId(revealed ? p.id : null)}
+                    revealed={revealedProfileId === p.id}
                   >
-                    <View style={styles.profileLeft}>
-                      <View style={[styles.avatarCircle, isSelected && styles.avatarCircleSelected]}>
-                        <Text style={{ fontSize: 24 }}>{zodiacEmoji}</Text>
-                      </View>
-                      <View style={styles.profileInfo}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                          <Text style={styles.profileName}>{p.fullName}</Text>
-                          {isSelected && (
-                            <View style={[styles.activeBadge, isCoupleMode && styles.activeBadgeCouple]}>
-                              <Text style={styles.activeBadgeText}>
-                                {isCoupleMode ? `${l('Hồ sơ', 'Profile')} ${order}` : l('Đang chọn', 'Selected')}
-                              </Text>
-                            </View>
-                          )}
-                          {p.id === primaryProfileId && (
-                            <View style={styles.primaryProfileBadge}>
-                              <Text style={styles.primaryProfileBadgeText}>{l('Hồ sơ chính', 'Primary')}</Text>
-                            </View>
-                          )}
+                    <TouchableOpacity
+                      style={[
+                        styles.profileCard,
+                        isSelected && styles.profileCardSelected,
+                        isSelected && isCoupleMode && styles.profileCardCoupleSelected
+                      ]}
+                      onPress={() => {
+                        setRevealedProfileId(null);
+                        void handleSelectProfile(p);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.profileLeft}>
+                        <View style={[styles.avatarCircle, isSelected && styles.avatarCircleSelected]}>
+                          <Text style={{ fontSize: 24 }}>{zodiacEmoji}</Text>
                         </View>
-                        <Text style={[styles.profileDetails, !p.gender && styles.profileDetailsWarning]}>
-                          📅 {p.birthDate} · {nguHanhEmoji} {nguHanh} · {zodiac} · {' '}
-                          {p.gender === 'male' ? l('👨 Nam', '👨 Male') : p.gender === 'female' ? l('👩 Nữ', '👩 Female') : l('⚠️ Chưa chọn giới tính', '⚠️ Gender not selected')}
-                        </Text>
+                        <View style={styles.profileInfo}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={styles.profileName}>{p.fullName}</Text>
+                            {isSelected && (
+                              <View style={[styles.activeBadge, isCoupleMode && styles.activeBadgeCouple]}>
+                                <Text style={styles.activeBadgeText}>
+                                  {isCoupleMode ? `${l('Hồ sơ', 'Profile')} ${order}` : l('Đang chọn', 'Selected')}
+                                </Text>
+                              </View>
+                            )}
+                            {p.id === primaryProfileId && (
+                              <View style={styles.primaryProfileBadge}>
+                                <Text style={styles.primaryProfileBadgeText}>{l('Hồ sơ chính', 'Primary')}</Text>
+                              </View>
+                            )}
+                          </View>
+                          <Text style={[styles.profileDetails, !p.gender && styles.profileDetailsWarning]}>
+                            📅 {p.birthDate} · {nguHanhEmoji} {nguHanh} · {zodiac} · {' '}
+                            {p.gender === 'male' ? l('👨 Nam', '👨 Male') : p.gender === 'female' ? l('👩 Nữ', '👩 Female') : l('⚠️ Chưa chọn giới tính', '⚠️ Gender not selected')}
+                          </Text>
+                        </View>
                       </View>
-                    </View>
 
-                    <View style={styles.profileRight}>
-                      {managementMode === 'full' && <TouchableOpacity
-                        accessibilityRole="button"
-                        accessibilityLabel={`${l('Chỉnh sửa hồ sơ', 'Edit profile')} ${p.fullName}`}
-                        activeOpacity={0.7}
-                        style={styles.editBtn}
-                        onPress={(event) => {
-                          event.stopPropagation();
-                          void Haptics.selectionAsync();
-                          startEditingProfile(p);
-                        }}
-                      >
-                        <Ionicons name="pencil-outline" size={16} color="#93C5FD" />
-                      </TouchableOpacity>}
-                      {managementMode === 'full' && profiles.length > 1 && p.id !== primaryProfileId && (
-                        <TouchableOpacity
+                      <View style={styles.profileRight}>
+                        {managementMode === 'full' && <TouchableOpacity
+                          accessibilityRole="button"
+                          accessibilityLabel={`${l('Chỉnh sửa hồ sơ', 'Edit profile')} ${p.fullName}`}
                           activeOpacity={0.7}
-                          style={styles.deleteBtn}
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            handleDelete(p.id, p.fullName);
+                          style={styles.editBtn}
+                          onPress={(event) => {
+                            event.stopPropagation();
+                            setRevealedProfileId(null);
+                            void Haptics.selectionAsync();
+                            startEditingProfile(p);
                           }}
                         >
-                          <Ionicons name="trash-outline" size={16} color="#FCA5A5" />
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  </TouchableOpacity>
+                          <Ionicons name="pencil-outline" size={16} color="#93C5FD" />
+                        </TouchableOpacity>}
+                        {canDelete && (
+                          <Ionicons name="chevron-back" size={15} color="#776E8E" style={styles.swipeHintIcon} />
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  </SwipeRevealProfileRow>
                 );
               })}
 
@@ -529,6 +551,97 @@ export default function ProfilePickerModal({
   );
 }
 
+const DELETE_REVEAL_WIDTH = 78;
+
+function SwipeRevealProfileRow({
+  children,
+  deleteLabel,
+  deleteText,
+  enabled,
+  onDelete,
+  onReveal,
+  revealed,
+}: {
+  children: React.ReactNode;
+  deleteLabel: string;
+  deleteText: string;
+  enabled: boolean;
+  onDelete: () => void;
+  onReveal: (revealed: boolean) => void;
+  revealed: boolean;
+}) {
+  const translateX = useRef(new Animated.Value(0)).current;
+  const gestureStart = useRef(0);
+
+  useEffect(() => {
+    Animated.spring(translateX, {
+      toValue: enabled && revealed ? -DELETE_REVEAL_WIDTH : 0,
+      damping: 22,
+      stiffness: 240,
+      mass: 0.7,
+      useNativeDriver: true,
+    }).start();
+  }, [enabled, revealed, translateX]);
+
+  const settle = (shouldReveal: boolean) => {
+    onReveal(shouldReveal);
+    Animated.spring(translateX, {
+      toValue: shouldReveal ? -DELETE_REVEAL_WIDTH : 0,
+      damping: 22,
+      stiffness: 240,
+      mass: 0.7,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const panResponder = useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponder: (_event, gesture) => (
+      enabled
+      && Math.abs(gesture.dx) > 8
+      && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.25
+    ),
+    onPanResponderGrant: () => {
+      translateX.stopAnimation((value) => { gestureStart.current = value; });
+    },
+    onPanResponderMove: (_event, gesture) => {
+      const next = Math.max(-DELETE_REVEAL_WIDTH, Math.min(0, gestureStart.current + gesture.dx));
+      translateX.setValue(next);
+    },
+    onPanResponderRelease: (_event, gesture) => {
+      const next = gestureStart.current + gesture.dx;
+      settle(next < -DELETE_REVEAL_WIDTH * 0.42 || gesture.vx < -0.35);
+    },
+    onPanResponderTerminate: () => settle(revealed),
+  }), [enabled, revealed, translateX]);
+
+  return (
+    <View style={styles.swipeRow}>
+      {enabled && (
+        <TouchableOpacity
+          accessibilityLabel={deleteLabel}
+          accessibilityRole="button"
+          activeOpacity={0.82}
+          onPress={() => {
+            settle(false);
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            onDelete();
+          }}
+          style={styles.swipeDeleteAction}
+        >
+          <Ionicons name="trash-outline" size={21} color="#FFFFFF" />
+          <Text style={styles.swipeDeleteText}>{deleteText}</Text>
+        </TouchableOpacity>
+      )}
+      <Animated.View
+        {...(enabled ? panResponder.panHandlers : {})}
+        style={[styles.swipeProfileSurface, { transform: [{ translateX }] }]}
+      >
+        {children}
+      </Animated.View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
@@ -637,6 +750,34 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 14
   },
+  swipeRow: {
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: 14,
+    backgroundColor: '#B52D4A',
+  },
+  swipeProfileSurface: {
+    width: '100%',
+    backgroundColor: '#181528',
+  },
+  swipeDeleteAction: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: DELETE_REVEAL_WIDTH,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+    backgroundColor: '#C73550',
+  },
+  swipeDeleteText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -645,7 +786,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: '#2A243F',
-    padding: 10
+    padding: 10,
+    width: '100%',
   },
   profileCardSelected: {
     borderColor: '#F5BA5B',
@@ -725,13 +867,7 @@ const styles = StyleSheet.create({
   editBtn: {
     padding: 6,
   },
-  deleteBtn: {
-    padding: 6
-  },
-  deleteIcon: {
-    fontSize: 14,
-    opacity: 0.6
-  },
+  swipeHintIcon: { marginLeft: 1, opacity: 0.72 },
   emptyContainer: {
     padding: 16,
     alignItems: 'center'
