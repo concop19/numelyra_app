@@ -1,6 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   Animated,
+  Easing,
   Image,
   type ImageSourcePropType,
   Modal,
@@ -91,7 +93,8 @@ export default function HourDirectionSheet({
   const insets = useSafeAreaInsets();
   const { t, l, locale } = useLocalization();
   const [selectedHour, setSelectedHour] = useState<HourInfo | null>(() => getDefaultHour(hours, bestHour));
-  const [activitiesExpanded, setActivitiesExpanded] = useState(false);
+  const [activitiesModalVisible, setActivitiesModalVisible] = useState(false);
+  const activityLinkPulse = useRef(new Animated.Value(0)).current;
   const sheetWidth = Math.min(width, 720);
   const sheetTop = Math.max(insets.top + 6, height * 0.05);
   const sheetHeight = Math.max(1, height - sheetTop);
@@ -104,8 +107,45 @@ export default function HourDirectionSheet({
   useEffect(() => {
     if (!visible) return;
     setSelectedHour(getDefaultHour(hours, bestHour));
-    setActivitiesExpanded(false);
+    setActivitiesModalVisible(false);
   }, [visible, hours, bestHour]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let pulseAnimation: Animated.CompositeAnimation | null = null;
+
+    const startPulse = async () => {
+      const reduceMotionEnabled = await AccessibilityInfo.isReduceMotionEnabled();
+      if (cancelled || reduceMotionEnabled || !visible || !activities || activitiesModalVisible) return;
+
+      pulseAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(activityLinkPulse, {
+            toValue: 1,
+            duration: 900,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+            isInteraction: false,
+          }),
+          Animated.timing(activityLinkPulse, {
+            toValue: 0,
+            duration: 900,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+            isInteraction: false,
+          }),
+        ]),
+      );
+      pulseAnimation.start();
+    };
+
+    void startPulse();
+    return () => {
+      cancelled = true;
+      pulseAnimation?.stop();
+      activityLinkPulse.setValue(0);
+    };
+  }, [activities, activitiesModalVisible, activityLinkPulse, visible]);
 
   const dragResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -159,6 +199,7 @@ export default function HourDirectionSheet({
 
   const closeWithFeedback = () => {
     void Haptics.selectionAsync();
+    setActivitiesModalVisible(false);
     onClose();
   };
 
@@ -168,6 +209,16 @@ export default function HourDirectionSheet({
     setSelectedHour(hour);
   };
 
+  const openActivitiesModal = () => {
+    void Haptics.selectionAsync();
+    setActivitiesModalVisible(true);
+  };
+
+  const closeActivitiesModal = () => {
+    void Haptics.selectionAsync();
+    setActivitiesModalVisible(false);
+  };
+
   return (
     <Modal
       visible={visible}
@@ -175,7 +226,7 @@ export default function HourDirectionSheet({
       animationType="none"
       statusBarTranslucent
       navigationBarTranslucent
-      onRequestClose={onClose}
+      onRequestClose={activitiesModalVisible ? closeActivitiesModal : onClose}
     >
       <View style={styles.overlay}>
         <Animated.View pointerEvents="none" style={[styles.backdrop, { opacity: sheetProgress }]} />
@@ -278,6 +329,51 @@ export default function HourDirectionSheet({
                         </Text>
                       </View>
                     ) : null}
+                    {activities ? (
+                      <Animated.View
+                        style={[
+                          styles.heroActivitiesPulse,
+                          {
+                            transform: [{
+                              scale: activityLinkPulse.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [1, 1.035],
+                              }),
+                            }],
+                          },
+                        ]}
+                      >
+                        <Animated.View
+                          pointerEvents="none"
+                          style={[
+                            styles.heroActivitiesGlow,
+                            {
+                              opacity: activityLinkPulse.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [0.12, 0.42],
+                              }),
+                              transform: [{
+                                scale: activityLinkPulse.interpolate({
+                                  inputRange: [0, 1],
+                                  outputRange: [1, 1.16],
+                                }),
+                              }],
+                            },
+                          ]}
+                        />
+                        <TouchableOpacity
+                          activeOpacity={0.68}
+                          onPress={openActivitiesModal}
+                          style={styles.heroActivitiesLink}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${l('Xem hoạt động đề xuất', 'View suggested activities')} · ${activeHour.canChi}, ${activeHour.range}`}
+                        >
+                          <Ionicons name="sparkles-outline" size={13} color="#7C2F68" />
+                          <Text style={styles.heroActivitiesLinkText}>{l('Xem hoạt động đề xuất', 'View suggested activities')}</Text>
+                          <Ionicons name="chevron-forward" size={13} color="#7C2F68" />
+                        </TouchableOpacity>
+                      </Animated.View>
+                    ) : null}
                   </View>
                   {activeAsset ? <Image source={activeAsset} resizeMode="contain" style={styles.heroAnimal} /> : null}
                 </View>
@@ -364,36 +460,56 @@ export default function HourDirectionSheet({
               ))}
             </View>
 
-            {activities ? (
-              <View style={styles.activitiesCard}>
-                <TouchableOpacity
-                  activeOpacity={0.76}
-                  onPress={() => {
-                    void Haptics.selectionAsync();
-                    setActivitiesExpanded((value) => !value);
-                  }}
-                  style={styles.activitiesToggle}
-                  accessibilityRole="button"
-                  accessibilityState={{ expanded: activitiesExpanded }}
-                  accessibilityLabel={`${activitiesExpanded ? l('Thu gọn', 'Collapse') : l('Mở', 'Open')} ${l('việc nên làm và kiêng cữ', 'favorable and unfavorable activities')}${hourlyActivities && activeHour ? ` · ${activeHour.canChi}, ${activeHour.range}` : ''}`}
-                >
+          </ScrollView>
+        </Animated.View>
+
+        {activities && activitiesModalVisible ? (
+          <View
+            style={[styles.activitiesModalOverlay, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 }]}
+            accessibilityViewIsModal
+          >
+              <Pressable
+                style={StyleSheet.absoluteFill}
+                onPress={closeActivitiesModal}
+                accessibilityLabel={l('Đóng hoạt động đề xuất', 'Close suggested activities')}
+              />
+              <View style={[styles.activitiesModalCard, { width: Math.min(width - 32, 560), maxHeight: height * 0.78 }]}>
+                <LinearGradient
+                  colors={['#3B1D69', '#211344', '#160E35']}
+                  locations={[0, 0.48, 1]}
+                  style={StyleSheet.absoluteFill}
+                />
+                <View style={styles.activitiesModalHeader}>
                   <View style={styles.activitiesTitleWrap}>
                     <View style={styles.activitiesIcon}>
-                      <Ionicons name="calendar-outline" size={17} color="#442058" />
+                      <Ionicons name="calendar-outline" size={18} color="#442058" />
                     </View>
                     <View style={styles.activitiesCopy}>
                       <Text style={styles.activitiesTitle}>{activitiesTitle}</Text>
                       <Text style={styles.activitiesSubtitle}>{activitiesSubtitle}</Text>
                     </View>
                   </View>
-                  <Ionicons name={activitiesExpanded ? 'chevron-up' : 'chevron-down'} size={20} color="#F4CD85" />
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    activeOpacity={0.72}
+                    onPress={closeActivitiesModal}
+                    style={styles.activitiesModalClose}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('common.close')}
+                  >
+                    <Ionicons name="close" size={20} color="#FFE8BB" />
+                  </TouchableOpacity>
+                </View>
 
-                {activitiesExpanded ? (
+                <ScrollView
+                  style={styles.activitiesModalScroll}
+                  contentContainerStyle={styles.activitiesModalContent}
+                  showsVerticalScrollIndicator={false}
+                  bounces
+                >
                   <View style={[styles.activitiesBody, compact && styles.activitiesBodyCompact]}>
                     <View style={styles.activityColumn}>
                       <View style={styles.activityHeader}>
-                        <Ionicons name="checkmark-circle" size={17} color="#62E3AA" />
+                        <Ionicons name="checkmark-circle" size={18} color="#62E3AA" />
                         <Text style={styles.activityGoodTitle}>{l('NÊN LÀM', 'FAVORABLE')}</Text>
                       </View>
                       {displayedRecommended?.length ? displayedRecommended.map((item) => (
@@ -409,7 +525,7 @@ export default function HourDirectionSheet({
                     </View>
                     <View style={[styles.activityColumn, !compact && styles.activityBadColumn]}>
                       <View style={styles.activityHeader}>
-                        <Ionicons name="close-circle" size={17} color="#F58AA8" />
+                        <Ionicons name="close-circle" size={18} color="#F58AA8" />
                         <Text style={styles.activityBadTitle}>{l('KIÊNG CỮ', 'AVOID')}</Text>
                       </View>
                       {displayedAvoid?.length ? displayedAvoid.map((item) => (
@@ -435,11 +551,10 @@ export default function HourDirectionSheet({
                         )}
                     </Text>
                   </View>
-                ) : null}
+                </ScrollView>
               </View>
-            ) : null}
-          </ScrollView>
-        </Animated.View>
+          </View>
+        ) : null}
       </View>
     </Modal>
   );
@@ -489,6 +604,10 @@ const styles = StyleSheet.create({
   heroFortune: { color: '#73456E', fontSize: 10, fontWeight: '700', marginTop: 2 },
   heroWarningPill: { marginTop: 8, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, backgroundColor: 'rgba(255,226,221,0.88)' },
   heroWarningText: { color: '#8B1E45', fontSize: 9, fontWeight: '800' },
+  heroActivitiesPulse: { marginTop: 9, alignSelf: 'flex-start' },
+  heroActivitiesGlow: { ...StyleSheet.absoluteFill, borderRadius: 15, backgroundColor: '#F987D2' },
+  heroActivitiesLink: { zIndex: 1, minHeight: 26, flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 13, backgroundColor: '#FFF0F3', borderWidth: 1, borderColor: 'rgba(164,75,126,0.48)', shadowColor: '#D64AAA', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.45, shadowRadius: 5, elevation: 5 },
+  heroActivitiesLinkText: { color: '#7C2F68', fontSize: 9, lineHeight: 13, fontWeight: '900', textDecorationLine: 'underline' },
   heroAnimal: { position: 'absolute', right: -8, bottom: 2, width: '47%', height: '96%' },
   directionPanel: { minHeight: 82, paddingTop: 12, paddingBottom: 8, paddingHorizontal: 14, backgroundColor: 'rgba(255,235,215,0.96)', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' },
   directionColumn: { flex: 1, minWidth: 115, flexDirection: 'row', alignItems: 'center', gap: 9 },
@@ -517,14 +636,18 @@ const styles = StyleSheet.create({
   statusGood: { backgroundColor: '#139B67' },
   statusBad: { backgroundColor: '#C34473' },
   statusText: { color: '#FFF7EB', fontSize: 10, fontWeight: '900' },
-  activitiesCard: { marginTop: 16, borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(212,155,255,0.34)', backgroundColor: 'rgba(33,19,69,0.92)' },
-  activitiesToggle: { minHeight: 66, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  activitiesModalOverlay: { ...StyleSheet.absoluteFill, zIndex: 50, elevation: 50, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(5,2,24,0.78)' },
+  activitiesModalCard: { overflow: 'hidden', borderRadius: 22, borderWidth: 1, borderColor: 'rgba(236,190,255,0.58)', shadowColor: '#050012', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.66, shadowRadius: 24, elevation: 24 },
+  activitiesModalHeader: { minHeight: 74, paddingLeft: 16, paddingRight: 12, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: 'rgba(232,192,255,0.15)' },
+  activitiesModalClose: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,236,196,0.10)', borderWidth: 1, borderColor: 'rgba(255,220,153,0.28)' },
+  activitiesModalScroll: { flexGrow: 0 },
+  activitiesModalContent: { paddingBottom: 4 },
   activitiesTitleWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
   activitiesIcon: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F3C8E7' },
   activitiesCopy: { flex: 1 },
   activitiesTitle: { color: '#F7D996', fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
   activitiesSubtitle: { color: '#BFA8D2', fontSize: 10, marginTop: 2, textTransform: 'capitalize' },
-  activitiesBody: { padding: 14, paddingTop: 4, flexDirection: 'row', flexWrap: 'wrap', gap: 16, borderTopWidth: 1, borderTopColor: 'rgba(211,165,249,0.12)' },
+  activitiesBody: { padding: 16, flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   activitiesBodyCompact: { flexDirection: 'column' },
   activityColumn: { flex: 1 },
   activityBadColumn: { paddingLeft: 16, borderLeftWidth: 1, borderLeftColor: 'rgba(207,168,235,0.16)' },
