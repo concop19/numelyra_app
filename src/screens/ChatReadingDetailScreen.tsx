@@ -13,7 +13,7 @@ import { getTarotCardImage, TAROT_AMBIENT_AUDIO } from '../services/tarotAssets'
 import HighlightedAnswerText from '../components/chat/HighlightedAnswerText';
 import LoveCompatibilityDetail from '../components/chat/love/LoveCompatibilityDetail';
 import { getLoveReadingViewModel } from '../components/chat/love/loveReadingModel';
-import { canSetAudioPlayerVolume } from '../services/audioPlatform';
+import { canAutoPlayAmbientAudio, canSetAudioPlayerVolume } from '../services/audioPlatform';
 import {
   getLocalChatMessages,
   initChatDatabase,
@@ -68,6 +68,8 @@ export default function ChatReadingDetailScreen({ navigation, route }: Props) {
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
+    if (!canAutoPlayAmbientAudio()) return;
+
     try {
       void setAudioModeAsync({
         playsInSilentMode: true,

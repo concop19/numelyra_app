@@ -22,7 +22,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { canSetAudioPlayerVolume } from '../services/audioPlatform';
+import { canAutoPlayAmbientAudio, canSetAudioPlayerVolume } from '../services/audioPlatform';
 import { TAROT_AMBIENT_AUDIO } from '../services/tarotAssets';
 
 import ThreeDButton from '../components/ThreeDButton';
@@ -412,6 +412,8 @@ export default function OnboardingScreen({ onComplete }: Props) {
   }, [fade, step]);
 
   useEffect(() => {
+    if (!canAutoPlayAmbientAudio()) return;
+
     try {
       void setAudioModeAsync({
         playsInSilentMode: true,

@@ -19,7 +19,7 @@ import ThreeDButton from '../../ThreeDButton';
 import type { MessageItem } from '../../../screens/ChatScreen';
 import { TAROT_AMBIENT_AUDIO } from '../../../services/tarotAssets';
 import { getLoveReadingViewModel, type LoveReadingProfile } from './loveReadingModel';
-import { canSetAudioPlayerVolume } from '../../../services/audioPlatform';
+import { canAutoPlayAmbientAudio, canSetAudioPlayerVolume } from '../../../services/audioPlatform';
 import { useLocalization } from '../../../i18n/LocalizationContext';
 
 const LOADING_BACKGROUND = require('../../../../assets/giao_dien/giaodien1/chat_detail/love/background/loading.png');
@@ -93,6 +93,8 @@ export default function LoveCompatibilityFlow({
   const ambientPlayer = useAudioPlayer(TAROT_AMBIENT_AUDIO, { keepAudioSessionActive: true });
 
   useEffect(() => {
+    if (!canAutoPlayAmbientAudio()) return;
+
     if (visible) {
       try {
         void setAudioModeAsync({

@@ -1,10 +1,13 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
   Image,
   ImageBackground,
   Modal,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  NativeTouchEvent,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,6 +19,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DrawnCardResult } from '../../services/tarotService';
 import { getTarotCardImage, TAROT_AMBIENT_AUDIO, TAROT_CARD_BACK } from '../../services/tarotAssets';
 import HighlightedAnswerText from './HighlightedAnswerText';
@@ -25,7 +29,8 @@ import BottomFlameSprite from '../BottomFlameSprite';
 import ThreeDButton from '../ThreeDButton';
 import { ttsService } from '../../services/ttsService';
 import { useLocalization } from '../../i18n/LocalizationContext';
-import { canSetAudioPlayerVolume } from '../../services/audioPlatform';
+import { canAutoPlayAmbientAudio, canSetAudioPlayerVolume } from '../../services/audioPlatform';
+import { resolveExpandedReadingPaperLayout } from './readingPaperLayout';
 
 const BACKGROUND = require('../../../assets/giao_dien/giaodien1/chat_detail/background/background.png');
 const MAT = require('../../../assets/giao_dien/giaodien1/chat_detail/item/tham.png');
@@ -33,6 +38,7 @@ const CHEST = require('../../../assets/giao_dien/giaodien1/chat_detail/item/hop.
 const CANDLE = require('../../../assets/giao_dien/giaodien1/chat_detail/item/nen.png');
 const BOOK = require('../../../assets/giao_dien/giaodien1/chat_detail/item/sach.png');
 const PAPER = require('../../../assets/giao_dien/giaodien1/chat_detail/item/giay.png');
+const PORTRAIT_PAPER = require('../../../assets/giao_dien/giaodien1/chat_detail/item/giay_doc_9x16.png');
 const QUILL = require('../../../assets/giao_dien/giaodien1/chat_detail/item/but.png');
 
 type Message = { id: string; text: string; card?: unknown };
@@ -143,6 +149,7 @@ export default function MysticReadingTraceModal({
   onContinue,
 }: Props) {
   const { locale, l, t } = useLocalization();
+  const safeAreaInsets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [sceneSize, setSceneSize] = useState({ width: 0, height: 0 });
   const viewportWidth = sceneSize.width || windowWidth;
@@ -150,13 +157,24 @@ export default function MysticReadingTraceModal({
   const [hoveredCard, setHoveredCard] = useState<HoveredCard | null>(null);
   const [answerPreviewChars, setAnswerPreviewChars] = useState(0);
   const [hasRevealedAnswerIntro, setHasRevealedAnswerIntro] = useState(false);
+  const [isPaperExpanded, setIsPaperExpanded] = useState(false);
   const quillMotion = useRef(new Animated.Value(0)).current;
+  const paperExpansion = useRef(new Animated.Value(0)).current;
+  const paperTransitioningRef = useRef(false);
+  const readingScrollOffsetRef = useRef(0);
+  const lastPaperTapAtRef = useRef(0);
+  const paperTouchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const paperTouchMovedRef = useRef(false);
+  const collapsedReadingRef = useRef<ScrollView | null>(null);
+  const expandedReadingRef = useRef<ScrollView | null>(null);
   const autoSpokenReadingId = useRef<string | null>(null);
   const payload = message?.card as ReadingCardPayload | undefined;
 
   const ambientPlayer = useAudioPlayer(TAROT_AMBIENT_AUDIO, { keepAudioSessionActive: true });
 
   useEffect(() => {
+    if (!canAutoPlayAmbientAudio()) return;
+
     if (visible) {
       try {
         void setAudioModeAsync({
@@ -184,6 +202,17 @@ export default function MysticReadingTraceModal({
   useEffect(() => {
     if (!visible) setHoveredCard(null);
   }, [visible]);
+
+  useEffect(() => {
+    paperExpansion.stopAnimation();
+    paperExpansion.setValue(0);
+    paperTransitioningRef.current = false;
+    readingScrollOffsetRef.current = 0;
+    lastPaperTapAtRef.current = 0;
+    paperTouchStartRef.current = null;
+    paperTouchMovedRef.current = false;
+    setIsPaperExpanded(false);
+  }, [liveReading?.id, message?.id, paperExpansion, visible]);
   const question = useMemo(() => {
     if (liveReading) return liveReading.question;
     return typeof payload?.questionText === 'string' && payload.questionText.trim()
@@ -270,6 +299,156 @@ export default function MysticReadingTraceModal({
   const canvasLeft = (viewportWidth - canvasWidth) / 2;
   const canvasTop = (viewportHeight - canvasHeight) / 2;
 
+  const expandedPaperLayout = useMemo(() => resolveExpandedReadingPaperLayout({
+    viewportWidth,
+    viewportHeight,
+    insets: safeAreaInsets,
+  }), [safeAreaInsets, viewportHeight, viewportWidth]);
+  const expandedPaperBottom = viewportHeight
+    - expandedPaperLayout.top
+    - expandedPaperLayout.height;
+  const expandedPaperRevealHeight = paperExpansion.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, expandedPaperLayout.height],
+  });
+  const expandedPaperContentOpacity = paperExpansion.interpolate({
+    inputRange: [0, 0.42, 1],
+    outputRange: [0, 0, 1],
+  });
+  const expandedBackdropOpacity = paperExpansion.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 0.72],
+  });
+
+  const rememberReadingScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    readingScrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+  }, []);
+
+  const beginPaperTouch = useCallback((event: NativeSyntheticEvent<NativeTouchEvent>) => {
+    const touch = event.nativeEvent.touches[0] || event.nativeEvent.changedTouches[0];
+    paperTouchStartRef.current = touch ? { x: touch.pageX, y: touch.pageY } : null;
+    paperTouchMovedRef.current = false;
+  }, []);
+
+  const trackPaperTouch = useCallback((event: NativeSyntheticEvent<NativeTouchEvent>) => {
+    const start = paperTouchStartRef.current;
+    const touch = event.nativeEvent.touches[0] || event.nativeEvent.changedTouches[0];
+    if (!start || !touch) return;
+    if (Math.hypot(touch.pageX - start.x, touch.pageY - start.y) > 10) {
+      paperTouchMovedRef.current = true;
+    }
+  }, []);
+
+  const finishPaperTouch = useCallback((
+    event: NativeSyntheticEvent<NativeTouchEvent>,
+    togglePaper: () => void,
+  ) => {
+    const start = paperTouchStartRef.current;
+    const touch = event.nativeEvent.changedTouches[0];
+    if (start && touch && Math.hypot(touch.pageX - start.x, touch.pageY - start.y) > 10) {
+      paperTouchMovedRef.current = true;
+    }
+    paperTouchStartRef.current = null;
+
+    if (paperTouchMovedRef.current) {
+      lastPaperTapAtRef.current = 0;
+      return;
+    }
+
+    const now = Date.now();
+    if (now - lastPaperTapAtRef.current <= 340) {
+      lastPaperTapAtRef.current = 0;
+      togglePaper();
+      return;
+    }
+    lastPaperTapAtRef.current = now;
+  }, []);
+
+  const expandPaper = useCallback(() => {
+    if (!canShowReading || paperTransitioningRef.current || isPaperExpanded) return;
+    paperTransitioningRef.current = true;
+    setIsPaperExpanded(true);
+    void Haptics.selectionAsync();
+    paperExpansion.setValue(0);
+    Animated.timing(paperExpansion, {
+      toValue: 1,
+      duration: 360,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start(({ finished }) => {
+      paperTransitioningRef.current = false;
+      if (!finished) return;
+      requestAnimationFrame(() => {
+        expandedReadingRef.current?.scrollTo({
+          y: readingScrollOffsetRef.current,
+          animated: false,
+        });
+      });
+    });
+  }, [canShowReading, isPaperExpanded, paperExpansion]);
+
+  const collapsePaper = useCallback(() => {
+    if (paperTransitioningRef.current || !isPaperExpanded) return;
+    paperTransitioningRef.current = true;
+    void Haptics.selectionAsync();
+    Animated.timing(paperExpansion, {
+      toValue: 0,
+      duration: 300,
+      easing: Easing.inOut(Easing.cubic),
+      useNativeDriver: false,
+    }).start(({ finished }) => {
+      paperTransitioningRef.current = false;
+      if (!finished) return;
+      setIsPaperExpanded(false);
+      requestAnimationFrame(() => {
+        collapsedReadingRef.current?.scrollTo({
+          y: readingScrollOffsetRef.current,
+          animated: false,
+        });
+      });
+    });
+  }, [isPaperExpanded, paperExpansion]);
+
+  const renderReadingBody = (expanded: boolean) => <>
+    <Text style={[styles.kicker, expanded && styles.expandedKicker]}>
+      {isLiveDraw && !hasRevealedAnswerIntro
+        ? l('LỜI GIẢI ĐANG HIỆN HÌNH', 'READING TAKING SHAPE')
+        : l('LUẬN GIẢI HIỆN TẠI', 'CURRENT READING')}
+    </Text>
+    {question ? <>
+      <Text style={[styles.questionLabel, expanded && styles.expandedQuestionLabel]}>
+        {l('Câu hỏi của bạn', 'Your question')}
+      </Text>
+      <Text style={[styles.question, expanded && styles.expandedQuestion]}>{question}</Text>
+      <View style={styles.rule} />
+    </> : null}
+    <HighlightedAnswerText
+      text={visibleAnswerText || ' '}
+      style={[styles.answer, expanded && styles.expandedAnswer]}
+      emphasisStyle={styles.answerEmphasis}
+    />
+    {isLiveDraw && !hasRevealedAnswerIntro ? <Text style={styles.writingCursor}>✦</Text> : null}
+    {onContinue ? <ThreeDButton
+      accessibilityLabel={l('Tiếp tục trò chuyện về bài đọc này', 'Continue chatting about this reading')}
+      label={l('Tiếp tục trò chuyện', 'Continue conversation')}
+      leadingIcon={<Ionicons name="chatbubble-ellipses-outline" size={16} color="#FFF8E7" />}
+      onPress={() => { void Haptics.selectionAsync(); onContinue(); }}
+      shape="pill"
+      size="sm"
+      style={styles.continueButton3d}
+      variant="purple"
+    /> : null}
+    <ThreeDButton
+      accessibilityLabel={l('Đóng luận giải', 'Close reading')}
+      label={l('Đã hiểu · quay lại', 'Got it · go back')}
+      onPress={() => { void Haptics.selectionAsync(); onClose(); }}
+      shape="pill"
+      size="sm"
+      style={styles.doneButton3d}
+      variant="gold"
+    />
+  </>;
+
   return (
     <Modal visible={visible} animationType="fade" transparent={false} statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
       <View
@@ -286,22 +465,6 @@ export default function MysticReadingTraceModal({
           style={[styles.canvas, { left: canvasLeft, top: canvasTop, width: canvasWidth, height: canvasHeight }]}
         >
           <Decor scale={scale} active={visible} showQuill={!isWritingRitual} />
-
-          <TouchableOpacity
-            onPress={onClose}
-            activeOpacity={0.75}
-            accessibilityRole="button"
-            accessibilityLabel={l('Quay lại cuộc trò chuyện', 'Back to conversation')}
-            style={[styles.closeButton, {
-              left: 44 * scale,
-              top: 48 * scale,
-              width: 54 * scale,
-              height: 54 * scale,
-              borderRadius: 27 * scale,
-            }]}
-          >
-            <Ionicons name="arrow-back" size={Math.max(16, 28 * scale)} color="#FFF5DF" />
-          </TouchableOpacity>
 
           <View pointerEvents="none" style={[styles.sceneHeading, { top: 38 * scale, left: 210 * scale, width: 520 * scale }]}>
             <Text style={[styles.sceneTitle, { fontSize: Math.max(15, 27 * scale), lineHeight: Math.max(19, 32 * scale) }]}>{isWritingRitual ? l('Lời giải đang hiện hình', 'Your reading is taking shape') : isLiveDraw ? l('Nghi thức rút bài', 'Tarot Drawing Ritual') : l('AI đã đối chiếu', 'AI Cross-Check')}</Text>
@@ -450,7 +613,8 @@ export default function MysticReadingTraceModal({
             />
           </> : null}
 
-          {canShowReading ? <ScrollView
+          {canShowReading && !isPaperExpanded ? <ScrollView
+            ref={collapsedReadingRef}
             style={[styles.paperReading, {
               // Chỉ dùng phần giấy trống bên trong, không cho chữ chạy qua lá/các cuộn giấy ở viền.
               left: 185 * scale,
@@ -466,45 +630,85 @@ export default function MysticReadingTraceModal({
             }]}
             showsVerticalScrollIndicator={false}
             bounces={false}
+            scrollEventThrottle={16}
+            onScroll={rememberReadingScroll}
+            onTouchStart={beginPaperTouch}
+            onTouchMove={trackPaperTouch}
+            onTouchEnd={(event) => finishPaperTouch(event, expandPaper)}
           >
-            <Text style={styles.kicker}>{isLiveDraw && !hasRevealedAnswerIntro ? l('LỜI GIẢI ĐANG HIỆN HÌNH', 'READING TAKING SHAPE') : l('LUẬN GIẢI HIỆN TẠI', 'CURRENT READING')}</Text>
-            {question ? <>
-              <Text style={styles.questionLabel}>{l('Câu hỏi của bạn', 'Your question')}</Text>
-              <Text style={styles.question}>{question}</Text>
-              <View style={styles.rule} />
-            </> : null}
-            <HighlightedAnswerText
-              text={visibleAnswerText || ' '}
-              style={styles.answer}
-              emphasisStyle={styles.answerEmphasis}
-            />
-            {isLiveDraw && !hasRevealedAnswerIntro ? <Text style={styles.writingCursor}>✦</Text> : null}
-            {onContinue ? <ThreeDButton
-              accessibilityLabel={l('Tiếp tục trò chuyện về bài đọc này', 'Continue chatting about this reading')}
-              label={l('Tiếp tục trò chuyện', 'Continue conversation')}
-              leadingIcon={<Ionicons name="chatbubble-ellipses-outline" size={16} color="#FFF8E7" />}
-              onPress={() => { void Haptics.selectionAsync(); onContinue(); }}
-              shape="pill"
-              size="sm"
-              style={styles.continueButton3d}
-              variant="purple"
-            /> : null}
-            <ThreeDButton
-              accessibilityLabel={l('Đóng luận giải', 'Close reading')}
-              label={l('Đã hiểu · quay lại', 'Got it · go back')}
-              onPress={() => { void Haptics.selectionAsync(); onClose(); }}
-              shape="pill"
-              size="sm"
-              style={styles.doneButton3d}
-              variant="gold"
-            />
-          </ScrollView> : <View pointerEvents="none" style={[styles.waitingReading, { left: 185 * scale, top: 1280 * scale, width: 570 * scale }]}>
+            {renderReadingBody(false)}
+          </ScrollView> : !canShowReading ? <View pointerEvents="none" style={[styles.waitingReading, { left: 185 * scale, top: 1280 * scale, width: 570 * scale }]}>
             <Text style={[styles.waitingReadingTitle, { fontSize: Math.max(10, 15 * scale) }]}>
               {isWritingRitual ? l('Những nét mực đang ghép thành lời giải…', 'The ink is forming your reading…') : allCardsRevealed ? t('mascot.traceConnecting') : l('Hãy rút đủ các lá để mở lời luận giải', 'Draw every card to unlock the reading')}
             </Text>
             <Text style={[styles.waitingReadingHint, { fontSize: Math.max(8, 11 * scale) }]}>{isWritingRitual ? l('Nét chữ chỉ là nghi thức — thông điệp thật sẽ hiện ngay khi hoàn tất.', 'The writing is part of the ritual — your full message will appear when it is complete.') : l('Luận giải sẽ hiện ngay khi bạn và Numelyra cùng hoàn tất.', 'The reading will appear as soon as you and Numelyra finish the ritual.')}</Text>
-          </View>}
+          </View> : null}
         </ImageBackground>
+
+        {isPaperExpanded ? <View
+          accessibilityViewIsModal
+          importantForAccessibility="yes"
+          style={styles.expandedPaperLayer}
+        >
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.expandedPaperBackdrop, { opacity: expandedBackdropOpacity }]}
+          />
+          <Animated.View
+            style={[styles.expandedPaperClip, {
+              left: expandedPaperLayout.left,
+              bottom: expandedPaperBottom,
+              width: expandedPaperLayout.width,
+              height: expandedPaperRevealHeight,
+            }]}
+          >
+            <View style={[styles.expandedPaperPanel, {
+              width: expandedPaperLayout.width,
+              height: expandedPaperLayout.height,
+            }]}
+            >
+              <Image
+                source={PORTRAIT_PAPER}
+                resizeMode="contain"
+                style={styles.expandedPaperImage}
+              />
+              <Animated.View style={[styles.expandedPaperContentLayer, { opacity: expandedPaperContentOpacity }]}>
+                <ScrollView
+                  ref={expandedReadingRef}
+                  style={[styles.expandedPaperReading, {
+                    left: expandedPaperLayout.contentLeft,
+                    top: expandedPaperLayout.contentTop,
+                    width: expandedPaperLayout.contentWidth,
+                    height: expandedPaperLayout.contentHeight,
+                  }]}
+                  contentContainerStyle={styles.expandedPaperScrollContent}
+                  showsVerticalScrollIndicator={false}
+                  bounces
+                  scrollEventThrottle={16}
+                  onScroll={rememberReadingScroll}
+                  onTouchStart={beginPaperTouch}
+                  onTouchMove={trackPaperTouch}
+                  onTouchEnd={(event) => finishPaperTouch(event, collapsePaper)}
+                >
+                  {renderReadingBody(true)}
+                </ScrollView>
+              </Animated.View>
+            </View>
+          </Animated.View>
+        </View> : null}
+
+        <TouchableOpacity
+          onPress={onClose}
+          activeOpacity={0.75}
+          accessibilityRole="button"
+          accessibilityLabel={l('Quay lại cuộc trò chuyện', 'Back to conversation')}
+          style={[styles.closeButton, {
+            left: Math.max(12, safeAreaInsets.left + 12),
+            top: Math.max(12, safeAreaInsets.top + 8),
+          }]}
+        >
+          <Ionicons name="arrow-back" size={24} color="#FFF5DF" />
+        </TouchableOpacity>
       </View>
     </Modal>
   );
@@ -515,7 +719,8 @@ const styles = StyleSheet.create({
   canvas: { position: 'absolute' },
   decorLayer: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   closeButton: {
-    position: 'absolute', alignItems: 'center', justifyContent: 'center', zIndex: 5,
+    position: 'absolute', width: 48, height: 48, borderRadius: 24,
+    alignItems: 'center', justifyContent: 'center', zIndex: 70, elevation: 70,
     backgroundColor: 'rgba(27, 10, 50, 0.58)', borderWidth: 1, borderColor: 'rgba(255, 219, 136, 0.72)',
   },
   sceneHeading: { position: 'absolute', alignItems: 'center', zIndex: 4 },
@@ -552,12 +757,44 @@ const styles = StyleSheet.create({
   waitingReadingHint: { color: '#8B6157', fontWeight: '600', textAlign: 'center', marginTop: 6 },
   paperContent: { minHeight: '100%' },
   kicker: { color: '#8B4A3C', fontSize: 9, letterSpacing: 1.1, fontWeight: '900', textAlign: 'center' },
+  expandedKicker: { fontSize: 10, letterSpacing: 1.3 },
   questionLabel: { color: '#7A3E39', fontSize: 12, fontWeight: '800', marginTop: 8 },
+  expandedQuestionLabel: { fontSize: 13, marginTop: 10 },
   question: { color: '#60433D', fontSize: 12.5, lineHeight: 18, fontStyle: 'italic', marginTop: 2 },
+  expandedQuestion: { fontSize: 14, lineHeight: 21 },
   rule: { height: 1, backgroundColor: 'rgba(113, 56, 51, 0.28)', marginVertical: 9 },
   answer: { color: '#503A3B', fontSize: 13, lineHeight: 19.5, fontWeight: '500' },
+  expandedAnswer: { fontSize: 14.5, lineHeight: 22.5 },
   answerEmphasis: { color: '#713543', fontWeight: '900' },
   writingCursor: { color: '#713543', fontSize: 14, marginTop: 2, opacity: 0.78 },
+  expandedPaperLayer: {
+    position: 'absolute', top: 0, right: 0, bottom: 0, left: 0,
+    zIndex: 50,
+    elevation: 50,
+  },
+  expandedPaperBackdrop: {
+    position: 'absolute', top: 0, right: 0, bottom: 0, left: 0,
+    backgroundColor: '#10061F',
+  },
+  expandedPaperClip: {
+    position: 'absolute',
+    overflow: 'hidden',
+  },
+  expandedPaperPanel: {
+    position: 'absolute',
+    left: 0,
+    bottom: 0,
+  },
+  expandedPaperImage: {
+    position: 'absolute', top: 0, right: 0, bottom: 0, left: 0,
+    width: '100%',
+    height: '100%',
+  },
+  expandedPaperContentLayer: {
+    position: 'absolute', top: 0, right: 0, bottom: 0, left: 0,
+  },
+  expandedPaperReading: { position: 'absolute', zIndex: 2 },
+  expandedPaperScrollContent: { paddingHorizontal: 8, paddingTop: 8, paddingBottom: 30 },
   continueButton3d: { alignSelf: 'center', marginTop: 18 },
   doneButton3d: { alignSelf: 'center', marginTop: 18 },
 });
