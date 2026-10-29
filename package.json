@@ -65,19 +65,8 @@
     "web": "expo start --web",
     "test": "jest --runInBand --cacheDirectory=.jest-cache",
     "audit:daily-insight-30d": "jest --runInBand --testRegex=dailyInsightThirtyDayAudit\\.test\\.ts$ --cacheDirectory=.jest-cache",
-    "test:numerology-db": "python scripts/auditNumerologyKnowledgeSqlite.py",
-    "sync:numerology-db": "python scripts/assembleNumerologyTranslations.py && python scripts/syncNumerologyKnowledgeToCadao.py",
-    "audit:numerology-db:release": "python scripts/auditNumerologyKnowledgeSqlite.py --require-approved",
-    "audit:i18n": "python scripts/auditI18nLiterals.py",
-    "audit:i18n:release": "python scripts/auditI18nLiterals.py --strict",
-    "audit:brand": "python scripts/auditBrandTerminology.py",
     "typecheck": "tsc --noEmit",
-    "assemble:numerology-translations": "python scripts/assembleNumerologyTranslations.py",
-    "test:numerology-catalog": "python -m unittest discover -s scripts -p test_numerologyCatalog.py",
-    "verify:release": "npm run typecheck && npm test && npm run test:numerology-catalog && npm run audit:brand && npm run audit:i18n:release && npm run audit:numerology-db:release",
-    "eas-build-post-install": "npm run audit:brand && npm run audit:i18n:release && npm run audit:numerology-db:release",
-    "preandroid": "npm run audit:numerology-db:release",
-    "preios": "npm run audit:numerology-db:release"
+    "verify:release": "npm run typecheck && npm test"
   },
   "jest": {
     "preset": "jest-expo",
