@@ -68,15 +68,22 @@ const linking = {
   async getInitialURL() {
     const url = await Linking.getInitialURL();
     if (url) return url;
-    const response = notifications ? await notifications.getLastNotificationResponseAsync() : null;
+    const response = notifications?.getLastNotificationResponse() ?? null;
     const notificationUrl = response?.notification.request.content.data?.url;
-    return typeof notificationUrl === 'string' ? notificationUrl : null;
+    if (typeof notificationUrl !== 'string') return null;
+    // A notification response is sticky until explicitly cleared. Consume it
+    // once so a later ordinary cold start cannot reopen an old Daily Insight.
+    try { notifications?.clearLastNotificationResponse(); } catch { /* Navigation must still continue. */ }
+    return notificationUrl;
   },
   subscribe(listener: (url: string) => void) {
     const linkSubscription = Linking.addEventListener('url', ({ url }) => listener(url));
     const notificationSubscription = notifications?.addNotificationResponseReceivedListener((response) => {
       const url = response.notification.request.content.data?.url;
-      if (typeof url === 'string') listener(url);
+      if (typeof url === 'string') {
+        listener(url);
+        try { notifications.clearLastNotificationResponse(); } catch { /* The live route was already delivered. */ }
+      }
     });
     return () => { linkSubscription.remove(); notificationSubscription?.remove(); };
   },
@@ -193,6 +200,7 @@ function AppContent() {
                 profile={profile}
                 primaryProfileId={primaryProfileId}
                 openDailyDate={route.params?.dailyDate}
+                onDailyDateHandled={() => navigation.setParams({ dailyDate: undefined })}
                 onOpenSettings={() => navigation.navigate('Settings')}
                 onOpenCalendar={() => navigation.navigate('Calendar')}
                 onOpenAstrology={() => navigation.navigate('Astrology')}

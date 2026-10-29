@@ -163,4 +163,24 @@ describe('astro fortune rule-aware request', () => {
     expect(result.anchorCaDao.matchReason).toMatch(/^Chọn theo /);
     expect(result.anchorCaDao.matchReason).not.toMatch(/rule|aspect\.|house_/i);
   });
+
+  it('uses the server anchor when a cached profile/day record is returned', async () => {
+    fetchMock.mockResolvedValueOnce(response(200, {
+      ...fortuneResponse,
+      cached: true,
+      sampleAnchor: {
+        caDaoSample: 'Câu neo đã lưu từ lần tạo đầu tiên',
+        caDaoCategory: 'Gia đình',
+      },
+    }));
+
+    const result = await requestAstroFortuneSlip({ customCaDao });
+
+    expect(result.anchorCaDao).toMatchObject({
+      content: 'Câu neo đã lưu từ lần tạo đầu tiên',
+      category: 'Gia đình',
+    });
+    expect(result.anchorCaDao.id).toBeUndefined();
+    expect(result.anchorCaDao.matchReason).toBeUndefined();
+  });
 });

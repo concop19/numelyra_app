@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Share } from 'react-native';
+import { AppState, Share } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 
@@ -34,10 +34,19 @@ export interface DailyAstroFortuneState {
   share(): Promise<void>;
 }
 
+export interface DailyAstroFortuneOptions {
+  autoGenerate?: boolean;
+}
+
 interface PendingFortuneRequest {
   key: string;
   promise: Promise<AstroFortuneSlip | null>;
 }
+
+// A screen can keep Chat mounted while Astrology mounts another copy of this
+// hook. Share the actual AI request across hook instances so a profile/date/
+// locale can never create two simultaneous Fortune requests.
+const sharedGenerationRequests = new Map<string, Promise<AstroFortuneSlip>>();
 
 function createAstroMetadata(profile: UserProfile, date: Date) {
   return generatePureAstroVector({
@@ -49,8 +58,13 @@ function createAstroMetadata(profile: UserProfile, date: Date) {
   }, date).metadata;
 }
 
-export function useDailyAstroFortune(profile?: UserProfile | null, profileId?: string | null): DailyAstroFortuneState {
+export function useDailyAstroFortune(
+  profile?: UserProfile | null,
+  profileId?: string | null,
+  options: DailyAstroFortuneOptions = {},
+): DailyAstroFortuneState {
   const { locale } = useLocalization();
+  const autoGenerate = options.autoGenerate !== false;
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [fortune, setFortune] = useState<AstroFortuneSlip | null>(null);
   const [loading, setLoading] = useState(false);
@@ -151,30 +165,43 @@ export function useDailyAstroFortune(profile?: UserProfile | null, profileId?: s
     }
 
     try {
-      const [recentAdvice, recentCaDao] = await Promise.all([
-        loadRecentAstroAdvice(AsyncStorage, currentDate, cacheProfile, 7, locale),
-        loadRecentAstroCaDao(AsyncStorage, currentDate, cacheProfile, 14, locale),
-      ]);
-      const result = await requestAstroFortuneSlip({
-        locale,
-        astroMetadata: metadata,
-        caDaoMode: 'daily',
-        recentAdvice,
-        recentCaDao,
-        profileKey: getAstrologyProfileFingerprint(cacheProfile),
-        localDate: formatLocalDateKey(currentDate),
-        requestId: `cadao-${getAstrologyProfileFingerprint(cacheProfile)}-${formatLocalDateKey(currentDate)}`,
-      });
-      result.astroMetadata = metadata;
-      try {
-        await saveCachedAstroFortune(AsyncStorage, currentDate, cacheProfile, result, locale);
-      } catch {
-        // The freshly loaded result is still useful when local storage is unavailable.
+      let sharedRequest = sharedGenerationRequests.get(requestKey);
+      if (!sharedRequest) {
+        sharedRequest = (async () => {
+          const [recentAdvice, recentCaDao] = await Promise.all([
+            loadRecentAstroAdvice(AsyncStorage, currentDate, cacheProfile, 7, locale),
+            loadRecentAstroCaDao(AsyncStorage, currentDate, cacheProfile, 14, locale),
+          ]);
+          const result = await requestAstroFortuneSlip({
+            locale,
+            astroMetadata: metadata,
+            caDaoMode: 'daily',
+            recentAdvice,
+            recentCaDao,
+            profileKey: getAstrologyProfileFingerprint(cacheProfile),
+            localDate: formatLocalDateKey(currentDate),
+            requestId: `cadao-${getAstrologyProfileFingerprint(cacheProfile)}-${formatLocalDateKey(currentDate)}`,
+          });
+          result.astroMetadata = metadata;
+          try {
+            await saveCachedAstroFortune(AsyncStorage, currentDate, cacheProfile, result, locale);
+          } catch {
+            // The freshly loaded result is still useful when local storage is unavailable.
+          }
+          return result;
+        })();
+        sharedGenerationRequests.set(requestKey, sharedRequest);
+        void sharedRequest.finally(() => {
+          if (sharedGenerationRequests.get(requestKey) === sharedRequest) {
+            sharedGenerationRequests.delete(requestKey);
+          }
+        }).catch(() => undefined);
       }
+
+      const result = await sharedRequest;
 
       if (requestVersion.current !== version || activeRequestKey.current !== requestKey) return null;
       setFortune(result);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       return result;
     } catch (caught) {
       if (requestVersion.current === version) {
@@ -212,7 +239,10 @@ export function useDailyAstroFortune(profile?: UserProfile | null, profileId?: s
 
   useEffect(() => {
     setFortune(null);
-    void readCache();
+    // Primary profiles preserve the cache-first automatic bootstrap. Secondary
+    // profiles only hydrate an existing result; a cache miss waits for the
+    // user's explicit "view Fortune" action so browsing cannot consume a slot.
+    void (autoGenerate ? ensureFortune() : readCache());
     return () => {
       requestVersion.current += 1;
       // React Strict Mode runs effect setup -> cleanup -> setup in development.
@@ -222,7 +252,7 @@ export function useDailyAstroFortune(profile?: UserProfile | null, profileId?: s
         hydrationRequest.current = null;
       }
     };
-  }, [readCache, requestKey]);
+  }, [autoGenerate, requestKey]);
 
   useEffect(() => {
     let midnightTimer: ReturnType<typeof setTimeout>;
@@ -237,6 +267,21 @@ export function useDailyAstroFortune(profile?: UserProfile | null, profileId?: s
     scheduleNextDay();
     return () => clearTimeout(midnightTimer);
   }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState !== 'active') return;
+      const now = new Date();
+      if (formatLocalDateKey(now) !== formatLocalDateKey(currentDate)) {
+        setCurrentDate(now);
+        return;
+      }
+      // A failed request has no cache, so foregrounding the app is a safe time
+      // to retry. Cache hits and in-flight work remain de-duplicated.
+      void (autoGenerate ? ensureFortune() : readCache());
+    });
+    return () => subscription.remove();
+  }, [autoGenerate, currentDate, ensureFortune, readCache]);
 
   const retry = useCallback(async (): Promise<AstroFortuneSlip | null> => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});

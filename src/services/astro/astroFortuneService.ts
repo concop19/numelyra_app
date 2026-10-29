@@ -309,11 +309,18 @@ export async function requestAstroFortuneSlip(
       mirror: string;
       advice: string;
     };
+    sampleAnchor?: {
+      caDaoSample?: string;
+      caDaoCategory?: string | null;
+    };
   };
 
   if (!result.success || !result.fortune) {
     throw new Error('Dữ liệu lá thăm từ máy chủ không hợp lệ.');
   }
+
+  const resolvedAnchor = result.sampleAnchor?.caDaoSample || sampleText;
+  const reusedServerAnchor = resolvedAnchor !== sampleText;
 
   return {
     title: result.fortune.title,
@@ -321,10 +328,10 @@ export async function requestAstroFortuneSlip(
     mirror: result.fortune.mirror,
     advice: result.fortune.advice,
     anchorCaDao: {
-      id: caDao?.id,
-      content: sampleText,
-      category: sampleCategory,
-      matchReason: caDaoMatchReason,
+      id: reusedServerAnchor ? undefined : caDao?.id,
+      content: resolvedAnchor,
+      category: result.sampleAnchor?.caDaoCategory || sampleCategory,
+      matchReason: reusedServerAnchor ? undefined : caDaoMatchReason,
     },
     astroMetadata: options.astroMetadata,
   };
