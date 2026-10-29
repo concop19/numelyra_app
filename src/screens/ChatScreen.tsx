@@ -82,6 +82,7 @@ import {
   type LocalChatMessage,
 } from '../db/chatDatabaseService';
 import {
+  cacheInitialContinuationSession,
   downloadAllCloudChatData,
   downloadAndSyncAllUserData,
   syncPendingMessagesBatch,
@@ -1875,6 +1876,36 @@ export default function ChatScreen({
         isTypingCompleted: decision.mode === 'compatibility' || drawnCards.length > 0,
         syncStatus: 'pending',
       };
+
+      const continuationSessionId = typeof data.data.sessionId === 'string'
+        ? data.data.sessionId
+        : null;
+      if (continuationSessionId) {
+        const maxQuestions = typeof data.data.maxQuestions === 'number' && data.data.maxQuestions > 0
+          ? data.data.maxQuestions
+          : 10;
+        void cacheInitialContinuationSession({
+          sessionId: continuationSessionId,
+          userId: chatHistoryOwner,
+          title: prompt,
+          intent: decision.intent,
+          mode: decision.mode,
+          userMessage: {
+            id: userMsg.id,
+            text: userMsg.text,
+            createdAt: new Date(userMsg.createdAt || turnCreatedAt).toISOString(),
+          },
+          assistantMessage: {
+            id: mascotMsg.id,
+            text: mascotMsg.text,
+            cardPayload: mascotMsg.card || null,
+            createdAt: new Date(mascotMsg.createdAt || tarotMessageCreatedAt).toISOString(),
+          },
+          maxQuestions,
+        }).catch((cacheError) => {
+          console.warn('[ChatScreen] Could not cache continuation session:', cacheError);
+        });
+      }
       appendMessage(mascotMsg);
       void recordAndCheckPendingMessage(mascotMsg);
 

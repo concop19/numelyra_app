@@ -1,5 +1,6 @@
 import {
   PENDING_SYNC_THRESHOLD,
+  cacheInitialContinuationSession,
   downloadAllCloudChatData,
   downloadAllCloudProfiles,
   syncPendingMessagesBatch,
@@ -149,6 +150,40 @@ jest.mock('./supabaseClient', () => {
 describe('chatSessionSyncService - 10-message batch sync & full download', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('caches the root reading under the continuation session id', async () => {
+    await cacheInitialContinuationSession({
+      sessionId: 'continuation-1',
+      userId: 'test-user-123',
+      title: 'Tôi nên làm gì hôm nay?',
+      intent: 'daily_guidance',
+      mode: 'single',
+      userMessage: {
+        id: 'root-user',
+        text: 'Tôi nên làm gì hôm nay?',
+        createdAt: '2026-10-29T08:00:00.000Z',
+      },
+      assistantMessage: {
+        id: 'root-assistant',
+        text: 'Hãy bắt đầu bằng một việc nhỏ.',
+        cardPayload: { type: 'agent_synthesis' },
+        createdAt: '2026-10-29T08:00:01.000Z',
+      },
+    });
+
+    expect(chatDb.upsertLocalChatSnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'continuation-1',
+        questionCount: 0,
+        maxQuestions: 10,
+        status: 'active',
+      }),
+      [
+        expect.objectContaining({ id: 'root-user', sessionId: 'continuation-1', turnIndex: 0 }),
+        expect.objectContaining({ id: 'root-assistant', sessionId: 'continuation-1', turnIndex: 0 }),
+      ],
+    );
   });
 
   it('does NOT trigger sync when pending message count is less than 10', async () => {

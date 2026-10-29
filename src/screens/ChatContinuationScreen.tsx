@@ -34,6 +34,29 @@ import {
 import { useLocalization } from '../i18n/LocalizationContext';
 
 const CHAT_BACKGROUND = require('../../assets/giao_dien/giaodien1/chat_continue/background.png');
+const LOCAL_SESSION_LOAD_TIMEOUT_MS = 6000;
+const REMOTE_SESSION_LOAD_TIMEOUT_MS = 8000;
+
+class SessionLoadTimeoutError extends Error {}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new SessionLoadTimeoutError(`Chat session load exceeded ${timeoutMs}ms.`));
+    }, timeoutMs);
+
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
 
 interface Props {
   sessionId: string;
@@ -103,26 +126,44 @@ export default function ChatContinuationScreen({ sessionId, initialTitle, onBack
   }, []);
 
   const loadSession = useCallback(async () => {
+    setIsLoading(true);
     setError(null);
+    let localSession: LocalChatSession | null = null;
     try {
-      await initChatDatabase();
-      const [localSession, localMessages] = await Promise.all([
-        getLocalChatSession(sessionId),
-        getLocalChatMessages(sessionId),
-      ]);
-      if (localSession) setSession(localSession);
-      if (localMessages.length > 0) setMessages(localMessages);
+      const local = await withTimeout((async () => {
+        await initChatDatabase();
+        const [storedSession, storedMessages] = await Promise.all([
+          getLocalChatSession(sessionId),
+          getLocalChatMessages(sessionId),
+        ]);
+        return { session: storedSession, messages: storedMessages };
+      })(), LOCAL_SESSION_LOAD_TIMEOUT_MS);
+      localSession = local.session;
+      if (local.session) {
+        setSession(local.session);
+        setMessages(local.messages);
+        // Local-first rendering: cloud refresh must never hold the whole screen.
+        setIsLoading(false);
+        scrollToEnd();
+      }
+    } catch (localError) {
+      console.warn('[ChatContinuationScreen] Could not load local session:', localError);
+    }
 
-      const remote = await hydrateChatSessionFromSupabase(sessionId);
+    try {
+      const remote = await withTimeout(
+        hydrateChatSessionFromSupabase(sessionId),
+        REMOTE_SESSION_LOAD_TIMEOUT_MS,
+      );
       if (remote) {
         setSession(remote.session);
         setMessages(remote.messages);
       } else if (!localSession) {
         setError(t('chat.sessionNotFound'));
       }
-    } catch (loadError) {
-      console.warn('[ChatContinuationScreen] Could not load session:', loadError);
-      setError(t('chat.sessionLoadError'));
+    } catch (remoteError) {
+      console.warn('[ChatContinuationScreen] Could not refresh remote session:', remoteError);
+      if (!localSession) setError(t('chat.sessionLoadError'));
     } finally {
       setIsLoading(false);
       scrollToEnd();
@@ -280,6 +321,28 @@ export default function ChatContinuationScreen({ sessionId, initialTitle, onBack
             <ActivityIndicator color="#F6C768" size="large" />
             <Text style={styles.centerText}>{t('chat.reopenContext')}</Text>
           </View>
+        ) : !session && error ? (
+          <View style={styles.centerState}>
+            <Ionicons name="alert-circle-outline" size={38} color="#F1B5B5" />
+            <Text style={[styles.centerText, styles.loadErrorText]}>{error}</Text>
+            <View style={styles.loadErrorActions}>
+              <TouchableOpacity
+                onPress={() => void loadSession()}
+                accessibilityRole="button"
+                style={styles.retryButton}
+              >
+                <Ionicons name="refresh" size={17} color="#FFFFFF" />
+                <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={onBack}
+                accessibilityRole="button"
+                style={styles.backActionButton}
+              >
+                <Text style={styles.backActionButtonText}>{t('common.back')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         ) : (
           <FlatList
             ref={listRef}
@@ -294,7 +357,7 @@ export default function ChatContinuationScreen({ sessionId, initialTitle, onBack
 
         {error && messages.length > 0 ? <Text style={styles.errorText}>{error}</Text> : null}
 
-        {isCompleted ? (
+        {!session ? null : isCompleted ? (
           <View style={[styles.completedBox, { paddingBottom: Math.max(insets.bottom, 14) }]}>
             <Text style={styles.completedTitle}>{t('chat.sessionComplete')}</Text>
             <Text style={styles.completedText}>{t('chat.sessionCompleteBody')}</Text>
@@ -345,6 +408,12 @@ const styles = StyleSheet.create({
   progressFill: { height: 2, backgroundColor: '#8A22D4' },
   centerState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   centerText: { color: '#A9A3BD', fontSize: 13 },
+  loadErrorText: { maxWidth: 310, color: '#E4DDEA', lineHeight: 20, textAlign: 'center', paddingHorizontal: 18 },
+  loadErrorActions: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
+  retryButton: { minHeight: 42, borderRadius: 14, paddingHorizontal: 17, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, backgroundColor: '#7C22CF' },
+  retryButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+  backActionButton: { minHeight: 42, borderRadius: 14, paddingHorizontal: 17, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', backgroundColor: 'rgba(255,255,255,0.06)' },
+  backActionButtonText: { color: '#E4DDEA', fontSize: 13, fontWeight: '700' },
   messageList: { paddingHorizontal: 14, paddingTop: 20, paddingBottom: 24, gap: 18 },
   messageBlock: { width: '100%' },
   senderRow: { minHeight: 26, flexDirection: 'row', alignItems: 'center', marginBottom: 7, paddingHorizontal: 2 },

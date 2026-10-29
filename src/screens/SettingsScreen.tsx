@@ -12,7 +12,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -71,6 +71,7 @@ type SettingItemProps = {
 
 export default function SettingsScreen({ profile, onBack, onRequestLogin }: Props) {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const { user, isConfigured, signOut, syncLocalProfiles } = useAuth();
   const { billing, error: initialBillingError, reloadBilling } = useBilling();
   const { locale, preference, setPreference, t, l } = useLocalization();
@@ -377,18 +378,18 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
         <Image source={GROUND_BACKGROUND} resizeMode="cover" style={styles.groundImage} />
       </View>
 
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={t('common.back')}
+        activeOpacity={0.75}
+        onPress={onBack}
+        style={[styles.backButton, { top: insets.top + 8 }]}
+      >
+        <Ionicons name="chevron-back" size={29} color="#FFE8F6" />
+      </TouchableOpacity>
+
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <StatusBar style="light" />
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel={t('common.back')}
-          activeOpacity={0.75}
-          onPress={onBack}
-          style={styles.backButton}
-        >
-          <Ionicons name="chevron-back" size={29} color="#FFE8F6" />
-        </TouchableOpacity>
-
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[styles.scrollContent, { width: contentWidth }]}
@@ -675,7 +676,7 @@ const styles = StyleSheet.create({
   groundCrop: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 210, overflow: 'hidden', opacity: 0.88 },
   groundImage: { position: 'absolute', left: '-31%', bottom: -7, width: '162%', height: 340 },
   backButton: {
-    position: 'absolute', zIndex: 20, top: 8, left: 18, width: 48, height: 48, borderRadius: 24,
+    position: 'absolute', zIndex: 20, left: 18, width: 48, height: 48, borderRadius: 24,
     alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(76, 43, 157, 0.90)',
     borderWidth: 1, borderColor: 'rgba(255, 209, 241, 0.25)', shadowColor: '#100435',
     shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.40, shadowRadius: 10, elevation: 8,

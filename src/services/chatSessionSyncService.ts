@@ -84,6 +84,80 @@ const cloudToLocalMessage = (row: CloudMessage): LocalChatMessage => ({
   syncedAt: new Date().toISOString(),
 });
 
+export type InitialContinuationSessionInput = {
+  sessionId: string;
+  userId: string;
+  title: string;
+  intent: string;
+  mode: string;
+  userMessage: Pick<LocalChatMessage, 'id' | 'text' | 'createdAt'>;
+  assistantMessage: Pick<LocalChatMessage, 'id' | 'text' | 'cardPayload' | 'createdAt'>;
+  maxQuestions?: number;
+};
+
+/**
+ * Cache the root reading under the continuation session id returned by the API.
+ *
+ * ChatScreen also stores these messages in the main timeline. Keeping this
+ * dedicated snapshot means ChatContinuationScreen can open immediately even
+ * when the cloud is offline, slow, or inaccessible to a guest session.
+ */
+export async function cacheInitialContinuationSession({
+  sessionId,
+  userId,
+  title,
+  intent,
+  mode,
+  userMessage,
+  assistantMessage,
+  maxQuestions = 10,
+}: InitialContinuationSessionInput): Promise<void> {
+  const updatedAt = assistantMessage.createdAt || new Date().toISOString();
+  const session: LocalChatSession = {
+    id: sessionId,
+    userId,
+    title,
+    intent,
+    mode,
+    contextData: null,
+    questionCount: 0,
+    maxQuestions,
+    status: 'active',
+    // The API has already persisted the root reading. Marking this snapshot as
+    // synced prevents a guest/local owner id from being uploaded over it.
+    syncStatus: 'synced',
+    createdAt: userMessage.createdAt,
+    updatedAt,
+    syncedAt: updatedAt,
+  };
+  const messages: LocalChatMessage[] = [
+    {
+      id: userMessage.id,
+      sessionId,
+      turnIndex: 0,
+      sender: 'user',
+      text: userMessage.text,
+      cardPayload: null,
+      syncStatus: 'synced',
+      createdAt: userMessage.createdAt,
+      syncedAt: updatedAt,
+    },
+    {
+      id: assistantMessage.id,
+      sessionId,
+      turnIndex: 0,
+      sender: 'mascot',
+      text: assistantMessage.text,
+      cardPayload: assistantMessage.cardPayload,
+      syncStatus: 'synced',
+      createdAt: assistantMessage.createdAt,
+      syncedAt: updatedAt,
+    },
+  ];
+
+  await upsertLocalChatSnapshot(session, messages);
+}
+
 /** Nạp (Hydrate) 1 phiên từ Supabase */
 export async function hydrateChatSessionFromSupabase(sessionId: string): Promise<{
   session: LocalChatSession;

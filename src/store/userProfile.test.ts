@@ -17,7 +17,30 @@ import {
   saveProfile,
   setProfileCacheOwnerId,
   setPrimaryProfileId,
+  updateProfile,
 } from './userProfile';
+import {
+  birthDateInputToIso,
+  birthDateToInputValue,
+  formatBirthDateInput,
+  formatBirthTimeInput,
+} from '../utils/birthInputFormatting';
+
+describe('profile birth input formatting', () => {
+  it('inserts separators immediately and supports deleting them', () => {
+    expect(formatBirthDateInput('12', '1')).toBe('12/');
+    expect(formatBirthDateInput('12/08', '12/0')).toBe('12/08/');
+    expect(formatBirthDateInput('12', '12/')).toBe('1');
+    expect(formatBirthTimeInput('08', '0')).toBe('08:');
+    expect(formatBirthTimeInput('08', '08:')).toBe('0');
+  });
+
+  it('converts between display and stored birth-date formats', () => {
+    expect(birthDateToInputValue('1998-10-20')).toBe('20/10/1998');
+    expect(birthDateInputToIso('20/10/1998')).toBe('1998-10-20');
+    expect(birthDateInputToIso('31/02/1998')).toBeNull();
+  });
+});
 
 describe('primary profile storage', () => {
   beforeEach(async () => {
@@ -49,6 +72,38 @@ describe('primary profile storage', () => {
   it('automatically makes the first created profile primary', async () => {
     const created = await addProfile({ fullName: 'Minh Anh', birthDate: '1998-10-20', gender: 'female' });
     await expect(getPrimaryProfileId()).resolves.toBe(created.id);
+  });
+
+  it('updates optional birth time and place details', async () => {
+    const created = await addProfile({ fullName: 'Minh Anh', birthDate: '1998-10-20', gender: 'female' });
+    const birthLocation = {
+      placeId: 'hanoi',
+      userLabel: 'Hà Nội, Việt Nam',
+      latitude: 21.0285,
+      longitude: 105.8542,
+      timeZoneIdentifier: 'Asia/Bangkok',
+      resolvedAt: '2026-10-29T00:00:00.000Z',
+    };
+
+    const updated = await updateProfile(created.id, {
+      fullName: created.fullName,
+      birthDate: created.birthDate,
+      gender: 'female',
+      birthTime: '08:30',
+      birthPlace: birthLocation.userLabel,
+      birthLocation,
+      birthTimeAccuracy: 'exact',
+    });
+
+    expect(updated).toMatchObject({
+      birthTime: '08:30',
+      birthPlace: 'Hà Nội, Việt Nam',
+      birthLocation,
+      birthTimeAccuracy: 'exact',
+    });
+    await expect(loadAllProfiles()).resolves.toEqual([
+      expect.objectContaining({ id: created.id, birthTime: '08:30', birthPlace: 'Hà Nội, Việt Nam' }),
+    ]);
   });
 
   it('syncs saveProfile into profiles list and sets primary profile', async () => {

@@ -384,7 +384,10 @@ export async function addProfile(
 
 export async function updateProfile(
   id: string,
-  changes: Pick<ProfileItem, 'fullName' | 'birthDate'> & { gender: ProfileGender },
+  changes: Pick<
+    ProfileItem,
+    'fullName' | 'birthDate' | 'birthTime' | 'birthPlace' | 'birthLocation' | 'birthTimeAccuracy'
+  > & { gender: ProfileGender },
 ): Promise<ProfileItem> {
   const all = await loadAllProfiles();
   const index = all.findIndex((profile) => profile.id === id);
@@ -395,6 +398,10 @@ export async function updateProfile(
     fullName: changes.fullName,
     birthDate: changes.birthDate,
     gender: changes.gender,
+    birthTime: changes.birthTime,
+    birthPlace: changes.birthPlace,
+    birthLocation: changes.birthLocation,
+    birthTimeAccuracy: changes.birthTimeAccuracy,
   };
   const updatedProfiles = all.map((profile, profileIndex) => (
     profileIndex === index ? updatedProfile : profile
@@ -420,17 +427,18 @@ export async function updateProfile(
       const { data: sessionData } = await supabaseClient.auth.getSession();
       const user = sessionData?.session?.user;
       if (user) {
-        const applyRemoteUpdate = async (includeGender: boolean) => {
-          const payload = includeGender
-            ? {
-              name: updatedProfile.fullName,
-              birth_date: updatedProfile.birthDate,
-              gender: updatedProfile.gender,
-            }
-            : {
-              name: updatedProfile.fullName,
-              birth_date: updatedProfile.birthDate,
-            };
+        const applyRemoteUpdate = async (includeGender: boolean, includeDetails: boolean) => {
+          const payload: Record<string, unknown> = {
+            name: updatedProfile.fullName,
+            birth_date: updatedProfile.birthDate,
+          };
+          if (includeGender) payload.gender = updatedProfile.gender;
+          if (includeDetails) {
+            payload.birth_time = updatedProfile.birthTime || null;
+            payload.birth_place = updatedProfile.birthPlace || null;
+            payload.birth_location = updatedProfile.birthLocation || null;
+            payload.birth_time_accuracy = updatedProfile.birthTimeAccuracy || null;
+          }
           const query = supabaseClient
             .from('user_numerology_profiles')
             .update(payload)
@@ -442,9 +450,16 @@ export async function updateProfile(
               .eq('birth_date', all[index].birthDate);
         };
 
-        let { error } = await applyRemoteUpdate(true);
+        let includeGender = true;
+        let includeDetails = true;
+        let { error } = await applyRemoteUpdate(includeGender, includeDetails);
+        if (error && isMissingProfileDetailColumnError(error)) {
+          includeDetails = false;
+          ({ error } = await applyRemoteUpdate(includeGender, includeDetails));
+        }
         if (error && isMissingGenderColumnError(error)) {
-          ({ error } = await applyRemoteUpdate(false));
+          includeGender = false;
+          ({ error } = await applyRemoteUpdate(includeGender, includeDetails));
         }
         if (error) throw error;
         if (primaryId === id) {

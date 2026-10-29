@@ -4,7 +4,7 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Animated, StyleSheet, View, Text, Modal, TouchableOpacity,
+  ActivityIndicator, Animated, StyleSheet, View, Text, Modal, TouchableOpacity,
   ScrollView, TextInput, Alert, PanResponder, Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,10 +13,22 @@ import ThreeDButton from './ThreeDButton';
 import {
   ProfileItem, loadAllProfiles, addProfile, deleteProfile,
   updateProfile, getZodiac, getZodiacEmoji, getNguHanh, getNguHanhEmoji,
-  type ProfileGender,
+  type ProfileGender, type ResolvedBirthLocation,
 } from '../store/userProfile';
 import { extractBirthYear } from '../services/lunarService';
 import { useLocalization } from '../i18n/LocalizationContext';
+import { useBirthPlaceSuggestions } from '../features/astrology/useBirthPlaceSuggestions';
+import {
+  resolveBirthLocation,
+  resolveBirthPlaceSuggestion,
+  type BirthPlaceSuggestion,
+} from '../services/astro/birthLocation';
+import {
+  birthDateInputToIso,
+  birthDateToInputValue,
+  formatBirthDateInput,
+  formatBirthTimeInput,
+} from '../utils/birthInputFormatting';
 
 interface Props {
   visible: boolean;
@@ -45,7 +57,7 @@ export default function ProfilePickerModal({
   title,
   selectCreatedProfile = true,
 }: Props) {
-  const { t, l } = useLocalization();
+  const { t, l, locale } = useLocalization();
   const [profiles, setProfiles] = useState<ProfileItem[]>([]);
   const [isCoupleMode, setIsCoupleMode] = useState<boolean>(selectedProfiles.length >= 2);
   const [tempSelectedIds, setTempSelectedIds] = useState<string[]>(
@@ -60,12 +72,33 @@ export default function ProfilePickerModal({
   // Form state
   const [newName, setNewName] = useState('');
   const [newBirthDate, setNewBirthDate] = useState('');
+  const [newBirthTime, setNewBirthTime] = useState('');
+  const [newBirthPlace, setNewBirthPlace] = useState('');
+  const [newBirthLocation, setNewBirthLocation] = useState<ResolvedBirthLocation | undefined>();
+  const [selectedPlaceSuggestion, setSelectedPlaceSuggestion] = useState<BirthPlaceSuggestion | null>(null);
+  const [resolvingPlace, setResolvingPlace] = useState(false);
   const [newGender, setNewGender] = useState<ProfileGender | null>(null);
   const [formError, setFormError] = useState('');
+  const {
+    suggestions: placeSuggestions,
+    searching: searchingPlace,
+    searchError: placeSearchError,
+  } = useBirthPlaceSuggestions({
+    query: newBirthPlace,
+    existingLabel: newBirthLocation?.userLabel,
+    selectedLabel: selectedPlaceSuggestion?.userLabel,
+    enabled: visible && isAdding,
+    locale,
+  });
 
   const resetProfileForm = () => {
     setNewName('');
     setNewBirthDate('');
+    setNewBirthTime('');
+    setNewBirthPlace('');
+    setNewBirthLocation(undefined);
+    setSelectedPlaceSuggestion(null);
+    setResolvingPlace(false);
     setNewGender(null);
     setEditingProfileId(null);
     setFormError('');
@@ -79,7 +112,11 @@ export default function ProfilePickerModal({
   const startEditingProfile = (item: ProfileItem, notice = '') => {
     setEditingProfileId(item.id);
     setNewName(item.fullName);
-    setNewBirthDate(item.birthDate);
+    setNewBirthDate(birthDateToInputValue(item.birthDate));
+    setNewBirthTime(item.birthTime || '');
+    setNewBirthPlace(item.birthPlace || '');
+    setNewBirthLocation(item.birthLocation);
+    setSelectedPlaceSuggestion(null);
     setNewGender(item.gender || null);
     setFormError(notice);
     setIsAdding(true);
@@ -194,23 +231,39 @@ export default function ProfilePickerModal({
     }
   };
 
+  const selectBirthPlace = (suggestion: BirthPlaceSuggestion) => {
+    setSelectedPlaceSuggestion(suggestion);
+    setNewBirthPlace(suggestion.userLabel);
+    setNewBirthLocation(resolveBirthPlaceSuggestion(suggestion));
+    setFormError('');
+    void Haptics.selectionAsync();
+  };
+
   const handleSaveProfile = async () => {
     const trimmedName = newName.trim();
     const trimmedDate = newBirthDate.trim();
+    const trimmedTime = newBirthTime.trim();
+    const trimmedPlace = newBirthPlace.trim();
 
     if (!trimmedName) {
       setFormError(l('Vui lòng nhập Họ và tên.', 'Enter a full name.'));
       return;
     }
 
-    let formattedDate = trimmedDate;
-    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(trimmedDate)) {
-      const [d, m, y] = trimmedDate.split('/');
-      formattedDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    const formattedDate = birthDateInputToIso(trimmedDate);
+    if (!formattedDate) {
+      setFormError(l('Ngày sinh không hợp lệ. Hãy nhập đủ DD/MM/YYYY, ví dụ 20/10/1998.', 'Enter a valid birth date in DD/MM/YYYY format, for example 20/10/1998.'));
+      return;
     }
 
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(formattedDate)) {
-      setFormError(l('Ngày sinh cần đúng định dạng YYYY-MM-DD hoặc DD/MM/YYYY (ví dụ: 1998-10-20 hoặc 20/10/1998).', 'Birth date must use YYYY-MM-DD or DD/MM/YYYY format, for example 1998-10-20 or 20/10/1998.'));
+    const birthDate = new Date(`${formattedDate}T00:00:00`);
+    if (birthDate.getFullYear() < 1920 || birthDate > new Date()) {
+      setFormError(l('Ngày sinh phải từ năm 1920 đến hôm nay.', 'Birth date must be between 1920 and today.'));
+      return;
+    }
+
+    if (trimmedTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(trimmedTime)) {
+      setFormError(l('Giờ sinh chưa hợp lệ. Hãy nhập 4 chữ số theo giờ 24h, ví dụ 0830.', 'Enter 4 digits in 24-hour time, for example 0830.'));
       return;
     }
 
@@ -219,12 +272,37 @@ export default function ProfilePickerModal({
       return;
     }
 
+    let resolvingBirthPlaceAtFailure = false;
+    setResolvingPlace(true);
     try {
+      let resolvedBirthLocation = trimmedPlace ? newBirthLocation : undefined;
+      if (
+        trimmedPlace
+        && resolvedBirthLocation?.userLabel.trim().toLocaleLowerCase(locale) !== trimmedPlace.toLocaleLowerCase(locale)
+        && Platform.OS !== 'web'
+      ) {
+        if (selectedPlaceSuggestion?.userLabel === trimmedPlace) {
+          resolvedBirthLocation = resolveBirthPlaceSuggestion(selectedPlaceSuggestion);
+        } else {
+          resolvingBirthPlaceAtFailure = true;
+          resolvedBirthLocation = await resolveBirthLocation(trimmedPlace);
+          resolvingBirthPlaceAtFailure = false;
+        }
+      }
+
+      const profileDetails = {
+        birthTime: trimmedTime || undefined,
+        birthPlace: trimmedPlace || undefined,
+        birthLocation: resolvedBirthLocation,
+        birthTimeAccuracy: trimmedTime ? 'exact' as const : 'unknown' as const,
+      };
+
       if (editingProfileId) {
         const updated = await updateProfile(editingProfileId, {
           fullName: trimmedName,
           birthDate: formattedDate,
           gender: newGender,
+          ...profileDetails,
         });
         setProfiles((current) => current.map((profile) => (
           profile.id === updated.id ? updated : profile
@@ -244,7 +322,8 @@ export default function ProfilePickerModal({
       const created = await addProfile({
         fullName: trimmedName,
         birthDate: formattedDate,
-        gender: newGender
+        gender: newGender,
+        ...profileDetails,
       });
       await onProfilesChanged?.();
       resetProfileForm();
@@ -262,7 +341,11 @@ export default function ProfilePickerModal({
         onClose();
       }
     } catch {
-      setFormError(l('Không thể tạo hồ sơ. Vui lòng thử lại.', 'Unable to create the profile. Please try again.'));
+      setFormError(resolvingBirthPlaceAtFailure
+        ? l('Chưa xác định được nơi sinh. Hãy chọn một địa điểm trong danh sách gợi ý hoặc để trống.', 'We could not identify the birth place. Choose a suggestion or leave it blank.')
+        : l('Không thể lưu hồ sơ. Vui lòng thử lại.', 'Unable to save the profile. Please try again.'));
+    } finally {
+      setResolvingPlace(false);
     }
   };
 
@@ -347,7 +430,11 @@ export default function ProfilePickerModal({
             </Text>
           )}
 
-          <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.scrollArea}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
             {/* List of profiles */}
             <View style={styles.listContainer}>
               {profiles.map((p) => {
@@ -473,11 +560,91 @@ export default function ProfilePickerModal({
                 <Text style={styles.label}>{l('Ngày sinh (Dương lịch)', 'Birth date (Gregorian)')}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder={l('Ví dụ: 1998-10-20 hoặc 20/10/1998', 'For example: 1998-10-20 or 20/10/1998')}
+                  placeholder="DD/MM/YYYY"
                   placeholderTextColor="#64748B"
                   value={newBirthDate}
-                  onChangeText={setNewBirthDate}
+                  onChangeText={(value) => setNewBirthDate((current) => (
+                    formatBirthDateInput(value, current)
+                  ))}
+                  inputMode="numeric"
+                  keyboardType="number-pad"
+                  maxLength={10}
+                  selectionColor="#F5BA5B"
+                  cursorColor="#F5BA5B"
+                  underlineColorAndroid="transparent"
                 />
+
+                <Text style={styles.label}>{l('Giờ sinh (không bắt buộc)', 'Birth time (optional)')}</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder={l('4 chữ số, ví dụ 0830', '4 digits, for example 0830')}
+                  placeholderTextColor="#64748B"
+                  value={newBirthTime}
+                  onChangeText={(value) => setNewBirthTime((current) => (
+                    formatBirthTimeInput(value, current)
+                  ))}
+                  inputMode="numeric"
+                  keyboardType="number-pad"
+                  maxLength={5}
+                  selectionColor="#F5BA5B"
+                  cursorColor="#F5BA5B"
+                  underlineColorAndroid="transparent"
+                />
+
+                <Text style={styles.label}>{l('Nơi sinh (không bắt buộc)', 'Birth place (optional)')}</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder={l('Nhập thành phố, ví dụ: Hà Nội', 'Enter a city, for example London')}
+                  placeholderTextColor="#64748B"
+                  value={newBirthPlace}
+                  onChangeText={(value) => {
+                    setNewBirthPlace(value);
+                    setNewBirthLocation(undefined);
+                    setSelectedPlaceSuggestion(null);
+                  }}
+                  selectionColor="#F5BA5B"
+                  cursorColor="#F5BA5B"
+                  underlineColorAndroid="transparent"
+                />
+                {(searchingPlace || placeSuggestions.length > 0 || placeSearchError) && (
+                  <View style={styles.placeSuggestionPanel}>
+                    {searchingPlace && (
+                      <View style={styles.placeSearchStatus}>
+                        <ActivityIndicator size="small" color="#F5BA5B" />
+                        <Text style={styles.placeSearchStatusText}>{l('Đang tìm địa điểm…', 'Searching places…')}</Text>
+                      </View>
+                    )}
+                    {!searchingPlace && placeSuggestions.map((suggestion) => (
+                      <TouchableOpacity
+                        key={suggestion.placeId}
+                        activeOpacity={0.75}
+                        style={styles.placeSuggestionRow}
+                        onPress={() => selectBirthPlace(suggestion)}
+                      >
+                        <Ionicons name="location-outline" size={16} color="#F5BA5B" />
+                        <View style={styles.placeSuggestionCopy}>
+                          <Text style={styles.placeSuggestionPrimary}>{suggestion.primaryText}</Text>
+                          {!!suggestion.secondaryText && (
+                            <Text numberOfLines={1} style={styles.placeSuggestionSecondary}>
+                              {suggestion.secondaryText}
+                            </Text>
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                    {!searchingPlace && !!placeSearchError && (
+                      <Text style={styles.placeSearchError}>{placeSearchError}</Text>
+                    )}
+                  </View>
+                )}
+                {!!newBirthLocation && (
+                  <View style={styles.resolvedPlaceBadge}>
+                    <Ionicons name="checkmark-circle" size={15} color="#86EFAC" />
+                    <Text numberOfLines={2} style={styles.resolvedPlaceText}>
+                      {l('Đã chọn', 'Selected')}: {newBirthLocation.userLabel} · {newBirthLocation.timeZoneIdentifier}
+                    </Text>
+                  </View>
+                )}
 
                 <Text style={styles.label}>{l('Giới tính', 'Gender')}</Text>
                 <View style={styles.genderRow}>
@@ -514,6 +681,7 @@ export default function ProfilePickerModal({
                   <ThreeDButton
                     label={editingProfileId ? l('Cập Nhật', 'Update') : l('Lưu Hồ Sơ', 'Save Profile')}
                     onPress={handleSaveProfile}
+                    loading={resolvingPlace}
                     size="sm"
                     variant="gold"
                   />
@@ -919,15 +1087,61 @@ const styles = StyleSheet.create({
     marginTop: 6
   },
   input: {
+    minHeight: 38,
     backgroundColor: '#0F0D1A',
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#2B2642',
     color: '#F8FAFC',
     fontSize: 13,
+    lineHeight: 18,
     paddingHorizontal: 10,
-    paddingVertical: 8
+    paddingVertical: 8,
+    textAlignVertical: 'center',
   },
+  placeSuggestionPanel: {
+    marginTop: 5,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: '#3B345B',
+    backgroundColor: '#100E1D',
+    overflow: 'hidden',
+  },
+  placeSearchStatus: {
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+  },
+  placeSearchStatusText: { color: '#A9A0BE', fontSize: 11, fontWeight: '600' },
+  placeSuggestionRow: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#302A48',
+  },
+  placeSuggestionCopy: { flex: 1 },
+  placeSuggestionPrimary: { color: '#F8FAFC', fontSize: 12, fontWeight: '700' },
+  placeSuggestionSecondary: { color: '#8E86A5', fontSize: 10, marginTop: 2 },
+  placeSearchError: { color: '#FCA5A5', fontSize: 10, lineHeight: 15, padding: 10 },
+  resolvedPlaceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(134, 239, 172, 0.25)',
+  },
+  resolvedPlaceText: { flex: 1, color: '#BBF7D0', fontSize: 10, lineHeight: 14 },
   genderRow: {
     flexDirection: 'row',
     gap: 10,

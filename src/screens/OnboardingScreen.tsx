@@ -1,6 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { Image, type ImageSource } from 'expo-image';
 import * as Haptics from 'expo-haptics';
@@ -42,6 +41,7 @@ import {
 } from '../store/userProfile';
 import { useLocalization } from '../i18n/LocalizationContext';
 import type { AppLocale, TranslationKey } from '../i18n/translations';
+import { formatBirthDateInput, formatBirthTimeInput } from '../utils/birthInputFormatting';
 
 interface Props {
   onComplete: () => void | Promise<void>;
@@ -132,15 +132,6 @@ const EMPTY_DRAFT: Draft = {
 };
 
 const MIN_BIRTH_DATE = new Date(1920, 0, 1);
-const DEFAULT_BIRTH_DATE = new Date(2000, 0, 1);
-
-function formatBirthDate(date: Date): string {
-  return [
-    String(date.getDate()).padStart(2, '0'),
-    String(date.getMonth() + 1).padStart(2, '0'),
-    date.getFullYear(),
-  ].join('/');
-}
 
 function parseBirthDate(value: string): Date | null {
   const parts = value.trim().split(/[\/-]/).map(Number);
@@ -154,21 +145,6 @@ function parseBirthDate(value: string): Date | null {
     : null;
 }
 
-function toHtmlDateValue(value: string): string {
-  const date = parseBirthDate(value);
-  if (!date) return '';
-  return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, '0'),
-    String(date.getDate()).padStart(2, '0'),
-  ].join('-');
-}
-
-function fromHtmlDateValue(value: string): string {
-  const [year, month, day] = value.split('-');
-  return year && month && day ? `${day}/${month}/${year}` : '';
-}
-
 function getProfileErrors(draft: Draft, english: boolean): ProfileErrors {
   const errors: ProfileErrors = {};
   const birthDate = parseBirthDate(draft.birthDate);
@@ -180,7 +156,7 @@ function getProfileErrors(draft: Draft, english: boolean): ProfileErrors {
   }
 
   if (!draft.birthDate.trim()) {
-    errors.birthDate = english ? 'Choose your birth date.' : 'Vui lòng chọn ngày sinh.';
+    errors.birthDate = english ? 'Enter your birth date.' : 'Vui lòng nhập ngày sinh.';
   } else if (!birthDate) {
     errors.birthDate = english ? 'Use a valid date in DD/MM/YYYY format.' : 'Ngày sinh không hợp lệ, hãy dùng định dạng DD/MM/YYYY.';
   } else if (birthDate < MIN_BIRTH_DATE || birthDate > new Date()) {
@@ -193,8 +169,8 @@ function getProfileErrors(draft: Draft, english: boolean): ProfileErrors {
 
   if (birthTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(birthTime)) {
     errors.birthTime = english
-      ? 'Use 24-hour HH:mm format, for example 08:30.'
-      : 'Giờ sinh phải theo định dạng 24 giờ HH:mm, ví dụ 08:30.';
+      ? 'Enter 4 digits in 24-hour time, for example 0830.'
+      : 'Hãy nhập 4 chữ số theo giờ 24h, ví dụ 0830.';
   }
 
   if (!birthPlace) {
@@ -296,9 +272,11 @@ function Field({
   error?: string;
   onBlur?: () => void;
 }) {
+  const [focused, setFocused] = useState(false);
+
   return (
     <View style={styles.fieldGroup}>
-      <View style={[styles.field, !!error && styles.fieldInvalid]}>
+      <View style={[styles.field, focused && styles.fieldFocused, !!error && styles.fieldInvalid]}>
         <View style={styles.fieldIcon}><Ionicons name={icon} size={18} color={error ? '#FFB1C3' : '#FF91C5'} /></View>
         <View style={styles.fieldBody}>
           <Text style={styles.fieldLabel}>{label}</Text>
@@ -306,12 +284,20 @@ function Field({
             accessibilityHint={error}
             accessibilityLabel={label}
             value={value}
-            onBlur={onBlur}
+            onBlur={() => {
+              setFocused(false);
+              onBlur?.();
+            }}
+            onFocus={() => setFocused(true)}
             onChangeText={onChangeText}
             placeholder={placeholder}
             placeholderTextColor="#A79BD3"
             keyboardType={keyboardType}
+            inputMode={keyboardType === 'numeric' ? 'numeric' : 'text'}
             maxLength={maxLength}
+            selectionColor="#FFD1E5"
+            cursorColor="#FFD1E5"
+            underlineColorAndroid="transparent"
             style={styles.fieldInput}
           />
         </View>
@@ -331,99 +317,6 @@ function FieldError({ message }: { message?: string }) {
   );
 }
 
-function SelectionField({
-  icon,
-  label,
-  value,
-  placeholder,
-  onPress,
-  error,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  value: string;
-  placeholder: string;
-  onPress: () => void;
-  error?: string;
-}) {
-  return (
-    <View style={styles.fieldGroup}>
-      <TouchableOpacity
-        accessibilityRole="button"
-        accessibilityHint={error}
-        accessibilityLabel={label}
-        activeOpacity={0.78}
-        onPress={onPress}
-        style={[styles.field, !!error && styles.fieldInvalid]}
-      >
-        <View style={styles.fieldIcon}><Ionicons name={icon} size={18} color={error ? '#FFB1C3' : '#FF91C5'} /></View>
-        <View style={styles.fieldBody}>
-          <Text style={styles.fieldLabel}>{label}</Text>
-          <Text style={[styles.selectionValue, !value && styles.selectionPlaceholder]}>
-            {value || placeholder}
-          </Text>
-        </View>
-        <Ionicons name="chevron-down" size={18} color="#C8BDE8" />
-      </TouchableOpacity>
-      <FieldError message={error} />
-    </View>
-  );
-}
-
-function WebDateField({
-  value,
-  onChangeText,
-  onBlur,
-  error,
-  english = false,
-}: {
-  value: string;
-  onChangeText: (value: string) => void;
-  onBlur?: () => void;
-  error?: string;
-  english?: boolean;
-}) {
-  const maxDate = toHtmlDateValue(formatBirthDate(new Date()));
-
-  return (
-    <View style={styles.fieldGroup}>
-      <View style={[styles.field, styles.webDateField, !!error && styles.fieldInvalid]}>
-        <View style={styles.fieldIcon}><Ionicons name="calendar-outline" size={18} color={error ? '#FFB1C3' : '#FF91C5'} /></View>
-        <View style={styles.fieldBody}>
-          <Text style={styles.fieldLabel}>{english ? 'Birth date *' : 'Ngày sinh *'}</Text>
-          <Text style={[styles.selectionValue, !value && styles.selectionPlaceholder]}>
-            {value || (english ? 'Choose day/month/year' : 'Chọn ngày/tháng/năm')}
-          </Text>
-        </View>
-        <Ionicons name="chevron-down" size={18} color="#C8BDE8" />
-        {React.createElement('input', {
-          'aria-label': english ? 'Birth date' : 'Ngày sinh',
-          'aria-invalid': Boolean(error),
-          max: maxDate,
-          min: '1920-01-01',
-          onBlur,
-          onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
-            onChangeText(fromHtmlDateValue(event.currentTarget.value));
-          },
-          style: {
-            border: 0,
-            cursor: 'pointer',
-            height: '100%',
-            inset: 0,
-            opacity: 0,
-            position: 'absolute',
-            width: '100%',
-            zIndex: 3,
-          },
-          type: 'date',
-          value: toHtmlDateValue(value),
-        })}
-      </View>
-      <FieldError message={error} />
-    </View>
-  );
-}
-
 export default function OnboardingScreen({ onComplete }: Props) {
   const { locale, preference, setPreference, t } = useLocalization();
   const [languageSaveError, setLanguageSaveError] = useState(false);
@@ -436,7 +329,6 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const [resolvingPlace, setResolvingPlace] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [googlePlayPrice, setGooglePlayPrice] = useState<string | null>(null);
-  const [showBirthDatePicker, setShowBirthDatePicker] = useState(false);
   const [selectedPlaceSuggestion, setSelectedPlaceSuggestion] = useState<BirthPlaceSuggestion | null>(null);
   const [profileTouched, setProfileTouched] = useState<Partial<Record<ProfileFieldName, boolean>>>({});
   const [profileSubmitAttempted, setProfileSubmitAttempted] = useState(false);
@@ -445,10 +337,6 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const ambientPlayer = useAudioPlayer(TAROT_AMBIENT_AUDIO, { keepAudioSessionActive: true });
 
   const compact = height < 720;
-  const selectedBirthDate = useMemo(
-    () => parseBirthDate(draft.birthDate) ?? DEFAULT_BIRTH_DATE,
-    [draft.birthDate],
-  );
   const {
     suggestions: placeSuggestions,
     searching: searchingPlace,
@@ -592,13 +480,6 @@ export default function OnboardingScreen({ onComplete }: Props) {
       birthPlace: suggestion.userLabel,
       birthLocation,
     }));
-  };
-
-  const handleBirthDateChange = (event: DateTimePickerEvent, date?: Date) => {
-    if (Platform.OS === 'android') setShowBirthDatePicker(false);
-    if (event.type === 'dismissed' || !date) return;
-    touchProfileField('birthDate');
-    setDraft((value) => ({ ...value, birthDate: formatBirthDate(date) }));
   };
 
   const completeProfileStep = async () => {
@@ -798,8 +679,17 @@ export default function OnboardingScreen({ onComplete }: Props) {
                 </View>
               </View>
             ) : step === PROFILE_STEP ? (
-              <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-                <ScrollView contentContainerStyle={styles.formScroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <KeyboardAvoidingView
+                style={styles.flex}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              >
+                <ScrollView
+                  automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+                  contentContainerStyle={styles.formScroll}
+                  keyboardDismissMode="interactive"
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                >
                   <Text style={styles.sectionTitle}>{en ? 'Tell us about yourself' : 'Nhập thông tin của bạn'}</Text>
                   <Text style={styles.sectionDescription}>{en ? 'This helps Numelyra personalize numerology, Can Chi and your birth chart.' : 'Thông tin giúp Numelyra cá nhân hóa thần số học, lịch Can Chi và bản đồ sao.'}</Text>
                   {!compact && <HeroImage source={HERO_PROFILE} imageKey="profile-form" compact />}
@@ -813,45 +703,20 @@ export default function OnboardingScreen({ onComplete }: Props) {
                       onBlur={() => touchProfileField('fullName')}
                       onChangeText={(fullName) => setDraft((value) => ({ ...value, fullName }))}
                     />
-                    {Platform.OS === 'web' ? (
-                      <WebDateField
-                        english={en}
-                        value={draft.birthDate}
-                        error={visibleProfileError('birthDate')}
-                        onBlur={() => touchProfileField('birthDate')}
-                        onChangeText={(birthDate) => {
-                          touchProfileField('birthDate');
-                          setDraft((current) => ({ ...current, birthDate }));
-                        }}
-                      />
-                    ) : (
-                      <SelectionField
-                        icon="calendar-outline"
-                        label={en ? 'Birth date *' : 'Ngày sinh *'}
-                        value={draft.birthDate}
-                        placeholder={en ? 'Choose day/month/year' : 'Chọn ngày/tháng/năm'}
-                        error={visibleProfileError('birthDate')}
-                        onPress={() => setShowBirthDatePicker(true)}
-                      />
-                    )}
-                    {showBirthDatePicker && Platform.OS !== 'web' && (
-                      <View style={styles.datePickerPanel}>
-                        <DateTimePicker
-                          value={selectedBirthDate}
-                          mode="date"
-                          display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                          minimumDate={MIN_BIRTH_DATE}
-                          maximumDate={new Date()}
-                          onChange={handleBirthDateChange}
-                          accentColor="#F47BB5"
-                        />
-                        {Platform.OS === 'ios' && (
-                          <TouchableOpacity style={styles.datePickerDone} onPress={() => setShowBirthDatePicker(false)}>
-                            <Text style={styles.datePickerDoneText}>{en ? 'Done' : 'Xong'}</Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    )}
+                    <Field
+                      icon="calendar-outline"
+                      label={en ? 'Birth date *' : 'Ngày sinh *'}
+                      value={draft.birthDate}
+                      placeholder="DD/MM/YYYY"
+                      keyboardType="numeric"
+                      maxLength={10}
+                      error={visibleProfileError('birthDate')}
+                      onBlur={() => touchProfileField('birthDate')}
+                      onChangeText={(birthDate) => setDraft((current) => ({
+                        ...current,
+                        birthDate: formatBirthDateInput(birthDate, current.birthDate),
+                      }))}
+                    />
                     <View style={styles.fieldGroup}>
                       <Text style={styles.genderGroupLabel}>{en ? 'Gender *' : 'Giới tính *'}</Text>
                       <View style={styles.genderRow}>
@@ -881,12 +746,15 @@ export default function OnboardingScreen({ onComplete }: Props) {
                       icon="time-outline"
                       label={en ? 'Birth time' : 'Giờ sinh'}
                       value={draft.birthTime}
-                      placeholder={en ? 'HH:mm (optional)' : 'HH:mm (có thể bỏ qua)'}
+                      placeholder={en ? '4 digits, e.g. 0830 (optional)' : '4 chữ số, ví dụ 0830 (có thể bỏ qua)'}
                       keyboardType="numeric"
                       maxLength={5}
                       error={visibleProfileError('birthTime')}
                       onBlur={() => touchProfileField('birthTime')}
-                      onChangeText={(birthTime) => setDraft((value) => ({ ...value, birthTime }))}
+                      onChangeText={(birthTime) => setDraft((value) => ({
+                        ...value,
+                        birthTime: formatBirthTimeInput(birthTime, value.birthTime),
+                      }))}
                     />
                     <Field
                       icon="location-outline"
@@ -1062,19 +930,14 @@ const styles = StyleSheet.create({
   formCard: { backgroundColor: 'rgba(48, 35, 125, 0.82)', borderRadius: 20, padding: 12, marginBottom: 14, borderWidth: 1, borderColor: 'rgba(210,180,255,0.14)' },
   fieldGroup: { marginBottom: 9 },
   field: { minHeight: 62, flexDirection: 'row', alignItems: 'center', borderRadius: 14, backgroundColor: 'rgba(104,79,190,0.34)', borderWidth: 1, borderColor: 'transparent', paddingHorizontal: 12 },
+  fieldFocused: { borderColor: '#FFD1E5', backgroundColor: 'rgba(116,88,204,0.58)' },
   fieldInvalid: { borderColor: '#FF91AA', backgroundColor: 'rgba(148,58,112,0.26)' },
   fieldIcon: { width: 31, height: 31, borderRadius: 9, backgroundColor: 'rgba(255,151,201,0.13)', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
   fieldBody: { flex: 1, paddingVertical: 7 },
   fieldLabel: { color: '#F4EDFF', fontSize: 11, fontWeight: '700', marginBottom: 1 },
-  fieldInput: { color: '#FFFFFF', fontSize: 14, paddingVertical: 4 },
+  fieldInput: { minHeight: 30, color: '#FFFFFF', fontSize: 14, lineHeight: 20, paddingHorizontal: 0, paddingVertical: 4, textAlignVertical: 'center' },
   fieldErrorRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 5, paddingHorizontal: 5, paddingTop: 5 },
   fieldErrorText: { flex: 1, color: '#FFD0DA', fontSize: 11, lineHeight: 15, fontWeight: '600' },
-  selectionValue: { color: '#FFFFFF', fontSize: 14, paddingVertical: 4 },
-  selectionPlaceholder: { color: '#A79BD3' },
-  webDateField: { position: 'relative' },
-  datePickerPanel: { marginTop: -2, marginBottom: 9, borderRadius: 16, overflow: 'hidden', backgroundColor: 'rgba(244,235,255,0.96)', padding: 6 },
-  datePickerDone: { alignSelf: 'flex-end', minWidth: 70, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F47BB5', marginRight: 6, marginBottom: 4 },
-  datePickerDoneText: { color: '#3F246E', fontSize: 13, fontWeight: '800' },
   genderGroupLabel: { color: '#F4EDFF', fontSize: 11, fontWeight: '700', marginBottom: 6, marginLeft: 2 },
   genderRow: { flexDirection: 'row', gap: 9 },
   genderButton: { flex: 1, minHeight: 43, borderRadius: 12, backgroundColor: 'rgba(104,79,190,0.34)', flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'transparent' },
