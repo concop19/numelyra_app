@@ -296,8 +296,8 @@ function layerCanElement(act: ActivityJson, ctx: ActivityRuleContext): LayerResu
   const cfg = RULES.layers.canElementBoost;
   const element = cfg.canToElement[String(ctx.dayCanIdx)];
   if (!element) return { priority: 3, delta: 0, reason: '' };
-  const cats = cfg.elementToCategories[element] ?? [];
-  if (!cats.includes(act.category)) return { priority: 3, delta: 0, reason: '' };
+  const categories = cfg.elementToCategories[element] ?? [];
+  if (!categories.includes(act.category)) return { priority: 3, delta: 0, reason: '' };
   const catLabels = RULES.categoryLabels[act.category];
   const template = ctx.locale === 'en' ? cfg.reasonTemplateEn : cfg.reasonTemplateVi;
   return {

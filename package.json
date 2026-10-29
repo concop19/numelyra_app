@@ -70,17 +70,18 @@
     "audit:numerology-db:release": "python scripts/auditNumerologyKnowledgeSqlite.py --require-approved",
     "audit:i18n": "python scripts/auditI18nLiterals.py",
     "audit:i18n:release": "python scripts/auditI18nLiterals.py --strict",
+    "audit:brand": "python scripts/auditBrandTerminology.py",
     "typecheck": "tsc --noEmit",
     "assemble:numerology-translations": "python scripts/assembleNumerologyTranslations.py",
     "test:numerology-catalog": "python -m unittest discover -s scripts -p test_numerologyCatalog.py",
-    "verify:release": "npm run typecheck && npm test && npm run test:numerology-catalog && npm run audit:i18n:release && npm run audit:numerology-db:release",
-    "eas-build-post-install": "npm run audit:i18n:release && npm run audit:numerology-db:release",
+    "verify:release": "npm run typecheck && npm test && npm run test:numerology-catalog && npm run audit:brand && npm run audit:i18n:release && npm run audit:numerology-db:release",
+    "eas-build-post-install": "npm run audit:brand && npm run audit:i18n:release && npm run audit:numerology-db:release",
     "preandroid": "npm run audit:numerology-db:release",
     "preios": "npm run audit:numerology-db:release"
   },
   "jest": {
     "preset": "jest-expo",
-    "testRegex": "(src/services/(agentDecisionEngine|chatNumerologyContextService|colorGuidance|chatHistoryStorage|chatSessionSyncService|chatStreamClient|dailyNotifications|ttsService|lunarService|numerologyKnowledge|numerologySummaryService|numerologyCatalogValidation|tarotService|astro/.*|activityRuleEngine)|src/db/numerologyKnowledgeService|src/store/userProfile|src/features/constellation/constellationGeometry|src/features/astrology/dailyAstroFortune|src/features/daily-insight/(dailyInsight|dailyProfile)|src/components/chat/mascotVisualLayout|src/i18n/(LocalizationContext|translations))\\.test\\.ts$"
+    "testRegex": "(src/services/(agentDecisionEngine|chatNumerologyContextService|colorGuidance|chatHistoryStorage|chatSessionSyncService|chatStreamClient|dailyNotifications|profileSync|ttsService|lunarService|numerologyKnowledge|numerologySummaryService|numerologyCatalogValidation|tarotService|astro/.*|activityRuleEngine)|src/db/numerologyKnowledgeService|src/store/userProfile(?:Delete)?|src/features/constellation/constellationGeometry|src/features/astrology/(dailyAstroFortune|useDailyAstroFortune|AstroRichText)|src/features/daily-insight/(dailyInsight|dailyProfile)|src/components/chat/(mascotVisualLayout|readingPaperLayout)|src/i18n/(LocalizationContext|translations))\\.test\\.ts$"
   },
   "private": true
 }

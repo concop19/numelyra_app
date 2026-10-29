@@ -36,6 +36,18 @@ export function isMissingPrimaryColumnError(error: unknown): boolean {
     && (text.includes('column') || text.includes('schema cache'));
 }
 
+export function isMissingProfileDetailColumnError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as { message?: unknown; details?: unknown; hint?: unknown };
+  const text = [candidate.message, candidate.details, candidate.hint]
+    .filter((value): value is string => typeof value === 'string')
+    .join(' ')
+    .toLowerCase();
+  return ['birth_time', 'birth_place', 'birth_location', 'birth_time_accuracy'].some((column) => (
+    text.includes(column) && (text.includes('column') || text.includes('schema cache'))
+  ));
+}
+
 /**
  * Dữ liệu đã phân giải từ tên nơi sinh. Chỉ được lưu cục bộ để dựng lá số;
  * request AI chỉ nhận các kết quả đã suy ra (ASC/MC/nhà), không nhận tọa độ thô.
@@ -75,6 +87,7 @@ export interface ProfileItem {
 const PROFILES_LIST_KEY = '@numelyra_profiles_list';
 const ACTIVE_PROFILE_ID_KEY = '@numelyra_active_profile_id';
 const PRIMARY_PROFILE_STATE_KEY = '@numelyra_primary_profile:v1';
+const PROFILE_CACHE_OWNER_KEY = '@numelyra_profiles_owner:v1';
 
 export interface PrimaryProfileState {
   id: string;
@@ -187,6 +200,29 @@ export async function saveAstrologyBirthData(profile: UserProfile, profileId?: s
     };
     await saveAllProfiles(profiles);
     if (profiles[index].id === primaryId) await saveProfile(profile);
+
+    if (supabase && profiles[index].id.length === 36 && profiles[index].id.includes('-')) {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const user = sessionData?.session?.user;
+        if (user) {
+          const { error } = await supabase
+            .from('user_numerology_profiles')
+            .update({
+              birth_time: profile.birthTime || null,
+              birth_place: profile.birthPlace || null,
+              birth_location: profile.birthLocation || null,
+              birth_time_accuracy: profile.birthTimeAccuracy || null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', profiles[index].id)
+            .eq('user_id', user.id);
+          if (error && !isMissingProfileDetailColumnError(error)) throw error;
+        }
+      } catch (error) {
+        console.warn('[userProfile] Astrology profile details remain local until the next sync:', error);
+      }
+    }
   } catch {
     // Legacy profile remains valid even if a stale profile-list payload is corrupt.
   }
@@ -247,6 +283,30 @@ export async function saveAllProfiles(profiles: ProfileItem[]): Promise<void> {
   await AsyncStorage.setItem(PROFILES_LIST_KEY, JSON.stringify(profiles));
 }
 
+export async function getProfileCacheOwnerId(): Promise<string | null> {
+  return AsyncStorage.getItem(PROFILE_CACHE_OWNER_KEY);
+}
+
+export async function setProfileCacheOwnerId(userId: string): Promise<void> {
+  await AsyncStorage.setItem(PROFILE_CACHE_OWNER_KEY, userId);
+}
+
+/**
+ * Removes the active local profile cache without touching Supabase. This is
+ * used on sign-out/account switches so one account can never inherit another
+ * account's cached family profiles.
+ */
+export async function clearLocalProfiles(options: { preserveOwner?: boolean } = {}): Promise<void> {
+  const keys = [
+    PROFILE_KEY,
+    PROFILES_LIST_KEY,
+    ACTIVE_PROFILE_ID_KEY,
+    PRIMARY_PROFILE_STATE_KEY,
+  ];
+  if (!options.preserveOwner) keys.push(PROFILE_CACHE_OWNER_KEY);
+  await AsyncStorage.multiRemove(keys);
+}
+
 export async function addProfile(
   profileData: Omit<ProfileItem, 'id' | 'gender'> & { gender: ProfileGender },
 ): Promise<ProfileItem> {
@@ -266,11 +326,29 @@ export async function addProfile(
             name: profileData.fullName,
             birth_date: profileData.birthDate,
             gender: profileData.gender,
+            birth_time: profileData.birthTime || null,
+            birth_place: profileData.birthPlace || null,
+            birth_location: profileData.birthLocation || null,
+            birth_time_accuracy: profileData.birthTimeAccuracy || null,
           })
           .select('id')
           .single();
-        if (error && isMissingGenderColumnError(error)) {
+        if (error && (isMissingGenderColumnError(error) || isMissingProfileDetailColumnError(error))) {
           const legacyInsert = await supabase
+            .from('user_numerology_profiles')
+            .insert({
+              user_id: user.id,
+              name: profileData.fullName,
+              birth_date: profileData.birthDate,
+              gender: profileData.gender,
+            })
+            .select('id')
+            .single();
+          inserted = legacyInsert.data;
+          error = legacyInsert.error;
+        }
+        if (error && isMissingGenderColumnError(error)) {
+          const oldestInsert = await supabase
             .from('user_numerology_profiles')
             .insert({
               user_id: user.id,
@@ -279,8 +357,8 @@ export async function addProfile(
             })
             .select('id')
             .single();
-          inserted = legacyInsert.data;
-          error = legacyInsert.error;
+          inserted = oldestInsert.data;
+          error = oldestInsert.error;
         }
         if (!error && inserted?.id) {
           generatedId = inserted.id;
@@ -306,7 +384,10 @@ export async function addProfile(
 
 export async function updateProfile(
   id: string,
-  changes: Pick<ProfileItem, 'fullName' | 'birthDate'> & { gender: ProfileGender },
+  changes: Pick<
+    ProfileItem,
+    'fullName' | 'birthDate' | 'birthTime' | 'birthPlace' | 'birthLocation' | 'birthTimeAccuracy'
+  > & { gender: ProfileGender },
 ): Promise<ProfileItem> {
   const all = await loadAllProfiles();
   const index = all.findIndex((profile) => profile.id === id);
@@ -317,6 +398,10 @@ export async function updateProfile(
     fullName: changes.fullName,
     birthDate: changes.birthDate,
     gender: changes.gender,
+    birthTime: changes.birthTime,
+    birthPlace: changes.birthPlace,
+    birthLocation: changes.birthLocation,
+    birthTimeAccuracy: changes.birthTimeAccuracy,
   };
   const updatedProfiles = all.map((profile, profileIndex) => (
     profileIndex === index ? updatedProfile : profile
@@ -342,17 +427,18 @@ export async function updateProfile(
       const { data: sessionData } = await supabaseClient.auth.getSession();
       const user = sessionData?.session?.user;
       if (user) {
-        const applyRemoteUpdate = async (includeGender: boolean) => {
-          const payload = includeGender
-            ? {
-              name: updatedProfile.fullName,
-              birth_date: updatedProfile.birthDate,
-              gender: updatedProfile.gender,
-            }
-            : {
-              name: updatedProfile.fullName,
-              birth_date: updatedProfile.birthDate,
-            };
+        const applyRemoteUpdate = async (includeGender: boolean, includeDetails: boolean) => {
+          const payload: Record<string, unknown> = {
+            name: updatedProfile.fullName,
+            birth_date: updatedProfile.birthDate,
+          };
+          if (includeGender) payload.gender = updatedProfile.gender;
+          if (includeDetails) {
+            payload.birth_time = updatedProfile.birthTime || null;
+            payload.birth_place = updatedProfile.birthPlace || null;
+            payload.birth_location = updatedProfile.birthLocation || null;
+            payload.birth_time_accuracy = updatedProfile.birthTimeAccuracy || null;
+          }
           const query = supabaseClient
             .from('user_numerology_profiles')
             .update(payload)
@@ -364,9 +450,16 @@ export async function updateProfile(
               .eq('birth_date', all[index].birthDate);
         };
 
-        let { error } = await applyRemoteUpdate(true);
+        let includeGender = true;
+        let includeDetails = true;
+        let { error } = await applyRemoteUpdate(includeGender, includeDetails);
+        if (error && isMissingProfileDetailColumnError(error)) {
+          includeDetails = false;
+          ({ error } = await applyRemoteUpdate(includeGender, includeDetails));
+        }
         if (error && isMissingGenderColumnError(error)) {
-          ({ error } = await applyRemoteUpdate(false));
+          includeGender = false;
+          ({ error } = await applyRemoteUpdate(includeGender, includeDetails));
         }
         if (error) throw error;
         if (primaryId === id) {
@@ -388,29 +481,28 @@ export async function updateProfile(
 export async function deleteProfile(id: string): Promise<ProfileItem[]> {
   const all = await loadAllProfiles();
   const target = all.find(p => p.id === id);
+  if (!target) return all;
   const updated = all.filter(p => p.id !== id);
-  await saveAllProfiles(updated);
 
-  // Nếu người dùng đã đăng nhập Supabase, xóa luôn trên Supabase cloud
+  // For cloud-backed rows, delete remotely first. A failed request must keep
+  // the local row visible, otherwise the next cloud pull would resurrect it.
   if (supabase) {
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const user = sessionData?.session?.user;
-      if (user) {
-        if (id.length === 36 && id.includes('-')) {
-          await supabase.from('user_numerology_profiles').delete().eq('id', id).eq('user_id', user.id);
-        } else if (target) {
-          await supabase.from('user_numerology_profiles').delete()
-            .eq('user_id', user.id)
-            .eq('name', target.fullName)
-            .eq('birth_date', target.birthDate);
-        }
+    const { data: sessionData } = await supabase.auth.getSession();
+    const user = sessionData?.session?.user;
+    if (user && id.length === 36 && id.includes('-')) {
+      const { error } = await supabase
+        .from('user_numerology_profiles')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+      if (error) {
+        console.warn('[userProfile] Supabase deleteProfile failed:', error);
+        throw error;
       }
-    } catch (err) {
-      console.warn('[userProfile] Supabase deleteProfile failed:', err);
     }
   }
 
+  await saveAllProfiles(updated);
   const primaryId = await getPrimaryProfileId();
   if (primaryId === id && updated.length > 0) {
     await setPrimaryProfileId(updated[0].id, { pendingCloudSync: true });

@@ -58,4 +58,17 @@ describe('daily notification planning', () => {
     );
     expect(plan).toHaveLength(1);
   });
+
+  test('honors an arbitrary user-selected hour and minute', () => {
+    const plan = createDailyInsightNotificationPlan(
+      { ...DEFAULT_DAILY_REMINDER_SETTINGS, enabled: true, hour: 18, minute: 37, luckyTimeEnabled: false },
+      { profile, locale: 'vi' },
+      new Date(2026, 1, 17, 6),
+      1,
+    );
+
+    expect(plan).toHaveLength(1);
+    expect(plan[0].date.getHours()).toBe(18);
+    expect(plan[0].date.getMinutes()).toBe(37);
+  });
 });

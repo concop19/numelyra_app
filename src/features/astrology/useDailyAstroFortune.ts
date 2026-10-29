@@ -215,8 +215,14 @@ export function useDailyAstroFortune(profile?: UserProfile | null, profileId?: s
     void readCache();
     return () => {
       requestVersion.current += 1;
+      // React Strict Mode runs effect setup -> cleanup -> setup in development.
+      // Detach the cancelled hydration so the second setup starts a fresh read;
+      // otherwise it reuses a promise whose version can no longer clear loading.
+      if (hydrationRequest.current?.key === requestKey) {
+        hydrationRequest.current = null;
+      }
     };
-  }, [readCache]);
+  }, [readCache, requestKey]);
 
   useEffect(() => {
     let midnightTimer: ReturnType<typeof setTimeout>;

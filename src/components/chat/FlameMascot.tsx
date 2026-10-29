@@ -39,14 +39,12 @@ export type MascotAnimationItem =
   };
 
 export const DEFAULT_IDLE_DIALOGUES = [
-  'Hôm nay của bạn thế nào? Kể Tiểu Linh Miêu nghe nè ✨',
   'Ở đây luôn có một ngọn lửa nhỏ lắng nghe bạn... 💛',
   'Có tâm sự gì khó nói, cứ trút hết vào đây nha! 🌸',
   'Bạn muốn khám phá điều gì về bản thân hôm nay? 🔮',
 ];
 
 const DEFAULT_IDLE_DIALOGUES_EN = [
-  'How is your day going? Tell the Little Spirit Cat all about it ✨',
   'There is always a little flame here ready to listen... 💛',
   'If something is on your mind, you can tell me everything! 🌸',
   'What would you like to discover about yourself today? 🔮',
@@ -285,7 +283,7 @@ export const FlameMascot: React.FC<Props> = ({
   glowVariant = 'legacy',
   maxVisualWidth,
 }) => {
-  const { locale } = useLocalization();
+  const { locale, t } = useLocalization();
   const [internalAnimationIndex, setInternalAnimationIndex] = useState(0);
   const [subPhase, setSubPhase] = useState<'pre_idle' | 'action' | 'post_idle'>('pre_idle');
   const [isPressed, setIsPressed] = useState(false);
@@ -376,7 +374,10 @@ export const FlameMascot: React.FC<Props> = ({
 
       // Khi ở idle, sau 600ms hiển thị một câu nói ngẫu nhiên trong 2.4s
       idleTimer = setTimeout(() => {
-        const idleDialogues = locale === 'en' ? DEFAULT_IDLE_DIALOGUES_EN : DEFAULT_IDLE_DIALOGUES;
+        const idleDialogues = [
+          t('mascot.idleGreeting'),
+          ...(locale === 'en' ? DEFAULT_IDLE_DIALOGUES_EN : DEFAULT_IDLE_DIALOGUES),
+        ];
         const idleQuote = idleDialogues[Math.floor(Math.random() * idleDialogues.length)];
         showBubble(idleQuote);
         hideTimer = setTimeout(() => {
@@ -389,7 +390,7 @@ export const FlameMascot: React.FC<Props> = ({
       if (idleTimer) clearTimeout(idleTimer);
       if (hideTimer) clearTimeout(hideTimer);
     };
-  }, [locale, specialAnimationActive, activeSpecialItem]);
+  }, [locale, specialAnimationActive, activeSpecialItem, t]);
 
   useEffect(() => {
     const bounce = Animated.sequence([

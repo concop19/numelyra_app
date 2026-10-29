@@ -14,4 +14,15 @@ describe('translation catalog', () => {
       expect(placeholders(translations.en[key])).toEqual(placeholders(translations.vi[key]));
     }
   });
+
+  it('uses the canonical Flame mascot names in both languages', () => {
+    expect(translations.vi['mascot.name']).toBe('Linh Vật Ngọn Lửa');
+    expect(translations.vi['mascot.shortName']).toBe('Ngọn Lửa Nhỏ');
+    expect(translations.en['mascot.name']).toBe('Flame Guide');
+    expect(translations.en['mascot.shortName']).toBe('Little Flame');
+  });
+
+  it('does not reintroduce legacy cat branding', () => {
+    expect(JSON.stringify(translations)).not.toMatch(/linh\s+miêu|spirit\s+cat/i);
+  });
 });

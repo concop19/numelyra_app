@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import {
   Alert,
   Image,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -11,12 +12,13 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect } from '@react-navigation/native';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 
 import FlameMascot from '../components/chat/FlameMascot';
 import ThreeDButton from '../components/ThreeDButton';
@@ -69,6 +71,7 @@ type SettingItemProps = {
 
 export default function SettingsScreen({ profile, onBack, onRequestLogin }: Props) {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const { user, isConfigured, signOut, syncLocalProfiles } = useAuth();
   const { billing, error: initialBillingError, reloadBilling } = useBilling();
   const { locale, preference, setPreference, t, l } = useLocalization();
@@ -82,6 +85,8 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
   const [billingError, setBillingError] = useState('');
   const [playPrice, setPlayPrice] = useState<string | null>(null);
   const [dailyReminder, setDailyReminder] = useState<DailyReminderSettings>({ ...DEFAULT_DAILY_REMINDER_SETTINGS });
+  const [timePickerVisible, setTimePickerVisible] = useState(false);
+  const [draftReminderTime, setDraftReminderTime] = useState(() => new Date());
   const [profileManagerVisible, setProfileManagerVisible] = useState(false);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
 
@@ -208,10 +213,17 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
   };
 
   const updateDailyReminder = async (next: DailyReminderSettings) => {
-    const saved = await saveDailyReminderSettings(next, { profile: { ...profile, id: primaryProfileId }, locale });
-    setDailyReminder(saved);
-    if (next.enabled && !saved.enabled) {
-      Alert.alert(l('Chưa bật thông báo', 'Notifications are off'), l('Bạn có thể bật lại quyền thông báo trong Cài đặt thiết bị bất kỳ lúc nào.', 'You can enable notification permission later in your device settings.'));
+    try {
+      const saved = await saveDailyReminderSettings(next, { profile: { ...profile, id: primaryProfileId }, locale });
+      setDailyReminder(saved);
+      if (next.enabled && !saved.enabled) {
+        Alert.alert(l('Chưa bật thông báo', 'Notifications are off'), l('Bạn có thể bật lại quyền thông báo trong Cài đặt thiết bị bất kỳ lúc nào.', 'You can enable notification permission later in your device settings.'));
+      }
+    } catch {
+      Alert.alert(
+        l('Không thể lưu giờ bản tin', 'Unable to save briefing time'),
+        l('Vui lòng kiểm tra quyền thông báo và thử lại.', 'Check notification permission and try again.'),
+      );
     }
   };
 
@@ -264,7 +276,7 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
       return;
     }
     Alert.alert(l('Nâng cấp Premium', 'Upgrade to Premium'), l('Chọn phương thức thanh toán', 'Choose a payment method'), [
-      { text: 'VietQR / PayOS · 249.000đ', onPress: () => { void upgrade('payos'); } },
+      { text: l('VietQR / PayOS · 249.000đ', 'VietQR / PayOS · 249,000 VND'), onPress: () => { void upgrade('payos'); } },
       { text: 'PayPal · $9.99', onPress: () => { void upgrade('paypal'); } },
       { text: l('Để sau', 'Not now'), style: 'cancel' },
     ]);
@@ -275,10 +287,39 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
       Alert.alert(t('settings.dailyReminder'), l('Tính năng này khả dụng trên bản phát hành cài trên thiết bị.', 'This feature is available in the installed mobile app.'));
       return;
     }
-    Alert.alert(l('Chọn giờ nhắc', 'Choose reminder time'), l('NUMELYRA sẽ nhẹ nhàng nhắc bạn mỗi ngày.', 'NUMELYRA will send you a gentle daily reminder.'), [8, 20, 21].map((hour) => ({
-      text: `${String(hour).padStart(2, '0')}:00`,
-      onPress: () => { void updateDailyReminder({ ...dailyReminder, hour, minute: 0 }); },
-    })));
+    const current = new Date();
+    current.setHours(dailyReminder.hour, dailyReminder.minute, 0, 0);
+
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: current,
+        mode: 'time',
+        is24Hour: true,
+        onChange: (event, value) => {
+          if (event.type !== 'set' || !value) return;
+          void Haptics.selectionAsync();
+          void updateDailyReminder({
+            ...dailyReminder,
+            hour: value.getHours(),
+            minute: value.getMinutes(),
+          });
+        },
+      });
+      return;
+    }
+
+    setDraftReminderTime(current);
+    setTimePickerVisible(true);
+  };
+
+  const confirmReminderTime = () => {
+    setTimePickerVisible(false);
+    void Haptics.selectionAsync();
+    void updateDailyReminder({
+      ...dailyReminder,
+      hour: draftReminderTime.getHours(),
+      minute: draftReminderTime.getMinutes(),
+    });
   };
 
   const chooseLanguage = () => {
@@ -337,18 +378,18 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
         <Image source={GROUND_BACKGROUND} resizeMode="cover" style={styles.groundImage} />
       </View>
 
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={t('common.back')}
+        activeOpacity={0.75}
+        onPress={onBack}
+        style={[styles.backButton, { top: insets.top + 8 }]}
+      >
+        <Ionicons name="chevron-back" size={29} color="#FFE8F6" />
+      </TouchableOpacity>
+
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <StatusBar style="light" />
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel={t('common.back')}
-          activeOpacity={0.75}
-          onPress={onBack}
-          style={styles.backButton}
-        >
-          <Ionicons name="chevron-back" size={29} color="#FFE8F6" />
-        </TouchableOpacity>
-
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[styles.scrollContent, { width: contentWidth }]}
@@ -475,13 +516,6 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
               onPress={() => Alert.alert(t('settings.activity'), l('12 lượt xem tarot tháng này\n8 lần xem chiêm tinh\n5 ngày mở lịch liên tiếp', '12 tarot readings this month\n8 astrology views\n5 consecutive calendar days'))}
             />
             <SettingItem
-              icon="lock-closed"
-              iconColor="#5D35C5"
-              iconBackground="#F1DBED"
-              label={t('settings.privacy')}
-              onPress={() => Alert.alert(t('settings.privacy'), l('Dữ liệu cá nhân của bạn được lưu và đồng bộ theo trạng thái tài khoản.', 'Your personal data is stored and synced according to your account status.'))}
-            />
-            <SettingItem
               icon="help-circle"
               iconColor="#6D218B"
               iconBackground="#FBE1E4"
@@ -535,6 +569,51 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
           {!!(billingError || initialBillingError) && <Text accessibilityRole="alert" style={styles.error}>{billingError || initialBillingError}</Text>}
         </ScrollView>
       </SafeAreaView>
+      <Modal
+        animationType="fade"
+        onRequestClose={() => setTimePickerVisible(false)}
+        transparent
+        visible={timePickerVisible}
+      >
+        <View style={styles.timePickerOverlay}>
+          <View style={styles.timePickerCard}>
+            <View style={styles.timePickerHeader}>
+              <View>
+                <Text style={styles.timePickerTitle}>{l('Giờ nhận bản tin', 'Daily briefing time')}</Text>
+                <Text style={styles.timePickerSubtitle}>{l('Chọn giờ và phút bạn muốn nhận thông điệp mỗi ngày.', 'Choose when you want to receive the daily briefing.')}</Text>
+              </View>
+              <Ionicons name="notifications-outline" size={24} color="#F5BA5B" />
+            </View>
+            <DateTimePicker
+              display="spinner"
+              is24Hour
+              locale={locale === 'en' ? 'en_US' : 'vi_VN'}
+              mode="time"
+              onChange={(_event, value) => {
+                if (value) setDraftReminderTime(value);
+              }}
+              themeVariant="dark"
+              value={draftReminderTime}
+            />
+            <View style={styles.timePickerActions}>
+              <TouchableOpacity
+                accessibilityRole="button"
+                onPress={() => setTimePickerVisible(false)}
+                style={styles.timePickerCancel}
+              >
+                <Text style={styles.timePickerCancelText}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                accessibilityRole="button"
+                onPress={confirmReminderTime}
+                style={styles.timePickerConfirm}
+              >
+                <Text style={styles.timePickerConfirmText}>{l('Lưu giờ', 'Save time')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       <ProfilePickerModal
         visible={profileManagerVisible}
         onClose={() => setProfileManagerVisible(false)}
@@ -597,11 +676,46 @@ const styles = StyleSheet.create({
   groundCrop: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 210, overflow: 'hidden', opacity: 0.88 },
   groundImage: { position: 'absolute', left: '-31%', bottom: -7, width: '162%', height: 340 },
   backButton: {
-    position: 'absolute', zIndex: 20, top: 8, left: 18, width: 48, height: 48, borderRadius: 24,
+    position: 'absolute', zIndex: 20, left: 18, width: 48, height: 48, borderRadius: 24,
     alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(76, 43, 157, 0.90)',
     borderWidth: 1, borderColor: 'rgba(255, 209, 241, 0.25)', shadowColor: '#100435',
     shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.40, shadowRadius: 10, elevation: 8,
   },
+  timePickerOverlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: 'rgba(8, 4, 35, 0.78)',
+  },
+  timePickerCard: {
+    width: '100%',
+    maxWidth: 390,
+    padding: 20,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 216, 239, 0.24)',
+    backgroundColor: '#1B1249',
+    shadowColor: '#0A031F',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.48,
+    shadowRadius: 24,
+    elevation: 18,
+  },
+  timePickerHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 14,
+    marginBottom: 4,
+  },
+  timePickerTitle: { color: '#FFF4E6', fontSize: 18, fontWeight: '800' },
+  timePickerSubtitle: { color: '#CDBDDF', fontSize: 12, lineHeight: 17, marginTop: 4, maxWidth: 285 },
+  timePickerActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 8 },
+  timePickerCancel: { paddingHorizontal: 16, paddingVertical: 11, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.08)' },
+  timePickerCancelText: { color: '#D9CCE8', fontSize: 13, fontWeight: '700' },
+  timePickerConfirm: { paddingHorizontal: 18, paddingVertical: 11, borderRadius: 14, backgroundColor: '#7B48D9' },
+  timePickerConfirmText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
   hero: { height: 276, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 12 },
   shootingStar: {
     position: 'absolute', top: 67, left: 78, width: 56, height: 1, backgroundColor: '#FFAFDD',

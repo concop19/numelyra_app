@@ -323,6 +323,7 @@ export const HistoricalFigureModal: React.FC<HistoricalFigureModalProps> = ({
                     leadingIcon={<Ionicons name="globe-outline" size={16} color="#FFFFFF" />}
                     onPress={handleOpenWikipedia}
                     shape="pill"
+                    style={styles.wikipediaButton}
                     trailingIcon={<Ionicons name="open-outline" size={14} color="#FFFFFF" />}
                     variant="purple"
                   />
@@ -553,6 +554,9 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     marginTop: 24,
+  },
+  wikipediaButton: {
+    alignSelf: 'center',
   },
   bottomChevronWrap: {
     marginTop: 22,

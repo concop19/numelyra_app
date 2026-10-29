@@ -9,6 +9,7 @@ import type { DetectedAspect, NatalAspect } from '../../services/astro/aspectCal
 import type { PureAstroFeatureMetadata } from '../../services/astro/astroVectorEngine';
 import { ASTROLOGY_BACKGROUNDS, CONSTELLATION_SVG, PLANET_PNG, PLANET_SVG, ZODIAC_PNG } from './astrologyArtwork';
 import { EnergyScoreRing } from './EnergyScoreRing';
+import { AstroRichText } from './AstroRichText';
 import { ASTRO_COLORS, AstrologyBackground, AstrologyHeader, MysticCard, SectionHeading, astrologyUiStyles } from './AstrologyUi';
 import {
   HOUSE_INFO,
@@ -71,7 +72,7 @@ function AspectList({ items, emptyText }: { items: AspectDisplayItem[]; emptyTex
               {index === 0 && <Text style={styles.strongestBadge}>{l('NỔI BẬT NHẤT', 'STRONGEST')}</Text>}
             </View>
             <Text style={styles.aspectMeta}>{item.meta}</Text>
-            <Text style={styles.aspectDescription}>{item.description}</Text>
+            <AstroRichText text={item.description} style={styles.aspectDescription} />
           </View>
         </View>
       )) : (
@@ -226,7 +227,12 @@ function PlanetDetailView({
                 {placement ? `${zodiacLabel(placement.sign, locale)} · ${placement.degreeInSign.toFixed(1)}°` : l('Chưa có dữ liệu vị trí', 'Position data unavailable')}
                 {house ? ` · ${l('Nhà', 'House')} ${house}` : ''}
               </Text>
-              {!!houseInfo && <Text style={styles.placementHouseNote}>{mode === 'transit' ? l('Đang đi qua', 'Transiting') : l('Thuộc', 'Located in')} {l('Nhà', 'House')} {house} {l('trong lá số của bạn', 'in your chart')}{locale === 'vi' ? ` · ${houseInfo.nameVi}` : ''}</Text>}
+              {!!houseInfo && (
+                <AstroRichText
+                  text={`${mode === 'transit' ? l('Đang đi qua', 'Transiting') : l('Thuộc', 'Located in')} ${l('Nhà', 'House')} ${house} ${l('trong lá số của bạn', 'in your chart')}${locale === 'vi' ? ` · ${houseInfo.nameVi}` : ''}`}
+                  style={styles.placementHouseNote}
+                />
+              )}
             </View>
           </View>
         </View>
@@ -261,7 +267,7 @@ function PlanetDetailView({
               {placementInterpretation.map((paragraph, index) => (
                 <View key={`${mode}-energy-${index}`} style={styles.energyParagraphRow}>
                   <View style={styles.energyBullet} />
-                  <Text style={styles.energyParagraph}>{paragraph}</Text>
+                  <AstroRichText text={paragraph} style={styles.energyParagraph} />
                 </View>
               ))}
             </MysticCard>
@@ -278,11 +284,11 @@ function PlanetDetailView({
                       </View>
                       <View style={styles.ruleInsightRow}>
                         <Text style={styles.ruleInsightLabel}>{l('CẦN LƯU Ý', 'NOTICE')}</Text>
-                        <Text style={styles.ruleInsightValue}>{insight.challenge}</Text>
+                        <AstroRichText text={insight.challenge} style={styles.ruleInsightValue} />
                       </View>
                       <View style={styles.ruleAdviceBox}>
                         <Ionicons name="compass-outline" size={16} color="#5EEAD4" />
-                        <Text style={styles.ruleAdviceText}>{insight.advice}</Text>
+                        <AstroRichText text={insight.advice} style={styles.ruleAdviceText} />
                       </View>
                     </MysticCard>
                   ))}
@@ -369,7 +375,7 @@ function ZodiacDetailView({ target, metadata, onBack }: { target: Extract<Astrol
             <MysticCard style={styles.summaryCard}>
               <LinearGradient colors={[ASTRO_COLORS.paperLight, ASTRO_COLORS.paperDeep]} style={StyleSheet.absoluteFill} />
               <View style={styles.summaryIcon}><Ionicons name="sparkles" size={22} color="#35205D" /></View>
-              <Text style={styles.summaryText}>{buildTodayInterpretation(metadata, target)}</Text>
+              <AstroRichText theme="light" text={buildTodayInterpretation(metadata, target)} style={styles.summaryText} />
               {!!metadata.dailyContext?.activatedHouses.length && (
                 <View style={styles.houseRow}>{metadata.dailyContext.activatedHouses.map((activeHouse) => <View key={activeHouse.house} style={styles.housePill}><Text style={styles.houseNumber}>{l('Nhà', 'House')} {activeHouse.house}</Text>{locale === 'vi' && <Text style={styles.houseTopic}>{activeHouse.topicVi}</Text>}</View>)}</View>
               )}
@@ -418,7 +424,7 @@ const styles = StyleSheet.create({
   placementDivider: { width: 1, alignSelf: 'stretch', marginRight: 14, backgroundColor: 'rgba(201,167,255,0.32)' },
   placementLabel: { color: '#A99BFF', fontSize: 9, fontWeight: '900', letterSpacing: 1.25 },
   placementValue: { color: ASTRO_COLORS.text, fontSize: 14, lineHeight: 19, fontWeight: '900', marginTop: 4 },
-  placementHouseNote: { color: '#BAB5D3', fontSize: 9.5, lineHeight: 14, marginTop: 3 },
+  placementHouseNote: { color: '#C7C2DD', fontSize: 11, lineHeight: 16, marginTop: 4 },
   precisionCard: { minHeight: 78, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, marginTop: 14, borderRadius: 18, backgroundColor: 'rgba(13,31,75,0.9)', borderWidth: 1, borderColor: 'rgba(116,232,255,0.28)' },
   precisionTitle: { color: '#EFFBFF', fontSize: 12, fontWeight: '900' },
   precisionBody: { color: '#BDD0E1', fontSize: 9.5, lineHeight: 14, marginTop: 3 },
@@ -428,32 +434,32 @@ const styles = StyleSheet.create({
   energyHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 13, marginBottom: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.14)' },
   energyIcon: { width: 42, height: 42 },
   energyTitle: { color: ASTRO_COLORS.text, fontSize: 15, fontWeight: '900' },
-  energyMeta: { color: ASTRO_COLORS.gold, fontSize: 10, lineHeight: 15, fontWeight: '800', marginTop: 3 },
-  energyParagraphRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, marginTop: 12 },
-  energyBullet: { width: 6, height: 6, borderRadius: 3, backgroundColor: ASTRO_COLORS.cyan, marginTop: 7 },
-  energyParagraph: { flex: 1, color: '#D7D2E9', fontSize: 12, lineHeight: 19 },
+  energyMeta: { color: ASTRO_COLORS.gold, fontSize: 11, lineHeight: 16, fontWeight: '800', marginTop: 3 },
+  energyParagraphRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 14 },
+  energyBullet: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: ASTRO_COLORS.cyan, marginTop: 7 },
+  energyParagraph: { flex: 1, color: '#DDD7F0', fontSize: 13, lineHeight: 21 },
   ruleInsightList: { gap: 10 },
   ruleInsightCard: { padding: 16, backgroundColor: 'rgba(20,57,88,0.7)', borderColor: 'rgba(113,231,255,0.3)' },
   ruleInsightHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 9 },
   ruleInsightTitle: { flex: 1, color: '#EAFBFF', fontSize: 13, fontWeight: '900' },
   ruleInsightRow: { paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.12)' },
   ruleInsightLabel: { color: '#7CEBFF', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.9 },
-  ruleInsightValue: { color: '#C6D6E5', fontSize: 11, lineHeight: 17, marginTop: 4 },
+  ruleInsightValue: { color: '#D4E2EE', fontSize: 12, lineHeight: 18.5, marginTop: 5 },
   ruleAdviceBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 12, padding: 11, borderRadius: 13, backgroundColor: 'rgba(18,92,92,0.28)' },
-  ruleAdviceText: { flex: 1, color: '#D7FFF8', fontSize: 11, lineHeight: 17, fontWeight: '700' },
+  ruleAdviceText: { flex: 1, color: '#E4FFF9', fontSize: 12, lineHeight: 18.5, fontWeight: '700' },
   aspectCard: { paddingHorizontal: 16, backgroundColor: 'rgba(31,23,93,0.94)' },
   aspectRow: { minHeight: 112, flexDirection: 'row', alignItems: 'flex-start', gap: 11, paddingVertical: 15 },
   rowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.12)' },
   natureDot: { width: 10, height: 10, borderRadius: 5, marginTop: 5 },
   aspectTitleRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 7 },
-  aspectTitle: { color: ASTRO_COLORS.text, fontSize: 13, lineHeight: 18, fontWeight: '900' },
+  aspectTitle: { color: ASTRO_COLORS.text, fontSize: 13.5, lineHeight: 19, fontWeight: '900' },
   strongestBadge: { color: '#2E2450', fontSize: 7.5, lineHeight: 16, fontWeight: '900', letterSpacing: 0.55, paddingHorizontal: 7, borderRadius: 8, backgroundColor: ASTRO_COLORS.gold, overflow: 'hidden' },
-  aspectMeta: { color: '#C7BFDD', fontSize: 9.5, lineHeight: 14, marginTop: 4 },
-  aspectDescription: { color: '#AFA9C9', fontSize: 10.5, lineHeight: 16, marginTop: 6 },
+  aspectMeta: { color: '#C7BFDD', fontSize: 10, lineHeight: 15, marginTop: 4 },
+  aspectDescription: { color: '#D4CEE8', fontSize: 12, lineHeight: 18.5, marginTop: 6 },
   noInfluence: { paddingVertical: 24, paddingHorizontal: 8, alignItems: 'center', gap: 10 },
   summaryCard: { padding: 19, backgroundColor: ASTRO_COLORS.paper, borderColor: 'rgba(255,214,155,0.62)' },
   summaryIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F1C970', marginBottom: 12 },
-  summaryText: { color: '#33284B', fontSize: 14, lineHeight: 22 },
+  summaryText: { color: '#2B1E43', fontSize: 14, lineHeight: 23 },
   summaryFootnote: { color: '#71637E', fontSize: 9, lineHeight: 14, marginTop: 13, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(75,52,97,0.2)' },
   emptyCard: { marginTop: 20, padding: 24, alignItems: 'center', gap: 10 },
   zodiacHero: { marginTop: 12, minHeight: 520, alignItems: 'center', padding: 18, borderRadius: 28, borderWidth: 1, borderColor: 'rgba(255,214,155,0.48)', overflow: 'hidden', shadowColor: '#7C51D6', shadowOpacity: 0.3, shadowRadius: 18, elevation: 7 },
