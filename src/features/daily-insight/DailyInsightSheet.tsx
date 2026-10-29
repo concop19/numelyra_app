@@ -5,6 +5,7 @@ import {
   Easing,
   Modal,
   PanResponder,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -27,6 +28,8 @@ const FLAME_MASCOT = require('../../../assets/giao_dien/daily-insight/flame-drea
 const TITLE_ENERGY_ART = require('../../../assets/giao_dien/daily-insight/title-energy-art.png');
 const BADGE_VERSE = require('../../../assets/giao_dien/daily-insight/badge-verse.png');
 const BADGE_MIRROR = require('../../../assets/giao_dien/daily-insight/badge-mirror.png');
+const IS_WEB = Platform.OS === 'web';
+const PAPER_FALLBACK_LINES = Array.from({ length: 24 }, (_, index) => index);
 
 const METRIC_PRESENTATION = {
   energy: { labelKey: 'daily.metric.energy', icon: 'flash-outline', color: '#FF9E40' },
@@ -68,6 +71,7 @@ export default function DailyInsightSheet({
   const insets = useSafeAreaInsets();
   const [currentPage, setCurrentPage] = useState<1 | 2>(1);
   const [selectedMetric, setSelectedMetric] = useState<DailyAstroMetricId | null>(null);
+  const [paperImageFailed, setPaperImageFailed] = useState(false);
 
   // 3D Flip animation value (0 = Page 1, 1 = Page 2)
   const flipAnim = useRef(new Animated.Value(0)).current;
@@ -86,6 +90,7 @@ export default function DailyInsightSheet({
     flipAnim.setValue(0);
     setCurrentPage(1);
     setSelectedMetric(null);
+    setPaperImageFailed(false);
   }, [flipAnim, insight.dateKey, insight.profileKey, visible]);
 
   const flipToPage = async (target: 1 | 2) => {
@@ -188,15 +193,37 @@ export default function DailyInsightSheet({
           style={styles.backdrop}
         />
 
-        <View style={[styles.sheetFrame, { width: sheetWidth, height: sheetHeight }]}>
+        <View style={[
+          styles.sheetFrame,
+          IS_WEB && styles.webSheetBackground,
+          { width: sheetWidth, height: sheetHeight },
+        ]}>
+          {/* Code-rendered paper keeps the sheet readable while the large PNG loads or fails. */}
+          {IS_WEB ? (
+            <View pointerEvents="none" style={styles.paperFallback}>
+              <View style={styles.paperMarginLine} />
+              <View style={styles.paperRules}>
+                {PAPER_FALLBACK_LINES.map((line) => (
+                  <View key={line} style={styles.paperRule} />
+                ))}
+              </View>
+            </View>
+          ) : null}
+
           {/* Background Notebook Template */}
-          <Image
-            accessible={false}
-            contentFit="fill"
-            pointerEvents="none"
-            source={JOURNAL_TEMPLATE}
-            style={StyleSheet.absoluteFill}
-          />
+          {(!IS_WEB || !paperImageFailed) ? (
+            <Image
+              accessible={false}
+              cachePolicy={IS_WEB ? 'memory-disk' : undefined}
+              contentFit="fill"
+              loading={IS_WEB ? 'eager' : undefined}
+              onError={IS_WEB ? () => setPaperImageFailed(true) : undefined}
+              pointerEvents="none"
+              priority={IS_WEB ? 'high' : undefined}
+              source={JOURNAL_TEMPLATE}
+              style={[StyleSheet.absoluteFill, IS_WEB && styles.paperImage]}
+            />
+          ) : null}
 
           {/* Close button touch target over template's circular X button */}
           <TouchableOpacity
@@ -213,7 +240,10 @@ export default function DailyInsightSheet({
           </TouchableOpacity>
 
           {/* 3D Flippable Page Container */}
-          <View style={styles.pageFlipperWrapper} {...panResponder.panHandlers}>
+          <View
+            style={[styles.pageFlipperWrapper, IS_WEB && styles.webPageContentLayer]}
+            {...panResponder.panHandlers}
+          >
             {/* TRANG 1: THÔNG ĐIỆP SỔ TAY */}
             <Animated.View
               pointerEvents={currentPage === 1 ? 'auto' : 'none'}
@@ -636,6 +666,44 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 12,
   },
+  webSheetBackground: {
+    backgroundColor: '#F8F1E7',
+  },
+  paperFallback: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 0,
+    overflow: 'hidden',
+    backgroundColor: '#F8F1E7',
+    borderWidth: 1,
+    borderColor: 'rgba(111, 77, 153, 0.32)',
+  },
+  paperImage: {
+    zIndex: 1,
+  },
+  paperMarginLine: {
+    position: 'absolute',
+    top: '5%',
+    bottom: '5%',
+    left: '12%',
+    width: 1,
+    backgroundColor: 'rgba(197, 119, 133, 0.18)',
+  },
+  paperRules: {
+    position: 'absolute',
+    top: '8%',
+    right: '7%',
+    bottom: '6%',
+    left: '13%',
+    justifyContent: 'space-around',
+  },
+  paperRule: {
+    height: 1,
+    backgroundColor: 'rgba(102, 129, 170, 0.14)',
+  },
   closeTarget: {
     position: 'absolute',
     top: '4.8%',
@@ -665,6 +733,9 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
+  },
+  webPageContentLayer: {
+    zIndex: 2,
   },
   pageWrapper: {
     position: 'absolute',

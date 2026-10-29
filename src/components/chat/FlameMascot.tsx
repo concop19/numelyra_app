@@ -3,6 +3,7 @@ import { Image as ExpoImage } from 'expo-image';
 import {
   Animated,
   Easing,
+  Platform,
   Pressable,
   StyleProp,
   StyleSheet,
@@ -17,6 +18,9 @@ import {
   resolveMascotVisualLayout,
   type MascotVisualAsset,
 } from './mascotVisualLayout';
+
+const STATIC_MASCOT_FALLBACK = require('../../../assets/onboarding/heroes/flame-guide-hug.png');
+const IS_WEB = Platform.OS === 'web';
 
 export type MascotAnimationItem =
   | {
@@ -287,6 +291,7 @@ export const FlameMascot: React.FC<Props> = ({
   const [internalAnimationIndex, setInternalAnimationIndex] = useState(0);
   const [subPhase, setSubPhase] = useState<'pre_idle' | 'action' | 'post_idle'>('pre_idle');
   const [isPressed, setIsPressed] = useState(false);
+  const [failedVisualKeys, setFailedVisualKeys] = useState<Record<string, true>>({});
   const bounceAnim = useRef(new Animated.Value(1)).current;
   const glowPulseAnim = useRef(new Animated.Value(0.7)).current;
 
@@ -457,6 +462,12 @@ export const FlameMascot: React.FC<Props> = ({
     stageSize: size,
     maxVisualWidth,
   });
+  const visualFailed = IS_WEB && failedVisualKeys[currentKey] === true;
+  const renderedVisualKey = visualFailed ? `fallback-${currentKey}` : currentKey;
+  const renderedVisualSource = visualFailed ? STATIC_MASCOT_FALLBACK : currentVisualAsset.source;
+  const renderedVisualLayout = visualFailed
+    ? { width: size, height: size, left: 0, top: 0 }
+    : visualLayout;
 
   return (
     <Pressable
@@ -536,21 +547,32 @@ export const FlameMascot: React.FC<Props> = ({
       >
         <View style={[styles.visualStage, { width: size, height: size }]}>
           <ExpoImage
-            key={currentKey}
-            recyclingKey={currentKey}
-            source={currentVisualAsset.source}
+            key={renderedVisualKey}
+            autoplay={!visualFailed}
+            cachePolicy={IS_WEB ? 'memory-disk' : undefined}
+            loading={IS_WEB ? 'eager' : undefined}
+            onError={!IS_WEB || visualFailed ? undefined : (event) => {
+              console.warn(`[FlameMascot] Unable to load ${currentKey}:`, event.error);
+              setFailedVisualKeys((previous) => (
+                previous[currentKey]
+                  ? previous
+                  : { ...previous, [currentKey]: true }
+              ));
+            }}
+            priority={IS_WEB ? 'high' : undefined}
+            recyclingKey={renderedVisualKey}
+            source={renderedVisualSource}
             style={[
               styles.mascotImage,
               {
-                width: visualLayout.width,
-                height: visualLayout.height,
-                left: visualLayout.left,
-                top: visualLayout.top,
+                width: renderedVisualLayout.width,
+                height: renderedVisualLayout.height,
+                left: renderedVisualLayout.left,
+                top: renderedVisualLayout.top,
               },
             ]}
             contentFit="contain"
             contentPosition="center"
-            autoplay
           />
         </View>
       </Animated.View>

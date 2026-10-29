@@ -46,6 +46,10 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
   const scrollRef = useRef<ScrollView>(null);
 
   const revealFocusedInput = () => {
+    // Browsers already keep focused inputs visible. Forcing the nested
+    // ScrollView to the end here makes the entire auth page jump on focus.
+    if (Platform.OS === 'web') return;
+
     const keyboardAnimationDelay = Platform.OS === 'ios' ? 260 : 180;
     setTimeout(() => {
       scrollRef.current?.scrollToEnd({ animated: true });
@@ -116,7 +120,8 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <StatusBar style="light" />
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : Platform.OS === 'android' ? 'height' : undefined}
+          enabled={Platform.OS !== 'web'}
           keyboardVerticalOffset={0}
           style={styles.flex}
         >
