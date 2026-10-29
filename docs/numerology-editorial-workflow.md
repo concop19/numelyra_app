@@ -11,10 +11,10 @@ Các bản Anh được tác giả/agent đối chiếu với toàn văn Việt 
 1. Sửa bài Việt trong overrides, rồi đọc lại bài Anh tương ứng.
 2. Chuyển ngữ đầy đủ, giữ nguyên số section, heading, mục danh sách và câu hỏi FAQ. Kiểm tra ý nghĩa, con số, vai trò indicator và thuật ngữ trong glossary.
 3. Sau khi đối chiếu và biên tập, ghi `review_status: approved`, `reviewed_by` và `source_revision`. Revision là 16 ký tự đầu của SHA-256 trên `title + "\n" + content` của bản Việt cuối cùng. Thay đổi nguồn Việt làm bản Anh cũ mất hiệu lực.
-4. Chạy `npm run sync:numerology-db`. Lệnh hợp nhất các batch, kiểm định rồi thay database bằng file đã kiểm tra integrity. Nếu thiếu bài, chưa duyệt hoặc lệch revision, database hiện có được giữ nguyên và lệnh thất bại.
-5. Chạy `npm run verify:release` trước khi phát hành. Cần Node và Python 3 trên máy/worker build. EAS post-install và các lệnh npm chạy native đều kiểm tra release catalog.
+4. Cập nhật đồng bộ `assets/cadao.db` và `src/data/numerologyKnowledgeManifest.json` bằng quy trình tạo dữ liệu bên ngoài dự án.
+5. Chạy `npm run verify:release` trước khi phát hành. Lệnh này chỉ cần Node.js và không còn chạy công cụ Python trong EAS Build.
 
-Không sửa trực tiếp `numerologyKnowledge.en.overrides.json`, `numerologyKnowledgeManifest.json` hoặc SQLite: đây là các đầu ra được tái tạo. Database v5 tự thay bản local v4 lúc app mở lại; không thay profile hoặc lịch sử chat.
+Các công cụ tạo và audit database bằng Python đã được loại khỏi dự án. Vì vậy mọi thay đổi nội dung phải đi kèm một bộ `cadao.db` và manifest đã được tạo, kiểm tra ở bên ngoài trước khi đưa vào repository. Database v5 tự thay bản local v4 lúc app mở lại; không thay profile hoặc lịch sử chat.
 
 ## Quality gate
 
@@ -22,9 +22,7 @@ Không sửa trực tiếp `numerologyKnowledge.en.overrides.json`, `numerologyK
 - Bản Anh không có ký tự Việt chưa dịch hoặc Unicode hỏng; cấu trúc Markdown/FAQ không bị cắt.
 - Không chấp nhận article hoặc nguyên section giống nhau giữa các indicator. FAQ và bài thực hành nhắc lại trong cùng article được giữ theo nguồn.
 - Độ tương đồng là Jaccard của các nhóm 5 từ sau khi chuẩn hóa chữ thường và dấu câu; các cặp trên 85% cần review có lý do, người duyệt và hai revision trong `numerologyKnowledge.similarityReviews.json`. Sửa nội dung làm review cũ mất hiệu lực.
-- Audit đối chiếu cả nội dung thực tế trong SQLite với catalog và manifest runtime.
-
-`python scripts/auditNumerologyKnowledgeSqlite.py --report artifacts/numerology/quality-report.json` xuất báo cáo để review. Unit test và test parser cũng đọc toàn bộ 608 bài thật.
+- Trước khi thay asset, kiểm tra nội dung thực tế trong SQLite khớp với catalog và manifest runtime bằng quy trình tạo dữ liệu bên ngoài.
 
 ## Locale và fallback
 
