@@ -1,5 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Easing,
   Modal,
@@ -43,6 +44,7 @@ interface Props {
   visible: boolean;
   insight: DailyInsight;
   fortune?: AstroFortuneSlip | null;
+  fortuneLoading?: boolean;
   profileName?: string;
   onClose(): void;
   onAsk(question: string): void;
@@ -50,8 +52,18 @@ interface Props {
   onUnlockBack?(): Promise<boolean>;
 }
 
-export default function DailyInsightSheet({ visible, insight, fortune, profileName, onClose, onAsk, backUnlocked = false, onUnlockBack }: Props) {
-  const { t, formatDate, locale } = useLocalization();
+export default function DailyInsightSheet({
+  visible,
+  insight,
+  fortune,
+  fortuneLoading = false,
+  profileName,
+  onClose,
+  onAsk,
+  backUnlocked = false,
+  onUnlockBack,
+}: Props) {
+  const { t, l, formatDate, locale } = useLocalization();
   const { height, width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [currentPage, setCurrentPage] = useState<1 | 2>(1);
@@ -66,6 +78,15 @@ export default function DailyInsightSheet({ visible, insight, fortune, profileNa
   backUnlockedRef.current = backUnlocked;
   unlockBackRef.current = onUnlockBack;
   currentPageRef.current = currentPage;
+
+  useEffect(() => {
+    if (!visible) return;
+    currentPageRef.current = 1;
+    unlockPendingRef.current = false;
+    flipAnim.setValue(0);
+    setCurrentPage(1);
+    setSelectedMetric(null);
+  }, [flipAnim, insight.dateKey, insight.profileKey, visible]);
 
   const flipToPage = async (target: 1 | 2) => {
     if (target === currentPageRef.current || unlockPendingRef.current) return;
@@ -271,8 +292,20 @@ export default function DailyInsightSheet({ visible, insight, fortune, profileNa
                   />
                 </View>
 
-                {/* Section 1: LỜI THƠ HÔM NAY */}
-                <View style={styles.verseSection}>
+                {fortuneLoading && !fortune ? (
+                  <View style={styles.fortuneLoadingCard}>
+                    <ActivityIndicator color="#7B56C7" size="small" />
+                    <Text style={styles.fortuneLoadingText}>
+                      {l(
+                        'Tín hiệu vũ trụ đang về, chờ một chút nhé.',
+                        'The universe is sending your message. Please wait a moment.',
+                      )}
+                    </Text>
+                  </View>
+                ) : (
+                  <>
+                    {/* Section 1: LỜI THƠ HÔM NAY */}
+                    <View style={styles.verseSection}>
                   <View style={styles.badgeRow}>
                     {locale === 'vi' ? (
                       <Image
@@ -293,10 +326,10 @@ export default function DailyInsightSheet({ visible, insight, fortune, profileNa
                     {fortune?.verse || insight.personality}
                   </Text>
                   <Text style={styles.verseHeartDoodle}>♡</Text>
-                </View>
+                    </View>
 
-                {/* Section 2: LỜI NHẮN DÀNH CHO BẠN */}
-                <View style={styles.mirrorSection}>
+                    {/* Section 2: LỜI NHẮN DÀNH CHO BẠN */}
+                    <View style={styles.mirrorSection}>
                   <View style={styles.badgeRow}>
                     {locale === 'vi' ? (
                       <Image
@@ -315,7 +348,9 @@ export default function DailyInsightSheet({ visible, insight, fortune, profileNa
                   <Text style={[styles.mirrorText, isCompact && styles.mirrorTextCompact]}>
                     {fortune?.mirror || insight.personality}
                   </Text>
-                </View>
+                    </View>
+                  </>
+                )}
 
                 {/* Section 3: Four-pillar rhythm */}
                 <View style={styles.metricsBox}>
@@ -779,6 +814,30 @@ const styles = StyleSheet.create({
   mascotImage: {
     width: '100%',
     height: '100%',
+  },
+
+  fortuneLoadingCard: {
+    width: '92%',
+    minHeight: 112,
+    marginTop: 4,
+    marginBottom: 12,
+    paddingHorizontal: 22,
+    paddingVertical: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(123, 86, 199, 0.24)',
+    borderRadius: 18,
+    backgroundColor: 'rgba(246, 238, 255, 0.72)',
+    alignSelf: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  fortuneLoadingText: {
+    color: '#513C7B',
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '700',
+    textAlign: 'center',
   },
 
   // Section 1: Lời thơ

@@ -3,6 +3,10 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useDailyAstroFortune, type DailyAstroFortuneState } from './useDailyAstroFortune';
+import {
+  requestAstroFortuneSlip,
+  type AstroFortuneSlip,
+} from '../../services/astro/astroFortuneService';
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   __esModule: true,
@@ -34,6 +38,14 @@ jest.mock('../../services/astro/astroFortuneService', () => ({
 }));
 
 const storage = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
+const requestFortuneMock = requestAstroFortuneSlip as jest.MockedFunction<typeof requestAstroFortuneSlip>;
+const fortune: AstroFortuneSlip = {
+  title: 'Tín hiệu hôm nay',
+  verse: 'Một câu thơ',
+  mirror: 'Một lời nhắn',
+  advice: 'Một lời khuyên',
+  anchorCaDao: { id: 1, content: 'Một câu ca dao' },
+};
 
 describe('useDailyAstroFortune cache hydration', () => {
   let renderer: ReactTestRenderer | undefined;
@@ -44,6 +56,8 @@ describe('useDailyAstroFortune cache hydration', () => {
 
   afterEach(async () => {
     storage.getItem.mockReset();
+    storage.setItem.mockClear();
+    requestFortuneMock.mockReset();
     if (renderer) {
       await act(async () => renderer?.unmount());
       renderer = undefined;
@@ -75,11 +89,60 @@ describe('useDailyAstroFortune cache hydration', () => {
     expect(state?.loading).toBe(true);
 
     await act(async () => {
+      // Cache hydration was pending; all subsequent history reads are misses so
+      // the new cache-first bootstrap can continue into AI generation.
+      storage.getItem.mockResolvedValue(null);
+      requestFortuneMock.mockResolvedValue(fortune);
       resolvers.forEach((resolve) => resolve());
+      await Promise.resolve();
+      await Promise.resolve();
       await Promise.resolve();
     });
 
     expect(state?.loading).toBe(false);
-    expect(state?.fortune).toBeNull();
+    expect(state?.fortune).toMatchObject(fortune);
+    expect(requestFortuneMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('shares one AI generation request across hook instances', async () => {
+    storage.getItem.mockResolvedValue(null);
+    let resolveRequest: ((value: AstroFortuneSlip) => void) | undefined;
+    requestFortuneMock.mockImplementation(() => new Promise<AstroFortuneSlip>((resolve) => {
+      resolveRequest = resolve;
+    }));
+    const states: Array<DailyAstroFortuneState | undefined> = [];
+    const profile = {
+      fullName: 'An Nguyễn',
+      birthDate: '1998-10-20',
+      gender: 'female' as const,
+    };
+
+    function Harness({ index }: { index: number }) {
+      states[index] = useDailyAstroFortune(profile);
+      return null;
+    }
+
+    await act(async () => {
+      renderer = create(React.createElement(
+        React.Fragment,
+        null,
+        React.createElement(Harness, { index: 0 }),
+        React.createElement(Harness, { index: 1 }),
+      ));
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(requestFortuneMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveRequest?.(fortune);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(states[0]?.fortune).toMatchObject(fortune);
+    expect(states[1]?.fortune).toMatchObject(fortune);
   });
 });

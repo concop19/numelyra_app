@@ -140,6 +140,17 @@ const CHAT_MASCOT_SIDE_UI_GUTTER = 52;
 const CHAT_MASCOT_MAX_WIDTH_RATIO = 1.9;
 const SPECIAL_MASCOT_DURATION_MS = 10_000;
 const SPECIAL_MASCOT_IDLE_REST_MS = 3_000;
+const DAILY_INSIGHT_AUTO_OPEN_DELAY_MS = 5_000;
+
+const getDailyInsightLegacySeenKey = (profileKey: string, dateKey: string) => (
+  `@numelyra:daily-insight-seen:${profileKey}:${dateKey}`
+);
+const getDailyInsightPresentedKey = (profileKey: string, dateKey: string) => (
+  `@numelyra:daily-insight-presented:v1:${profileKey}:${dateKey}`
+);
+const getDailyFortuneSeenKey = (profileKey: string, dateKey: string) => (
+  `@numelyra:daily-fortune-seen:v1:${profileKey}:${dateKey}`
+);
 
 const getMascotMaxVisualWidth = (size: number, viewportWidth: number) => Math.max(
   size,
@@ -153,6 +164,7 @@ interface Props {
   profile?: UserProfile;
   primaryProfileId?: string | null;
   openDailyDate?: string;
+  onDailyDateHandled?: () => void;
   onOpenSettings?: () => void;
   onOpenCalendar?: () => void;
   onOpenAstrology?: () => void;
@@ -651,6 +663,7 @@ export default function ChatScreen({
   profile,
   primaryProfileId,
   openDailyDate,
+  onDailyDateHandled,
   onOpenSettings,
   onOpenCalendar,
   onOpenAstrology,
@@ -679,9 +692,12 @@ export default function ChatScreen({
   const [dailyBackUnlocked, setDailyBackUnlocked] = useState(false);
   const [dailyClock, setDailyClock] = useState(() => new Date());
   const [dailySheetVisible, setDailySheetVisible] = useState(false);
-  const [isDailyInsightUnseen, setIsDailyInsightUnseen] = useState(false);
+  const [isDailyFortuneUnseen, setIsDailyFortuneUnseen] = useState(false);
+  const [activeLinkedDailyDate, setActiveLinkedDailyDate] = useState(openDailyDate);
   const [suggestionOffset, setSuggestionOffset] = useState(0);
   const dailyUnlockRequestsRef = useRef(new Set<string>());
+  const presentedDailyKeyRef = useRef<string | null>(null);
+  const suppressAutomaticDailyDateRef = useRef<string | null>(null);
 
   // Focus only owns screen resources. Billing is loaded once by BillingProvider.
   useFocusEffect(useCallback(() => {
@@ -710,18 +726,26 @@ export default function ChatScreen({
     [primaryProfileId, profile],
   );
 
+  useEffect(() => {
+    if (!openDailyDate) return;
+    setActiveLinkedDailyDate(openDailyDate);
+    suppressAutomaticDailyDateRef.current = null;
+  }, [openDailyDate]);
+
   const dailyInsight = useMemo(() => {
     if (!dailyProfile) return null;
-    const linkedDate = openDailyDate && /^\d{4}-\d{2}-\d{2}$/.test(openDailyDate)
-      ? new Date(`${openDailyDate}T12:00:00`)
+    const linkedDate = activeLinkedDailyDate && /^\d{4}-\d{2}-\d{2}$/.test(activeLinkedDailyDate)
+      ? new Date(`${activeLinkedDailyDate}T12:00:00`)
       : dailyClock;
     try { return buildDailyInsight(dailyProfile, linkedDate, locale); }
     catch { return null; }
-  }, [dailyClock, dailyProfile, locale, openDailyDate]);
+  }, [activeLinkedDailyDate, dailyClock, dailyProfile, locale]);
 
   const {
     currentDate: dailyFortuneDate,
     fortune: dailyFortune,
+    loading: dailyFortuneLoading,
+    error: dailyFortuneError,
     retry: unlockDailyFortune,
   } = useDailyAstroFortune(dailyProfile, primaryProfileId);
   const fortuneForDailyInsight = useMemo(() => {
@@ -804,25 +828,86 @@ export default function ChatScreen({
 
   useEffect(() => {
     if (!dailyInsight || !isHistoryReady) {
-      setIsDailyInsightUnseen(false);
+      setIsDailyFortuneUnseen(false);
       return;
     }
     let active = true;
-    setIsDailyInsightUnseen(false);
+    let autoOpenTimer: ReturnType<typeof setTimeout> | undefined;
+    setIsDailyFortuneUnseen(false);
     void cacheDailyInsight(AsyncStorage, dailyInsight).catch(() => undefined);
-    const seenKey = `@numelyra:daily-insight-seen:${dailyInsight.profileKey}:${dailyInsight.dateKey}`;
-    if (openDailyDate) {
+    const identityKey = `${dailyInsight.profileKey}:${dailyInsight.dateKey}`;
+    const legacySeenKey = getDailyInsightLegacySeenKey(dailyInsight.profileKey, dailyInsight.dateKey);
+    const presentedKey = getDailyInsightPresentedKey(dailyInsight.profileKey, dailyInsight.dateKey);
+    const fortuneSeenKey = getDailyFortuneSeenKey(dailyInsight.profileKey, dailyInsight.dateKey);
+
+    const markPresented = () => {
+      if (!active || presentedDailyKeyRef.current === identityKey) return;
+      presentedDailyKeyRef.current = identityKey;
       setDailySheetVisible(true);
-      setIsDailyInsightUnseen(false);
-      void AsyncStorage.setItem(seenKey, '1');
-      return;
-    }
-    AsyncStorage.getItem(seenKey).then((seen) => {
+      void Promise.all([
+        AsyncStorage.setItem(presentedKey, '1'),
+        // Keep the old key for backwards compatibility with existing installs.
+        AsyncStorage.setItem(legacySeenKey, '1'),
+      ]).catch(() => undefined);
+    };
+
+    void Promise.all([
+      AsyncStorage.getItem(legacySeenKey),
+      AsyncStorage.getItem(presentedKey),
+      AsyncStorage.getItem(fortuneSeenKey),
+    ]).then(([legacySeen, presented, fortuneSeen]) => {
       if (!active) return;
-      setIsDailyInsightUnseen(!seen);
-    }).catch(() => undefined);
-    return () => { active = false; };
-  }, [dailyInsight?.dateKey, dailyInsight?.profileKey, isHistoryReady, openDailyDate]);
+      const hasFortune = Boolean(fortuneForDailyInsight);
+      // A legacy-only seen key predates the separate Fortune read state. If a
+      // cached Fortune already exists, migrate it as read to avoid a false dot.
+      const migratedFortuneSeen = Boolean(fortuneSeen || (legacySeen && !presented && hasFortune));
+      if (!fortuneSeen && migratedFortuneSeen) {
+        void AsyncStorage.setItem(fortuneSeenKey, '1').catch(() => undefined);
+      }
+      setIsDailyFortuneUnseen(hasFortune && !migratedFortuneSeen);
+
+      if (activeLinkedDailyDate) {
+        markPresented();
+        return;
+      }
+
+      const alreadyPresented = Boolean(
+        legacySeen
+        || presented
+        || presentedDailyKeyRef.current === identityKey
+      );
+      if (alreadyPresented || suppressAutomaticDailyDateRef.current === dailyInsight.dateKey) return;
+
+      if (hasFortune || dailyFortuneError) {
+        markPresented();
+        return;
+      }
+
+      autoOpenTimer = setTimeout(markPresented, DAILY_INSIGHT_AUTO_OPEN_DELAY_MS);
+    }).catch(() => {
+      if (!active || suppressAutomaticDailyDateRef.current === dailyInsight.dateKey) return;
+      autoOpenTimer = setTimeout(markPresented, DAILY_INSIGHT_AUTO_OPEN_DELAY_MS);
+    });
+
+    return () => {
+      active = false;
+      if (autoOpenTimer) clearTimeout(autoOpenTimer);
+    };
+  }, [
+    activeLinkedDailyDate,
+    dailyFortuneError,
+    dailyInsight?.dateKey,
+    dailyInsight?.profileKey,
+    fortuneForDailyInsight,
+    isHistoryReady,
+  ]);
+
+  useEffect(() => {
+    if (!dailySheetVisible || !dailyInsight || !fortuneForDailyInsight) return;
+    setIsDailyFortuneUnseen(false);
+    const fortuneSeenKey = getDailyFortuneSeenKey(dailyInsight.profileKey, dailyInsight.dateKey);
+    void AsyncStorage.setItem(fortuneSeenKey, '1').catch(() => undefined);
+  }, [dailyInsight?.dateKey, dailyInsight?.profileKey, dailySheetVisible, fortuneForDailyInsight]);
 
   const handleOpenTodayMessage = useCallback(() => {
     void Haptics.selectionAsync();
@@ -837,12 +922,23 @@ export default function ChatScreen({
       }
       return;
     }
+    const identityKey = `${dailyInsight.profileKey}:${dailyInsight.dateKey}`;
+    presentedDailyKeyRef.current = identityKey;
     setDailySheetVisible(true);
-    if (!dailyFortune) void unlockDailyFortune().catch(() => undefined);
-    setIsDailyInsightUnseen(false);
-    const seenKey = `@numelyra:daily-insight-seen:${dailyInsight.profileKey}:${dailyInsight.dateKey}`;
-    void AsyncStorage.setItem(seenKey, '1').catch(() => undefined);
-  }, [dailyFortune, dailyInsight, dailyProfile, locale, unlockDailyFortune]);
+    if (!activeLinkedDailyDate && !dailyFortune) void unlockDailyFortune().catch(() => undefined);
+    void Promise.all([
+      AsyncStorage.setItem(getDailyInsightPresentedKey(dailyInsight.profileKey, dailyInsight.dateKey), '1'),
+      AsyncStorage.setItem(getDailyInsightLegacySeenKey(dailyInsight.profileKey, dailyInsight.dateKey), '1'),
+    ]).catch(() => undefined);
+  }, [activeLinkedDailyDate, dailyFortune, dailyInsight, dailyProfile, locale, unlockDailyFortune]);
+
+  const closeDailyInsight = useCallback(() => {
+    setDailySheetVisible(false);
+    if (!activeLinkedDailyDate) return;
+    suppressAutomaticDailyDateRef.current = formatLocalDateKey(new Date());
+    setActiveLinkedDailyDate(undefined);
+    onDailyDateHandled?.();
+  }, [activeLinkedDailyDate, onDailyDateHandled]);
 
   useEffect(() => {
     setDailyBackUnlocked(false);
@@ -2670,17 +2766,14 @@ export default function ChatScreen({
           visible={dailySheetVisible}
           insight={dailyInsight}
           fortune={fortuneForDailyInsight}
+          fortuneLoading={dailyFortuneLoading && !fortuneForDailyInsight}
           profileName={profile?.fullName}
           backUnlocked={dailyBackUnlocked}
           onUnlockBack={handleUnlockDailyBack}
-          onClose={() => {
-            setDailySheetVisible(false);
-            setIsDailyInsightUnseen(false);
-          }}
+          onClose={closeDailyInsight}
           onAsk={(question) => {
             setInputVal(question);
-            setDailySheetVisible(false);
-            setIsDailyInsightUnseen(false);
+            closeDailyInsight();
           }}
         />
       )}
@@ -2893,9 +2986,9 @@ export default function ChatScreen({
 
       <ChatMoonButton
         onPress={handleOpenTodayMessage}
-        attention
+        attention={isDailyFortuneUnseen}
         attentionHint={l('Lời nhắn hôm nay ✨', "Today's message ✨")}
-        showAttentionHint={!isKeyboardVisible}
+        showAttentionHint={isDailyFortuneUnseen && !isKeyboardVisible}
         style={{ top: insets.top > 0 ? insets.top + 4 : 14 }}
         accessibilityLabel={t('daily.cardEyebrow')}
         accessibilityHint={l('Chạm vào mặt trăng để xem thông điệp hôm nay', 'Tap the moon to view today’s message')}
