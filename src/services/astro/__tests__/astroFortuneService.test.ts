@@ -116,6 +116,23 @@ describe('astro fortune rule-aware request', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('times out a stalled fortune request instead of loading forever', async () => {
+    jest.useFakeTimers();
+    fetchMock.mockImplementationOnce(() => new Promise<Response>(() => {}));
+
+    const pending = requestAstroFortuneSlip({
+      locale: 'vi',
+      customCaDao,
+    });
+    const rejection = expect(pending).rejects.toThrow('phản hồi quá lâu');
+    await jest.advanceTimersByTimeAsync(20_000);
+
+    await rejection;
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][1]?.signal).toBeDefined();
+    jest.useRealTimers();
+  });
+
   it('selects daily ca dao from rule topics and exposes a non-technical match reason', async () => {
     contextualCaDaoMock.mockResolvedValueOnce({
       id: 2,

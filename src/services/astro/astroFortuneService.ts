@@ -87,6 +87,7 @@ export interface AstroFortuneRequestPayload {
 
 type RuleContextCapability = 'unknown' | 'supported' | 'legacy';
 let ruleContextCapability: RuleContextCapability = 'unknown';
+const FORTUNE_REQUEST_TIMEOUT_MS = 20_000;
 
 /**
  * Tạo bản tóm tắt tình thế chiêm tinh dễ hiểu cho Prompt AI
@@ -210,13 +211,33 @@ export function buildAstroFortuneRequestPayload(
 }
 
 async function sendFortuneRequest(payload: AstroFortuneRequestPayload): Promise<Response> {
-  return authenticatedFetch(API_ENDPOINTS.ASTRO_FORTUNE, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
+  const controller = new AbortController();
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      authenticatedFetch(API_ENDPOINTS.ASTRO_FORTUNE, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      }),
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => {
+          controller.abort();
+          reject(new Error(
+            payload.locale === 'en'
+              ? 'The astrology reading is taking too long. Please try again.'
+              : 'Luận giải chiêm tinh phản hồi quá lâu. Vui lòng thử lại.'
+          ));
+        }, FORTUNE_REQUEST_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
 }
 
 export function resetAstroFortuneRuleContextCapabilityForTests(): void {
