@@ -145,4 +145,35 @@ describe('useDailyAstroFortune cache hydration', () => {
     expect(states[0]?.fortune).toMatchObject(fortune);
     expect(states[1]?.fortune).toMatchObject(fortune);
   });
+
+  it('hydrates but does not auto-generate for a secondary profile', async () => {
+    storage.getItem.mockResolvedValue(null);
+    requestFortuneMock.mockResolvedValue(fortune);
+    let state: DailyAstroFortuneState | undefined;
+    const profile = {
+      fullName: 'Bình Nguyễn',
+      birthDate: '1996-04-11',
+      gender: 'male' as const,
+    };
+
+    function Harness() {
+      state = useDailyAstroFortune(profile, 'secondary-profile', { autoGenerate: false });
+      return null;
+    }
+
+    await act(async () => {
+      renderer = create(React.createElement(Harness));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(requestFortuneMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await state?.retry();
+    });
+
+    expect(requestFortuneMock).toHaveBeenCalledTimes(1);
+    expect(state?.fortune).toMatchObject(fortune);
+  });
 });

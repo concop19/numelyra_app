@@ -9,7 +9,7 @@ export type BillingProvider = 'payos' | 'paypal' | 'google_play';
 export const GOOGLE_PLAY_PRODUCT_ID = 'numelyra_pro_monthly';
 export const GOOGLE_PLAY_BASE_PLAN_ID = 'monthly';
 
-export type QuotaFeature = 'ai_response' | 'daily_ca_dao' | 'daily_insight_back' | 'wallpaper';
+export type QuotaFeature = 'ai_response' | 'daily_insight_back' | 'wallpaper';
 export type QuotaStatus = Record<QuotaFeature, { limit: number; used: number; reserved: number; remaining: number }>;
 
 export type BillingStatus = {

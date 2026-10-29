@@ -34,6 +34,10 @@ export interface DailyAstroFortuneState {
   share(): Promise<void>;
 }
 
+export interface DailyAstroFortuneOptions {
+  autoGenerate?: boolean;
+}
+
 interface PendingFortuneRequest {
   key: string;
   promise: Promise<AstroFortuneSlip | null>;
@@ -54,8 +58,13 @@ function createAstroMetadata(profile: UserProfile, date: Date) {
   }, date).metadata;
 }
 
-export function useDailyAstroFortune(profile?: UserProfile | null, profileId?: string | null): DailyAstroFortuneState {
+export function useDailyAstroFortune(
+  profile?: UserProfile | null,
+  profileId?: string | null,
+  options: DailyAstroFortuneOptions = {},
+): DailyAstroFortuneState {
   const { locale } = useLocalization();
+  const autoGenerate = options.autoGenerate !== false;
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [fortune, setFortune] = useState<AstroFortuneSlip | null>(null);
   const [loading, setLoading] = useState(false);
@@ -230,8 +239,10 @@ export function useDailyAstroFortune(profile?: UserProfile | null, profileId?: s
 
   useEffect(() => {
     setFortune(null);
-    // Cache-first bootstrap: a cache miss continues into one shared AI request.
-    void ensureFortune();
+    // Primary profiles preserve the cache-first automatic bootstrap. Secondary
+    // profiles only hydrate an existing result; a cache miss waits for the
+    // user's explicit "view Fortune" action so browsing cannot consume a slot.
+    void (autoGenerate ? ensureFortune() : readCache());
     return () => {
       requestVersion.current += 1;
       // React Strict Mode runs effect setup -> cleanup -> setup in development.
@@ -241,7 +252,7 @@ export function useDailyAstroFortune(profile?: UserProfile | null, profileId?: s
         hydrationRequest.current = null;
       }
     };
-  }, [requestKey]);
+  }, [autoGenerate, requestKey]);
 
   useEffect(() => {
     let midnightTimer: ReturnType<typeof setTimeout>;
@@ -267,10 +278,10 @@ export function useDailyAstroFortune(profile?: UserProfile | null, profileId?: s
       }
       // A failed request has no cache, so foregrounding the app is a safe time
       // to retry. Cache hits and in-flight work remain de-duplicated.
-      void ensureFortune();
+      void (autoGenerate ? ensureFortune() : readCache());
     });
     return () => subscription.remove();
-  }, [currentDate, ensureFortune]);
+  }, [autoGenerate, currentDate, ensureFortune, readCache]);
 
   const retry = useCallback(async (): Promise<AstroFortuneSlip | null> => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});

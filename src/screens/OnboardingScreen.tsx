@@ -835,7 +835,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
                   <Ionicons name="diamond" size={25} color="#FFD38F" />
                 </View>
                 <View style={styles.benefitList}>
-                  {(en ? ['200 AI responses per period', '31 Ca Dao unlocks and 31 Daily Insight backs', '30 wallpapers per period', 'Full cloud sync and history'] : ['200 lượt AI mỗi kỳ', '31 lượt ca dao và 31 mặt sau Daily Insight', '30 hình nền mỗi kỳ', 'Đồng bộ và lịch sử cloud đầy đủ']).map((item) => (
+                  {(en ? ['200 AI responses per period', 'Daily Fortune for up to 3 profiles/day and 31 Daily Insight backs', '30 wallpapers per period', 'Full cloud sync and history'] : ['200 lượt AI mỗi kỳ', 'Daily Fortune cho tối đa 3 hồ sơ/ngày và 31 mặt sau Daily Insight', '30 hình nền mỗi kỳ', 'Đồng bộ và lịch sử cloud đầy đủ']).map((item) => (
                     <View key={item} style={styles.benefitRow}><Ionicons name="checkmark-circle" size={18} color="#FFB48E" /><Text style={styles.benefitText}>{item}</Text></View>
                   ))}
                 </View>

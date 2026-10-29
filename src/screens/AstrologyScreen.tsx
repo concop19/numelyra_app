@@ -78,7 +78,11 @@ export default function AstrologyScreen({ profile, onBack, onOpenCalendar }: Pro
     calculationError,
     retry,
     share,
-  } = useDailyAstroFortune(activeProfile, viewProfileId);
+  } = useDailyAstroFortune(activeProfile, viewProfileId, {
+    // Chat owns the automatic primary-profile generation. Astrology only
+    // reads local cache until the user explicitly opens the Fortune panel.
+    autoGenerate: false,
+  });
   const selectedProfileItem = profiles.find((item) => item.id === viewProfileId)
     ?? profiles.find((item) => item.id === primaryProfileId)
     ?? null;
