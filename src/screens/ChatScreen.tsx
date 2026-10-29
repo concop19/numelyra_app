@@ -1,5 +1,5 @@
 /**
- * ChatScreen.tsx - Màn hình Chat với Tiểu Linh Miêu (Autonomous Spiritual AI Agent)
+ * ChatScreen.tsx - Màn hình Chat với Linh Vật Ngọn Lửa (Autonomous Spiritual AI Agent)
  * 
  * Tích hợp:
  * 1. AI Agent Decision Engine: Tự động phân tích câu hỏi + số lượng profile:
@@ -1575,7 +1575,7 @@ export default function ChatScreen({
 
     // Yêu cầu: Phải chọn ít nhất 1 profile khi đặt câu hỏi
     if (selectedProfiles.length === 0) {
-      setProfilePromptNotice('⚠️ Bạn cần chọn hoặc thêm ít nhất 1 hồ sơ trước khi hỏi Tiểu Linh Miêu!');
+      setProfilePromptNotice(t('mascot.profileRequired'));
       setIsProfileModalOpen(true);
       return;
     }
@@ -1624,9 +1624,9 @@ export default function ChatScreen({
     setMascotState('listening');
 
     // 1. Đổi màu lửa ngay lập tức theo câu hỏi của người dùng
-    const preliminaryCat = getCategoryFromText(prompt);
-    if (preliminaryCat !== 'default') {
-      setMascotCategory(preliminaryCat);
+    const preliminaryCategory = getCategoryFromText(prompt);
+    if (preliminaryCategory !== 'default') {
+      setMascotCategory(preliminaryCategory);
     }
 
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
@@ -1691,8 +1691,8 @@ export default function ChatScreen({
     } else if (decision.intent === 'core_personality') {
       setMascotCategory('past');
     } else {
-      const finalCat = getCategoryFromText(prompt);
-      setMascotCategory(finalCat);
+      const finalCategory = getCategoryFromText(prompt);
+      setMascotCategory(finalCategory);
     }
 
     // Câu rác được backend (hoặc fallback offline) nhận diện: trả lời ngay,
@@ -1702,7 +1702,7 @@ export default function ChatScreen({
       const trashMsg: MessageItem = {
         id: `mascot-${Date.now()}`,
         sender: 'mascot',
-        text: decision.replyText || l('Câu hỏi của bạn chưa có chủ đề rõ ràng. Bạn có thể cho Tiểu Linh Miêu biết điều bạn đang muốn tìm hiểu không?', 'Your question does not have a clear topic yet. What would you like to explore?'),
+        text: decision.replyText || t('mascot.unclearQuestion'),
         time: new Date().toLocaleTimeString(locale === 'en' ? 'en-US' : 'vi-VN', { hour: '2-digit', minute: '2-digit' }),
         turnId,
         createdAt: Date.now(),
@@ -1728,7 +1728,7 @@ export default function ChatScreen({
         const placeMsg: MessageItem = {
           id: `mascot-${Date.now()}`,
           sender: 'mascot',
-          text: l('✦ TIỂU LINH MIÊU CẦN VỊ TRÍ HIỆN TẠI:\nĐể lọc địa điểm theo khoảng cách thực tế, bạn hãy cho phép dùng vị trí một lần nhé.', '✦ LITTLE SPIRIT CAT NEEDS YOUR CURRENT LOCATION:\nAllow one-time location access so places can be filtered by real distance.'),
+          text: t('mascot.locationRequest'),
           time: new Date().toLocaleTimeString(locale === 'en' ? 'en-US' : 'vi-VN', { hour: '2-digit', minute: '2-digit' }),
           turnId,
           createdAt: Date.now(),
@@ -1988,11 +1988,11 @@ export default function ChatScreen({
 
       return (
         <View style={styles.agentCardContainer}>
-          {/* Hộp Tư Duy Linh Miêu (Agent Thought Banner) */}
+          {/* Hộp điều phối của Linh Vật Ngọn Lửa (Agent Thought Banner) */}
           <View style={styles.thoughtHeaderRow}>
             <View style={styles.thoughtTitleWrap}>
               <Text style={styles.thoughtIcon}>🧠</Text>
-              <Text style={styles.thoughtTitle}>{l('TIỂU LINH MIÊU ĐIỀU PHỐI', 'SPIRIT CAT ORCHESTRATION')}</Text>
+              <Text style={styles.thoughtTitle}>{t('mascot.orchestration')}</Text>
             </View>
             <View style={styles.modeBadge}>
               <Text style={styles.modeBadgeText}>
@@ -2647,8 +2647,8 @@ export default function ChatScreen({
             onChangeText={(text) => {
               setInputVal(text);
               if (text.trim().length >= 2) {
-                const cat = getCategoryFromText(text);
-                if (cat !== 'default') setMascotCategory(cat);
+                const category = getCategoryFromText(text);
+                if (category !== 'default') setMascotCategory(category);
               }
             }}
             onSend={() => handleSendMessage()}
@@ -2851,7 +2851,7 @@ export default function ChatScreen({
               <View style={styles.mascotPromptEmblem}>
                 <Ionicons name="flame" size={20} color="#F2BB57" />
               </View>
-              <Text style={styles.mascotPromptTitle}>{l('Linh Vật Ngọn Lửa', 'Flame Guide')}</Text>
+              <Text style={styles.mascotPromptTitle}>{t('mascot.name')}</Text>
             </View>
 
             <View style={styles.mascotPromptBody}>

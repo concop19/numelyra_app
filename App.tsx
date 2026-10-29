@@ -7,7 +7,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, ActivityIndicator, StyleSheet
+  View, Text, Image, ActivityIndicator, StyleSheet
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
@@ -43,6 +43,7 @@ type RootStackParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const notifications = getNotifications();
+const LOADING_FLAME = require('./assets/char/result_Flame_character_sitting_peacefully_1080p_20261017202140_2_ (1)/idle_1.webp');
 
 function goBackOrMain(navigation: NavigationProp<RootStackParamList>): void {
   if (navigation.canGoBack()) {
@@ -133,7 +134,7 @@ function AppContent() {
       <SafeAreaView style={styles.loadingContainer}>
         <StatusBar style="light" />
         <View style={styles.loadingInner}>
-          <Text style={styles.loadingEmoji}>🐱</Text>
+          <Image source={LOADING_FLAME} resizeMode="contain" style={styles.loadingMascot} />
           <ActivityIndicator size="large" color="#F5BA5B" style={{ marginTop: 16 }} />
           <Text style={styles.loadingText}>{t('app.loading')}</Text>
         </View>
@@ -289,8 +290,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
-  loadingEmoji: {
-    fontSize: 48
+  loadingMascot: {
+    width: 86,
+    height: 108,
   },
   loadingText: {
     color: '#F5BA5B',

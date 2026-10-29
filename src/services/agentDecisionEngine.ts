@@ -7,7 +7,7 @@
  */
 import { ProfileItem } from '../store/userProfile';
 import { isColorQuestion } from './colorGuidanceService';
-import type { AppLocale } from '../i18n/translations';
+import { translate, type AppLocale } from '../i18n/translations';
 
 export interface AgentDecision {
   mode: 'single' | 'compatibility';
@@ -28,16 +28,6 @@ export interface AgentDecision {
   thoughtProcess: string;
   replyText?: string;
 }
-
-const TRASH_PROMPT_GUIDANCE = `✦ TIỂU LINH MIÊU NHẮN BẠN:
-Câu hỏi của bạn dường như chưa có chủ đề hoặc mục đích rõ ràng.
-
-Bạn hãy thử hỏi cụ thể hơn, ví dụ: "Sự nghiệp trong 6 tháng tới của tôi sẽ ra sao?" hoặc "Tôi đang phân vân giữa hai lựa chọn A và B, nên đi hướng nào?"`;
-
-const TRASH_PROMPT_GUIDANCE_EN = `✦ A NOTE FROM LITTLE SPIRIT CAT:
-Your question does not yet have a clear topic or purpose.
-
-Try a more specific question, such as “How should I approach my career over the next six months?” or “I am choosing between option A and option B—which direction should I examine first?”`;
 
 /**
  * Fallback ở thiết bị khi API classify không truy cập được. Server vẫn là nơi
@@ -70,7 +60,7 @@ export function evaluateAgentDecision(
       thoughtProcess: english
         ? 'The question has no clear topic or purpose. Ask for a more specific question.'
         : 'Câu hỏi chưa có chủ đề hoặc mục đích rõ ràng. Mời bạn đặt một câu hỏi cụ thể hơn.',
-      replyText: english ? TRASH_PROMPT_GUIDANCE_EN : TRASH_PROMPT_GUIDANCE
+      replyText: translate(locale, 'mascot.trashGuidance')
     };
   }
 
@@ -103,9 +93,7 @@ export function evaluateAgentDecision(
       spreadId: 'single',
       cardCount: 1,
       targetIndicators: [],
-      thoughtProcess: english
-        ? 'Color guidance request. Draw one card to prioritize two colors from the personal palette.'
-        : 'Câu hỏi về màu sắc. Tiểu Linh Miêu rút một lá để ưu tiên hai màu trong bảng màu hợp mệnh của bạn.'
+      thoughtProcess: translate(locale, 'mascot.thoughtColor')
     };
   }
 
@@ -142,9 +130,7 @@ export function evaluateAgentDecision(
       spreadId: 'single',
       cardCount: 1,
       targetIndicators: ['attitude', 'soul'],
-      thoughtProcess: english
-        ? 'Collect area, distance, budget, and companion preferences, then use one card to select the matching atmosphere.'
-        : 'Tiểu Linh Miêu sẽ lọc khu vực, khoảng cách, ngân sách và người đi cùng trước, rồi dùng một lá Tarot để chọn vibe phù hợp.'
+      thoughtProcess: translate(locale, 'mascot.thoughtWhereToGo')
     };
   }
 
@@ -213,8 +199,6 @@ export function evaluateAgentDecision(
     spreadId: 'single',
     cardCount: 1,
     targetIndicators: ['attitude', 'soul'],
-    thoughtProcess: english
-      ? 'Draw one Tarot card and use attitude and inner-needs context.'
-      : 'Tiểu Linh Miêu rút 1 lá Tarot và tham khảo cách phản ứng, nhu cầu nội tâm của bạn.'
+    thoughtProcess: translate(locale, 'mascot.thoughtGeneral')
   };
 }

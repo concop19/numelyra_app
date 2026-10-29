@@ -91,7 +91,7 @@ const TOTAL_STEPS = FINAL_STEP + 1;
 const PROGRESS_KEY = '@numelyra_onboarding_progress_v1';
 
 const BACKGROUND = require('../../assets/giao_dien/giaodien1/chat_screen_asset/backgorund/background_index1.png');
-const HERO_MASCOT = require('../../assets/onboarding/heroes/mascot-720.png');
+const HERO_FLAME_GUIDE = require('../../assets/onboarding/heroes/flame-guide-hug.png');
 const HERO_CHAT = require('../../assets/onboarding/heroes/chat-720.png');
 const HERO_LOVE = require('../../assets/onboarding/heroes/love-720.png');
 const HERO_CALENDAR = require('../../assets/onboarding/heroes/calendar-720.png');
@@ -101,7 +101,7 @@ const HERO_PROFILE = require('../../assets/onboarding/heroes/profile-720.png');
 const HERO_CROWN = require('../../assets/onboarding/heroes/crown-720.png');
 
 const FEATURE_SLIDES: FeatureSlide[] = [
-  { id: 'welcome', titleKey: 'onboarding.welcome.title', descriptionKey: 'onboarding.welcome.description', image: HERO_MASCOT },
+  { id: 'welcome', titleKey: 'onboarding.welcome.title', descriptionKey: 'onboarding.welcome.description', image: HERO_FLAME_GUIDE },
   { id: 'chat', titleKey: 'onboarding.chat.title', descriptionKey: 'onboarding.chat.description', image: HERO_CHAT },
   { id: 'love', titleKey: 'onboarding.love.title', descriptionKey: 'onboarding.love.description', image: HERO_LOVE },
   { id: 'calendar', titleKey: 'onboarding.calendar.title', descriptionKey: 'onboarding.calendar.description', image: HERO_CALENDAR },
@@ -110,8 +110,8 @@ const FEATURE_SLIDES: FeatureSlide[] = [
 ];
 
 const STEP_HEROES: ImageSource[] = [
-  HERO_MASCOT,
-  HERO_MASCOT,
+  HERO_FLAME_GUIDE,
+  HERO_FLAME_GUIDE,
   HERO_CHAT,
   HERO_LOVE,
   HERO_CALENDAR,
@@ -120,7 +120,7 @@ const STEP_HEROES: ImageSource[] = [
   HERO_PROFILE,
   HERO_CROWN,
   HERO_CROWN,
-  HERO_MASCOT,
+  HERO_FLAME_GUIDE,
 ];
 
 const EMPTY_DRAFT: Draft = {
@@ -613,7 +613,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
                   <Text style={[styles.title, compact && styles.titleCompact]}>{t('onboarding.language.title')}</Text>
                   <Text style={styles.description}>{t('onboarding.language.description')}</Text>
                 </View>
-                <HeroImage source={HERO_MASCOT} imageKey="language" compact={compact} />
+                <HeroImage source={HERO_FLAME_GUIDE} imageKey="language" compact={compact} />
                 <View style={styles.languageFooter}>
                   <View
                     accessibilityRole="radiogroup"
@@ -841,7 +841,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
                 <TouchableOpacity onPress={next} style={styles.inlineLink}><Text style={styles.inlineLinkText}>{en ? 'Continue with the free plan' : 'Tiếp tục với gói miễn phí'}</Text></TouchableOpacity>
               </InfoPage>
             ) : (
-              <InfoPage title={en ? 'Ready to explore!' : 'Sẵn sàng khám phá!'} description={en ? 'You can now chat, explore your fortune, create wallpapers and discover many more features.' : 'Giờ đây bạn có thể trò chuyện, xem tử vi, tạo hình nền và khám phá nhiều tính năng thú vị khác.'} hero={HERO_MASCOT} compact={compact}>
+              <InfoPage title={en ? 'Ready to explore!' : 'Sẵn sàng khám phá!'} description={en ? 'You can now chat, explore your fortune, create wallpapers and discover many more features.' : 'Giờ đây bạn có thể trò chuyện, xem tử vi, tạo hình nền và khám phá nhiều tính năng thú vị khác.'} hero={HERO_FLAME_GUIDE} compact={compact}>
                 <View style={styles.readyBadge}><Ionicons name="sparkles" size={18} color="#FFD4A2" /><Text style={styles.readyBadgeText}>{en ? 'Your journey starts here' : 'Hành trình của bạn bắt đầu từ đây'}</Text></View>
                 <PrimaryButton label={en ? 'Get started' : 'Bắt đầu sử dụng'} onPress={() => void finish()} loading={finishing} icon="arrow-forward" />
               </InfoPage>

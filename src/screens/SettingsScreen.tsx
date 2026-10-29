@@ -276,7 +276,7 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
       return;
     }
     Alert.alert(l('Nâng cấp Premium', 'Upgrade to Premium'), l('Chọn phương thức thanh toán', 'Choose a payment method'), [
-      { text: 'VietQR / PayOS · 249.000đ', onPress: () => { void upgrade('payos'); } },
+      { text: l('VietQR / PayOS · 249.000đ', 'VietQR / PayOS · 249,000 VND'), onPress: () => { void upgrade('payos'); } },
       { text: 'PayPal · $9.99', onPress: () => { void upgrade('paypal'); } },
       { text: l('Để sau', 'Not now'), style: 'cancel' },
     ]);

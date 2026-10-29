@@ -426,7 +426,7 @@ export default function ProfilePickerModal({
                 ? coupleNamingNotice
                 : managementMode === 'full'
                   ? l('Chạm bút để sửa. Vuốt hồ sơ phụ sang trái để hiện nút xóa.', 'Tap the pencil to edit. Swipe a secondary profile left to reveal delete.')
-                  : l('Chọn 1 hồ sơ để Tiểu Linh Miêu giải mã vận mệnh, công danh và năng lượng cá nhân.', 'Choose one profile for a personal destiny, career and energy reading.')}
+                  : t('mascot.profilePickerPrompt')}
             </Text>
           )}
 

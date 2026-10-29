@@ -24,6 +24,13 @@ describe('bilingual local agent classifier', () => {
     const decision = evaluateAgentDecision('asdfasdf', profile, 'en');
     expect(decision.intent).toBe('trash');
     expect(decision.replyText).toContain('clear topic');
+    expect(decision.replyText).toContain('LITTLE FLAME');
     expect(decision.replyText).not.toMatch(/[À-ỹ]/);
+  });
+
+  it('uses Flame branding in Vietnamese agent copy', () => {
+    const decision = evaluateAgentDecision('asdfasdf', profile, 'vi');
+    expect(decision.replyText).toContain('NGỌN LỬA NHỎ');
+    expect(decision.replyText).not.toMatch(/linh\s+miêu/i);
   });
 });

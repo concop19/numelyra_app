@@ -142,7 +142,7 @@ export default function MysticReadingTraceModal({
   onRevealNext,
   onContinue,
 }: Props) {
-  const { locale, l } = useLocalization();
+  const { locale, l, t } = useLocalization();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [sceneSize, setSceneSize] = useState({ width: 0, height: 0 });
   const viewportWidth = sceneSize.width || windowWidth;
@@ -305,7 +305,7 @@ export default function MysticReadingTraceModal({
 
           <View pointerEvents="none" style={[styles.sceneHeading, { top: 38 * scale, left: 210 * scale, width: 520 * scale }]}>
             <Text style={[styles.sceneTitle, { fontSize: Math.max(15, 27 * scale), lineHeight: Math.max(19, 32 * scale) }]}>{isWritingRitual ? l('Lời giải đang hiện hình', 'Your reading is taking shape') : isLiveDraw ? l('Nghi thức rút bài', 'Tarot Drawing Ritual') : l('AI đã đối chiếu', 'AI Cross-Check')}</Text>
-            <Text style={[styles.sceneSubtitle, { fontSize: Math.max(8, 13 * scale) }]}>{isWritingRitual ? l('Tiểu Linh Miêu đang chép thông điệp dành riêng cho bạn', 'The Little Spirit Cat is writing your personal message') : isLiveDraw ? l('Chạm vào bộ bài để mở từng thông điệp', 'Tap the deck to reveal each message') : l('Lời luận giải dành riêng cho bạn', 'A reading prepared for you')}</Text>
+            <Text style={[styles.sceneSubtitle, { fontSize: Math.max(8, 13 * scale) }]}>{isWritingRitual ? t('mascot.traceWriting') : isLiveDraw ? l('Chạm vào bộ bài để mở từng thông điệp', 'Tap the deck to reveal each message') : l('Lời luận giải dành riêng cho bạn', 'A reading prepared for you')}</Text>
           </View>
 
           {tarotCards.length > 0 ? <>
@@ -500,7 +500,7 @@ export default function MysticReadingTraceModal({
             />
           </ScrollView> : <View pointerEvents="none" style={[styles.waitingReading, { left: 185 * scale, top: 1280 * scale, width: 570 * scale }]}>
             <Text style={[styles.waitingReadingTitle, { fontSize: Math.max(10, 15 * scale) }]}>
-              {isWritingRitual ? l('Những nét mực đang ghép thành lời giải…', 'The ink is forming your reading…') : allCardsRevealed ? l('Các lá đã mở — Tiểu Linh Miêu đang kết nối lời giải…', 'The cards are open — the Little Spirit Cat is connecting the message…') : l('Hãy rút đủ các lá để mở lời luận giải', 'Draw every card to unlock the reading')}
+              {isWritingRitual ? l('Những nét mực đang ghép thành lời giải…', 'The ink is forming your reading…') : allCardsRevealed ? t('mascot.traceConnecting') : l('Hãy rút đủ các lá để mở lời luận giải', 'Draw every card to unlock the reading')}
             </Text>
             <Text style={[styles.waitingReadingHint, { fontSize: Math.max(8, 11 * scale) }]}>{isWritingRitual ? l('Nét chữ chỉ là nghi thức — thông điệp thật sẽ hiện ngay khi hoàn tất.', 'The writing is part of the ritual — your full message will appear when it is complete.') : l('Luận giải sẽ hiện ngay khi bạn và Numelyra cùng hoàn tất.', 'The reading will appear as soon as you and Numelyra finish the ritual.')}</Text>
           </View>}
