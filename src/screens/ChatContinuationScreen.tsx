@@ -32,6 +32,7 @@ import {
   syncPendingChatSession,
 } from '../services/chatSessionSyncService';
 import { useLocalization } from '../i18n/LocalizationContext';
+import { useBilling } from '../store/billingContext';
 
 const CHAT_BACKGROUND = require('../../assets/giao_dien/giaodien1/chat_continue/background.webp');
 const LOCAL_SESSION_LOAD_TIMEOUT_MS = 6000;
@@ -112,6 +113,7 @@ function ChatMessageCard({ item, isSending }: { item: LocalChatMessage; isSendin
 
 export default function ChatContinuationScreen({ sessionId, initialTitle, onBack }: Props) {
   const { locale, t } = useLocalization();
+  const { consumeQuota, reloadBilling } = useBilling();
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<LocalChatMessage>>(null);
   const [session, setSession] = useState<LocalChatSession | null>(null);
@@ -238,6 +240,14 @@ export default function ChatContinuationScreen({ sessionId, initialTitle, onBack
         scrollToEnd();
       });
 
+      if (result.done.accepted) {
+        // The backend has already committed the real quota debit. Mirror it
+        // immediately in the app, then reconcile with the server so leaving
+        // the continuation screen never shows a stale monthly allowance.
+        consumeQuota('ai_response');
+        void reloadBilling();
+      }
+
       const answer = result.text.trim() || t('chat.emptyAnswer');
       const acceptedCount = result.done.accepted ? result.done.turnIndex : session.questionCount;
       const assistantMessage: LocalChatMessage = {
@@ -282,7 +292,7 @@ export default function ChatContinuationScreen({ sessionId, initialTitle, onBack
       setIsSending(false);
       scrollToEnd();
     }
-  }, [input, isSending, locale, scrollToEnd, session, sessionId, t]);
+  }, [consumeQuota, input, isSending, locale, reloadBilling, scrollToEnd, session, sessionId, t]);
 
   const isCompleted = session?.status === 'completed' || Boolean(
     session && session.questionCount >= session.maxQuestions

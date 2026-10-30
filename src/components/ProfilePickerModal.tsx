@@ -114,7 +114,7 @@ export default function ProfilePickerModal({
     setNewName(item.fullName);
     setNewBirthDate(birthDateToInputValue(item.birthDate));
     setNewBirthTime(item.birthTime || '');
-    setNewBirthPlace(item.birthPlace || '');
+    setNewBirthPlace(item.birthPlace || item.birthLocation?.userLabel || '');
     setNewBirthLocation(item.birthLocation);
     setSelectedPlaceSuggestion(null);
     setNewGender(item.gender || null);
@@ -435,8 +435,9 @@ export default function ProfilePickerModal({
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {/* List of profiles */}
-            <View style={styles.listContainer}>
+            {/* Hide the list while editing so every birth-data field is visible
+                immediately instead of being appended below a long profile list. */}
+            {!isAdding && <View style={styles.listContainer}>
               {profiles.map((p) => {
                 const isSelected = tempSelectedIds.includes(p.id);
                 const order = tempSelectedIds.indexOf(p.id) + 1;
@@ -445,6 +446,11 @@ export default function ProfilePickerModal({
                 const zodiacEmoji = getZodiacEmoji(zodiac);
                 const nguHanh = getNguHanh(birthYear);
                 const nguHanhEmoji = getNguHanhEmoji(nguHanh);
+                const birthPlaceLabel = p.birthLocation?.userLabel || p.birthPlace;
+                const optionalBirthDetails = [
+                  p.birthTime ? `🕒 ${p.birthTime}` : '',
+                  birthPlaceLabel ? `📍 ${birthPlaceLabel}` : '',
+                ].filter(Boolean).join(' · ');
                 const canDelete = managementMode === 'full'
                   && profiles.length > 1
                   && p.id !== primaryProfileId;
@@ -495,14 +501,19 @@ export default function ProfilePickerModal({
                             )}
                           </View>
                           <Text style={[styles.profileDetails, !p.gender && styles.profileDetailsWarning]}>
-                            📅 {p.birthDate} · {nguHanhEmoji} {nguHanh} · {zodiac} · {' '}
+                            {nguHanhEmoji} {nguHanh} · {zodiac} · {' '}
                             {p.gender === 'male' ? l('👨 Nam', '👨 Male') : p.gender === 'female' ? l('👩 Nữ', '👩 Female') : l('⚠️ Chưa chọn giới tính', '⚠️ Gender not selected')}
                           </Text>
+                          {!!optionalBirthDetails && (
+                            <Text numberOfLines={1} style={styles.profileBirthDetails}>
+                              {optionalBirthDetails}
+                            </Text>
+                          )}
                         </View>
                       </View>
 
                       <View style={styles.profileRight}>
-                        {managementMode === 'full' && <TouchableOpacity
+                        {managementMode !== 'none' && <TouchableOpacity
                           accessibilityRole="button"
                           accessibilityLabel={`${l('Chỉnh sửa hồ sơ', 'Edit profile')} ${p.fullName}`}
                           activeOpacity={0.7}
@@ -514,7 +525,7 @@ export default function ProfilePickerModal({
                             startEditingProfile(p);
                           }}
                         >
-                          <Ionicons name="pencil-outline" size={16} color="#93C5FD" />
+                          <Ionicons name="pencil" size={20} color="#E0E7FF" />
                         </TouchableOpacity>}
                         {canDelete && (
                           <Ionicons name="chevron-back" size={15} color="#776E8E" style={styles.swipeHintIcon} />
@@ -530,7 +541,7 @@ export default function ProfilePickerModal({
                   <Text style={styles.emptyText}>{l('Chưa có hồ sơ nào. Hãy thêm hồ sơ để bắt đầu!', 'No profiles yet. Add one to get started.')}</Text>
                 </View>
               )}
-            </View>
+            </View>}
 
             {/* Add Profile Section */}
             {managementMode !== 'none' && (isAdding ? (
@@ -573,6 +584,16 @@ export default function ProfilePickerModal({
                   cursorColor="#F5BA5B"
                   underlineColorAndroid="transparent"
                 />
+
+                <View style={styles.birthDetailsHeader}>
+                  <Ionicons name="location-outline" size={16} color="#93C5FD" />
+                  <View style={styles.birthDetailsHeaderCopy}>
+                    <Text style={styles.birthDetailsTitle}>{l('Giờ sinh và nơi sinh', 'Birth time and place')}</Text>
+                    <Text style={styles.birthDetailsHint}>
+                      {l('Bổ sung để lá số, cung mọc và 12 nhà chính xác hơn.', 'Add these details for a more accurate chart, rising sign, and houses.')}
+                    </Text>
+                  </View>
+                </View>
 
                 <Text style={styles.label}>{l('Giờ sinh (không bắt buộc)', 'Birth time (optional)')}</Text>
                 <TextInput
@@ -954,8 +975,11 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: '#2A243F',
-    padding: 10,
+    paddingVertical: 10,
+    paddingLeft: 10,
+    paddingRight: 58,
     width: '100%',
+    minHeight: 78,
   },
   profileCardSelected: {
     borderColor: '#F5BA5B',
@@ -1024,18 +1048,36 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 2
   },
+  profileBirthDetails: {
+    color: '#A5B4FC',
+    fontSize: 10,
+    marginTop: 3,
+  },
   profileDetailsWarning: {
     color: '#FBBF24',
     fontWeight: '700',
   },
   profileRight: {
+    position: 'absolute',
+    right: 8,
+    top: 0,
+    bottom: 0,
     flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
   },
   editBtn: {
-    padding: 6,
+    width: 42,
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(147, 197, 253, 0.55)',
+    backgroundColor: 'rgba(59, 130, 246, 0.24)',
   },
-  swipeHintIcon: { marginLeft: 1, opacity: 0.72 },
+  swipeHintIcon: { position: 'absolute', left: -13, opacity: 0.58 },
   emptyContainer: {
     padding: 16,
     alignItems: 'center'
@@ -1078,6 +1120,32 @@ const styles = StyleSheet.create({
     color: '#F5BA5B',
     fontSize: 14,
     fontWeight: '700',
+  },
+  birthDetailsHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginTop: 14,
+    marginBottom: 3,
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(147, 197, 253, 0.28)',
+    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+  },
+  birthDetailsHeaderCopy: {
+    flex: 1,
+  },
+  birthDetailsTitle: {
+    color: '#BFDBFE',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  birthDetailsHint: {
+    color: '#94A3B8',
+    fontSize: 10,
+    lineHeight: 14,
+    marginTop: 2,
   },
   label: {
     color: '#94A3B8',
