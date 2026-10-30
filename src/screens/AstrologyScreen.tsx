@@ -72,16 +72,17 @@ export default function AstrologyScreen({ profile, onBack, onOpenCalendar }: Pro
   const {
     currentDate,
     fortune,
+    quota: fortuneQuota,
     metadata,
     loading,
     error,
     calculationError,
     retry,
-    share,
   } = useDailyAstroFortune(activeProfile, viewProfileId, {
     // Chat owns the automatic primary-profile generation. Astrology only
     // reads local cache until the user explicitly opens the Fortune panel.
     autoGenerate: false,
+    loadQuota: true,
   });
   const selectedProfileItem = profiles.find((item) => item.id === viewProfileId)
     ?? profiles.find((item) => item.id === primaryProfileId)
@@ -165,6 +166,7 @@ export default function AstrologyScreen({ profile, onBack, onOpenCalendar }: Pro
               metadata={metadata}
               fortune={fortune}
               loading={loading}
+              fortuneQuota={fortuneQuota}
               error={error}
               calculationError={calculationError}
               onBack={() => onBack?.()}
@@ -183,7 +185,6 @@ export default function AstrologyScreen({ profile, onBack, onOpenCalendar }: Pro
                 })();
               })}
               onRetry={() => void retry()}
-              onShare={() => void share()}
             />
           )}
         </Stack.Screen>

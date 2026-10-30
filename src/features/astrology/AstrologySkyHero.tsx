@@ -4,13 +4,12 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import type { AstroFortuneSlip } from '../../services/astro/astroFortuneService';
+import type { AstroFortuneQuota, AstroFortuneSlip } from '../../services/astro/astroFortuneService';
 import type { PureAstroFeatureMetadata } from '../../services/astro/astroVectorEngine';
 import type { UserProfile } from '../../store/userProfile';
 import {
   ASTROLOGY_BACKGROUNDS,
   ASTROLOGY_DECORATIONS,
-  ASTROLOGY_UI_ICONS,
   ZODIAC_PNG,
 } from './astrologyArtwork';
 import { ASTRO_COLORS } from './AstrologyUi';
@@ -24,10 +23,10 @@ interface Props {
   metadata?: PureAstroFeatureMetadata;
   fortune: AstroFortuneSlip | null;
   loading: boolean;
+  fortuneQuota: AstroFortuneQuota | null;
   onBack(): void;
   onProfilePress(): void;
   onInterpretationPress(): void;
-  onShare(): void;
 }
 
 export function AstrologySkyHero({
@@ -36,10 +35,10 @@ export function AstrologySkyHero({
   metadata,
   fortune,
   loading,
+  fortuneQuota,
   onBack,
   onProfilePress,
   onInterpretationPress,
-  onShare,
 }: Props) {
   const { locale, t, l } = useLocalization();
   const zodiacArtwork = metadata && isZodiacId(metadata.natalSunSign)
@@ -108,15 +107,51 @@ export function AstrologySkyHero({
           {isPrimaryProfile && <Text style={styles.primaryBadge}>{l('Tôi', 'Me')}</Text>}
           <Ionicons name="chevron-down" size={16} color={ASTRO_COLORS.muted} />
         </TouchableOpacity>
-        <TouchableOpacity
-          accessibilityLabel={l('Chia sẻ luận giải hôm nay', "Share today's reading")}
-          accessibilityRole="button"
-          disabled={!fortune || loading}
-          onPress={onShare}
-          style={[styles.roundButton, (!fortune || loading) && styles.disabled]}
+        <LinearGradient
+          accessibilityLabel={fortuneQuota
+            ? l(
+                `Còn ${fortuneQuota.remaining} trên ${fortuneQuota.limit} lượt tạo fortune hôm nay`,
+                `${fortuneQuota.remaining} of ${fortuneQuota.limit} fortune generations remaining today`,
+              )
+            : l('Đang tải số lượt tạo fortune', 'Loading fortune allowance')}
+          accessible
+          colors={['#FFF0A5', '#FF91D9', '#956BFF', '#FFE58B']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.quotaFrame}
         >
-          <Image contentFit="contain" source={ASTROLOGY_UI_ICONS.share} style={styles.actionIcon} />
-        </TouchableOpacity>
+          <LinearGradient
+            colors={['rgba(77,31,91,0.98)', 'rgba(37,22,84,0.98)', 'rgba(14,15,65,0.98)']}
+            locations={[0, 0.5, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.quotaInner}
+          >
+            <LinearGradient
+              colors={['#FFE889', '#FF95DB', '#8D65FF']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.planetFrame}
+            >
+              <LinearGradient
+                colors={['#7F3EB4', '#4A2A9C', '#231968']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.planetCore}
+              >
+                <Ionicons name="planet" size={17} color="#FFE38A" />
+              </LinearGradient>
+            </LinearGradient>
+            {fortuneQuota ? (
+              <View style={styles.quotaAmountRow}>
+                <Text style={styles.quotaRemaining}>{fortuneQuota.remaining}</Text>
+                <Text style={styles.quotaLimit}>/ {fortuneQuota.limit}</Text>
+              </View>
+            ) : (
+              <ActivityIndicator size={13} color="#FFE38A" style={styles.quotaLoader} />
+            )}
+          </LinearGradient>
+        </LinearGradient>
       </View>
 
       <TouchableOpacity
@@ -178,8 +213,69 @@ const styles = StyleSheet.create({
   profileName: { color: ASTRO_COLORS.text, fontSize: 17, fontFamily: 'serif', fontWeight: '800' },
   profileMeta: { color: ASTRO_COLORS.muted, fontSize: 10.5, marginTop: 3 },
   primaryBadge: { color: '#251245', backgroundColor: ASTRO_COLORS.gold, borderRadius: 9, paddingHorizontal: 7, paddingVertical: 3, fontSize: 9, fontWeight: '900', overflow: 'hidden' },
-  actionIcon: { width: 24, height: 24 },
-  disabled: { opacity: 0.46 },
+  quotaFrame: {
+    width: 82,
+    height: 44,
+    borderRadius: 22,
+    padding: 1.5,
+    shadowColor: '#F179FF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.72,
+    shadowRadius: 7,
+    elevation: 6,
+  },
+  quotaInner: {
+    flex: 1,
+    borderRadius: 20.5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255,221,248,0.34)',
+  },
+  planetFrame: {
+    width: 31,
+    height: 31,
+    borderRadius: 16,
+    padding: 1.5,
+    marginRight: 5,
+    shadowColor: '#FFE486',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.72,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  planetCore: {
+    flex: 1,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quotaAmountRow: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  quotaLoader: {
+    flex: 1,
+  },
+  quotaRemaining: {
+    color: '#FFE485',
+    fontSize: 17,
+    lineHeight: 20,
+    fontWeight: '900',
+    textShadowColor: 'rgba(255,198,90,0.75)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 5,
+  },
+  quotaLimit: {
+    marginLeft: 2,
+    color: '#D9CBFF',
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: '900',
+  },
   quoteArea: {
     marginHorizontal: 16,
     marginTop: 14,

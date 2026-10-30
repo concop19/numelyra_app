@@ -9,7 +9,9 @@ import {
   type PureAstroFeatureMetadata,
 } from '../../services/astro/astroVectorEngine';
 import {
+  getAstroFortuneQuota,
   requestAstroFortuneSlip,
+  type AstroFortuneQuota,
   type AstroFortuneSlip,
 } from '../../services/astro/astroFortuneService';
 import {
@@ -26,6 +28,7 @@ import { useLocalization } from '../../i18n/LocalizationContext';
 export interface DailyAstroFortuneState {
   currentDate: Date;
   fortune: AstroFortuneSlip | null;
+  quota: AstroFortuneQuota | null;
   metadata: PureAstroFeatureMetadata | undefined;
   loading: boolean;
   error: string | null;
@@ -36,6 +39,7 @@ export interface DailyAstroFortuneState {
 
 export interface DailyAstroFortuneOptions {
   autoGenerate?: boolean;
+  loadQuota?: boolean;
 }
 
 interface PendingFortuneRequest {
@@ -65,8 +69,10 @@ export function useDailyAstroFortune(
 ): DailyAstroFortuneState {
   const { locale } = useLocalization();
   const autoGenerate = options.autoGenerate !== false;
+  const loadQuota = options.loadQuota === true;
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [fortune, setFortune] = useState<AstroFortuneSlip | null>(null);
+  const [quota, setQuota] = useState<AstroFortuneQuota | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const requestVersion = useRef(0);
@@ -108,6 +114,19 @@ export function useDailyAstroFortune(
     profile?.fullName,
   ]);
   const metadata = localAstro.metadata;
+
+  const refreshQuota = useCallback(async (): Promise<AstroFortuneQuota | null> => {
+    if (!loadQuota) return null;
+    const requestedDateKey = localDateKey;
+    try {
+      const nextQuota = await getAstroFortuneQuota(requestedDateKey);
+      if (formatLocalDateKey(currentDate) === requestedDateKey) setQuota(nextQuota);
+      return nextQuota;
+    } catch {
+      // Preserve the last authoritative snapshot during a transient refresh failure.
+      return null;
+    }
+  }, [currentDate, loadQuota, localDateKey]);
 
   const hydrateCachedFortune = useCallback(async (): Promise<AstroFortuneSlip | null> => {
     const version = ++requestVersion.current;
@@ -214,9 +233,10 @@ export function useDailyAstroFortune(
       }
       return null;
     } finally {
+      if (loadQuota) void refreshQuota();
       if (requestVersion.current === version) setLoading(false);
     }
-  }, [cacheProfile, currentDate, locale, metadata, requestKey]);
+  }, [cacheProfile, currentDate, loadQuota, locale, metadata, refreshQuota, requestKey]);
 
   const ensureFortune = useCallback(async (): Promise<AstroFortuneSlip | null> => {
     if (fortune) return fortune;
@@ -255,6 +275,15 @@ export function useDailyAstroFortune(
   }, [autoGenerate, requestKey]);
 
   useEffect(() => {
+    if (!loadQuota) {
+      setQuota(null);
+      return;
+    }
+    setQuota(null);
+    void refreshQuota();
+  }, [loadQuota, refreshQuota]);
+
+  useEffect(() => {
     let midnightTimer: ReturnType<typeof setTimeout>;
     const scheduleNextDay = () => {
       const now = new Date();
@@ -279,9 +308,10 @@ export function useDailyAstroFortune(
       // A failed request has no cache, so foregrounding the app is a safe time
       // to retry. Cache hits and in-flight work remain de-duplicated.
       void (autoGenerate ? ensureFortune() : readCache());
+      if (loadQuota) void refreshQuota();
     });
     return () => subscription.remove();
-  }, [autoGenerate, currentDate, ensureFortune, readCache]);
+  }, [autoGenerate, currentDate, ensureFortune, loadQuota, readCache, refreshQuota]);
 
   const retry = useCallback(async (): Promise<AstroFortuneSlip | null> => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -304,6 +334,7 @@ export function useDailyAstroFortune(
   return {
     currentDate,
     fortune,
+    quota,
     metadata,
     loading,
     error,

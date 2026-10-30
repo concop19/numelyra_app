@@ -35,6 +35,13 @@ export interface AstroFortuneSlip {
   astroMetadata?: PureAstroFeatureMetadata;
 }
 
+export interface AstroFortuneQuota {
+  limit: number;
+  used: number;
+  remaining: number;
+  localDate: string;
+}
+
 export interface RequestFortuneSlipOptions {
   locale?: AppLocale;
   astroMetadata?: PureAstroFeatureMetadata;
@@ -88,6 +95,35 @@ export interface AstroFortuneRequestPayload {
 type RuleContextCapability = 'unknown' | 'supported' | 'legacy';
 let ruleContextCapability: RuleContextCapability = 'unknown';
 const FORTUNE_REQUEST_TIMEOUT_MS = 20_000;
+
+export async function getAstroFortuneQuota(localDate: string): Promise<AstroFortuneQuota> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(localDate)) {
+    throw new Error('Ngày xem quota fortune không hợp lệ.');
+  }
+  const response = await authenticatedFetch(
+    `${API_ENDPOINTS.ASTRO_FORTUNE}?localDate=${encodeURIComponent(localDate)}`,
+    { method: 'GET', cache: 'no-store' },
+  );
+  const data = await response.json().catch(() => ({})) as {
+    error?: string;
+    quota?: Partial<AstroFortuneQuota>;
+  };
+  if (!response.ok) {
+    throw new Error(data.error || 'Không thể tải số lượt Daily Fortune.');
+  }
+  const limit = Number(data.quota?.limit);
+  const used = Number(data.quota?.used);
+  const remaining = Number(data.quota?.remaining);
+  if (![limit, used, remaining].every(Number.isFinite) || limit < 1 || used < 0 || remaining < 0) {
+    throw new Error('Dữ liệu quota Daily Fortune không hợp lệ.');
+  }
+  return {
+    limit,
+    used,
+    remaining,
+    localDate: typeof data.quota?.localDate === 'string' ? data.quota.localDate : localDate,
+  };
+}
 
 /**
  * Tạo bản tóm tắt tình thế chiêm tinh dễ hiểu cho Prompt AI

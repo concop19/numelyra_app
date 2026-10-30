@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useDailyAstroFortune, type DailyAstroFortuneState } from './useDailyAstroFortune';
 import {
+  getAstroFortuneQuota,
   requestAstroFortuneSlip,
   type AstroFortuneSlip,
 } from '../../services/astro/astroFortuneService';
@@ -34,11 +35,13 @@ jest.mock('../../services/astro/astroVectorEngine', () => ({
 }));
 
 jest.mock('../../services/astro/astroFortuneService', () => ({
+  getAstroFortuneQuota: jest.fn(),
   requestAstroFortuneSlip: jest.fn(),
 }));
 
 const storage = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
 const requestFortuneMock = requestAstroFortuneSlip as jest.MockedFunction<typeof requestAstroFortuneSlip>;
+const quotaMock = getAstroFortuneQuota as jest.MockedFunction<typeof getAstroFortuneQuota>;
 const fortune: AstroFortuneSlip = {
   title: 'Tín hiệu hôm nay',
   verse: 'Một câu thơ',
@@ -58,6 +61,7 @@ describe('useDailyAstroFortune cache hydration', () => {
     storage.getItem.mockReset();
     storage.setItem.mockClear();
     requestFortuneMock.mockReset();
+    quotaMock.mockReset();
     if (renderer) {
       await act(async () => renderer?.unmount());
       renderer = undefined;
@@ -175,5 +179,33 @@ describe('useDailyAstroFortune cache hydration', () => {
 
     expect(requestFortuneMock).toHaveBeenCalledTimes(1);
     expect(state?.fortune).toMatchObject(fortune);
+  });
+
+  it('loads the server quota when the Astrology screen requests it', async () => {
+    storage.getItem.mockResolvedValue(null);
+    quotaMock.mockResolvedValue({ limit: 3, used: 1, remaining: 2, localDate: '2026-10-30' });
+    let state: DailyAstroFortuneState | undefined;
+    const profile = {
+      fullName: 'Bình Nguyễn',
+      birthDate: '1996-04-11',
+      gender: 'male' as const,
+    };
+
+    function Harness() {
+      state = useDailyAstroFortune(profile, 'secondary-profile', {
+        autoGenerate: false,
+        loadQuota: true,
+      });
+      return null;
+    }
+
+    await act(async () => {
+      renderer = create(React.createElement(Harness));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(quotaMock).toHaveBeenCalled();
+    expect(state?.quota).toEqual({ limit: 3, used: 1, remaining: 2, localDate: '2026-10-30' });
   });
 });

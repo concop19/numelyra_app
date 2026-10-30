@@ -56,6 +56,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { saveWallpaper } from '../services/wallpaperSaver';
 import { profileItemToUserProfile, UserProfile } from '../store/userProfile';
 import { useProfiles } from '../store/profileContext';
+import { useBilling } from '../store/billingContext';
 import { NumerologyCalculator, reduceNumber } from '../services/numerology24Service';
 import { API_ENDPOINTS, authenticatedFetch, resolveApiUrl } from '../services/apiConfig';
 import { NumerologyCardsModal } from '../components/NumerologyCardsModal';
@@ -181,8 +182,9 @@ function getRandomAffirmation(lifePath: number, intention: string): string {
 
 export default function WallpaperStudioScreen({ profile: primaryProfile, onBack }: Props) {
   const { profiles, primaryProfileId, refreshProfiles } = useProfiles();
+  const { billing, loadState: billingLoadState, reloadBilling } = useBilling();
   const [viewProfileId, setViewProfileId] = useState(primaryProfileId);
-  const { locale, t, l } = useLocalization();
+  const { locale, t, l, formatNumber } = useLocalization();
   // State quản lý luồng màn hình: 'input' -> 'generating' -> 'result'
   const [step, setStep] = useState<ScreenStep>('input');
   const [prompt, setPrompt] = useState<string>('');
@@ -281,6 +283,12 @@ export default function WallpaperStudioScreen({ profile: primaryProfile, onBack 
   const activeWallpaperProfile = (viewProfileItem && profileItemToUserProfile(viewProfileItem))
     || primaryProfile
     || null;
+  const wallpaperQuota = billing?.quota?.wallpaper ?? null;
+  const wallpaperQuotaLimit = Math.max(0, wallpaperQuota?.limit ?? 0);
+  const wallpaperQuotaRemaining = Math.max(
+    0,
+    Math.min(wallpaperQuota?.remaining ?? 0, wallpaperQuotaLimit || Number.MAX_SAFE_INTEGER),
+  );
 
   useFocusEffect(useCallback(() => {
     setViewProfileId(primaryProfileId);
@@ -539,7 +547,11 @@ export default function WallpaperStudioScreen({ profile: primaryProfile, onBack 
             intentionNameEn: data.intention?.name_en || randomIntention.labelEn,
           };
         });
+        void reloadBilling().catch(() => undefined);
       } else {
+        if (res.status === 402 || res.status === 429) {
+          void reloadBilling().catch(() => undefined);
+        }
         errorMessage = data.error || l(`Máy chủ phản hồi mã ${res.status}`, `The server responded with status ${res.status}`);
       }
     } catch (err) {
@@ -649,6 +661,53 @@ export default function WallpaperStudioScreen({ profile: primaryProfile, onBack 
               {viewProfileId === primaryProfileId && <Text style={styles.profileHeaderBadge}>{l('Tôi', 'Me')}</Text>}
               <Ionicons name="chevron-down" size={13} color="#C8B9E4" />
             </TouchableOpacity>
+
+            <LinearGradient
+              accessibilityLabel={wallpaperQuota
+                ? l(
+                    `Còn ${wallpaperQuotaRemaining} trên ${wallpaperQuotaLimit} lượt tạo hình nền`,
+                    `${wallpaperQuotaRemaining} of ${wallpaperQuotaLimit} wallpaper generations remaining`,
+                  )
+                : l('Đang tải số lượt tạo hình nền', 'Loading wallpaper allowance')}
+              accessible
+              colors={['#FFF0A5', '#FF91D9', '#956BFF', '#FFE58B']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.wallpaperQuotaFrame}
+            >
+              <LinearGradient
+                colors={['rgba(80,31,91,0.98)', 'rgba(38,21,84,0.98)', 'rgba(18,14,63,0.98)']}
+                locations={[0, 0.5, 1]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.wallpaperQuotaInner}
+              >
+                <LinearGradient
+                  colors={['#FFE889', '#FF95DB', '#8D65FF']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.wallpaperQuotaIconFrame}
+                >
+                  <View style={styles.wallpaperQuotaIconCore}>
+                    <Ionicons name="image" size={14} color="#FFE38A" />
+                  </View>
+                </LinearGradient>
+                <View style={styles.wallpaperQuotaCopy}>
+                  {billingLoadState === 'loading' && !wallpaperQuota ? (
+                    <ActivityIndicator size={12} color="#FFE38A" />
+                  ) : (
+                    <View style={styles.wallpaperQuotaAmountRow}>
+                      <Text style={styles.wallpaperQuotaRemaining}>
+                        {wallpaperQuota ? formatNumber(wallpaperQuotaRemaining) : '—'}
+                      </Text>
+                      <Text style={styles.wallpaperQuotaLimit}>
+                        / {wallpaperQuota ? formatNumber(wallpaperQuotaLimit) : '—'}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </LinearGradient>
+            </LinearGradient>
 
             <TouchableOpacity
               activeOpacity={0.7}
@@ -1314,9 +1373,12 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   headerRightGroup: {
+    flex: 1,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'flex-end',
+    gap: 6,
   },
   headerIconButton: {
     width: 44,
@@ -1325,7 +1387,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   profileHeaderChip: {
-    maxWidth: Math.min(230, SCREEN_WIDTH - 108),
+    maxWidth: Math.min(180, SCREEN_WIDTH - 216),
+    flexShrink: 1,
     minHeight: 40,
     paddingHorizontal: 10,
     borderRadius: 20,
@@ -1338,6 +1401,72 @@ const styles = StyleSheet.create({
   },
   profileHeaderName: { flexShrink: 1, color: '#FFF7DF', fontSize: 12, fontWeight: '800' },
   profileHeaderBadge: { color: '#2B1A42', backgroundColor: '#F7CC6A', borderRadius: 8, paddingHorizontal: 5, paddingVertical: 2, fontSize: 8, fontWeight: '900', overflow: 'hidden' },
+  wallpaperQuotaFrame: {
+    width: 76,
+    height: 40,
+    borderRadius: 20,
+    padding: 1.5,
+    shadowColor: '#F179FF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.72,
+    shadowRadius: 7,
+    elevation: 6,
+  },
+  wallpaperQuotaInner: {
+    flex: 1,
+    borderRadius: 18.5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,221,248,0.34)',
+  },
+  wallpaperQuotaIconFrame: {
+    width: 27,
+    height: 27,
+    borderRadius: 14,
+    padding: 1.5,
+    marginRight: 4,
+    shadowColor: '#FFE486',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.72,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  wallpaperQuotaIconCore: {
+    flex: 1,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#3C207F',
+  },
+  wallpaperQuotaCopy: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
+  },
+  wallpaperQuotaAmountRow: {
+    minHeight: 20,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+  },
+  wallpaperQuotaRemaining: {
+    color: '#FFE485',
+    fontSize: 14,
+    lineHeight: 16,
+    fontWeight: '900',
+    textShadowColor: 'rgba(255,198,90,0.75)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 4,
+  },
+  wallpaperQuotaLimit: {
+    marginLeft: 1,
+    color: '#D9CBFF',
+    fontSize: 8,
+    lineHeight: 11,
+    fontWeight: '900',
+  },
   headerBackArrow: {
     color: '#FFFFFF',
     fontSize: 28,

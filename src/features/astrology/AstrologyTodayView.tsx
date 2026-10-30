@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ThreeDButton from '../../components/ThreeDButton';
 import type { AstroFortuneSlip } from '../../services/astro/astroFortuneService';
+import type { AstroFortuneQuota } from '../../services/astro/astroFortuneService';
 import type { PureAstroFeatureMetadata } from '../../services/astro/astroVectorEngine';
 import type { UserProfile } from '../../store/userProfile';
 import { AstrologySkyHero } from './AstrologySkyHero';
@@ -52,6 +53,7 @@ interface Props {
   metadata?: PureAstroFeatureMetadata;
   fortune: AstroFortuneSlip | null;
   loading: boolean;
+  fortuneQuota: AstroFortuneQuota | null;
   error: string | null;
   calculationError: string | null;
   onBack(): void;
@@ -62,7 +64,6 @@ interface Props {
   onOpenDetail(target: AstrologyDetailTarget): void;
   onOpenInterpretation(): void;
   onRetry(): void;
-  onShare(): void;
 }
 
 interface WeekDayItem {
@@ -120,6 +121,7 @@ export function AstrologyTodayView({
   metadata,
   fortune,
   loading,
+  fortuneQuota,
   error,
   calculationError,
   onBack,
@@ -130,7 +132,6 @@ export function AstrologyTodayView({
   onOpenDetail,
   onOpenInterpretation,
   onRetry,
-  onShare,
 }: Props) {
   const insets = useSafeAreaInsets();
   const { locale, t, l } = useLocalization();
@@ -205,10 +206,10 @@ export function AstrologyTodayView({
             metadata={metadata}
             fortune={fortune}
             loading={loading}
+            fortuneQuota={fortuneQuota}
             onBack={onBack}
             onProfilePress={onOpenProfile}
             onInterpretationPress={onOpenInterpretation}
-            onShare={onShare}
           />
         )}
 

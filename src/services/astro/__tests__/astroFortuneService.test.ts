@@ -2,6 +2,7 @@ import { authenticatedFetch } from '../../apiConfig';
 import { getContextualDailyCaDao } from '../../../db/cadaoService';
 import {
   buildAstroFortuneRequestPayload,
+  getAstroFortuneQuota,
   requestAstroFortuneSlip,
   resetAstroFortuneRuleContextCapabilityForTests,
 } from '../astroFortuneService';
@@ -85,6 +86,30 @@ describe('astro fortune rule-aware request', () => {
     for (const forbidden of ['private-place-id', 'placeId', 'latitude', 'longitude', 'timeZoneIdentifier']) {
       expect(json).not.toContain(forbidden);
     }
+  });
+
+  it('loads the authoritative Daily Fortune profile quota for a local date', async () => {
+    fetchMock.mockResolvedValueOnce(response(200, {
+      quota: { limit: 3, used: 1, remaining: 2, localDate: '2026-10-30' },
+    }));
+
+    await expect(getAstroFortuneQuota('2026-10-30')).resolves.toEqual({
+      limit: 3,
+      used: 1,
+      remaining: 2,
+      localDate: '2026-10-30',
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://example.test/api/astro/fortune?localDate=2026-10-30',
+      { method: 'GET', cache: 'no-store' },
+    );
+  });
+
+  it('rejects malformed Daily Fortune quota responses', async () => {
+    fetchMock.mockResolvedValueOnce(response(200, {
+      quota: { limit: 3, used: 1 },
+    }));
+    await expect(getAstroFortuneQuota('2026-10-30')).rejects.toThrow('không hợp lệ');
   });
 
   it.each([400, 422])('retries status %s once without ruleContext and remembers legacy mode', async (status) => {

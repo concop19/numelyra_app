@@ -35,8 +35,6 @@ const MonthlyChatQuotaBar: React.FC<Props> = ({ quota, status, isPro, onPress })
   const safeLimit = Math.max(0, quota?.limit ?? 0);
   const safeRemaining = Math.max(0, Math.min(quota?.remaining ?? 0, safeLimit || Number.MAX_SAFE_INTEGER));
   const tone = getChatQuotaTone(safeRemaining, safeLimit);
-  const progress = safeLimit > 0 ? safeRemaining / safeLimit : 0;
-  const progressWidth = `${Math.max(0, Math.min(100, progress * 100))}%` as const;
   const hasCachedQuota = !!quota;
 
   const isLoading = status === 'loading';
@@ -52,7 +50,7 @@ const MonthlyChatQuotaBar: React.FC<Props> = ({ quota, status, isPro, onPress })
         ? l('Chưa tải được · chạm thử lại', 'Unavailable · tap to retry')
         : tone === 'empty'
           ? l('Đã hết lượt tháng này', 'Monthly allowance used')
-          : l('lượt chat tháng này', 'chats this month');
+          : l('Lượt chat', 'Chats left');
 
   const accessibilityLabel = hasCachedQuota
     ? l(
@@ -62,10 +60,16 @@ const MonthlyChatQuotaBar: React.FC<Props> = ({ quota, status, isPro, onPress })
     : label;
 
   const gradientColors = tone === 'empty'
-    ? ['rgba(92, 31, 69, 0.98)', 'rgba(48, 21, 68, 0.98)'] as const
+    ? ['#5B1D45', '#321746', '#17123D'] as const
     : tone === 'low'
-      ? ['rgba(91, 53, 54, 0.98)', 'rgba(45, 26, 70, 0.98)'] as const
-      : ['rgba(69, 42, 121, 0.98)', 'rgba(35, 22, 77, 0.98)'] as const;
+      ? ['#61372E', '#3E204D', '#17123D'] as const
+      : ['#512458', '#2B175A', '#15113D'] as const;
+
+  const borderColors = tone === 'empty'
+    ? ['#FF9CB5', '#FF70B7', '#A45CFF', '#FFBBCB'] as const
+    : tone === 'low'
+      ? ['#FFE58B', '#FFAE73', '#D67CFF', '#FFE4A0'] as const
+      : ['#FFF0A5', '#FF9ADE', '#9A71FF', '#FFE58B'] as const;
 
   const accentColor = tone === 'empty' ? '#FF9CB5' : tone === 'low' ? '#FFD073' : '#FFE08A';
 
@@ -81,61 +85,69 @@ const MonthlyChatQuotaBar: React.FC<Props> = ({ quota, status, isPro, onPress })
       testID="monthly-chat-quota"
     >
       <LinearGradient
-        colors={gradientColors}
+        colors={borderColors}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[
-          styles.pill,
-          tone === 'low' && styles.pillLow,
-          tone === 'empty' && styles.pillEmpty,
-          (isGuest || isUnavailable) && styles.pillMuted,
+          styles.neonFrame,
+          tone === 'empty' && styles.neonFrameEmpty,
+          (isGuest || isUnavailable) && styles.neonFrameMuted,
         ]}
       >
-        <View style={[styles.token, { borderColor: accentColor }]}>
-          <Ionicons
-            name={isGuest ? 'log-in-outline' : 'chatbubble-ellipses'}
-            size={14}
-            color={accentColor}
-          />
-          {isPro && !isGuest && (
-            <View style={styles.proStar}>
-              <Ionicons name="star" size={6} color="#5B3510" />
-            </View>
-          )}
-        </View>
+        <LinearGradient
+          colors={gradientColors}
+          locations={[0, 0.48, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.pill}
+        >
+          <View pointerEvents="none" style={styles.innerBorder} />
+          <View pointerEvents="none" style={styles.topHighlight} />
 
-        <View style={styles.copy}>
-          {isLoading ? (
-            <View style={styles.loadingRow}>
-              <ActivityIndicator size="small" color="#E6C7FF" />
-              <Text numberOfLines={1} style={styles.stateText}>{label}</Text>
-            </View>
-          ) : hasCachedQuota ? (
-            <>
-              <View style={styles.amountRow}>
-                <Text style={[styles.remaining, { color: accentColor }]}>{formatNumber(safeRemaining)}</Text>
-                <Text style={styles.limit}>/ {formatNumber(safeLimit)}</Text>
-                {isOffline && <View accessibilityLabel={l('Dữ liệu ngoại tuyến', 'Offline data')} style={styles.offlineDot} />}
-              </View>
-              <Text numberOfLines={1} style={styles.caption}>{label}</Text>
-            </>
-          ) : (
-            <Text numberOfLines={1} style={styles.stateText}>{label}</Text>
-          )}
-        </View>
-
-        {!isLoading && <Ionicons name="chevron-forward" size={13} color="rgba(244, 232, 255, 0.72)" />}
-
-        {hasCachedQuota && (
-          <View pointerEvents="none" style={styles.progressTrack}>
+          <LinearGradient
+            colors={borderColors}
+            start={{ x: 0.1, y: 0 }}
+            end={{ x: 0.9, y: 1 }}
+            style={styles.tokenFrame}
+          >
             <LinearGradient
-              colors={tone === 'empty' ? ['#FF7E9F', '#D55C91'] : ['#FFE69B', '#C995FF']}
+              colors={['#713166', '#34205F', '#23184F']}
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={[styles.progressFill, { width: progressWidth }]}
-            />
+              end={{ x: 1, y: 1 }}
+              style={styles.token}
+            >
+              <Ionicons
+                name={isGuest ? 'log-in-outline' : 'chatbubble-ellipses'}
+                size={14}
+                color={accentColor}
+              />
+              {isPro && !isGuest && (
+                <View style={styles.proStar}>
+                  <Ionicons name="star" size={5} color="#5B3510" />
+                </View>
+              )}
+            </LinearGradient>
+          </LinearGradient>
+
+          <View style={[styles.copy, !hasCachedQuota && styles.copyState]}>
+            {isLoading ? (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator size="small" color="#FFE08A" />
+                <Text numberOfLines={2} style={styles.stateText}>{label}</Text>
+              </View>
+            ) : hasCachedQuota ? (
+              <>
+                <View style={styles.amountRow}>
+                  <Text style={[styles.remaining, { color: accentColor }]}>{formatNumber(safeRemaining)}</Text>
+                  <Text style={styles.limit}>/ {formatNumber(safeLimit)}</Text>
+                  {isOffline && <View accessibilityLabel={l('Dữ liệu ngoại tuyến', 'Offline data')} style={styles.offlineDot} />}
+                </View>
+              </>
+            ) : (
+              <Text numberOfLines={2} style={styles.stateText}>{label}</Text>
+            )}
           </View>
-        )}
+        </LinearGradient>
       </LinearGradient>
     </TouchableOpacity>
   );
@@ -144,53 +156,81 @@ const MonthlyChatQuotaBar: React.FC<Props> = ({ quota, status, isPro, onPress })
 const styles = StyleSheet.create({
   touchTarget: {
     minHeight: 44,
-    minWidth: 184,
+    minWidth: 104,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  neonFrame: {
+    width: 104,
+    height: 36,
+    borderRadius: 18,
+    padding: 1.5,
+    shadowColor: '#F285FF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.78,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  neonFrameEmpty: {
+    shadowColor: '#FF729F',
+  },
+  neonFrameMuted: {
+    opacity: 0.74,
+    shadowOpacity: 0.36,
   },
   pill: {
-    width: 184,
-    minHeight: 38,
-    borderRadius: 19,
-    borderWidth: 1,
-    borderColor: 'rgba(244, 207, 126, 0.58)',
+    flex: 1,
+    borderRadius: 16.5,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingBottom: 3,
-    shadowColor: '#D7A7FF',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
+    paddingLeft: 4,
+    paddingRight: 6,
     overflow: 'hidden',
   },
-  pillLow: {
-    borderColor: 'rgba(255, 202, 104, 0.72)',
+  innerBorder: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    borderRadius: 16.5,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 209, 245, 0.38)',
   },
-  pillEmpty: {
-    borderColor: 'rgba(255, 139, 172, 0.68)',
+  topHighlight: {
+    position: 'absolute',
+    top: 2,
+    left: 16,
+    right: 16,
+    height: 1,
+    borderRadius: 1,
+    backgroundColor: 'rgba(255, 246, 210, 0.48)',
   },
-  pillMuted: {
-    borderColor: 'rgba(199, 167, 235, 0.38)',
+  tokenFrame: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    padding: 1.5,
+    marginRight: 6,
+    shadowColor: '#FFE38A',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.75,
+    shadowRadius: 4,
+    elevation: 4,
   },
   token: {
-    width: 25,
-    height: 25,
-    borderRadius: 13,
-    borderWidth: 1,
-    backgroundColor: 'rgba(255, 238, 183, 0.11)',
+    flex: 1,
+    borderRadius: 11.5,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 7,
   },
   proStar: {
     position: 'absolute',
-    right: -2,
-    top: -2,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    right: 1,
+    top: 1,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: '#FFE08A',
     alignItems: 'center',
     justifyContent: 'center',
@@ -200,63 +240,50 @@ const styles = StyleSheet.create({
     minWidth: 0,
     justifyContent: 'center',
   },
+  copyState: {
+    paddingRight: 2,
+  },
   amountRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
     minHeight: 18,
   },
   remaining: {
-    fontSize: 15,
-    lineHeight: 17,
+    fontSize: 16,
+    lineHeight: 18,
     fontWeight: '900',
-    letterSpacing: 0.1,
+    letterSpacing: -0.35,
+    textShadowColor: 'rgba(255, 206, 103, 0.72)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 4,
   },
   limit: {
-    marginLeft: 3,
-    color: 'rgba(239, 225, 255, 0.86)',
+    marginLeft: 2,
+    color: '#D9CBFF',
     fontSize: 10,
-    lineHeight: 13,
-    fontWeight: '700',
-  },
-  caption: {
-    marginTop: -1,
-    color: 'rgba(232, 213, 250, 0.86)',
-    fontSize: 8.5,
-    lineHeight: 10,
-    fontWeight: '700',
-    letterSpacing: 0.15,
+    lineHeight: 14,
+    fontWeight: '800',
+    textShadowColor: 'rgba(148, 102, 255, 0.55)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 5,
   },
   stateText: {
     color: '#E7D5F8',
-    fontSize: 10,
-    lineHeight: 13,
-    fontWeight: '700',
+    fontSize: 8,
+    lineHeight: 10,
+    fontWeight: '800',
   },
   loadingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
   },
   offlineDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
     backgroundColor: '#CAB7D8',
     marginLeft: 5,
-  },
-  progressTrack: {
-    position: 'absolute',
-    left: 10,
-    right: 10,
-    bottom: 2,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.10)',
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: 2,
-    borderRadius: 1,
   },
 });
 
