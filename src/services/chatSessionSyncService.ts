@@ -385,9 +385,9 @@ export async function downloadAllCloudProfiles(user?: User | null): Promise<Prof
 export async function downloadAllCloudChatData(
   userId?: string
 ): Promise<{ sessionsCount: number; messagesCount: number }> {
-  if (!supabase) return { sessionsCount: 0, messagesCount: 0 };
+  if (!supabase) throw new Error('Cloud sync is not configured.');
   const currentUserId = userId || (await supabase.auth.getUser()).data.user?.id;
-  if (!currentUserId) return { sessionsCount: 0, messagesCount: 0 };
+  if (!currentUserId) throw new Error('A signed-in user is required to download chat data.');
 
   // 1. Tải toàn bộ sessions của người dùng
   const { data: cloudSessions, error: sessionErr } = await supabase
@@ -398,7 +398,7 @@ export async function downloadAllCloudChatData(
 
   if (sessionErr || !cloudSessions) {
     console.warn('[chatSessionSync] Could not download cloud sessions:', sessionErr);
-    return { sessionsCount: 0, messagesCount: 0 };
+    throw sessionErr ?? new Error('Cloud chat sessions response was empty.');
   }
 
   const sessionList = (cloudSessions as CloudSession[]).map(cloudToLocalSession);
@@ -418,7 +418,7 @@ export async function downloadAllCloudChatData(
 
   if (msgErr || !cloudMessages) {
     console.warn('[chatSessionSync] Could not download cloud messages:', msgErr);
-    return { sessionsCount: sessionList.length, messagesCount: 0 };
+    throw msgErr ?? new Error('Cloud chat messages response was empty.');
   }
 
   const messageList = (cloudMessages as CloudMessage[]).map(cloudToLocalMessage);

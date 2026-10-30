@@ -90,6 +90,18 @@ export default function AstrologyScreen({ profile, onBack, onOpenCalendar }: Pro
     () => selectedProfileItem ? [selectedProfileItem] : [],
     [selectedProfileItem],
   );
+  const astrologyDataQuality = useMemo(() => {
+    const hasExactBirthTime = activeProfile?.birthTimeAccuracy
+      ? activeProfile.birthTimeAccuracy === 'exact' && !!activeProfile.birthTime?.trim()
+      : !!activeProfile?.birthTime?.trim();
+    const missingBirthTime = !hasExactBirthTime;
+    const missingBirthLocation = !activeProfile?.birthLocation;
+    return {
+      isEstimated: missingBirthTime || missingBirthLocation,
+      missingBirthTime,
+      missingBirthLocation,
+    };
+  }, [activeProfile?.birthLocation, activeProfile?.birthTime, activeProfile?.birthTimeAccuracy]);
 
   useFocusEffect(useCallback(() => {
     setViewProfileId(primaryProfileId);
@@ -231,6 +243,7 @@ export default function AstrologyScreen({ profile, onBack, onOpenCalendar }: Pro
         visible={insightVisible}
         fortune={fortune}
         metadata={metadata}
+        dataQuality={astrologyDataQuality}
         onClose={() => setInsightVisible(false)}
       />
     </GestureHandlerRootView>

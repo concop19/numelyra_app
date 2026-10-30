@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Image, ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { CalculatedIndicator } from '../services/numerologyEngine';
 import { getIndicatorReading, KnowledgeReadingResult } from '../services/numerologyKnowledge';
@@ -11,7 +11,7 @@ import ThreeDButton from './ThreeDButton';
 import { useLocalization } from '../i18n/LocalizationContext';
 import { formatIndicatorDisplayValue } from '../services/numerologyPresentation';
 
-const BACKGROUND = require('../../assets/giao_dien/giaodien1/chat_detail/background/background.png');
+const BACKGROUND = require('../../assets/giao_dien/giaodien1/chat_detail/background/background.webp');
 const MAT = require('../../assets/giao_dien/giaodien1/chat_detail/item/tham.png');
 const CHEST = require('../../assets/giao_dien/giaodien1/chat_detail/item/hop.png');
 const CANDLE = require('../../assets/giao_dien/giaodien1/chat_detail/item/nen.png');

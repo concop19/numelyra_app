@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import type { PlaceBudget, PlaceCompanion, PlaceSearchPreferences } from '../../services/placeLocation';
 import ThreeDButton from '../ThreeDButton';
 import { useLocalization } from '../../i18n/LocalizationContext';

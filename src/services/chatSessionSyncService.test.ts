@@ -280,4 +280,34 @@ describe('chatSessionSyncService - 10-message batch sync & full download', () =>
       ])
     );
   });
+
+  it('treats an empty cloud chat history as a successful zero result', async () => {
+    (supabase!.from as jest.Mock).mockImplementationOnce(() => ({
+      select: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          order: jest.fn().mockResolvedValue({ data: [], error: null }),
+        }),
+      }),
+    }));
+
+    await expect(downloadAllCloudChatData('test-user-123')).resolves.toEqual({
+      sessionsCount: 0,
+      messagesCount: 0,
+    });
+  });
+
+  it('rejects when cloud chat sessions cannot be queried', async () => {
+    const cloudError = new Error('network unavailable');
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    (supabase!.from as jest.Mock).mockImplementationOnce(() => ({
+      select: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          order: jest.fn().mockResolvedValue({ data: null, error: cloudError }),
+        }),
+      }),
+    }));
+
+    await expect(downloadAllCloudChatData('test-user-123')).rejects.toBe(cloudError);
+    warnSpy.mockRestore();
+  });
 });

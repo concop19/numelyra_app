@@ -3,6 +3,8 @@ import {
   cloudRowToProfileItem,
   mergeCloudAndLocalProfiles,
   profileItemToCloudPayload,
+  isProfileStateReadyForIdentity,
+  reconcileSelectedProfiles,
 } from './profileSync';
 
 const remoteSelf: ProfileItem = {
@@ -91,6 +93,36 @@ describe('mobile profile cloud synchronization', () => {
     const result = mergeCloudAndLocalProfiles([remoteSelf], [otherAccountProfile], false);
     expect(result.profiles).toEqual([remoteSelf]);
     expect(result.pendingLocalCreates).toEqual([]);
+  });
+
+  it('reconciles selected profiles with refreshed cloud objects and preserves couple order', () => {
+    const partner = {
+      id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      fullName: 'Partner updated',
+      birthDate: '1997-04-12',
+    };
+    const stalePartner = { ...partner, fullName: 'Partner old' };
+    const refreshedSelf = { ...remoteSelf, fullName: 'Minh Anh updated' };
+
+    expect(reconcileSelectedProfiles(
+      [stalePartner, remoteSelf],
+      [refreshedSelf, partner],
+      refreshedSelf,
+    )).toEqual([partner, refreshedSelf]);
+  });
+
+  it('falls back to the primary profile when every selected profile was deleted', () => {
+    expect(reconcileSelectedProfiles(
+      [{ id: 'deleted', fullName: 'Deleted', birthDate: '1990-01-01' }],
+      [remoteSelf],
+      remoteSelf,
+    )).toEqual([remoteSelf]);
+  });
+
+  it('invalidates guest readiness synchronously when a signed-in identity appears', () => {
+    expect(isProfileStateReadyForIdentity(true, 'guest', 'user-123')).toBe(false);
+    expect(isProfileStateReadyForIdentity(true, 'user-123', 'user-123')).toBe(true);
+    expect(isProfileStateReadyForIdentity(true, 'guest', null)).toBe(true);
   });
 });
 

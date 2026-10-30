@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
@@ -22,8 +22,8 @@ import { getLoveReadingViewModel, type LoveReadingProfile } from './loveReadingM
 import { canAutoPlayAmbientAudio, canSetAudioPlayerVolume } from '../../../services/audioPlatform';
 import { useLocalization } from '../../../i18n/LocalizationContext';
 
-const LOADING_BACKGROUND = require('../../../../assets/giao_dien/giaodien1/chat_detail/love/background/loading.png');
-const SUCCESS_BACKGROUND = require('../../../../assets/giao_dien/giaodien1/chat_detail/love/background/success.png');
+const LOADING_BACKGROUND = require('../../../../assets/giao_dien/giaodien1/chat_detail/love/background/loading.webp');
+const SUCCESS_BACKGROUND = require('../../../../assets/giao_dien/giaodien1/chat_detail/love/background/success.webp');
 const LOADING_ANIMATION = require('../../../../assets/giao_dien/giaodien1/chat_detail/love/animation/loading.webp');
 const SUCCESS_ANIMATION = require('../../../../assets/giao_dien/giaodien1/chat_detail/love/animation/success.webp');
 const FAIL_ANIMATION = require('../../../../assets/giao_dien/giaodien1/chat_detail/love/animation/fail.webp');

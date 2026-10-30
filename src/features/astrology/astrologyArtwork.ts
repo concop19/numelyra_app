@@ -21,23 +21,23 @@ export type AstrologyDecorationId =
   | 'starDust';
 
 export const ASTROLOGY_BACKGROUNDS = {
-  today: require('../../../assets/giao_dien/giaodien1/astrology/background/ChatGPT Image Oct 11, 2026, 08_47_57 PM-3.png'),
-  natal: require('../../../assets/giao_dien/giaodien1/astrology/background/ChatGPT Image Oct 11, 2026, 08_47_56 PM-2.png'),
-  detail: require('../../../assets/giao_dien/giaodien1/astrology/background/ChatGPT Image Oct 11, 2026, 08_47_55 PM-1.png'),
-  planetDetail: require('../../../assets/giao_dien/giaodien1/astrology/background/planet-detail-milky-way-v2.png'),
+  today: require('../../../assets/giao_dien/giaodien1/astrology/background/ChatGPT Image Oct 11, 2026, 08_47_57 PM-3.webp'),
+  natal: require('../../../assets/giao_dien/giaodien1/astrology/background/ChatGPT Image Oct 11, 2026, 08_47_56 PM-2.webp'),
+  detail: require('../../../assets/giao_dien/giaodien1/astrology/background/ChatGPT Image Oct 11, 2026, 08_47_55 PM-1.webp'),
+  planetDetail: require('../../../assets/giao_dien/giaodien1/astrology/background/planet-detail-milky-way-v2.webp'),
 } satisfies Record<AstrologyBackgroundVariant, number>;
 
 export const PLANET_PNG = {
-  Sun: require('../../../assets/giao_dien/giaodien1/astrology/plannet/ChatGPT Image Oct 11, 2026, 08_47_26 PM-1.png'),
-  Moon: require('../../../assets/giao_dien/giaodien1/astrology/plannet/ChatGPT Image Oct 11, 2026, 08_47_28 PM-2.png'),
-  Mercury: require('../../../assets/giao_dien/giaodien1/astrology/plannet/ChatGPT Image Oct 11, 2026, 08_47_29 PM-3.png'),
-  Venus: require('../../../assets/giao_dien/giaodien1/astrology/plannet/ChatGPT Image Oct 11, 2026, 08_47_30 PM-4.png'),
-  Mars: require('../../../assets/giao_dien/giaodien1/astrology/plannet/ChatGPT Image Oct 11, 2026, 08_47_32 PM-5.png'),
-  Jupiter: require('../../../assets/giao_dien/giaodien1/astrology/plannet/ChatGPT Image Oct 11, 2026, 08_47_12 PM-1.png'),
-  Saturn: require('../../../assets/giao_dien/giaodien1/astrology/plannet/ChatGPT Image Oct 11, 2026, 08_47_14 PM-2.png'),
-  Uranus: require('../../../assets/giao_dien/giaodien1/astrology/plannet/ChatGPT Image Oct 11, 2026, 08_47_15 PM-3.png'),
-  Neptune: require('../../../assets/giao_dien/giaodien1/astrology/plannet/ChatGPT Image Oct 11, 2026, 08_47_16 PM-4.png'),
-  Pluto: require('../../../assets/giao_dien/giaodien1/astrology/plannet/ChatGPT Image Oct 11, 2026, 08_47_17 PM-5.png'),
+  Sun: require('../../../assets/giao_dien/giaodien1/astrology/plannet/ChatGPT Image Oct 11, 2026, 08_47_26 PM-1.webp'),
+  Moon: require('../../../assets/giao_dien/giaodien1/astrology/plannet/ChatGPT Image Oct 11, 2026, 08_47_28 PM-2.webp'),
+  Mercury: require('../../../assets/giao_dien/giaodien1/astrology/plannet/ChatGPT Image Oct 11, 2026, 08_47_29 PM-3.webp'),
+  Venus: require('../../../assets/giao_dien/giaodien1/astrology/plannet/ChatGPT Image Oct 11, 2026, 08_47_30 PM-4.webp'),
+  Mars: require('../../../assets/giao_dien/giaodien1/astrology/plannet/ChatGPT Image Oct 11, 2026, 08_47_32 PM-5.webp'),
+  Jupiter: require('../../../assets/giao_dien/giaodien1/astrology/plannet/ChatGPT Image Oct 11, 2026, 08_47_12 PM-1.webp'),
+  Saturn: require('../../../assets/giao_dien/giaodien1/astrology/plannet/ChatGPT Image Oct 11, 2026, 08_47_14 PM-2.webp'),
+  Uranus: require('../../../assets/giao_dien/giaodien1/astrology/plannet/ChatGPT Image Oct 11, 2026, 08_47_15 PM-3.webp'),
+  Neptune: require('../../../assets/giao_dien/giaodien1/astrology/plannet/ChatGPT Image Oct 11, 2026, 08_47_16 PM-4.webp'),
+  Pluto: require('../../../assets/giao_dien/giaodien1/astrology/plannet/ChatGPT Image Oct 11, 2026, 08_47_17 PM-5.webp'),
 } satisfies Record<PlanetId, number>;
 
 export const PLANET_SVG = {
@@ -54,18 +54,18 @@ export const PLANET_SVG = {
 } satisfies Record<PlanetId, number>;
 
 export const ZODIAC_PNG = {
-  Aries: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_aries.png'),
-  Taurus: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_taurus.png'),
-  Gemini: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_gemini.png'),
-  Cancer: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_cancer.png'),
-  Leo: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_leo.png'),
-  Virgo: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_virgo.png'),
-  Libra: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_libra.png'),
-  Scorpio: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_scorpio.png'),
-  Sagittarius: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_sagittarius.png'),
-  Capricorn: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_capricorn.png'),
-  Aquarius: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_aquarius.png'),
-  Pisces: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_pisces.png'),
+  Aries: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_aries.webp'),
+  Taurus: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_taurus.webp'),
+  Gemini: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_gemini.webp'),
+  Cancer: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_cancer.webp'),
+  Leo: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_leo.webp'),
+  Virgo: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_virgo.webp'),
+  Libra: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_libra.webp'),
+  Scorpio: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_scorpio.webp'),
+  Sagittarius: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_sagittarius.webp'),
+  Capricorn: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_capricorn.webp'),
+  Aquarius: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_aquarius.webp'),
+  Pisces: require('../../../assets/giao_dien/giaodien1/astrology/zodiac/zodiac_pisces.webp'),
 } satisfies Record<ZodiacId, number>;
 
 export const CONSTELLATION_SVG = {
@@ -114,10 +114,10 @@ export const ASTROLOGY_ARTWORK = {
 };
 
 export const ASTROLOGY_TODAY_ARTWORK = {
-  catSleeping: require('../../../assets/giao_dien/giaodien1/astrology/today/cat_sleeping.png'),
-  wavesWatercolor: require('../../../assets/giao_dien/giaodien1/astrology/today/waves_watercolor.png'),
-  heartFlower: require('../../../assets/giao_dien/giaodien1/astrology/today/heart_flower.png'),
-  compassMap: require('../../../assets/giao_dien/giaodien1/astrology/today/compass_map.png'),
+  catSleeping: require('../../../assets/giao_dien/giaodien1/astrology/today/cat_sleeping.webp'),
+  wavesWatercolor: require('../../../assets/giao_dien/giaodien1/astrology/today/waves_watercolor.webp'),
+  heartFlower: require('../../../assets/giao_dien/giaodien1/astrology/today/heart_flower.webp'),
+  compassMap: require('../../../assets/giao_dien/giaodien1/astrology/today/compass_map.webp'),
 };
 
 export function getGuidanceArtwork(planet: string): number {

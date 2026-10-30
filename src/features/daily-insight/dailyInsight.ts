@@ -4,14 +4,19 @@ import { generatePureAstroVector, type PureAstroFeatureMetadata } from '../../se
 import { makeDaySnapshot, type HourInfo, type LunarDaySnapshot } from '../../services/lunarService';
 import type { RatedActivity } from '../../services/activityRuleEngine';
 import { ASTRO_ENGINE_VERSION } from '../../services/astro/astroVersion';
-import { computeTransitChart } from '../../services/astro/astroEngine';
+import {
+  computeTransitChart,
+  ZODIAC_SIGNS,
+  type AstroBirthDataPrecision,
+} from '../../services/astro/astroEngine';
 import { translate, type AppLocale } from '../../i18n/translations';
 import {
   buildDailyAstroMetricsFromMetadata,
   type DailyAstroMetrics,
 } from '../../services/astro/dailyMetricEngine';
 
-export const DAILY_INSIGHT_ENGINE_VERSION = `daily-insight-v4:${ASTRO_ENGINE_VERSION}`;
+export const LUCKY_COLOR_VERSION = 'lucky-color-24-v1';
+export const DAILY_INSIGHT_ENGINE_VERSION = `daily-insight-v5:${ASTRO_ENGINE_VERSION}:${LUCKY_COLOR_VERSION}`;
 export const DAILY_INSIGHT_QUIET_START = 7;
 export const DAILY_INSIGHT_QUIET_END = 22;
 
@@ -24,11 +29,28 @@ export interface DailyInsightLuckyTime {
 }
 
 export interface DailyInsightLuckyColor {
-  moonSign: string;
-  moonSignLabel: string;
+  id: string;
+  colorSign: string;
+  colorSignLabel: string;
+  variant: LuckyColorVariant;
   name: string;
-  hex: string;
+  swatchHex: string;
+  textHex: string;
   evidence: string;
+  basis: {
+    version: typeof LUCKY_COLOR_VERSION;
+    transitMoonSign: string;
+    natalSunSign: string;
+    natalMoonSign: string;
+    phaseIndex: number;
+    precision: AstroBirthDataPrecision;
+  };
+}
+
+export interface DailyInsightAstrologyQuality {
+  isEstimated: boolean;
+  missingBirthTime: boolean;
+  missingBirthLocation: boolean;
 }
 
 export interface DailyInsight {
@@ -39,6 +61,7 @@ export interface DailyInsight {
   personality: string;
   luckyTime: DailyInsightLuckyTime | null;
   luckyColor: DailyInsightLuckyColor;
+  astroDataQuality: DailyInsightAstrologyQuality;
   directions: { joy: string; wealth: string };
   /** Backward-compat: tên hoạt động có kèm lý do ("Ký kết — Trực Định (Tốt)") */
   recommended: string[];
@@ -111,102 +134,154 @@ export function chooseLuckyAwakeHour(
 
 type LocalizedDailyCopy = Record<AppLocale, string>;
 
-interface MoonSignLuckyColorDefinition {
-  hex: string;
+export type LuckyColorVariant = 'primary' | 'companion';
+
+export interface LuckyColorDefinition {
+  id: string;
+  sign: string;
+  variant: LuckyColorVariant;
+  swatchHex: string;
+  textHex: string;
   signLabel: LocalizedDailyCopy;
   colorName: LocalizedDailyCopy;
 }
 
-export const MOON_SIGN_LUCKY_COLORS: Record<string, MoonSignLuckyColorDefinition> = {
-  Aries: {
-    hex: '#EF4444',
-    signLabel: { vi: 'Bạch Dương', en: 'Aries' },
-    colorName: { vi: 'Đỏ tươi', en: 'Bright red' },
-  },
-  Taurus: {
-    hex: '#F3E6C8',
-    signLabel: { vi: 'Kim Ngưu', en: 'Taurus' },
-    colorName: { vi: 'Trắng ngà', en: 'Ivory' },
-  },
-  Gemini: {
-    hex: '#65C466',
-    signLabel: { vi: 'Song Tử', en: 'Gemini' },
-    colorName: { vi: 'Xanh lá sáng', en: 'Bright green' },
-  },
-  Cancer: {
-    hex: '#C5CED8',
-    signLabel: { vi: 'Cự Giải', en: 'Cancer' },
-    colorName: { vi: 'Bạc', en: 'Silver' },
-  },
-  Leo: {
-    hex: '#F59E0B',
-    signLabel: { vi: 'Sư Tử', en: 'Leo' },
-    colorName: { vi: 'Cam', en: 'Orange' },
-  },
-  Virgo: {
-    hex: '#7A8B3A',
-    signLabel: { vi: 'Xử Nữ', en: 'Virgo' },
-    colorName: { vi: 'Xanh olive', en: 'Olive green' },
-  },
-  Libra: {
-    hex: '#F29BC2',
-    signLabel: { vi: 'Thiên Bình', en: 'Libra' },
-    colorName: { vi: 'Hồng phấn', en: 'Blush pink' },
-  },
-  Scorpio: {
-    hex: '#7F1D3F',
-    signLabel: { vi: 'Bọ Cạp', en: 'Scorpio' },
-    colorName: { vi: 'Đỏ rượu', en: 'Burgundy' },
-  },
-  Sagittarius: {
-    hex: '#F4C542',
-    signLabel: { vi: 'Nhân Mã', en: 'Sagittarius' },
-    colorName: { vi: 'Vàng', en: 'Yellow' },
-  },
-  Capricorn: {
-    hex: '#4B5563',
-    signLabel: { vi: 'Ma Kết', en: 'Capricorn' },
-    colorName: { vi: 'Xám than', en: 'Charcoal gray' },
-  },
-  Aquarius: {
-    hex: '#315C9B',
-    signLabel: { vi: 'Bảo Bình', en: 'Aquarius' },
-    colorName: { vi: 'Xanh dương đậm', en: 'Deep blue' },
-  },
-  Pisces: {
-    hex: '#7CC7D9',
-    signLabel: { vi: 'Song Ngư', en: 'Pisces' },
-    colorName: { vi: 'Xanh biển nhạt', en: 'Light sea blue' },
-  },
-};
+const COLOR = (
+  id: string,
+  sign: string,
+  variant: LuckyColorVariant,
+  signVi: string,
+  nameVi: string,
+  nameEn: string,
+  swatchHex: string,
+  textHex: string,
+): LuckyColorDefinition => ({
+  id,
+  sign,
+  variant,
+  swatchHex,
+  textHex,
+  signLabel: { vi: signVi, en: sign },
+  colorName: { vi: nameVi, en: nameEn },
+});
+
+/** Ordered by zodiac sign, then 0–15° primary and 15–30° companion phase. */
+export const LUCKY_COLOR_PALETTE: readonly LuckyColorDefinition[] = [
+  COLOR('aries-bright-red', 'Aries', 'primary', 'Bạch Dương', 'Đỏ tươi', 'Bright red', '#EF4444', '#A61B2B'),
+  COLOR('aries-ruby-red', 'Aries', 'companion', 'Bạch Dương', 'Đỏ ruby', 'Ruby red', '#B91C3C', '#8F1230'),
+  COLOR('taurus-ivory', 'Taurus', 'primary', 'Kim Ngưu', 'Trắng ngà', 'Ivory', '#F3E6C8', '#705A2F'),
+  COLOR('taurus-sage-green', 'Taurus', 'companion', 'Kim Ngưu', 'Xanh xô thơm', 'Sage green', '#8FAF88', '#3F6347'),
+  COLOR('gemini-bright-green', 'Gemini', 'primary', 'Song Tử', 'Xanh lá sáng', 'Bright green', '#65C466', '#247A3D'),
+  COLOR('gemini-lemon-yellow', 'Gemini', 'companion', 'Song Tử', 'Vàng chanh', 'Lemon yellow', '#D8D34B', '#6C6500'),
+  COLOR('cancer-silver', 'Cancer', 'primary', 'Cự Giải', 'Bạc', 'Silver', '#C5CED8', '#4F5F72'),
+  COLOR('cancer-pearl-blue', 'Cancer', 'companion', 'Cự Giải', 'Xanh ngọc trai', 'Pearl blue', '#AFC8D8', '#3E6175'),
+  COLOR('leo-orange', 'Leo', 'primary', 'Sư Tử', 'Cam', 'Orange', '#F59E0B', '#8A4600'),
+  COLOR('leo-golden', 'Leo', 'companion', 'Sư Tử', 'Vàng kim', 'Golden', '#D9A21B', '#765600'),
+  COLOR('virgo-olive-green', 'Virgo', 'primary', 'Xử Nữ', 'Xanh olive', 'Olive green', '#7A8B3A', '#526025'),
+  COLOR('virgo-moss-green', 'Virgo', 'companion', 'Xử Nữ', 'Xanh rêu', 'Moss green', '#5F7A48', '#3F5A2F'),
+  COLOR('libra-blush-pink', 'Libra', 'primary', 'Thiên Bình', 'Hồng phấn', 'Blush pink', '#F29BC2', '#943565'),
+  COLOR('libra-rose-pink', 'Libra', 'companion', 'Thiên Bình', 'Hồng hoa hồng', 'Rose pink', '#D96C9D', '#8D2F5C'),
+  COLOR('scorpio-burgundy', 'Scorpio', 'primary', 'Bọ Cạp', 'Đỏ rượu', 'Burgundy', '#7F1D3F', '#7F1D3F'),
+  COLOR('scorpio-plum', 'Scorpio', 'companion', 'Bọ Cạp', 'Tím mận', 'Plum', '#63305F', '#63305F'),
+  COLOR('sagittarius-yellow', 'Sagittarius', 'primary', 'Nhân Mã', 'Vàng', 'Yellow', '#F4C542', '#776000'),
+  COLOR('sagittarius-royal-purple', 'Sagittarius', 'companion', 'Nhân Mã', 'Tím hoàng gia', 'Royal purple', '#7051B8', '#543794'),
+  COLOR('capricorn-charcoal-gray', 'Capricorn', 'primary', 'Ma Kết', 'Xám than', 'Charcoal gray', '#4B5563', '#4B5563'),
+  COLOR('capricorn-earth-brown', 'Capricorn', 'companion', 'Ma Kết', 'Nâu đất', 'Earth brown', '#705548', '#634638'),
+  COLOR('aquarius-deep-blue', 'Aquarius', 'primary', 'Bảo Bình', 'Xanh dương đậm', 'Deep blue', '#315C9B', '#315C9B'),
+  COLOR('aquarius-turquoise', 'Aquarius', 'companion', 'Bảo Bình', 'Xanh ngọc lam', 'Turquoise', '#2A9D9A', '#176B6A'),
+  COLOR('pisces-light-sea-blue', 'Pisces', 'primary', 'Song Ngư', 'Xanh biển nhạt', 'Light sea blue', '#7CC7D9', '#2C6978'),
+  COLOR('pisces-lavender', 'Pisces', 'companion', 'Song Ngư', 'Tím oải hương', 'Lavender', '#A78BCA', '#604484'),
+] as const;
+
+export const MOON_SIGN_LUCKY_COLORS: Record<string, readonly [LuckyColorDefinition, LuckyColorDefinition]> =
+  Object.fromEntries(ZODIAC_SIGNS.map((sign, signIndex) => [
+    sign,
+    [LUCKY_COLOR_PALETTE[signIndex * 2], LUCKY_COLOR_PALETTE[signIndex * 2 + 1]],
+  ]));
 
 export function getLuckyColorForMoonSign(
   moonSign: string,
   locale: AppLocale = 'vi',
-): DailyInsightLuckyColor {
-  const definition = MOON_SIGN_LUCKY_COLORS[moonSign];
-  if (!definition) throw new Error(`Unsupported Moon sign: ${moonSign}`);
-  const moonSignLabel = definition.signLabel[locale];
+  variant: LuckyColorVariant = 'primary',
+): LuckyColorDefinition & { name: string; colorSignLabel: string } {
+  const definitions = MOON_SIGN_LUCKY_COLORS[moonSign];
+  if (!definitions) throw new Error(`Unsupported Moon sign: ${moonSign}`);
+  const definition = definitions[variant === 'primary' ? 0 : 1];
   return {
-    moonSign,
-    moonSignLabel,
+    ...definition,
     name: definition.colorName[locale],
-    hex: definition.hex,
-    evidence: locale === 'vi'
-      ? `Mặt Trăng ở ${moonSignLabel} hôm nay`
-      : `Moon in ${moonSignLabel} today`,
+    colorSignLabel: definition.signLabel[locale],
   };
 }
 
 export function buildDailyLuckyColor(
+  profile: UserProfile,
   date = new Date(),
   locale: AppLocale = 'vi',
 ): DailyInsightLuckyColor {
+  const metadata = generatePureAstroVector({
+    birthDate: profile.birthDate,
+    birthTime: profile.birthTime || undefined,
+    fullName: profile.fullName,
+    birthTimeAccuracy: profile.birthTimeAccuracy,
+    resolvedBirthLocation: profile.birthLocation,
+  }, date).metadata;
+  return buildDailyLuckyColorFromMetadata(metadata, date, locale);
+}
+
+function normalizeDegrees(value: number): number {
+  const normalized = value % 360;
+  return normalized < 0 ? normalized + 360 : normalized;
+}
+
+function zodiacLabel(sign: string, locale: AppLocale): string {
+  return MOON_SIGN_LUCKY_COLORS[sign]?.[0].signLabel[locale] ?? sign;
+}
+
+function buildDailyLuckyColorFromMetadata(
+  metadata: PureAstroFeatureMetadata,
+  date: Date,
+  locale: AppLocale,
+): DailyInsightLuckyColor {
   const localNoon = new Date(date);
   localNoon.setHours(12, 0, 0, 0);
-  const moonSign = computeTransitChart(localNoon).planets.Moon?.sign;
-  if (!moonSign) throw new Error('Moon position is unavailable');
-  return getLuckyColorForMoonSign(moonSign, locale);
+  const transitMoon = computeTransitChart(localNoon).planets.Moon;
+  const natalSun = metadata.natalPlanets.find((planet) => planet.name === 'Sun');
+  const natalMoon = metadata.natalPlanets.find((planet) => planet.name === 'Moon');
+  if (!transitMoon || !natalSun || !natalMoon) {
+    throw new Error('Lucky-color planetary positions are unavailable');
+  }
+
+  const personalizedLongitude = normalizeDegrees(
+    transitMoon.longitude + natalSun.longitude + natalMoon.longitude,
+  );
+  const phaseIndex = Math.min(23, Math.floor(personalizedLongitude / 15));
+  const definition = LUCKY_COLOR_PALETTE[phaseIndex];
+  const colorSignLabel = definition.signLabel[locale];
+  const transitMoonLabel = zodiacLabel(transitMoon.sign, locale);
+  const natalSunLabel = zodiacLabel(natalSun.sign, locale);
+  const natalMoonLabel = zodiacLabel(natalMoon.sign, locale);
+
+  return {
+    id: definition.id,
+    colorSign: definition.sign,
+    colorSignLabel,
+    variant: definition.variant,
+    name: definition.colorName[locale],
+    swatchHex: definition.swatchHex,
+    textHex: definition.textHex,
+    evidence: locale === 'vi'
+      ? `Mặt Trăng quá cảnh ở ${transitMoonLabel} × Mặt Trời bản mệnh ở ${natalSunLabel} × Mặt Trăng bản mệnh ở ${natalMoonLabel}`
+      : `Moon in ${transitMoonLabel} × natal Sun in ${natalSunLabel} × natal Moon in ${natalMoonLabel}`,
+    basis: {
+      version: LUCKY_COLOR_VERSION,
+      transitMoonSign: transitMoon.sign,
+      natalSunSign: natalSun.sign,
+      natalMoonSign: natalMoon.sign,
+      phaseIndex,
+      precision: metadata.birthDataPrecision,
+    },
+  };
 }
 
 const TRANSIT_MOON_TONES: Record<string, LocalizedDailyCopy> = {
@@ -347,7 +422,15 @@ export function buildDailyInsight(
     resolvedBirthLocation: profile.birthLocation,
   }, date).metadata;
   const astroMetrics = buildDailyAstroMetricsFromMetadata(metadata, date, locale);
-  const luckyColor = buildDailyLuckyColor(date, locale);
+  const luckyColor = buildDailyLuckyColorFromMetadata(metadata, date, locale);
+  const hasExactBirthTime = profile.birthTimeAccuracy
+    ? profile.birthTimeAccuracy === 'exact' && !!profile.birthTime?.trim()
+    : !!profile.birthTime?.trim();
+  const astroDataQuality: DailyInsightAstrologyQuality = {
+    isEstimated: !hasExactBirthTime || !profile.birthLocation,
+    missingBirthTime: !hasExactBirthTime,
+    missingBirthLocation: !profile.birthLocation,
+  };
   const bestHour = chooseLuckyAwakeHour(snapshot.hours);
 
   // --- Nên làm / Kiêng cữ ---
@@ -375,6 +458,7 @@ export function buildDailyInsight(
       label: bestHour.label,
     } : null,
     luckyColor,
+    astroDataQuality,
     directions: {
       joy: localizeDirection(snapshot.direction.hyThan, locale),
       wealth: localizeDirection(snapshot.direction.taiThan, locale),
@@ -397,7 +481,7 @@ export function buildDailyInsight(
 }
 
 export function getDailyInsightCacheKey(insight: Pick<DailyInsight, 'dateKey' | 'profileKey' | 'locale' | 'timeZone'>): string {
-  return `@numelyra:daily-insight:v4:${insight.dateKey}:${insight.profileKey}:${insight.locale}:${insight.timeZone}`;
+  return `@numelyra:daily-insight:v5:${insight.dateKey}:${insight.profileKey}:${insight.locale}:${insight.timeZone}`;
 }
 
 export interface DailyInsightStorage {
@@ -422,7 +506,8 @@ export async function readCachedDailyInsight(
       && parsed.profileKey === identity.profileKey
       && parsed.locale === identity.locale
       && parsed.timeZone === identity.timeZone
-      && !!parsed.luckyColor
+      && parsed.luckyColor?.basis?.version === LUCKY_COLOR_VERSION
+      && !!parsed.astroDataQuality
       ? parsed as DailyInsight
       : null;
   } catch {

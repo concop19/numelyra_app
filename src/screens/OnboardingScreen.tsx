@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { Image, type ImageSource } from 'expo-image';
 import * as Haptics from 'expo-haptics';
@@ -90,7 +90,7 @@ const FINAL_STEP = 10;
 const TOTAL_STEPS = FINAL_STEP + 1;
 const PROGRESS_KEY = '@numelyra_onboarding_progress_v1';
 
-const BACKGROUND = require('../../assets/giao_dien/giaodien1/chat_screen_asset/backgorund/background_index1.png');
+const BACKGROUND = require('../../assets/giao_dien/giaodien1/chat_screen_asset/backgorund/background_index1.webp');
 const HERO_FLAME_GUIDE = require('../../assets/onboarding/heroes/flame-guide-hug.png');
 const HERO_CHAT = require('../../assets/onboarding/heroes/chat-720.png');
 const HERO_LOVE = require('../../assets/onboarding/heroes/love-720.png');

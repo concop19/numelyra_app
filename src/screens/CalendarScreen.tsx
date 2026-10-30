@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect } from '@react-navigation/native';
@@ -29,7 +29,7 @@ import HourDirectionSheet from '../components/HourDirectionSheet';
 import ProfilePickerModal from '../components/ProfilePickerModal';
 import { useLocalization } from '../i18n/LocalizationContext';
 
-const BG_CALENDAR = require('../../assets/giao_dien/giaodien1/calender_asset/background/calendar_background_v2.png');
+const BG_CALENDAR = require('../../assets/giao_dien/giaodien1/calender_asset/background/calendar_background_v2.webp');
 
 const MONTHS = [
   'Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',

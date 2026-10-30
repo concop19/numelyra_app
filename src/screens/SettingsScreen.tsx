@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect } from '@react-navigation/native';
@@ -45,7 +45,6 @@ import { useLocalization } from '../i18n/LocalizationContext';
 import type { LanguagePreference } from '../i18n/translations';
 import { getGlobalPendingMessageCount } from '../db/chatDatabaseService';
 import {
-  downloadAndSyncAllUserData,
   syncPendingMessagesBatch,
 } from '../services/chatSessionSyncService';
 
@@ -72,13 +71,14 @@ type SettingItemProps = {
 export default function SettingsScreen({ profile, onBack, onRequestLogin }: Props) {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const { user, isConfigured, signOut, syncLocalProfiles } = useAuth();
+  const { user, isConfigured, signOut } = useAuth();
   const { billing, error: initialBillingError, reloadBilling } = useBilling();
   const { locale, preference, setPreference, t, l } = useLocalization();
   const {
     primaryProfileId,
     primaryProfileItem,
     refreshProfiles,
+    syncNow,
     setPrimaryProfile,
   } = useProfiles();
   const [busy, setBusy] = useState(false);
@@ -122,20 +122,15 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
       ),
       [
         {
-          text: l('Tải toàn bộ từ máy chủ về', 'Download all from server'),
+          text: l('Đồng bộ ngay', 'Sync now'),
           onPress: async () => {
             setBusy(true);
             try {
-              const res = await downloadAndSyncAllUserData();
-              await refreshProfiles();
+              await syncNow();
               const count = await getGlobalPendingMessageCount();
               setPendingSyncCount(count);
-              Alert.alert(
-                l('Tải về thành công', 'Download successful'),
-                l(`Đã tải về ${res.profilesCount} hồ sơ và ${res.messagesCount} tin nhắn từ máy chủ.`, `Successfully downloaded ${res.profilesCount} profiles and ${res.messagesCount} messages from server.`)
-              );
             } catch {
-              Alert.alert(l('Thất bại', 'Failed'), l('Không thể tải dữ liệu từ máy chủ.', 'Could not download data from server.'));
+              Alert.alert(l('Thất bại', 'Failed'), l('Không thể đồng bộ dữ liệu đám mây.', 'Could not sync cloud data.'));
             } finally {
               setBusy(false);
             }
@@ -180,10 +175,7 @@ export default function SettingsScreen({ profile, onBack, onRequestLogin }: Prop
   const sync = async () => {
     setBusy(true);
     try {
-      await syncLocalProfiles();
-      await refreshProfiles();
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(l('Đã đồng bộ', 'Sync complete'), l('Hồ sơ trên thiết bị đã được liên kết với tài khoản của bạn.', 'The profiles on this device are now linked to your account.'));
+      await syncNow();
     } catch (error) {
       Alert.alert(l('Không thể đồng bộ', 'Unable to sync'), error instanceof Error ? error.message : l('Vui lòng thử lại.', 'Please try again.'));
     } finally {

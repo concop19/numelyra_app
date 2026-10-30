@@ -1,4 +1,5 @@
-import React, { useRef, useState } from 'react';
+
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
@@ -13,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 
 import ThreeDButton from '../components/ThreeDButton';
@@ -21,8 +22,10 @@ import { useAuth } from '../store/authContext';
 import { useLocalization } from '../i18n/LocalizationContext';
 
 const MASCOT = require('../../assets/giao_dien/Whimsical Flame Mascot Reading a Grimoire.png');
-const AUTH_BACKGROUND = require('../../assets/giao_dien/auth/auth-celestial-background-v1.png');
+const AUTH_BACKGROUND = require('../../assets/giao_dien/auth/auth-celestial-background-v1.webp');
 const INPUT_PLACEHOLDER_COLOR = '#BEB2DC';
+
+type AuthMode = 'signIn' | 'signUp' | 'forgotRequest' | 'resetPassword';
 
 interface Props {
   onAuthenticated: () => void;
@@ -31,19 +34,59 @@ interface Props {
 }
 
 export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowGuest = true }: Props) {
-  const { signIn, signUp, signInWithGoogle, isConfigured } = useAuth();
+  const {
+    signIn,
+    signUp,
+    signInWithGoogle,
+    isConfigured,
+    isPasswordRecovery,
+    requestPasswordReset,
+    verifyPasswordResetOtpAndUpdate,
+    updatePassword,
+    clearPasswordRecovery,
+  } = useAuth();
   const { locale } = useLocalization();
   const en = locale === 'en';
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [authMode, setAuthMode] = useState<AuthMode>(() => (
+    isPasswordRecovery ? 'resetPassword' : 'signIn'
+  ));
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [recoveryToken, setRecoveryToken] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const scrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    if (isPasswordRecovery) {
+      setAuthMode('resetPassword');
+      setError('');
+      setMessage(
+        en
+          ? 'Recovery link verified. Enter your new password below.'
+          : 'Đã xác nhận liên kết khôi phục. Hãy nhập mật khẩu mới bên dưới.'
+      );
+    }
+  }, [en, isPasswordRecovery]);
+
+  const isSignUp = authMode === 'signUp';
+  const isForgotRequest = authMode === 'forgotRequest';
+  const isResetPassword = authMode === 'resetPassword';
+
+  const switchMode = (nextMode: AuthMode) => {
+    void Haptics.selectionAsync();
+    if (nextMode !== 'resetPassword' && isPasswordRecovery) {
+      clearPasswordRecovery();
+    }
+    setAuthMode(nextMode);
+    setError('');
+    setMessage('');
+  };
 
   const revealFocusedInput = () => {
     const keyboardAnimationDelay = Platform.OS === 'ios' ? 260 : 180;
@@ -67,7 +110,91 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
     }
   };
 
+  const handleSendResetRequest = async () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const normalizedEmail = email.trim();
+    if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      setError(en ? 'Enter a valid email address.' : 'Hãy nhập một địa chỉ email hợp lệ.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setMessage('');
+    try {
+      await requestPasswordReset(normalizedEmail);
+      setAuthMode('resetPassword');
+      setMessage(
+        en
+          ? 'Recovery email sent! Enter the code from your email (or tap the recovery link) and set a new password.'
+          : 'Đã gửi email khôi phục! Hãy nhập mã xác nhận trong email (hoặc bấm vào link khôi phục) và đặt mật khẩu mới.'
+      );
+    } catch (resetError) {
+      setError(
+        resetError instanceof Error
+          ? resetError.message
+          : (en ? 'Unable to send recovery email. Please try again.' : 'Không thể gửi email khôi phục. Vui lòng thử lại.')
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPasswordSubmit = async () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (!isPasswordRecovery) {
+      const normalizedEmail = email.trim();
+      if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+        setError(en ? 'Enter the email address for your account.' : 'Hãy nhập địa chỉ email của tài khoản.');
+        return;
+      }
+      if (!recoveryToken.trim()) {
+        setError(en ? 'Enter the verification code from your email.' : 'Hãy nhập mã xác nhận từ email.');
+        return;
+      }
+    }
+
+    if (password.length < 6) {
+      setError(en ? 'New password must contain at least 6 characters.' : 'Mật khẩu mới cần có ít nhất 6 ký tự.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError(en ? 'Confirm password does not match.' : 'Mật khẩu xác nhận không khớp.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setMessage('');
+    try {
+      if (isPasswordRecovery) {
+        await updatePassword(password);
+      } else {
+        await verifyPasswordResetOtpAndUpdate(email.trim(), recoveryToken.trim(), password);
+      }
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      onAuthenticated();
+    } catch (resetError) {
+      setError(
+        resetError instanceof Error
+          ? resetError.message
+          : (en ? 'Unable to reset password. Check your code and try again.' : 'Không thể đặt lại mật khẩu. Hãy kiểm tra lại mã xác nhận và thử lại.')
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const submit = async () => {
+    if (isForgotRequest) {
+      await handleSendResetRequest();
+      return;
+    }
+    if (isResetPassword) {
+      await handleResetPasswordSubmit();
+      return;
+    }
+
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const normalizedEmail = email.trim();
     if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
@@ -91,7 +218,7 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
         const result = await signUp(normalizedEmail, password, fullName);
         if (result.needsEmailConfirmation) {
           setMessage(en ? 'Your account was created. Confirm your email, then sign in.' : 'Tài khoản đã được tạo. Hãy kiểm tra email để xác nhận, rồi đăng nhập lại.');
-          setIsSignUp(false);
+          setAuthMode('signIn');
           return;
         }
       } else {
@@ -104,6 +231,22 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
       setLoading(false);
     }
   };
+
+  const descriptionText = isForgotRequest
+    ? (en ? 'Enter your email to receive a password recovery code and link.' : 'Nhập email để nhận mã xác nhận và liên kết đặt lại mật khẩu.')
+    : isResetPassword
+      ? (en ? 'Create a new password for your NUMELYRA account.' : 'Tạo mật khẩu mới cho tài khoản NUMELYRA của bạn.')
+      : isSignUp
+        ? (en ? 'Create an account to sync your journey.' : 'Tạo tài khoản để đồng bộ hành trình của bạn.')
+        : (en ? 'Sign in to save and sync your journey.' : 'Đăng nhập để lưu và đồng bộ hành trình của bạn.');
+
+  const primaryButtonLabel = isForgotRequest
+    ? (en ? 'SEND RECOVERY CODE' : 'GỬI MÃ KHÔI PHỤC')
+    : isResetPassword
+      ? (en ? 'UPDATE PASSWORD' : 'CẬP NHẬT MẬT KHẨU')
+      : isSignUp
+        ? (en ? 'CREATE ACCOUNT' : 'TẠO TÀI KHOẢN')
+        : (en ? 'SIGN IN' : 'ĐĂNG NHẬP');
 
   return (
     <View style={styles.root}>
@@ -138,31 +281,35 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
             <Text style={styles.eyebrow}>✦ {en ? 'WELCOME TO' : 'CHÀO MỪNG ĐẾN VỚI'}</Text>
             <Text style={styles.brand}>NUMELYRA</Text>
             <Text style={styles.tagline}>{en ? 'Unlock your magic ♡' : 'Đánh thức phép màu của bạn ♡'}</Text>
-            <Text style={styles.description}>{isSignUp ? (en ? 'Create an account to sync your journey.' : 'Tạo tài khoản để đồng bộ hành trình của bạn.') : (en ? 'Sign in to save and sync your journey.' : 'Đăng nhập để lưu và đồng bộ hành trình của bạn.')}</Text>
+            <Text style={styles.description}>{descriptionText}</Text>
 
-            {/* NÚT ĐĂNG NHẬP GOOGLE */}
-            <ThreeDButton
-              accessibilityLabel={en ? 'Continue with Google' : 'Tiếp tục với Google'}
-              disabled={loading || googleLoading || !isConfigured}
-              fullWidth
-              label={en ? 'Continue with Google' : 'Tiếp tục với Google'}
-              leadingIcon={(
-                <View style={styles.googleIconBadge}>
-                  <Text style={styles.googleIconG}>G</Text>
+            {!isForgotRequest && !isResetPassword && (
+              <>
+                {/* NÚT ĐĂNG NHẬP GOOGLE */}
+                <ThreeDButton
+                  accessibilityLabel={en ? 'Continue with Google' : 'Tiếp tục với Google'}
+                  disabled={loading || googleLoading || !isConfigured}
+                  fullWidth
+                  label={en ? 'Continue with Google' : 'Tiếp tục với Google'}
+                  leadingIcon={(
+                    <View style={styles.googleIconBadge}>
+                      <Text style={styles.googleIconG}>G</Text>
+                    </View>
+                  )}
+                  loading={googleLoading}
+                  onPress={handleGoogleSignIn}
+                  style={styles.oauthButton3d}
+                  textStyle={styles.oauthButtonText}
+                  variant="light"
+                />
+
+                <View style={styles.dividerRow}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>{en ? 'OR WITH EMAIL' : 'HOẶC VỚI EMAIL'}</Text>
+                  <View style={styles.dividerLine} />
                 </View>
-              )}
-              loading={googleLoading}
-              onPress={handleGoogleSignIn}
-              style={styles.oauthButton3d}
-              textStyle={styles.oauthButtonText}
-              variant="light"
-            />
-
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>{en ? 'OR WITH EMAIL' : 'HOẶC VỚI EMAIL'}</Text>
-              <View style={styles.dividerLine} />
-            </View>
+              </>
+            )}
 
             {isSignUp && (
               <TextInput
@@ -175,33 +322,81 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
                 style={styles.input}
               />
             )}
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Email"
-              placeholderTextColor={INPUT_PLACEHOLDER_COLOR}
-              autoCapitalize="none"
-              autoComplete="email"
-              keyboardType="email-address"
-              onFocus={revealFocusedInput}
-              style={styles.input}
-            />
-            <View style={styles.passwordRow}>
+
+            {(!isResetPassword || !isPasswordRecovery) && (
               <TextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder={en ? 'Password' : 'Mật khẩu'}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Email"
                 placeholderTextColor={INPUT_PLACEHOLDER_COLOR}
                 autoCapitalize="none"
-                autoComplete={isSignUp ? 'new-password' : 'password'}
+                autoComplete="email"
+                keyboardType="email-address"
                 onFocus={revealFocusedInput}
-                secureTextEntry={!showPassword}
-                style={styles.passwordInput}
+                style={styles.input}
               />
-              <TouchableOpacity activeOpacity={0.7} accessibilityRole="button" onPress={() => { void Haptics.selectionAsync(); setShowPassword((value) => !value); }} style={styles.showButton}>
-                <Text style={styles.showButtonText}>{showPassword ? (en ? 'HIDE' : 'ẨN') : (en ? 'SHOW' : 'HIỆN')}</Text>
+            )}
+
+            {isResetPassword && !isPasswordRecovery && (
+              <TextInput
+                value={recoveryToken}
+                onChangeText={setRecoveryToken}
+                placeholder={en ? 'Verification code (OTP from email)' : 'Mã xác nhận (OTP từ email)'}
+                placeholderTextColor={INPUT_PLACEHOLDER_COLOR}
+                autoCapitalize="none"
+                keyboardType="number-pad"
+                onFocus={revealFocusedInput}
+                style={styles.input}
+              />
+            )}
+
+            {!isForgotRequest && (
+              <View style={styles.passwordRow}>
+                <TextInput
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder={isResetPassword ? (en ? 'New password' : 'Mật khẩu mới') : (en ? 'Password' : 'Mật khẩu')}
+                  placeholderTextColor={INPUT_PLACEHOLDER_COLOR}
+                  autoCapitalize="none"
+                  autoComplete={isSignUp || isResetPassword ? 'new-password' : 'password'}
+                  onFocus={revealFocusedInput}
+                  secureTextEntry={!showPassword}
+                  style={styles.passwordInput}
+                />
+                <TouchableOpacity activeOpacity={0.7} accessibilityRole="button" onPress={() => { void Haptics.selectionAsync(); setShowPassword((value) => !value); }} style={styles.showButton}>
+                  <Text style={styles.showButtonText}>{showPassword ? (en ? 'HIDE' : 'ẨN') : (en ? 'SHOW' : 'HIỆN')}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {isResetPassword && (
+              <View style={[styles.passwordRow, styles.confirmPasswordRow]}>
+                <TextInput
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  placeholder={en ? 'Confirm new password' : 'Nhập lại mật khẩu mới'}
+                  placeholderTextColor={INPUT_PLACEHOLDER_COLOR}
+                  autoCapitalize="none"
+                  autoComplete="new-password"
+                  onFocus={revealFocusedInput}
+                  secureTextEntry={!showPassword}
+                  style={styles.passwordInput}
+                />
+              </View>
+            )}
+
+            {authMode === 'signIn' && (
+              <TouchableOpacity
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                onPress={() => switchMode('forgotRequest')}
+                style={styles.forgotButton}
+              >
+                <Text style={styles.forgotButtonText}>
+                  {en ? 'Forgot password?' : 'Quên mật khẩu?'}
+                </Text>
               </TouchableOpacity>
-            </View>
+            )}
 
             {!isConfigured && <Text style={styles.error}>{en ? 'Supabase is not configured. You can still continue as a guest.' : 'Chưa có cấu hình Supabase cho mobile app. Bạn vẫn có thể dùng chế độ Khách.'}</Text>}
             {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
@@ -210,7 +405,7 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
             <ThreeDButton
               disabled={loading || googleLoading || !isConfigured}
               fullWidth
-              label={isSignUp ? (en ? 'CREATE ACCOUNT' : 'TẠO TÀI KHOẢN') : (en ? 'SIGN IN' : 'ĐĂNG NHẬP')}
+              label={primaryButtonLabel}
               loading={loading}
               onPress={submit}
               size="lg"
@@ -219,13 +414,73 @@ export default function LoginScreen({ onAuthenticated, onContinueAsGuest, allowG
               variant="brand"
             />
 
-            <TouchableOpacity activeOpacity={0.7} accessibilityRole="button" onPress={() => { void Haptics.selectionAsync(); setIsSignUp((value) => !value); setError(''); setMessage(''); }} style={styles.modeButton}>
-              <Text style={styles.modeText}>{isSignUp ? (en ? 'Already have an account? ' : 'Đã có tài khoản? ') : (en ? 'New to Numelyra? ' : 'Chưa có tài khoản? ')}<Text style={styles.modeEmphasis}>{isSignUp ? (en ? 'Sign in' : 'Đăng nhập') : (en ? 'Create account' : 'Tạo tài khoản')}</Text></Text>
-            </TouchableOpacity>
-            {allowGuest && (
-              <TouchableOpacity activeOpacity={0.7} accessibilityRole="button" onPress={() => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onContinueAsGuest(); }} style={styles.guestButton}>
-                <Text style={styles.guestText}>{en ? 'Continue as guest' : 'Tiếp tục với tư cách Khách'}</Text>
-              </TouchableOpacity>
+            {isForgotRequest && (
+              <>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  onPress={() => switchMode('resetPassword')}
+                  style={styles.modeButton}
+                >
+                  <Text style={styles.modeText}>
+                    {en ? 'Already have a recovery code? ' : 'Đã có mã xác nhận? '}
+                    <Text style={styles.modeEmphasis}>{en ? 'Enter code' : 'Nhập mã ngay'}</Text>
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  onPress={() => switchMode('signIn')}
+                  style={styles.guestButton}
+                >
+                  <Text style={styles.guestText}>{en ? 'Back to sign in' : 'Quay lại đăng nhập'}</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {isResetPassword && (
+              <>
+                {!isPasswordRecovery && (
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    disabled={loading}
+                    onPress={() => { void handleSendResetRequest(); }}
+                    style={styles.modeButton}
+                  >
+                    <Text style={styles.modeText}>
+                      {en ? "Didn't receive the code? " : 'Chưa nhận được mã? '}
+                      <Text style={styles.modeEmphasis}>{en ? 'Resend email' : 'Gửi lại email'}</Text>
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  onPress={() => switchMode('signIn')}
+                  style={styles.guestButton}
+                >
+                  <Text style={styles.guestText}>{en ? 'Back to sign in' : 'Quay lại đăng nhập'}</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {!isForgotRequest && !isResetPassword && (
+              <>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  onPress={() => switchMode(isSignUp ? 'signIn' : 'signUp')}
+                  style={styles.modeButton}
+                >
+                  <Text style={styles.modeText}>{isSignUp ? (en ? 'Already have an account? ' : 'Đã có tài khoản? ') : (en ? 'New to Numelyra? ' : 'Chưa có tài khoản? ')}<Text style={styles.modeEmphasis}>{isSignUp ? (en ? 'Sign in' : 'Đăng nhập') : (en ? 'Create account' : 'Tạo tài khoản')}</Text></Text>
+                </TouchableOpacity>
+                {allowGuest && (
+                  <TouchableOpacity activeOpacity={0.7} accessibilityRole="button" onPress={() => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onContinueAsGuest(); }} style={styles.guestButton}>
+                    <Text style={styles.guestText}>{en ? 'Continue as guest' : 'Tiếp tục với tư cách Khách'}</Text>
+                  </TouchableOpacity>
+                )}
+              </>
             )}
             </View>
           </ScrollView>
@@ -262,9 +517,12 @@ const styles = StyleSheet.create({
   description: { color: '#DED5F3', fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 14, marginBottom: 18 },
   input: { minHeight: 50, marginBottom: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: 'rgba(218, 185, 255, 0.28)', borderRadius: 13, backgroundColor: 'rgba(103, 78, 187, 0.32)', color: '#FFF9FE', fontSize: 15 },
   passwordRow: { minHeight: 50, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(218, 185, 255, 0.28)', borderRadius: 13, backgroundColor: 'rgba(103, 78, 187, 0.32)' },
+  confirmPasswordRow: { marginTop: 10 },
   passwordInput: { flex: 1, paddingHorizontal: 14, color: '#FFF9FE', fontSize: 15 },
   showButton: { paddingHorizontal: 13, paddingVertical: 12 },
   showButtonText: { color: '#FFB1CF', fontSize: 11, fontWeight: '800' },
+  forgotButton: { alignSelf: 'flex-end', paddingTop: 10, paddingBottom: 2 },
+  forgotButtonText: { color: '#FFD59A', fontSize: 12, fontWeight: '700' },
   submit3d: { marginTop: 16 },
   error: { color: '#FFD0DA', fontSize: 12, lineHeight: 18, marginTop: 12, textAlign: 'center' },
   message: { color: '#A8F1D0', fontSize: 12, lineHeight: 18, marginTop: 12, textAlign: 'center' },

@@ -23,7 +23,7 @@ function mdiSvg(pathData: string): string {
 
 // Versioned filename intentionally busts Metro/device image caches when the
 // generated wallpaper art changes without changing its logical role.
-const galaxyBackground = require('../../../assets/giao_dien/giaodien1/constellation/galaxy-background-v2.png');
+const galaxyBackground = require('../../../assets/giao_dien/giaodien1/constellation/galaxy-background-v2.webp');
 const auroraOverlay = require('../../../assets/giao_dien/giaodien1/constellation/aurora-overlay.png');
 
 export const DEFAULT_ASTROLOGY_SYMBOL_ID = 'heart';

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import type { Session, User } from '@supabase/supabase-js';
 import * as WebBrowser from 'expo-web-browser';
@@ -32,16 +32,25 @@ WebBrowser.maybeCompleteAuthSession();
 
 type SignUpResult = { needsEmailConfirmation: boolean };
 
+export type ProfileSyncResult = {
+  profilesCount: number;
+};
+
 type AuthContextValue = {
   isReady: boolean;
   session: Session | null;
   user: User | null;
   isConfigured: boolean;
+  isPasswordRecovery: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName?: string) => Promise<SignUpResult>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
-  syncLocalProfiles: () => Promise<void>;
+  syncLocalProfiles: (userOverride?: User | null) => Promise<ProfileSyncResult>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  verifyPasswordResetOtpAndUpdate: (email: string, token: string, newPassword: string) => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<void>;
+  clearPasswordRecovery: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -51,13 +60,13 @@ const configurationError = () => new Error(
 );
 
 let isSetPrimaryRpcSupported = true;
-const profileSyncInFlight = new Map<string, Promise<void>>();
-let profileSyncQueue: Promise<void> = Promise.resolve();
+const profileSyncInFlight = new Map<string, Promise<ProfileSyncResult>>();
+let profileSyncQueue: Promise<unknown> = Promise.resolve();
 let activeProfileSyncUserId: string | null = null;
 let profileSyncGeneration = 0;
 
-async function syncProfilesForUser(user: User): Promise<void> {
-  if (!supabase) return;
+async function syncProfilesForUser(user: User): Promise<ProfileSyncResult> {
+  if (!supabase) throw configurationError();
 
   if (activeProfileSyncUserId !== user.id) {
     activeProfileSyncUserId = user.id;
@@ -76,8 +85,8 @@ async function syncProfilesForUser(user: User): Promise<void> {
   return promise;
 }
 
-async function syncProfilesForUserInternal(user: User, generation: number): Promise<void> {
-  if (!supabase) return;
+async function syncProfilesForUserInternal(user: User, generation: number): Promise<ProfileSyncResult> {
+  if (!supabase) throw configurationError();
   try {
     const cacheOwnerId = await getProfileCacheOwnerId();
     const canClaimLocalProfiles = cacheOwnerId === null || cacheOwnerId === user.id;
@@ -97,7 +106,9 @@ async function syncProfilesForUserInternal(user: User, generation: number): Prom
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
     if (selectError) throw selectError;
-    if (generation !== profileSyncGeneration || activeProfileSyncUserId !== user.id) return;
+    if (generation !== profileSyncGeneration || activeProfileSyncUserId !== user.id) {
+      throw new Error('Profile sync was superseded by another account.');
+    }
 
     let remoteItems = ((remoteProfiles || []) as CloudNumerologyProfileRow[])
       .map(cloudRowToProfileItem);
@@ -153,7 +164,9 @@ async function syncProfilesForUserInternal(user: User, generation: number): Prom
 
     // 3. Atomically replace the active cache with this account's resolved set.
     const unifiedProfiles = mergeResult.profiles;
-    if (generation !== profileSyncGeneration || activeProfileSyncUserId !== user.id) return;
+    if (generation !== profileSyncGeneration || activeProfileSyncUserId !== user.id) {
+      throw new Error('Profile sync was superseded by another account.');
+    }
 
     // Backfill portable details from an existing installation after the schema
     // migration. This makes those fields available to the next fresh device.
@@ -229,13 +242,51 @@ async function syncProfilesForUserInternal(user: User, generation: number): Prom
         full_name: chosenPrimary.fullName || user.user_metadata?.full_name || null,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'id' });
-      if (accountError) throw accountError;
+      if (accountError) {
+        console.warn('[Auth] Could not update account profile metadata:', accountError);
+      }
     } else {
       await clearLocalProfiles({ preserveOwner: true });
     }
+    return { profilesCount: unifiedProfiles.length };
   } catch (error) {
     console.warn('[Auth] Could not sync local profiles with Supabase:', error);
+    throw error;
   }
+}
+
+async function handleAuthCallbackUrl(url: string): Promise<{ isRecovery: boolean }> {
+  if (!supabase || !url) return { isRecovery: false };
+  const hash = url.includes('#') ? url.split('#')[1] : '';
+  const query = url.includes('?') ? url.split('?')[1].split('#')[0] : '';
+  const hashParams = new URLSearchParams(hash);
+  const queryParams = new URLSearchParams(query);
+  const getParam = (key: string) => hashParams.get(key) || queryParams.get(key);
+
+  const isRecovery = getParam('type') === 'recovery';
+
+  // 1. If PKCE flow (returns code)
+  const code = getParam('code');
+  if (code) {
+    const { error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
+    if (sessionError) throw sessionError;
+    return { isRecovery };
+  }
+
+  // 2. If Implicit flow (returns access_token & refresh_token)
+  const accessToken = getParam('access_token');
+  const refreshToken = getParam('refresh_token');
+
+  if (accessToken && refreshToken) {
+    const { error: sessionError } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+    if (sessionError) throw sessionError;
+    return { isRecovery };
+  }
+
+  return { isRecovery: false };
 }
 
 async function performGoogleSignIn(): Promise<void> {
@@ -274,37 +325,8 @@ async function performGoogleSignIn(): Promise<void> {
     if (data?.url) {
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
       if (result.type === 'success' && result.url) {
-        const url = result.url;
-        console.log(`[Auth] ${provider} OAuth callback URL received:`, url);
-        const hash = url.includes('#') ? url.split('#')[1] : '';
-        const query = url.includes('?') ? url.split('?')[1].split('#')[0] : '';
-        const params = new URLSearchParams(hash || query);
-
-        // 1. If PKCE flow (returns code)
-        const code = params.get('code');
-        if (code) {
-          const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
-          if (sessionError) throw sessionError;
-          if (sessionData.user) {
-            await syncProfilesForUser(sessionData.user);
-          }
-          return;
-        }
-
-        // 2. If Implicit flow (returns access_token & refresh_token)
-        const accessToken = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
-
-        if (accessToken && refreshToken) {
-          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-          if (sessionError) throw sessionError;
-          if (sessionData.user) {
-            await syncProfilesForUser(sessionData.user);
-          }
-        }
+        console.log(`[Auth] ${provider} OAuth callback URL received:`, result.url);
+        await handleAuthCallbackUrl(result.url);
       }
     }
   }
@@ -313,6 +335,22 @@ async function performGoogleSignIn(): Promise<void> {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isReady, setIsReady] = useState(!isSupabaseConfigured);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  const sessionRef = useRef<Session | null>(null);
+
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
+  const syncLocalProfiles = useCallback(async (userOverride?: User | null): Promise<ProfileSyncResult> => {
+    let targetUser = userOverride ?? sessionRef.current?.user ?? null;
+    if (!targetUser && supabase) {
+      const { data } = await supabase.auth.getSession();
+      targetUser = data.session?.user ?? null;
+    }
+    if (!targetUser) return { profilesCount: 0 };
+    return syncProfilesForUser(targetUser);
+  }, []);
 
   useEffect(() => {
     if (!supabase) return;
@@ -322,9 +360,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!active) return;
       setSession(data.session);
       setIsReady(true);
-      if (data.session?.user) void syncProfilesForUser(data.session.user);
     }).catch(() => {
       if (active) setIsReady(true);
+    });
+
+    const inspectIncomingAuthUrl = (incomingUrl: string | null) => {
+      if (!incomingUrl) return;
+      if (
+        incomingUrl.includes('auth-callback')
+        || incomingUrl.includes('type=recovery')
+        || incomingUrl.includes('access_token=')
+        || incomingUrl.includes('code=')
+      ) {
+        void handleAuthCallbackUrl(incomingUrl).then(({ isRecovery }) => {
+          if (active && isRecovery) {
+            setIsPasswordRecovery(true);
+          }
+        }).catch((err) => {
+          console.warn('[Auth] Failed to process auth callback URL:', err);
+        });
+      }
+    };
+
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      inspectIncomingAuthUrl(window.location.href);
+    } else {
+      void Linking.getInitialURL().then(inspectIncomingAuthUrl).catch(() => undefined);
+    }
+
+    const urlSub = Linking.addEventListener('url', ({ url }) => {
+      inspectIncomingAuthUrl(url);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, nextSession) => {
@@ -332,15 +397,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         activeProfileSyncUserId = null;
         profileSyncGeneration += 1;
         profileSyncInFlight.clear();
+        setIsPasswordRecovery(false);
         void clearLocalProfiles().finally(() => setSession(null));
         return;
       }
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecovery(true);
+      }
       setSession(nextSession);
-      if (nextSession?.user) void syncProfilesForUser(nextSession.user);
     });
 
     return () => {
       active = false;
+      urlSub.remove();
       listener.subscription.unsubscribe();
     };
   }, []);
@@ -350,11 +419,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     user: session?.user || null,
     isConfigured: isSupabaseConfigured,
+    isPasswordRecovery,
     async signIn(email, password) {
       if (!supabase) throw configurationError();
       const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (error) throw error;
-      if (data.user) await syncProfilesForUser(data.user);
+      if (data.session) setSession(data.session);
+      setIsPasswordRecovery(false);
     },
     async signUp(email, password, fullName) {
       if (!supabase) throw configurationError();
@@ -364,7 +435,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         options: { data: { full_name: fullName?.trim() || undefined } },
       });
       if (error) throw error;
-      if (data.user) await syncProfilesForUser(data.user);
+      if (data.session) setSession(data.session);
       return { needsEmailConfirmation: Boolean(data.user && !data.session) };
     },
     async signOut() {
@@ -374,15 +445,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       activeProfileSyncUserId = null;
       profileSyncGeneration += 1;
       profileSyncInFlight.clear();
+      setIsPasswordRecovery(false);
       await clearLocalProfiles();
     },
     async signInWithGoogle() {
       await performGoogleSignIn();
     },
-    async syncLocalProfiles() {
-      if (session?.user) await syncProfilesForUser(session.user);
+    syncLocalProfiles,
+    async requestPasswordReset(email) {
+      if (!supabase) throw configurationError();
+      const redirectTo = Platform.OS === 'web'
+        ? (typeof window !== 'undefined' ? window.location.origin : undefined)
+        : Linking.createURL('auth-callback');
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo,
+      });
+      if (error) throw error;
     },
-  }), [isReady, session]);
+    async verifyPasswordResetOtpAndUpdate(email, token, newPassword) {
+      if (!supabase) throw configurationError();
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: token.trim(),
+        type: 'recovery',
+      });
+      if (verifyError) throw verifyError;
+
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+      if (updateError) throw updateError;
+      setIsPasswordRecovery(false);
+    },
+    async updatePassword(newPassword) {
+      if (!supabase) throw configurationError();
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+      if (error) throw error;
+      setIsPasswordRecovery(false);
+    },
+    clearPasswordRecovery() {
+      setIsPasswordRecovery(false);
+    },
+  }), [isPasswordRecovery, isReady, session, syncLocalProfiles]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

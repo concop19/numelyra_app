@@ -16,7 +16,7 @@ import {
   NativeScrollEvent,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { calculate24Indicators, CalculatedIndicator } from '../services/numerologyEngine';
 import { IndicatorCategory } from '../config/numerologyCards';
@@ -31,7 +31,7 @@ import { type ProfileItem } from '../store/userProfile';
 import { useLocalization } from '../i18n/LocalizationContext';
 
 // Hình nền Vũ Trụ Thần Số Học của Numelyra
-const BG_NUMELYRA_24 = require('../../assets/background/numelyra_background.png');
+const BG_NUMELYRA_24 = require('../../assets/background/numelyra_background.webp');
 
 /**
  * Hệ màu thiết kế chuẩn của ứng dụng Numelyra:

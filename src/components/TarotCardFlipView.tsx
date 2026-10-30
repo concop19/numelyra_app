@@ -7,7 +7,7 @@ import {
   StyleSheet, View, Text, TouchableOpacity,
   Animated, Image, Platform
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import {
   DrawnCardResult,

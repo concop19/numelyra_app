@@ -16,14 +16,15 @@ import {
   Animated, Easing, Image, Alert, ScrollView, Modal, Linking,
   ActivityIndicator, useWindowDimensions, type ImageSourcePropType
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { UserProfile, ProfileItem, getActiveProfile } from '../store/userProfile';
+import { UserProfile, ProfileItem } from '../store/userProfile';
 import { useAuth } from '../store/authContext';
+import { useProfiles } from '../store/profileContext';
 import { startVoiceListening, stopVoiceListening, isVoiceSupported } from '../services/voiceService';
 import ProfilePickerModal from '../components/ProfilePickerModal';
 import ThreeDButton from '../components/ThreeDButton';
@@ -83,11 +84,10 @@ import {
 } from '../db/chatDatabaseService';
 import {
   cacheInitialContinuationSession,
-  downloadAllCloudChatData,
-  downloadAndSyncAllUserData,
   syncPendingMessagesBatch,
   PENDING_SYNC_THRESHOLD,
 } from '../services/chatSessionSyncService';
+import { reconcileSelectedProfiles } from '../services/profileSync';
 import { useLocalization } from '../i18n/LocalizationContext';
 import { buildDailyInsight, cacheDailyInsight } from '../features/daily-insight/dailyInsight';
 import DailyInsightSheet from '../features/daily-insight/DailyInsightSheet';
@@ -675,6 +675,13 @@ export default function ChatScreen({
   const { width: viewportWidth } = useWindowDimensions();
   const { user } = useAuth();
   const {
+    profiles,
+    primaryProfileItem,
+    cloudSyncState,
+    chatRevision,
+    syncNow,
+  } = useProfiles();
+  const {
     billing,
     loadState: quotaLoadState,
     reloadBilling,
@@ -1069,8 +1076,6 @@ export default function ChatScreen({
     setVisibleMessageCount(message.sender === 'mascot' ? 2 : 1);
   }, []);
 
-  const [isDownloadingCloud, setIsDownloadingCloud] = useState(false);
-
   /** Lưu tin nhắn vào local SQLite và tự động kích hoạt batch sync khi tích lũy đủ 10 tin pending */
   const recordAndCheckPendingMessage = useCallback(async (msg: MessageItem) => {
     try {
@@ -1110,30 +1115,17 @@ export default function ChatScreen({
       );
       return;
     }
-    setIsDownloadingCloud(true);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
-      const res = await downloadAndSyncAllUserData();
-      const refreshed = await loadChatHistory(chatHistoryOwner);
-      setMessages(refreshed);
-      setVisibleMessageCount(getLatestConversationCount(refreshed));
-      Alert.alert(
-        l('Tải về thành công', 'Download successful'),
-        l(
-          `Đã tải về toàn bộ ${res.profilesCount} hồ sơ và ${res.messagesCount} tin nhắn từ máy chủ.`,
-          `Successfully downloaded ${res.profilesCount} profiles and ${res.messagesCount} messages from server.`
-        )
-      );
+      await syncNow();
     } catch (err) {
       console.warn('[ChatScreen] Full download error:', err);
       Alert.alert(
         l('Không thể tải về', 'Download failed'),
         l('Đã có lỗi khi tải dữ liệu từ máy chủ. Vui lòng thử lại sau.', 'Could not download data from server. Please try again.')
       );
-    } finally {
-      setIsDownloadingCloud(false);
     }
-  }, [chatHistoryOwner, user, l]);
+  }, [user, l, syncNow]);
 
 
   const openRawReading = useCallback((message: MessageItem) => {
@@ -1240,24 +1232,7 @@ export default function ChatScreen({
       setHydratedHistoryOwner(chatHistoryOwner);
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 0);
 
-      // Tự động tải tin nhắn từ server về app khi đã đăng nhập (Cloud -> Local)
       if (chatHistoryOwner !== 'guest') {
-        void downloadAllCloudChatData(chatHistoryOwner).then((result) => {
-          if (!isCurrentOwner) return;
-          if (result.messagesCount > 0) {
-            void loadChatHistory(chatHistoryOwner).then((cloudMergedHistory) => {
-              if (!isCurrentOwner) return;
-              const refreshedHistory = cloudMergedHistory as MessageItem[];
-              setMessages(refreshedHistory);
-              setVisibleMessageCount(getLatestConversationCount(refreshedHistory));
-              setFlippedCards(getRestoredFlippedCards(refreshedHistory));
-              setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
-            });
-          }
-        }).catch((err) => {
-          console.warn('[ChatScreen] Auto cloud chat download error:', err);
-        });
-
         // Kiểm tra và đẩy các tin nhắn pending tích lũy nếu đạt ngưỡng 10 tin
         void syncPendingMessagesBatch(PENDING_SYNC_THRESHOLD).catch(() => {});
       }
@@ -1267,7 +1242,7 @@ export default function ChatScreen({
       isCurrentOwner = false;
       void ttsService.stop();
     };
-  }, [chatHistoryOwner]);
+  }, [chatHistoryOwner, chatRevision]);
 
   useEffect(() => {
     if (!isHistoryReady) return;
@@ -1280,22 +1255,17 @@ export default function ChatScreen({
     void saveChatHistory(chatHistoryOwner, messages);
   }, [chatHistoryOwner, isHistoryReady, messages]);
 
-  // Load active profile on mount
+  // Keep the current single/couple selection, but replace stale objects with
+  // the latest cloud-backed versions and fall back when a profile was deleted.
   useEffect(() => {
-    (async () => {
-      const active = await getActiveProfile();
-      if (active) {
-        setSelectedProfiles([active]);
-      } else if (profile) {
-        setSelectedProfiles([{
-          id: 'default-profile',
-          fullName: profile.fullName,
-          birthDate: profile.birthDate,
-          gender: profile.gender
-        }]);
-      }
-    })();
-  }, [profile]);
+    const fallbackProfile = primaryProfileItem ?? (profile ? {
+      id: primaryProfileId || 'default-profile',
+      fullName: profile.fullName,
+      birthDate: profile.birthDate,
+      gender: profile.gender,
+    } : null);
+    setSelectedProfiles((current) => reconcileSelectedProfiles(current, profiles, fallbackProfile));
+  }, [primaryProfileId, primaryProfileItem, profile, profiles]);
 
   // Cleanup voice on unmount
   useEffect(() => {
@@ -2588,11 +2558,11 @@ export default function ChatScreen({
           <TouchableOpacity
             accessibilityRole="button"
             accessibilityLabel={l('Tải toàn bộ dữ liệu từ máy chủ', 'Download all data from server')}
-            disabled={isDownloadingCloud}
+            disabled={cloudSyncState.status === 'syncing'}
             onPress={handleDownloadAllData}
             style={styles.headerCircleBtn}
           >
-            {isDownloadingCloud ? (
+            {cloudSyncState.status === 'syncing' ? (
               <ActivityIndicator size="small" color="#E0AAFF" />
             ) : (
               <Ionicons name="cloud-download-outline" size={20} color="#E0AAFF" />

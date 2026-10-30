@@ -16,7 +16,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,7 +24,7 @@ import type { DayActivities, DayDirection, HourInfo } from '../services/lunarSer
 import { buildHourlyActivities } from '../services/activityRuleEngine';
 import { useLocalization } from '../i18n/LocalizationContext';
 
-const HERO_BACKGROUND = require('../../assets/giao_dien/giaodien1/calender_asset/hoursDetailAsset/Celestial Moonlit Mountain Lake.png');
+const HERO_BACKGROUND = require('../../assets/giao_dien/giaodien1/calender_asset/hoursDetailAsset/Celestial Moonlit Mountain Lake.webp');
 const SHEET_BACKGROUND = require('../../assets/giao_dien/giaodien1/setting/background.webp');
 
 const HOUR_ASSETS: Record<string, ImageSourcePropType> = {

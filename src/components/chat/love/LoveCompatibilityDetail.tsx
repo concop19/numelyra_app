@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { PersonTuViBaziChart } from '../../../services/tuViBaziService';
@@ -16,7 +16,7 @@ import type { LoveReadingProfile, LoveReadingViewModel } from './loveReadingMode
 import { useLocalization } from '../../../i18n/LocalizationContext';
 import type { AppLocale } from '../../../i18n/translations';
 
-const BACKGROUND = require('../../../../assets/giao_dien/giaodien1/chat_detail/love/background/evident.png');
+const BACKGROUND = require('../../../../assets/giao_dien/giaodien1/chat_detail/love/background/evident.webp');
 
 type AccordionData = {
   id: string;

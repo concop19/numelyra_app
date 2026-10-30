@@ -1,8 +1,17 @@
-import { mkdirSync, writeFileSync } from 'fs';
-import path from 'path';
+declare const require: (moduleName: string) => unknown;
+declare const __dirname: string;
+
+const { mkdirSync, writeFileSync } = require('fs') as {
+  mkdirSync(path: string, options: { recursive: boolean }): void;
+  writeFileSync(path: string, data: string, encoding: string): void;
+};
+const path = require('path') as {
+  resolve(...segments: string[]): string;
+  join(...segments: string[]): string;
+};
 
 import type { UserProfile } from '../../store/userProfile';
-import { buildDailyInsight } from './dailyInsight';
+import { buildDailyInsight, buildDailyLuckyColor } from './dailyInsight';
 
 const DAY_COUNT = 30;
 
@@ -19,6 +28,51 @@ function addLocalDays(date: Date, days: number): Date {
 }
 
 describe('daily insight 30-day audit', () => {
+  test('keeps the 24-color cycle diverse across profiles and seasons', () => {
+    const profiles: UserProfile[] = [
+      { fullName: 'Summer Profile', birthDate: '1998-06-15', gender: 'female' },
+      { fullName: 'Winter Profile', birthDate: '1990-01-01', gender: 'male' },
+      { fullName: 'Autumn Profile', birthDate: '1985-11-23', gender: 'female' },
+      {
+        fullName: 'Complete Profile',
+        birthDate: '2001-03-21',
+        birthTime: '08:30',
+        birthTimeAccuracy: 'exact',
+        gender: 'male',
+        birthLocation: {
+          placeId: 'hanoi',
+          userLabel: 'Hà Nội, Việt Nam',
+          latitude: 21.0278,
+          longitude: 105.8342,
+          timeZoneIdentifier: 'Asia/Bangkok',
+          resolvedAt: '2026-01-01T00:00:00.000Z',
+        },
+      },
+    ];
+    const starts = [
+      new Date(2026, 0, 1, 12),
+      new Date(2026, 3, 1, 12),
+      new Date(2026, 6, 1, 12),
+      new Date(2026, 9, 1, 12),
+    ];
+
+    for (const profile of profiles) {
+      for (const start of starts) {
+        const colorIds = Array.from({ length: DAY_COUNT }, (_, offset) => (
+          buildDailyLuckyColor(profile, addLocalDays(start, offset), 'vi').id
+        ));
+        let longestRun = 1;
+        let currentRun = 1;
+        for (let index = 1; index < colorIds.length; index += 1) {
+          currentRun = colorIds[index] === colorIds[index - 1] ? currentRun + 1 : 1;
+          longestRun = Math.max(longestRun, currentRun);
+        }
+        expect(new Set(colorIds).size).toBeGreaterThanOrEqual(22);
+        expect(longestRun).toBeLessThanOrEqual(2);
+      }
+    }
+  });
+
   test('writes 30 daily messages from today to a JSON artifact', () => {
     const profile: UserProfile = {
       fullName: 'Daily Insight Audit User',
@@ -49,7 +103,7 @@ describe('daily insight 30-day audit', () => {
     expect(entries).toHaveLength(DAY_COUNT);
     expect(new Set(entries.map((entry) => entry.date)).size).toBe(DAY_COUNT);
     expect(entries.every((entry) => entry.message.trim().length > 0)).toBe(true);
-    const luckyColors = entries.map((entry) => entry.luckyColor.hex);
+    const luckyColors = entries.map((entry) => entry.luckyColor.id);
     let longestLuckyColorRun = 1;
     let currentLuckyColorRun = 1;
     for (let index = 1; index < luckyColors.length; index += 1) {
@@ -58,8 +112,8 @@ describe('daily insight 30-day audit', () => {
         : 1;
       longestLuckyColorRun = Math.max(longestLuckyColorRun, currentLuckyColorRun);
     }
-    expect(new Set(luckyColors).size).toBeGreaterThanOrEqual(10);
-    expect(longestLuckyColorRun).toBeLessThanOrEqual(3);
+    expect(new Set(luckyColors).size).toBeGreaterThanOrEqual(22);
+    expect(longestLuckyColorRun).toBeLessThanOrEqual(2);
 
     const artifact = {
       generatedAt: new Date().toISOString(),

@@ -7,7 +7,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, Image, ActivityIndicator, StyleSheet
+  View, Text, Image, ActivityIndicator, StyleSheet, TouchableOpacity
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
@@ -30,6 +30,7 @@ import { ProfileProvider, useProfiles } from './src/store/profileContext';
 import { getNotifications } from './src/services/dailyNotifications';
 import { refreshDailyInsightNotifications } from './src/services/dailyNotifications';
 import { LocalizationProvider, useLocalization } from './src/i18n/LocalizationContext';
+import CloudSyncPill from './src/components/CloudSyncPill';
 
 type RootStackParamList = {
   Main: { dailyDate?: string } | undefined;
@@ -107,12 +108,13 @@ export default function App() {
 
 function AppContent() {
   const { locale, ready: isLocaleReady, t } = useLocalization();
-  const { isReady: isAuthReady, user, syncLocalProfiles } = useAuth();
+  const { isReady: isAuthReady, user, signOut, isPasswordRecovery, clearPasswordRecovery } = useAuth();
   const {
     isReady: isProfileReady,
     primaryProfile: profile,
     primaryProfileId,
-    refreshProfiles,
+    cloudSyncState,
+    syncNow,
   } = useProfiles();
   const [continueAsGuest, setContinueAsGuest] = useState(false);
   const [loginRequested, setLoginRequested] = useState(false);
@@ -135,8 +137,14 @@ function AppContent() {
 
   let content = null;
 
-  // Loading
-  if (!isProfileReady || !isAuthReady || !isLocaleReady) {
+  const hasBlockingSyncError = Boolean(
+    user
+    && !isProfileReady
+    && (cloudSyncState.status === 'error' || cloudSyncState.status === 'partial-error')
+  );
+
+  // App/bootstrap loading
+  if (!isAuthReady || !isLocaleReady) {
     content = (
       <SafeAreaView style={styles.loadingContainer}>
         <StatusBar style="light" />
@@ -148,6 +156,75 @@ function AppContent() {
       </SafeAreaView>
     );
   }
+  // Password recovery owns the authenticated shell until the new password is
+  // saved; profile hydration must not hide this screen on a fresh device.
+  else if (isPasswordRecovery) {
+    content = (
+      <LoginScreen
+        allowGuest={false}
+        onAuthenticated={() => {
+          clearPasswordRecovery();
+          setLoginRequested(false);
+        }}
+        onContinueAsGuest={() => {
+          clearPasswordRecovery();
+          setLoginRequested(false);
+        }}
+      />
+    );
+  }
+  // A fresh device must not fall through to onboarding until the cloud profile
+  // query has either succeeded with zero rows or the user explicitly leaves.
+  else if (!isProfileReady) {
+    content = (
+      <SafeAreaView style={styles.loadingContainer}>
+        <StatusBar style="light" />
+        <View style={styles.loadingInner}>
+          <Image source={LOADING_FLAME} resizeMode="contain" style={styles.loadingMascot} />
+          {hasBlockingSyncError ? (
+            <>
+              <Text style={styles.syncErrorTitle}>{t('cloudSync.blockingErrorTitle')}</Text>
+              <Text style={styles.syncErrorBody}>{t('cloudSync.blockingErrorBody')}</Text>
+              <TouchableOpacity
+                accessibilityRole="button"
+                onPress={() => { void syncNow(); }}
+                style={styles.retryButton}
+              >
+                <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                accessibilityRole="button"
+                onPress={() => { void signOut().catch((error) => console.warn('[App] Sign out after sync error failed:', error)); }}
+                style={styles.signOutButton}
+              >
+                <Text style={styles.signOutButtonText}>{t('cloudSync.signOut')}</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <ActivityIndicator size="large" color="#F5BA5B" style={{ marginTop: 16 }} />
+              <Text style={styles.loadingText}>{user ? t('cloudSync.checkingProfiles') : t('app.loading')}</Text>
+            </>
+          )}
+        </View>
+      </SafeAreaView>
+    );
+  }
+  else if (isPasswordRecovery) {
+    content = (
+      <LoginScreen
+        allowGuest={false}
+        onAuthenticated={() => {
+          clearPasswordRecovery();
+          setLoginRequested(false);
+        }}
+        onContinueAsGuest={() => {
+          clearPasswordRecovery();
+          setLoginRequested(false);
+        }}
+      />
+    );
+  }
   // Account entry: an anonymous user can continue locally, while a signed-in
   // user goes directly to onboarding so their first profile is synced.
   else if (!profile && !user && !continueAsGuest) {
@@ -155,7 +232,6 @@ function AppContent() {
       <LoginScreen
         onAuthenticated={() => {
           setLoginRequested(false);
-          void refreshProfiles();
         }}
         onContinueAsGuest={() => setContinueAsGuest(true)}
       />
@@ -166,12 +242,7 @@ function AppContent() {
     content = (
       <OnboardingScreen
         onComplete={async () => {
-          try {
-            await syncLocalProfiles();
-          } catch (err) {
-            console.warn('[App] syncLocalProfiles in onComplete failed:', err);
-          }
-          await refreshProfiles();
+          await syncNow();
         }}
       />
     );
@@ -182,7 +253,6 @@ function AppContent() {
         allowGuest={false}
         onAuthenticated={async () => {
           setLoginRequested(false);
-          await syncLocalProfiles();
         }}
         onContinueAsGuest={() => setLoginRequested(false)}
       />
@@ -285,10 +355,19 @@ function AppContent() {
     );
   }
 
-  return content;
+  return (
+    <View style={styles.appRoot}>
+      {content}
+      {Boolean(user && profile && isProfileReady) && <CloudSyncPill />}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
+  appRoot: {
+    flex: 1,
+    backgroundColor: '#0B0B14',
+  },
   loadingContainer: {
     flex: 1,
     backgroundColor: '#0B0B14'
@@ -307,5 +386,45 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 12,
     fontStyle: 'italic'
+  },
+  syncErrorTitle: {
+    color: '#FFF3D1',
+    fontSize: 20,
+    fontWeight: '800',
+    marginTop: 18,
+    textAlign: 'center',
+  },
+  syncErrorBody: {
+    color: '#D8CFEA',
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 10,
+    maxWidth: 330,
+    paddingHorizontal: 18,
+    textAlign: 'center',
+  },
+  retryButton: {
+    minWidth: 180,
+    marginTop: 22,
+    paddingHorizontal: 24,
+    paddingVertical: 13,
+    borderRadius: 22,
+    backgroundColor: '#F5BA5B',
+    alignItems: 'center',
+  },
+  retryButtonText: {
+    color: '#3A2259',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  signOutButton: {
+    marginTop: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  signOutButtonText: {
+    color: '#CFC5E5',
+    fontSize: 13,
+    textDecorationLine: 'underline',
   },
 });

@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -33,7 +33,7 @@ import {
 } from '../services/chatSessionSyncService';
 import { useLocalization } from '../i18n/LocalizationContext';
 
-const CHAT_BACKGROUND = require('../../assets/giao_dien/giaodien1/chat_continue/background.png');
+const CHAT_BACKGROUND = require('../../assets/giao_dien/giaodien1/chat_continue/background.webp');
 const LOCAL_SESSION_LOAD_TIMEOUT_MS = 6000;
 const REMOTE_SESSION_LOAD_TIMEOUT_MS = 8000;
 

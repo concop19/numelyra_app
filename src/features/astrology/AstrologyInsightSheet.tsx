@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -19,6 +19,10 @@ import {
 } from './astrologyPresentation';
 import { ASTRO_COLORS } from './AstrologyUi';
 import { useLocalization } from '../../i18n/LocalizationContext';
+import {
+  AstrologyEstimateMark,
+  AstrologyEstimateNotice,
+} from './AstrologyEstimateNotice';
 
 const PLANET_VI: Record<string, string> = {
   Sun: 'Mặt Trời',
@@ -37,6 +41,11 @@ interface Props {
   visible: boolean;
   fortune: AstroFortuneSlip | null;
   metadata?: PureAstroFeatureMetadata;
+  dataQuality?: {
+    isEstimated: boolean;
+    missingBirthTime: boolean;
+    missingBirthLocation: boolean;
+  };
   onClose(): void;
 }
 
@@ -82,17 +91,19 @@ function DisclosureSection({
   );
 }
 
-export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: Props) {
+export function AstrologyInsightSheet({ visible, fortune, metadata, dataQuality, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const { locale, l, t } = useLocalization();
   const [caDaoOpen, setCaDaoOpen] = useState(false);
   const [basisOpen, setBasisOpen] = useState(false);
+  const [estimateNoticeOpen, setEstimateNoticeOpen] = useState(false);
   const ruleTopics = getAstrologyRuleTopicSummaries(metadata);
 
   useEffect(() => {
     if (!visible) {
       setCaDaoOpen(false);
       setBasisOpen(false);
+      setEstimateNoticeOpen(false);
     }
   }, [visible]);
 
@@ -105,6 +116,7 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
   const hasBasis = (!!metadata && !!fortune) || !!metadata?.topAspect || ruleTopics.length > 0;
 
   return (
+    <>
     <Modal
       visible={visible}
       transparent
@@ -224,7 +236,12 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
                 open={caDaoOpen}
                 onToggle={() => setCaDaoOpen((current) => !current)}
               >
-                <Text style={styles.anchorVerse}>“{fortune.anchorCaDao.content}”</Text>
+                <View style={styles.anchorVerseRow}>
+                  <Text style={styles.anchorVerse}>“{fortune.anchorCaDao.content}”</Text>
+                  {dataQuality?.isEstimated && (
+                    <AstrologyEstimateMark dark onPress={() => setEstimateNoticeOpen(true)} />
+                  )}
+                </View>
                 {!!fortune.anchorCaDao.category && (
                   <Text style={styles.anchorCategory}>{fortune.anchorCaDao.category}</Text>
                 )}
@@ -289,6 +306,13 @@ export function AstrologyInsightSheet({ visible, fortune, metadata, onClose }: P
         </LinearGradient>
       </View>
     </Modal>
+    <AstrologyEstimateNotice
+      visible={estimateNoticeOpen}
+      missingBirthTime={dataQuality?.missingBirthTime ?? false}
+      missingBirthLocation={dataQuality?.missingBirthLocation ?? false}
+      onClose={() => setEstimateNoticeOpen(false)}
+    />
+    </>
   );
 }
 
@@ -595,13 +619,19 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(201,167,255,0.18)',
     gap: 10,
   },
+  anchorVerseRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 4,
+    marginTop: 12,
+  },
   anchorVerse: {
+    flex: 1,
     color: ASTRO_COLORS.text,
     fontFamily: 'serif',
     fontStyle: 'italic',
     fontSize: 15,
     lineHeight: 24,
-    marginTop: 12,
   },
   anchorCategory: {
     color: ASTRO_COLORS.cyan,

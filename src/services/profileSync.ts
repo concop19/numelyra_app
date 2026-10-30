@@ -122,3 +122,30 @@ export function mergeCloudAndLocalProfiles(
     pendingLocalCreates,
   };
 }
+
+/**
+ * Refresh selected profile objects after a cloud merge without discarding a
+ * still-valid single/couple selection. Deleted selections are removed and the
+ * current primary profile becomes the fallback when nothing remains.
+ */
+export function reconcileSelectedProfiles(
+  selectedProfiles: ProfileItem[],
+  availableProfiles: ProfileItem[],
+  fallbackProfile: ProfileItem | null,
+): ProfileItem[] {
+  const availableById = new Map(availableProfiles.map((profile) => [profile.id, profile]));
+  const reconciled = selectedProfiles
+    .map((profile) => availableById.get(profile.id))
+    .filter((profile): profile is ProfileItem => Boolean(profile));
+
+  if (reconciled.length > 0) return reconciled;
+  return fallbackProfile ? [fallbackProfile] : [];
+}
+
+export function isProfileStateReadyForIdentity(
+  hasResolvedProfiles: boolean,
+  readyIdentity: string | null,
+  userId: string | null,
+): boolean {
+  return hasResolvedProfiles && readyIdentity === (userId ?? 'guest');
+}

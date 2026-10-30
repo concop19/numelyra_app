@@ -1,0 +1,5303 @@
+{
+  "generatedAt": "2026-10-30T02:53:35.606Z",
+  "purpose": "Đánh giá chất lượng và độ đa dạng của thông điệp năng lượng trong 30 ngày liên tiếp.",
+  "profile": {
+    "fullName": "Daily Insight Audit User",
+    "birthDate": "1998-06-15",
+    "gender": "female"
+  },
+  "startDate": "2026-10-30",
+  "endDate": "2026-11-28",
+  "dayCount": 30,
+  "uniqueMessageCount": 16,
+  "uniqueLuckyColorCount": 24,
+  "longestLuckyColorRun": 2,
+  "metricRanges": {
+    "energy": {
+      "min": 34,
+      "max": 71
+    },
+    "emotion": {
+      "min": 24,
+      "max": 80
+    },
+    "focus": {
+      "min": 35,
+      "max": 57
+    },
+    "connection": {
+      "min": 38,
+      "max": 66
+    }
+  },
+  "entries": [
+    {
+      "day": 1,
+      "dayOffset": 0,
+      "date": "2026-10-30",
+      "message": "Cảm xúc cần sự gần gũi và một không gian đủ an toàn để mở lòng. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyColor": {
+        "id": "leo-golden",
+        "colorSign": "Leo",
+        "colorSignLabel": "Sư Tử",
+        "variant": "companion",
+        "name": "Vàng kim",
+        "swatchHex": "#D9A21B",
+        "textHex": "#765600",
+        "evidence": "Mặt Trăng Cự Giải × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Cancer",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 9,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 19,
+        "endHour": 21,
+        "range": "19h–21h",
+        "canChi": "Canh Tuất",
+        "label": "Thanh Long"
+      },
+      "directions": {
+        "joy": "Chính Nam",
+        "wealth": "Chính Đông"
+      },
+      "recommended": [
+        "Giảng dạy, truyền nghề",
+        "Hẹn hò, gặp gỡ thân nhân",
+        "Giải quyết mâu thuẫn",
+        "Học tập, thi cử",
+        "Họp hành, bàn việc"
+      ],
+      "avoid": [
+        "Động thổ, khởi công",
+        "Cưới hỏi, hôn lễ",
+        "Đầu tư, mở rộng",
+        "Khai trương, ra mắt"
+      ],
+      "warning": null,
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-10-30",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 57,
+            "level": "balanced",
+            "summary": "Sao Mộc Lục hợp Mặt Trời là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Jupiter",
+                "natalPlanet": "Sun",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.03,
+                "peakTimeIso": "2026-10-30T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.4429,
+                "contribution": 0.31
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Sun",
+                "aspectType": "conjunction",
+                "aspectName": "Trùng tụ",
+                "symbol": "☌",
+                "orb": 0.28,
+                "peakTimeIso": "2026-10-29T17:00:00.000Z",
+                "direction": "neutral",
+                "strength": 0.2877,
+                "contribution": 0
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 58,
+            "level": "balanced",
+            "summary": "Mặt Trăng Vuông góc Sao Mộc là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Jupiter",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.1,
+                "peakTimeIso": "2026-10-29T20:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.9026,
+                "contribution": -0.7221
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Saturn",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.04,
+                "peakTimeIso": "2026-10-30T03:00:00.000Z",
+                "direction": "support",
+                "strength": 0.67,
+                "contribution": 0.469
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Moon",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.2,
+                "peakTimeIso": "2026-10-30T01:00:00.000Z",
+                "direction": "support",
+                "strength": 0.6159,
+                "contribution": 0.6159
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 44,
+            "level": "balanced",
+            "summary": "Mặt Trăng Trùng tụ Sao Thủy đang hội tụ; hãy ưu tiên việc cần sự rõ ràng và tập trung thay vì vội kết luận tốt hay xấu.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mercury",
+                "aspectType": "conjunction",
+                "aspectName": "Trùng tụ",
+                "symbol": "☌",
+                "orb": 0.02,
+                "peakTimeIso": "2026-10-30T03:00:00.000Z",
+                "direction": "neutral",
+                "strength": 0.3904,
+                "contribution": 0
+              },
+              {
+                "transitPlanet": "Mercury",
+                "natalPlanet": "Venus",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.48,
+                "peakTimeIso": "2026-10-29T17:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.2668,
+                "contribution": -0.2668
+              }
+            ]
+          },
+          "connection": {
+            "id": "connection",
+            "score": 46,
+            "level": "balanced",
+            "summary": "Sao Thủy Đối đỉnh Sao Kim là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Mercury",
+                "natalPlanet": "Venus",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.48,
+                "peakTimeIso": "2026-10-29T17:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.1779,
+                "contribution": -0.1779
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Sao Thủy",
+      "canChiEvidence": "Ngày Đinh Sửu · Trực Bình · Ngày Hắc đạo (Huyền Vũ)",
+      "canChiDay": "Đinh Sửu"
+    },
+    {
+      "day": 2,
+      "dayOffset": 1,
+      "date": "2026-10-31",
+      "message": "Cảm xúc cần sự gần gũi và một không gian đủ an toàn để mở lòng. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyColor": {
+        "id": "virgo-olive-green",
+        "colorSign": "Virgo",
+        "colorSignLabel": "Xử Nữ",
+        "variant": "primary",
+        "name": "Xanh olive",
+        "swatchHex": "#7A8B3A",
+        "textHex": "#526025",
+        "evidence": "Mặt Trăng Cự Giải × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Cancer",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 10,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 9,
+        "endHour": 11,
+        "range": "09h–11h",
+        "canChi": "Đinh Tỵ",
+        "label": "Thiên Đức"
+      },
+      "directions": {
+        "joy": "Đông Nam",
+        "wealth": "Chính Bắc"
+      },
+      "recommended": [
+        "Học tập, thi cử",
+        "Họp hành, bàn việc",
+        "Ký kết hợp đồng",
+        "Mua bán, giao dịch",
+        "Đầu tư, mở rộng"
+      ],
+      "avoid": [
+        "Cưới hỏi, hôn lễ",
+        "Động thổ, khởi công",
+        "Khai trương, ra mắt",
+        "Nhận chức, bổ nhiệm"
+      ],
+      "warning": "⚠️ Ngày Tam Nương — không nên cưới hỏi, khai trương",
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-10-31",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 56,
+            "level": "balanced",
+            "summary": "Sao Mộc Lục hợp Mặt Trời là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Jupiter",
+                "natalPlanet": "Sun",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0,
+                "peakTimeIso": "2026-10-30T22:00:00.000Z",
+                "direction": "support",
+                "strength": 0.4547,
+                "contribution": 0.3183
+              },
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Venus",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.86,
+                "peakTimeIso": "2026-10-31T16:59:59.999Z",
+                "direction": "challenge",
+                "strength": 0.069,
+                "contribution": -0.0552
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 56,
+            "level": "balanced",
+            "summary": "Mặt Trăng Lục hợp Sao Kim là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Venus",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.15,
+                "peakTimeIso": "2026-10-31T10:00:00.000Z",
+                "direction": "support",
+                "strength": 0.3553,
+                "contribution": 0.2487
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 50,
+            "level": "balanced",
+            "summary": "Không có góc chiếu sát nào nổi bật; nhịp hôm nay tương đối cân bằng.",
+            "evidence": []
+          },
+          "connection": {
+            "id": "connection",
+            "score": 53,
+            "level": "balanced",
+            "summary": "Mặt Trăng Lục hợp Sao Kim là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Venus",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.15,
+                "peakTimeIso": "2026-10-31T10:00:00.000Z",
+                "direction": "support",
+                "strength": 0.2369,
+                "contribution": 0.1658
+              },
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Venus",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.86,
+                "peakTimeIso": "2026-10-31T16:59:59.999Z",
+                "direction": "challenge",
+                "strength": 0.046,
+                "contribution": -0.0368
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Hỏa · Sao Kim",
+      "canChiEvidence": "Ngày Mậu Dần · Trực Định · Ngày Hoàng đạo (Tư Mệnh)",
+      "canChiDay": "Mậu Dần"
+    },
+    {
+      "day": 3,
+      "dayOffset": 2,
+      "date": "2026-11-01",
+      "message": "Bạn dễ tỏa sáng khi được thể hiện điều mình thật sự trân trọng. Năng lượng hôm nay mạnh và nhạy; chậm lại một nhịp sẽ giúp bạn phản ứng sáng suốt hơn.",
+      "luckyColor": {
+        "id": "virgo-moss-green",
+        "colorSign": "Virgo",
+        "colorSignLabel": "Xử Nữ",
+        "variant": "companion",
+        "name": "Xanh rêu",
+        "swatchHex": "#5F7A48",
+        "textHex": "#3F5A2F",
+        "evidence": "Mặt Trăng Sư Tử × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Leo",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 11,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 11,
+        "endHour": 13,
+        "range": "11h–13h",
+        "canChi": "Canh Ngọ",
+        "label": "Kim Quỹ"
+      },
+      "directions": {
+        "joy": "Đông Bắc",
+        "wealth": "Chính Nam"
+      },
+      "recommended": [
+        "Tích lũy, tiết kiệm",
+        "Cầu an, tĩnh dưỡng",
+        "Khám sức khỏe, chăm sóc y tế",
+        "Lập kế hoạch, nghiên cứu",
+        "Sửa chữa nhà cửa"
+      ],
+      "avoid": [
+        "Cưới hỏi, hôn lễ",
+        "Đầu tư, mở rộng",
+        "Khai trương, ra mắt",
+        "Ký kết hợp đồng"
+      ],
+      "warning": "⚠️ Ngày Nguyệt Kỵ — nên hạn chế khởi sự việc lớn",
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-01",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 51,
+            "level": "balanced",
+            "summary": "Sao Mộc Lục hợp Mặt Trời là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Jupiter",
+                "natalPlanet": "Sun",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.1,
+                "peakTimeIso": "2026-10-31T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.411,
+                "contribution": 0.2877
+              },
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Venus",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.36,
+                "peakTimeIso": "2026-11-01T16:59:59.999Z",
+                "direction": "challenge",
+                "strength": 0.3255,
+                "contribution": -0.2604
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 67,
+            "level": "high",
+            "summary": "Mặt Trăng Tam hợp Diêm Vương tạo nhịp hỗ trợ; thuận để quan sát cảm xúc trước khi phản ứng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Neptune",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.14,
+                "peakTimeIso": "2026-11-01T07:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.8623,
+                "contribution": -0.8623
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Pluto",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.05,
+                "peakTimeIso": "2026-11-01T15:00:00.000Z",
+                "direction": "support",
+                "strength": 0.8583,
+                "contribution": 0.8583
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Saturn",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.18,
+                "peakTimeIso": "2026-11-01T05:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.8152,
+                "contribution": -0.6522
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 50,
+            "level": "balanced",
+            "summary": "Không có góc chiếu sát nào nổi bật; nhịp hôm nay tương đối cân bằng.",
+            "evidence": []
+          },
+          "connection": {
+            "id": "connection",
+            "score": 46,
+            "level": "balanced",
+            "summary": "Sao Hỏa Vuông góc Sao Kim là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Venus",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.36,
+                "peakTimeIso": "2026-11-01T16:59:59.999Z",
+                "direction": "challenge",
+                "strength": 0.217,
+                "contribution": -0.1736
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: tension · Chủ đề nổi bật: Mặt Trăng · Sao Thổ",
+      "canChiEvidence": "Ngày Kỷ Mão · Trực Chấp · Ngày Hắc đạo (Câu Trận)",
+      "canChiDay": "Kỷ Mão"
+    },
+    {
+      "day": 4,
+      "dayOffset": 3,
+      "date": "2026-11-02",
+      "message": "Bạn dễ tỏa sáng khi được thể hiện điều mình thật sự trân trọng. Năng lượng hôm nay mạnh và nhạy; chậm lại một nhịp sẽ giúp bạn phản ứng sáng suốt hơn.",
+      "luckyColor": {
+        "id": "libra-blush-pink",
+        "colorSign": "Libra",
+        "colorSignLabel": "Thiên Bình",
+        "variant": "primary",
+        "name": "Hồng phấn",
+        "swatchHex": "#F29BC2",
+        "textHex": "#943565",
+        "evidence": "Mặt Trăng Sư Tử × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Leo",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 12,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 9,
+        "endHour": 11,
+        "range": "09h–11h",
+        "canChi": "Tân Tỵ",
+        "label": "Minh Đường"
+      },
+      "directions": {
+        "joy": "Tây Bắc",
+        "wealth": "Tây Nam"
+      },
+      "recommended": [
+        "Họp hành, bàn việc",
+        "Dọn dẹp, vứt đồ cũ",
+        "Học tập, thi cử",
+        "Sáng tác, ra mắt tác phẩm",
+        "Khám sức khỏe, chăm sóc y tế"
+      ],
+      "avoid": [
+        "Mua bán, giao dịch",
+        "Thu tài, nhận tiền",
+        "Công tác, xuất hành xa"
+      ],
+      "warning": null,
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-02",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 50,
+            "level": "balanced",
+            "summary": "Sao Hỏa Vuông góc Sao Kim là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Venus",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.01,
+                "peakTimeIso": "2026-11-02T10:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.5062,
+                "contribution": -0.405
+              },
+              {
+                "transitPlanet": "Jupiter",
+                "natalPlanet": "Sun",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.22,
+                "peakTimeIso": "2026-11-01T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.3559,
+                "contribution": 0.2491
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mars",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.19,
+                "peakTimeIso": "2026-11-02T07:00:00.000Z",
+                "direction": "support",
+                "strength": 0.2255,
+                "contribution": 0.1578
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 31,
+            "level": "low",
+            "summary": "Mặt Trăng Đối đỉnh Thiên Vương tạo lực cản; nên chậm lại để quan sát cảm xúc trước khi phản ứng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Uranus",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.22,
+                "peakTimeIso": "2026-11-02T02:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.7845,
+                "contribution": -0.7845
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Venus",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.18,
+                "peakTimeIso": "2026-11-02T14:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.4926,
+                "contribution": -0.3941
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mars",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.19,
+                "peakTimeIso": "2026-11-02T07:00:00.000Z",
+                "direction": "support",
+                "strength": 0.3382,
+                "contribution": 0.2368
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 50,
+            "level": "balanced",
+            "summary": "Không có góc chiếu sát nào nổi bật; nhịp hôm nay tương đối cân bằng.",
+            "evidence": []
+          },
+          "connection": {
+            "id": "connection",
+            "score": 38,
+            "level": "low",
+            "summary": "Sao Hỏa Vuông góc Sao Kim tạo lực cản; nên chậm lại để chú ý cách bạn trao đổi và đón nhận người khác.",
+            "evidence": [
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Venus",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.01,
+                "peakTimeIso": "2026-11-02T10:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.3375,
+                "contribution": -0.27
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Venus",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.18,
+                "peakTimeIso": "2026-11-02T14:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.3284,
+                "contribution": -0.2627
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: tension · Chủ đề nổi bật: Sao Hỏa · Sao Kim",
+      "canChiEvidence": "Ngày Canh Thìn · Trực Phá · Ngày Hoàng đạo (Thanh Long)",
+      "canChiDay": "Canh Thìn"
+    },
+    {
+      "day": 5,
+      "dayOffset": 4,
+      "date": "2026-11-03",
+      "message": "Bạn dễ tỏa sáng khi được thể hiện điều mình thật sự trân trọng. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyColor": {
+        "id": "libra-rose-pink",
+        "colorSign": "Libra",
+        "colorSignLabel": "Thiên Bình",
+        "variant": "companion",
+        "name": "Hồng hoa hồng",
+        "swatchHex": "#D96C9D",
+        "textHex": "#8D2F5C",
+        "evidence": "Mặt Trăng Sư Tử × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Leo",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 13,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 7,
+        "endHour": 9,
+        "range": "07h–09h",
+        "canChi": "Nhâm Thìn",
+        "label": "Tư Mệnh"
+      },
+      "directions": {
+        "joy": "Tây Nam",
+        "wealth": "Tây Nam"
+      },
+      "recommended": [
+        "Họp hành, bàn việc",
+        "Nhận chức, bổ nhiệm",
+        "Học tập, thi cử",
+        "Sáng tác, ra mắt tác phẩm",
+        "Cầu an, tĩnh dưỡng"
+      ],
+      "avoid": [
+        "Di chuyển, du lịch",
+        "Động thổ, khởi công",
+        "Mua bán, giao dịch",
+        "Công tác, xuất hành xa"
+      ],
+      "warning": null,
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-03",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 51,
+            "level": "balanced",
+            "summary": "Sao Hỏa Vuông góc Sao Kim là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Venus",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.14,
+                "peakTimeIso": "2026-11-02T17:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.4397,
+                "contribution": -0.3517
+              },
+              {
+                "transitPlanet": "Jupiter",
+                "natalPlanet": "Sun",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.34,
+                "peakTimeIso": "2026-11-02T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.3019,
+                "contribution": 0.2113
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Sun",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.11,
+                "peakTimeIso": "2026-11-02T22:00:00.000Z",
+                "direction": "support",
+                "strength": 0.2486,
+                "contribution": 0.174
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 52,
+            "level": "balanced",
+            "summary": "Mặt Trăng Đối đỉnh Mặt Trăng là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Moon",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.04,
+                "peakTimeIso": "2026-11-03T07:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.8237,
+                "contribution": -0.8237
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Saturn",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.27,
+                "peakTimeIso": "2026-11-03T10:00:00.000Z",
+                "direction": "support",
+                "strength": 0.6542,
+                "contribution": 0.6542
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Sun",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.11,
+                "peakTimeIso": "2026-11-02T22:00:00.000Z",
+                "direction": "support",
+                "strength": 0.3729,
+                "contribution": 0.261
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 52,
+            "level": "balanced",
+            "summary": "Mặt Trăng Lục hợp Sao Thủy là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mercury",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.27,
+                "peakTimeIso": "2026-11-03T09:00:00.000Z",
+                "direction": "support",
+                "strength": 0.204,
+                "contribution": 0.1428
+              },
+              {
+                "transitPlanet": "Mercury",
+                "natalPlanet": "Uranus",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.94,
+                "peakTimeIso": "2026-11-03T16:59:59.999Z",
+                "direction": "challenge",
+                "strength": 0.0532,
+                "contribution": -0.0426
+              }
+            ]
+          },
+          "connection": {
+            "id": "connection",
+            "score": 46,
+            "level": "balanced",
+            "summary": "Sao Hỏa Vuông góc Sao Kim là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Venus",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.14,
+                "peakTimeIso": "2026-11-02T17:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.2931,
+                "contribution": -0.2345
+              },
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.82,
+                "peakTimeIso": "2026-11-03T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.0818,
+                "contribution": 0.0818
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Mặt Trăng",
+      "canChiEvidence": "Ngày Tân Tỵ · Trực Nguy · Ngày Hoàng đạo (Minh Đường)",
+      "canChiDay": "Tân Tỵ"
+    },
+    {
+      "day": 6,
+      "dayOffset": 5,
+      "date": "2026-11-04",
+      "message": "Sự rõ ràng đến từ việc sắp xếp lại chi tiết và nhịp sinh hoạt. Năng lượng hôm nay mạnh và nhạy; chậm lại một nhịp sẽ giúp bạn phản ứng sáng suốt hơn.",
+      "luckyColor": {
+        "id": "scorpio-burgundy",
+        "colorSign": "Scorpio",
+        "colorSignLabel": "Bọ Cạp",
+        "variant": "primary",
+        "name": "Đỏ rượu",
+        "swatchHex": "#7F1D3F",
+        "textHex": "#7F1D3F",
+        "evidence": "Mặt Trăng Xử Nữ × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Virgo",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 14,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 17,
+        "endHour": 19,
+        "range": "17h–19h",
+        "canChi": "Kỷ Dậu",
+        "label": "Minh Đường"
+      },
+      "directions": {
+        "joy": "Chính Nam",
+        "wealth": "Chính Tây"
+      },
+      "recommended": [
+        "Tập luyện thể thao",
+        "Giảng dạy, truyền nghề",
+        "Hẹn hò, gặp gỡ thân nhân",
+        "Học tập, thi cử",
+        "Họp hành, bàn việc"
+      ],
+      "avoid": [
+        "An táng, tang lễ",
+        "Động thổ, khởi công",
+        "Tranh tụng, kiện cáo",
+        "Mua bán, giao dịch"
+      ],
+      "warning": null,
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-04",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 35,
+            "level": "low",
+            "summary": "Mặt Trời Vuông góc Thiên Vương tạo lực cản; nên chậm lại để điều chỉnh nhịp hành động và sức bền.",
+            "evidence": [
+              {
+                "transitPlanet": "Sun",
+                "natalPlanet": "Uranus",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.12,
+                "peakTimeIso": "2026-11-04T16:59:59.999Z",
+                "direction": "challenge",
+                "strength": 0.7465,
+                "contribution": -0.5972
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mars",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.24,
+                "peakTimeIso": "2026-11-04T13:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.3058,
+                "contribution": -0.2447
+              },
+              {
+                "transitPlanet": "Jupiter",
+                "natalPlanet": "Sun",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.45,
+                "peakTimeIso": "2026-11-03T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.2489,
+                "contribution": 0.1743
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 30,
+            "level": "low",
+            "summary": "Mặt Trăng Vuông góc Diêm Vương tạo lực cản; nên chậm lại để quan sát cảm xúc trước khi phản ứng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Pluto",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.28,
+                "peakTimeIso": "2026-11-03T20:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.7248,
+                "contribution": -0.5799
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mars",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.24,
+                "peakTimeIso": "2026-11-04T13:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.4587,
+                "contribution": -0.367
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 35,
+            "level": "low",
+            "summary": "Sao Thủy Vuông góc Thiên Vương tạo lực cản; nên chậm lại để ưu tiên việc cần sự rõ ràng và tập trung.",
+            "evidence": [
+              {
+                "transitPlanet": "Mercury",
+                "natalPlanet": "Uranus",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.01,
+                "peakTimeIso": "2026-11-04T10:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.84,
+                "contribution": -0.672
+              }
+            ]
+          },
+          "connection": {
+            "id": "connection",
+            "score": 54,
+            "level": "balanced",
+            "summary": "Sao Kim Tam hợp Mặt Trời là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.43,
+                "peakTimeIso": "2026-11-04T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.2615,
+                "contribution": 0.2615
+              },
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Venus",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.63,
+                "peakTimeIso": "2026-11-03T17:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.1244,
+                "contribution": -0.0995
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: tension · Chủ đề nổi bật: Sao Thủy · Thiên Vương",
+      "canChiEvidence": "Ngày Nhâm Ngọ · Trực Thành · Ngày Hắc đạo (Thiên Hình)",
+      "canChiDay": "Nhâm Ngọ"
+    },
+    {
+      "day": 7,
+      "dayOffset": 6,
+      "date": "2026-11-05",
+      "message": "Sự rõ ràng đến từ việc sắp xếp lại chi tiết và nhịp sinh hoạt. Năng lượng hôm nay mạnh và nhạy; chậm lại một nhịp sẽ giúp bạn phản ứng sáng suốt hơn.",
+      "luckyColor": {
+        "id": "scorpio-plum",
+        "colorSign": "Scorpio",
+        "colorSignLabel": "Bọ Cạp",
+        "variant": "companion",
+        "name": "Tím mận",
+        "swatchHex": "#63305F",
+        "textHex": "#63305F",
+        "evidence": "Mặt Trăng Xử Nữ × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Virgo",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 15,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 19,
+        "endHour": 21,
+        "range": "19h–21h",
+        "canChi": "Nhâm Tuất",
+        "label": "Thanh Long"
+      },
+      "directions": {
+        "joy": "Đông Nam",
+        "wealth": "Tây Bắc"
+      },
+      "recommended": [
+        "Sửa chữa nhà cửa",
+        "Lập kế hoạch, nghiên cứu",
+        "Tích lũy, tiết kiệm"
+      ],
+      "avoid": [
+        "Cưới hỏi, hôn lễ",
+        "Khai trương, ra mắt",
+        "Nhận chức, bổ nhiệm",
+        "Nhập trạch, về nhà mới"
+      ],
+      "warning": "⚠️ Ngày Tam Nương — không nên cưới hỏi, khai trương",
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-05",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 34,
+            "level": "low",
+            "summary": "Mặt Trời Vuông góc Thiên Vương tạo lực cản; nên chậm lại để điều chỉnh nhịp hành động và sức bền.",
+            "evidence": [
+              {
+                "transitPlanet": "Sun",
+                "natalPlanet": "Uranus",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0,
+                "peakTimeIso": "2026-11-04T20:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.847,
+                "contribution": -0.6776
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Sun",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0,
+                "peakTimeIso": "2026-11-05T04:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.3994,
+                "contribution": -0.3195
+              },
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.08,
+                "peakTimeIso": "2026-11-05T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.2829,
+                "contribution": 0.2829
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 50,
+            "level": "balanced",
+            "summary": "Mặt Trăng Đối đỉnh Sao Mộc là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Jupiter",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.01,
+                "peakTimeIso": "2026-11-05T08:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.985,
+                "contribution": -0.985
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Sun",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0,
+                "peakTimeIso": "2026-11-05T04:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.599,
+                "contribution": -0.4792
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Neptune",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.43,
+                "peakTimeIso": "2026-11-05T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.5095,
+                "contribution": 0.5095
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 35,
+            "level": "low",
+            "summary": "Sao Thủy Vuông góc Thiên Vương tạo lực cản; nên chậm lại để ưu tiên việc cần sự rõ ràng và tập trung.",
+            "evidence": [
+              {
+                "transitPlanet": "Mercury",
+                "natalPlanet": "Uranus",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.37,
+                "peakTimeIso": "2026-11-04T17:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.5358,
+                "contribution": -0.4286
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mercury",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.17,
+                "peakTimeIso": "2026-11-05T16:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.3335,
+                "contribution": -0.2668
+              }
+            ]
+          },
+          "connection": {
+            "id": "connection",
+            "score": 66,
+            "level": "high",
+            "summary": "Sao Kim Tam hợp Mặt Trời tạo nhịp hỗ trợ; thuận để chú ý cách bạn trao đổi và đón nhận người khác.",
+            "evidence": [
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.08,
+                "peakTimeIso": "2026-11-05T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.4243,
+                "contribution": 0.4243
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Venus",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.09,
+                "peakTimeIso": "2026-11-04T19:00:00.000Z",
+                "direction": "support",
+                "strength": 0.327,
+                "contribution": 0.327
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: tension · Chủ đề nổi bật: Mặt Trăng · Mặt Trời",
+      "canChiEvidence": "Ngày Quý Mùi · Trực Thu · Ngày Hắc đạo (Chu Tước)",
+      "canChiDay": "Quý Mùi"
+    },
+    {
+      "day": 8,
+      "dayOffset": 7,
+      "date": "2026-11-06",
+      "message": "Bạn nhạy hơn với sự công bằng, cách đối thoại và chất lượng kết nối. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyColor": {
+        "id": "sagittarius-yellow",
+        "colorSign": "Sagittarius",
+        "colorSignLabel": "Nhân Mã",
+        "variant": "primary",
+        "name": "Vàng",
+        "swatchHex": "#F4C542",
+        "textHex": "#776000",
+        "evidence": "Mặt Trăng Thiên Bình × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Libra",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 16,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 9,
+        "endHour": 11,
+        "range": "09h–11h",
+        "canChi": "Kỷ Tỵ",
+        "label": "Thiên Đức"
+      },
+      "directions": {
+        "joy": "Đông Bắc",
+        "wealth": "Đông Nam"
+      },
+      "recommended": [
+        "Học tập, thi cử",
+        "Sáng tác, ra mắt tác phẩm",
+        "Họp hành, bàn việc",
+        "Nhập trạch, về nhà mới",
+        "Đầu tư, mở rộng"
+      ],
+      "avoid": [
+        "An táng, tang lễ",
+        "Động thổ, khởi công",
+        "Tranh tụng, kiện cáo",
+        "Mua bán, giao dịch"
+      ],
+      "warning": null,
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-06",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 57,
+            "level": "balanced",
+            "summary": "Sao Kim Tam hợp Mặt Trời là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.01,
+                "peakTimeIso": "2026-11-05T22:00:00.000Z",
+                "direction": "support",
+                "strength": 0.3041,
+                "contribution": 0.3041
+              },
+              {
+                "transitPlanet": "Jupiter",
+                "natalPlanet": "Sun",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.68,
+                "peakTimeIso": "2026-11-05T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.1464,
+                "contribution": 0.1025
+              },
+              {
+                "transitPlanet": "Sun",
+                "natalPlanet": "Uranus",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.88,
+                "peakTimeIso": "2026-11-05T17:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.1014,
+                "contribution": -0.0811
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 80,
+            "level": "high",
+            "summary": "Mặt Trăng Tam hợp Hải Vương tạo nhịp hỗ trợ; thuận để quan sát cảm xúc trước khi phản ứng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Neptune",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.11,
+                "peakTimeIso": "2026-11-05T18:00:00.000Z",
+                "direction": "support",
+                "strength": 0.8015,
+                "contribution": 0.8015
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Uranus",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.22,
+                "peakTimeIso": "2026-11-06T14:00:00.000Z",
+                "direction": "support",
+                "strength": 0.7036,
+                "contribution": 0.7036
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Pluto",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.04,
+                "peakTimeIso": "2026-11-06T02:00:00.000Z",
+                "direction": "support",
+                "strength": 0.6709,
+                "contribution": 0.4696
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 48,
+            "level": "balanced",
+            "summary": "Mặt Trăng Vuông góc Sao Thủy là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mercury",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.71,
+                "peakTimeIso": "2026-11-05T17:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.116,
+                "contribution": -0.0928
+              }
+            ]
+          },
+          "connection": {
+            "id": "connection",
+            "score": 60,
+            "level": "high",
+            "summary": "Sao Kim Tam hợp Mặt Trời tạo nhịp hỗ trợ; thuận để chú ý cách bạn trao đổi và đón nhận người khác.",
+            "evidence": [
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.01,
+                "peakTimeIso": "2026-11-05T22:00:00.000Z",
+                "direction": "support",
+                "strength": 0.4561,
+                "contribution": 0.4561
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Kim · Mặt Trời",
+      "canChiEvidence": "Ngày Giáp Thân · Trực Khai · Ngày Hoàng đạo (Kim Quỹ)",
+      "canChiDay": "Giáp Thân"
+    },
+    {
+      "day": 9,
+      "dayOffset": 8,
+      "date": "2026-11-07",
+      "message": "Bạn nhạy hơn với sự công bằng, cách đối thoại và chất lượng kết nối. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyColor": {
+        "id": "sagittarius-yellow",
+        "colorSign": "Sagittarius",
+        "colorSignLabel": "Nhân Mã",
+        "variant": "primary",
+        "name": "Vàng",
+        "swatchHex": "#F4C542",
+        "textHex": "#776000",
+        "evidence": "Mặt Trăng Thiên Bình × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Libra",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 16,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 11,
+        "endHour": 13,
+        "range": "11h–13h",
+        "canChi": "Nhâm Ngọ",
+        "label": "Kim Quỹ"
+      },
+      "directions": {
+        "joy": "Tây Bắc",
+        "wealth": "Đông Nam"
+      },
+      "recommended": [
+        "Học tập, thi cử",
+        "Nhập trạch, về nhà mới",
+        "Sáng tác, ra mắt tác phẩm",
+        "Đầu tư, mở rộng",
+        "Họp hành, bàn việc"
+      ],
+      "avoid": [
+        "An táng, tang lễ",
+        "Động thổ, khởi công",
+        "Tranh tụng, kiện cáo"
+      ],
+      "warning": null,
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-07",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 68,
+            "level": "high",
+            "summary": "Mặt Trăng Tam hợp Sao Hỏa tạo nhịp hỗ trợ; thuận để điều chỉnh nhịp hành động và sức bền.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mars",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.14,
+                "peakTimeIso": "2026-11-06T20:00:00.000Z",
+                "direction": "support",
+                "strength": 0.3081,
+                "contribution": 0.3081
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.17,
+                "peakTimeIso": "2026-11-07T12:00:00.000Z",
+                "direction": "support",
+                "strength": 0.2972,
+                "contribution": 0.2972
+              },
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.24,
+                "peakTimeIso": "2026-11-06T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.2322,
+                "contribution": 0.2322
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 69,
+            "level": "high",
+            "summary": "Mặt Trăng Tam hợp Sao Hỏa tạo nhịp hỗ trợ; thuận để quan sát cảm xúc trước khi phản ứng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mars",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.14,
+                "peakTimeIso": "2026-11-06T20:00:00.000Z",
+                "direction": "support",
+                "strength": 0.4622,
+                "contribution": 0.4622
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.17,
+                "peakTimeIso": "2026-11-07T12:00:00.000Z",
+                "direction": "support",
+                "strength": 0.4458,
+                "contribution": 0.4458
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 50,
+            "level": "balanced",
+            "summary": "Không có góc chiếu sát nào nổi bật; nhịp hôm nay tương đối cân bằng.",
+            "evidence": []
+          },
+          "connection": {
+            "id": "connection",
+            "score": 58,
+            "level": "balanced",
+            "summary": "Sao Kim Tam hợp Mặt Trời là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.24,
+                "peakTimeIso": "2026-11-06T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.3483,
+                "contribution": 0.3483
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Kim · Mặt Trời",
+      "canChiEvidence": "Ngày Ất Dậu · Trực Khai · Ngày Hoàng đạo (Thiên Đức)",
+      "canChiDay": "Ất Dậu"
+    },
+    {
+      "day": 10,
+      "dayOffset": 9,
+      "date": "2026-11-08",
+      "message": "Cảm xúc có chiều sâu; thành thật với điều cốt lõi sẽ giúp bạn nhẹ hơn. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyColor": {
+        "id": "sagittarius-royal-purple",
+        "colorSign": "Sagittarius",
+        "colorSignLabel": "Nhân Mã",
+        "variant": "companion",
+        "name": "Tím hoàng gia",
+        "swatchHex": "#7051B8",
+        "textHex": "#543794",
+        "evidence": "Mặt Trăng Bọ Cạp × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Scorpio",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 17,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 9,
+        "endHour": 11,
+        "range": "09h–11h",
+        "canChi": "Quý Tỵ",
+        "label": "Minh Đường"
+      },
+      "directions": {
+        "joy": "Tây Nam",
+        "wealth": "Chính Đông"
+      },
+      "recommended": [
+        "Lập kế hoạch, nghiên cứu",
+        "Thiền định, nghỉ sâu"
+      ],
+      "avoid": [
+        "Cưới hỏi, hôn lễ",
+        "Đầu tư, mở rộng",
+        "Khai trương, ra mắt",
+        "Ký kết hợp đồng"
+      ],
+      "warning": null,
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-08",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 54,
+            "level": "balanced",
+            "summary": "Sao Kim Tam hợp Mặt Trời là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.52,
+                "peakTimeIso": "2026-11-07T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.1474,
+                "contribution": 0.1474
+              },
+              {
+                "transitPlanet": "Jupiter",
+                "natalPlanet": "Sun",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.89,
+                "peakTimeIso": "2026-11-07T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.0484,
+                "contribution": 0.0338
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 31,
+            "level": "low",
+            "summary": "Mặt Trăng Vuông góc Hải Vương tạo lực cản; nên chậm lại để quan sát cảm xúc trước khi phản ứng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Neptune",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.04,
+                "peakTimeIso": "2026-11-08T02:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.9639,
+                "contribution": -0.7711
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Saturn",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.11,
+                "peakTimeIso": "2026-11-08T00:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.891,
+                "contribution": -0.891
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Moon",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.01,
+                "peakTimeIso": "2026-11-07T21:00:00.000Z",
+                "direction": "support",
+                "strength": 0.7658,
+                "contribution": 0.7658
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 57,
+            "level": "balanced",
+            "summary": "Mặt Trăng Tam hợp Sao Thủy là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mercury",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.13,
+                "peakTimeIso": "2026-11-08T00:00:00.000Z",
+                "direction": "support",
+                "strength": 0.314,
+                "contribution": 0.314
+              }
+            ]
+          },
+          "connection": {
+            "id": "connection",
+            "score": 55,
+            "level": "balanced",
+            "summary": "Sao Kim Tam hợp Mặt Trời là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.52,
+                "peakTimeIso": "2026-11-07T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.2211,
+                "contribution": 0.2211
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Hải Vương",
+      "canChiEvidence": "Ngày Bính Tuất · Trực Bế · Ngày Hắc đạo (Bạch Hổ)",
+      "canChiDay": "Bính Tuất"
+    },
+    {
+      "day": 11,
+      "dayOffset": 10,
+      "date": "2026-11-09",
+      "message": "Cảm xúc có chiều sâu; thành thật với điều cốt lõi sẽ giúp bạn nhẹ hơn. Năng lượng hôm nay mạnh và nhạy; chậm lại một nhịp sẽ giúp bạn phản ứng sáng suốt hơn.",
+      "luckyColor": {
+        "id": "capricorn-charcoal-gray",
+        "colorSign": "Capricorn",
+        "colorSignLabel": "Ma Kết",
+        "variant": "primary",
+        "name": "Xám than",
+        "swatchHex": "#4B5563",
+        "textHex": "#4B5563",
+        "evidence": "Mặt Trăng Bọ Cạp × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Scorpio",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 18,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 13,
+        "endHour": 15,
+        "range": "13h–15h",
+        "canChi": "Đinh Mùi",
+        "label": "Minh Đường"
+      },
+      "directions": {
+        "joy": "Chính Nam",
+        "wealth": "Chính Đông"
+      },
+      "recommended": [
+        "Cưới hỏi, hôn lễ",
+        "Họp hành, bàn việc",
+        "Khai trương, ra mắt",
+        "Nhập trạch, về nhà mới",
+        "Sáng tác, ra mắt tác phẩm"
+      ],
+      "avoid": [
+        "An táng, tang lễ",
+        "Động thổ, khởi công",
+        "Tranh tụng, kiện cáo"
+      ],
+      "warning": null,
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-09",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 52,
+            "level": "balanced",
+            "summary": "Sao Kim Tam hợp Mặt Trời là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.76,
+                "peakTimeIso": "2026-11-08T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.0748,
+                "contribution": 0.0748
+              },
+              {
+                "transitPlanet": "Jupiter",
+                "natalPlanet": "Sun",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 1,
+                "peakTimeIso": "2026-11-08T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.0011,
+                "contribution": 0.0007
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 27,
+            "level": "low",
+            "summary": "Mặt Trăng Vuông góc Thiên Vương tạo lực cản; nên chậm lại để quan sát cảm xúc trước khi phản ứng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Uranus",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.2,
+                "peakTimeIso": "2026-11-08T22:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.7979,
+                "contribution": -0.6383
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Venus",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.11,
+                "peakTimeIso": "2026-11-09T12:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.532,
+                "contribution": -0.532
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 50,
+            "level": "balanced",
+            "summary": "Không có góc chiếu sát nào nổi bật; nhịp hôm nay tương đối cân bằng.",
+            "evidence": []
+          },
+          "connection": {
+            "id": "connection",
+            "score": 44,
+            "level": "balanced",
+            "summary": "Mặt Trăng Đối đỉnh Sao Kim là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Venus",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.11,
+                "peakTimeIso": "2026-11-09T12:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.3547,
+                "contribution": -0.3547
+              },
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.76,
+                "peakTimeIso": "2026-11-08T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.1122,
+                "contribution": 0.1122
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: tension · Chủ đề nổi bật: Sao Kim · Mặt Trời",
+      "canChiEvidence": "Ngày Đinh Hợi · Trực Kiến · Ngày Hoàng đạo (Thiên Đức)",
+      "canChiDay": "Đinh Hợi"
+    },
+    {
+      "day": 12,
+      "dayOffset": 11,
+      "date": "2026-11-10",
+      "message": "Cảm xúc có chiều sâu; thành thật với điều cốt lõi sẽ giúp bạn nhẹ hơn. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyColor": {
+        "id": "capricorn-earth-brown",
+        "colorSign": "Capricorn",
+        "colorSignLabel": "Ma Kết",
+        "variant": "companion",
+        "name": "Nâu đất",
+        "swatchHex": "#705548",
+        "textHex": "#634638",
+        "evidence": "Mặt Trăng Bọ Cạp × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Scorpio",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 19,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 17,
+        "endHour": 19,
+        "range": "17h–19h",
+        "canChi": "Tân Dậu",
+        "label": "Minh Đường"
+      },
+      "directions": {
+        "joy": "Đông Nam",
+        "wealth": "Chính Bắc"
+      },
+      "recommended": [
+        "Cầu an, tĩnh dưỡng",
+        "Khám sức khỏe, chăm sóc y tế",
+        "Dọn dẹp, vứt đồ cũ",
+        "Giải quyết mâu thuẫn"
+      ],
+      "avoid": [
+        "Cưới hỏi, hôn lễ",
+        "Đầu tư, mở rộng",
+        "Khai trương, ra mắt",
+        "Ký kết hợp đồng"
+      ],
+      "warning": null,
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-10",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 52,
+            "level": "balanced",
+            "summary": "Sao Hỏa Lục hợp Mặt Trời là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Sun",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.84,
+                "peakTimeIso": "2026-11-10T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.0933,
+                "contribution": 0.0653
+              },
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.95,
+                "peakTimeIso": "2026-11-09T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.0147,
+                "contribution": 0.0147
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 62,
+            "level": "high",
+            "summary": "Mặt Trăng Lục hợp Hải Vương tạo nhịp hỗ trợ; thuận để quan sát cảm xúc trước khi phản ứng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Moon",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.05,
+                "peakTimeIso": "2026-11-10T07:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.8132,
+                "contribution": -0.6506
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Neptune",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.01,
+                "peakTimeIso": "2026-11-10T12:00:00.000Z",
+                "direction": "support",
+                "strength": 0.6912,
+                "contribution": 0.4838
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Jupiter",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.24,
+                "peakTimeIso": "2026-11-10T02:00:00.000Z",
+                "direction": "support",
+                "strength": 0.6831,
+                "contribution": 0.6831
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 50,
+            "level": "balanced",
+            "summary": "Không có góc chiếu sát nào nổi bật; nhịp hôm nay tương đối cân bằng.",
+            "evidence": []
+          },
+          "connection": {
+            "id": "connection",
+            "score": 51,
+            "level": "balanced",
+            "summary": "Sao Kim Tam hợp Mặt Trời là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.95,
+                "peakTimeIso": "2026-11-09T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.022,
+                "contribution": 0.022
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Mặt Trăng",
+      "canChiEvidence": "Ngày Mậu Tý · Trực Trừ · Ngày Hắc đạo (Bạch Hổ)",
+      "canChiDay": "Mậu Tý"
+    },
+    {
+      "day": 13,
+      "dayOffset": 12,
+      "date": "2026-11-11",
+      "message": "Bạn cần một góc nhìn rộng hơn, chút dịch chuyển hoặc cảm hứng mới. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyColor": {
+        "id": "aquarius-deep-blue",
+        "colorSign": "Aquarius",
+        "colorSignLabel": "Bảo Bình",
+        "variant": "primary",
+        "name": "Xanh dương đậm",
+        "swatchHex": "#315C9B",
+        "textHex": "#315C9B",
+        "evidence": "Mặt Trăng Nhân Mã × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Sagittarius",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 20,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 9,
+        "endHour": 11,
+        "range": "09h–11h",
+        "canChi": "Kỷ Tỵ",
+        "label": "Ngọc Đường"
+      },
+      "directions": {
+        "joy": "Đông Bắc",
+        "wealth": "Chính Nam"
+      },
+      "recommended": [
+        "Học tập, thi cử",
+        "Họp hành, bàn việc",
+        "Sáng tác, ra mắt tác phẩm",
+        "Mua bán, giao dịch",
+        "Thu tài, nhận tiền"
+      ],
+      "avoid": [
+        "Động thổ, khởi công",
+        "Nhận chức, bổ nhiệm",
+        "Cưới hỏi, hôn lễ",
+        "Khai trương, ra mắt"
+      ],
+      "warning": "⚠️ Ngày Tam Nương — không nên cưới hỏi, khai trương",
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-11",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 37,
+            "level": "low",
+            "summary": "Mặt Trời Đối đỉnh Sao Kim tạo lực cản; nên chậm lại để điều chỉnh nhịp hành động và sức bền.",
+            "evidence": [
+              {
+                "transitPlanet": "Sun",
+                "natalPlanet": "Venus",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.02,
+                "peakTimeIso": "2026-11-11T16:59:59.999Z",
+                "direction": "challenge",
+                "strength": 0.4988,
+                "contribution": -0.4988
+              },
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Sun",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.38,
+                "peakTimeIso": "2026-11-11T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.371,
+                "contribution": 0.2597
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mars",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.15,
+                "peakTimeIso": "2026-11-11T16:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.3405,
+                "contribution": -0.3405
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 49,
+            "level": "balanced",
+            "summary": "Mặt Trăng Trùng tụ Diêm Vương đang hội tụ; hãy quan sát cảm xúc trước khi phản ứng thay vì vội kết luận tốt hay xấu.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Pluto",
+                "aspectType": "conjunction",
+                "aspectName": "Trùng tụ",
+                "symbol": "☌",
+                "orb": 0.09,
+                "peakTimeIso": "2026-11-10T21:00:00.000Z",
+                "direction": "neutral",
+                "strength": 0.9126,
+                "contribution": 0
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Uranus",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.07,
+                "peakTimeIso": "2026-11-11T09:00:00.000Z",
+                "direction": "support",
+                "strength": 0.6501,
+                "contribution": 0.4551
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mars",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.15,
+                "peakTimeIso": "2026-11-11T16:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.5107,
+                "contribution": -0.5107
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 50,
+            "level": "balanced",
+            "summary": "Không có góc chiếu sát nào nổi bật; nhịp hôm nay tương đối cân bằng.",
+            "evidence": []
+          },
+          "connection": {
+            "id": "connection",
+            "score": 42,
+            "level": "balanced",
+            "summary": "Mặt Trời Đối đỉnh Sao Kim là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Sun",
+                "natalPlanet": "Venus",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.02,
+                "peakTimeIso": "2026-11-11T16:59:59.999Z",
+                "direction": "challenge",
+                "strength": 0.3326,
+                "contribution": -0.3326
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trời · Sao Kim",
+      "canChiEvidence": "Ngày Kỷ Sửu · Trực Mãn · Ngày Hoàng đạo (Ngọc Đường)",
+      "canChiDay": "Kỷ Sửu"
+    },
+    {
+      "day": 14,
+      "dayOffset": 13,
+      "date": "2026-11-12",
+      "message": "Bạn cần một góc nhìn rộng hơn, chút dịch chuyển hoặc cảm hứng mới. Năng lượng hôm nay mạnh và nhạy; chậm lại một nhịp sẽ giúp bạn phản ứng sáng suốt hơn.",
+      "luckyColor": {
+        "id": "aquarius-turquoise",
+        "colorSign": "Aquarius",
+        "colorSignLabel": "Bảo Bình",
+        "variant": "companion",
+        "name": "Xanh ngọc lam",
+        "swatchHex": "#2A9D9A",
+        "textHex": "#176B6A",
+        "evidence": "Mặt Trăng Nhân Mã × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Sagittarius",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 21,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 7,
+        "endHour": 9,
+        "range": "07h–09h",
+        "canChi": "Canh Thìn",
+        "label": "Kim Quỹ"
+      },
+      "directions": {
+        "joy": "Tây Bắc",
+        "wealth": "Tây Nam"
+      },
+      "recommended": [
+        "Di chuyển, du lịch",
+        "Họp hành, bàn việc",
+        "Lập kế hoạch, nghiên cứu",
+        "Sửa chữa nhà cửa",
+        "Tích lũy, tiết kiệm"
+      ],
+      "avoid": [
+        "Động thổ, khởi công",
+        "Cưới hỏi, hôn lễ",
+        "Đầu tư, mở rộng",
+        "Khai trương, ra mắt"
+      ],
+      "warning": null,
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-12",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 40,
+            "level": "balanced",
+            "summary": "Sao Hỏa Lục hợp Mặt Trời là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Sun",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.01,
+                "peakTimeIso": "2026-11-12T13:00:00.000Z",
+                "direction": "support",
+                "strength": 0.5894,
+                "contribution": 0.4126
+              },
+              {
+                "transitPlanet": "Sun",
+                "natalPlanet": "Venus",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.02,
+                "peakTimeIso": "2026-11-11T18:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.4998,
+                "contribution": -0.4998
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Sun",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.13,
+                "peakTimeIso": "2026-11-12T09:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.3465,
+                "contribution": -0.3465
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 24,
+            "level": "low",
+            "summary": "Mặt Trăng Vuông góc Sao Mộc tạo lực cản; nên chậm lại để quan sát cảm xúc trước khi phản ứng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Jupiter",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.09,
+                "peakTimeIso": "2026-11-12T13:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.9138,
+                "contribution": -0.731
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Sun",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.13,
+                "peakTimeIso": "2026-11-12T09:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.5197,
+                "contribution": -0.5197
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mars",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.65,
+                "peakTimeIso": "2026-11-11T17:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.2105,
+                "contribution": -0.2105
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 50,
+            "level": "balanced",
+            "summary": "Không có góc chiếu sát nào nổi bật; nhịp hôm nay tương đối cân bằng.",
+            "evidence": []
+          },
+          "connection": {
+            "id": "connection",
+            "score": 42,
+            "level": "balanced",
+            "summary": "Mặt Trời Đối đỉnh Sao Kim là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Sun",
+                "natalPlanet": "Venus",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.02,
+                "peakTimeIso": "2026-11-11T18:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.3332,
+                "contribution": -0.3332
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: tension · Chủ đề nổi bật: Mặt Trời · Sao Kim",
+      "canChiEvidence": "Ngày Canh Dần · Trực Bình · Ngày Hắc đạo (Thiên Lao)",
+      "canChiDay": "Canh Dần"
+    },
+    {
+      "day": 15,
+      "dayOffset": 14,
+      "date": "2026-11-13",
+      "message": "Năng lượng hợp với việc xác định mục tiêu và tiến từng bước có cấu trúc. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyColor": {
+        "id": "aquarius-turquoise",
+        "colorSign": "Aquarius",
+        "colorSignLabel": "Bảo Bình",
+        "variant": "companion",
+        "name": "Xanh ngọc lam",
+        "swatchHex": "#2A9D9A",
+        "textHex": "#176B6A",
+        "evidence": "Mặt Trăng Ma Kết × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Capricorn",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 21,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 13,
+        "endHour": 15,
+        "range": "13h–15h",
+        "canChi": "Ất Mùi",
+        "label": "Thiên Đức"
+      },
+      "directions": {
+        "joy": "Tây Nam",
+        "wealth": "Tây Nam"
+      },
+      "recommended": [
+        "Giảng dạy, truyền nghề",
+        "Hẹn hò, gặp gỡ thân nhân",
+        "Học tập, thi cử"
+      ],
+      "avoid": [
+        "Đầu tư, mở rộng",
+        "Khai trương, ra mắt",
+        "Thu tài, nhận tiền",
+        "Nhận chức, bổ nhiệm"
+      ],
+      "warning": "⚠️ Ngày Nguyệt Kỵ — nên hạn chế khởi sự việc lớn",
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-13",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 59,
+            "level": "balanced",
+            "summary": "Sao Hỏa Lục hợp Mặt Trời là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Sun",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.09,
+                "peakTimeIso": "2026-11-12T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.5437,
+                "contribution": 0.3806
+              },
+              {
+                "transitPlanet": "Sun",
+                "natalPlanet": "Venus",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.98,
+                "peakTimeIso": "2026-11-12T17:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.0081,
+                "contribution": -0.0081
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 64,
+            "level": "high",
+            "summary": "Mặt Trăng Tam hợp Sao Thổ tạo nhịp hỗ trợ; thuận để quan sát cảm xúc trước khi phản ứng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Saturn",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.17,
+                "peakTimeIso": "2026-11-12T22:00:00.000Z",
+                "direction": "support",
+                "strength": 0.7464,
+                "contribution": 0.7464
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Moon",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.15,
+                "peakTimeIso": "2026-11-12T19:00:00.000Z",
+                "direction": "support",
+                "strength": 0.513,
+                "contribution": 0.3591
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mercury",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.19,
+                "peakTimeIso": "2026-11-12T22:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.4863,
+                "contribution": -0.4863
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 43,
+            "level": "balanced",
+            "summary": "Mặt Trăng Đối đỉnh Sao Thủy là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mercury",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.19,
+                "peakTimeIso": "2026-11-12T22:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.3242,
+                "contribution": -0.3242
+              }
+            ]
+          },
+          "connection": {
+            "id": "connection",
+            "score": 50,
+            "level": "balanced",
+            "summary": "Mặt Trời Đối đỉnh Sao Kim là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Sun",
+                "natalPlanet": "Venus",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.98,
+                "peakTimeIso": "2026-11-12T17:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.0054,
+                "contribution": -0.0054
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trời · Sao Kim",
+      "canChiEvidence": "Ngày Tân Mão · Trực Định · Ngày Hắc đạo (Huyền Vũ)",
+      "canChiDay": "Tân Mão"
+    },
+    {
+      "day": 16,
+      "dayOffset": 15,
+      "date": "2026-11-14",
+      "message": "Năng lượng hợp với việc xác định mục tiêu và tiến từng bước có cấu trúc. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyColor": {
+        "id": "pisces-light-sea-blue",
+        "colorSign": "Pisces",
+        "colorSignLabel": "Song Ngư",
+        "variant": "primary",
+        "name": "Xanh biển nhạt",
+        "swatchHex": "#7CC7D9",
+        "textHex": "#2C6978",
+        "evidence": "Mặt Trăng Ma Kết × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Capricorn",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 22,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 7,
+        "endHour": 9,
+        "range": "07h–09h",
+        "canChi": "Giáp Thìn",
+        "label": "Thanh Long"
+      },
+      "directions": {
+        "joy": "Chính Nam",
+        "wealth": "Chính Tây"
+      },
+      "recommended": [
+        "Cầu an, tĩnh dưỡng",
+        "Khám sức khỏe, chăm sóc y tế",
+        "Cưới hỏi, hôn lễ",
+        "Đầu tư, mở rộng",
+        "Động thổ, khởi công"
+      ],
+      "avoid": [],
+      "warning": null,
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-14",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 54,
+            "level": "balanced",
+            "summary": "Sao Hỏa Lục hợp Mặt Trời là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Sun",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.54,
+                "peakTimeIso": "2026-11-13T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.2708,
+                "contribution": 0.1896
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 61,
+            "level": "high",
+            "summary": "Mặt Trăng Tam hợp Sao Kim tạo nhịp hỗ trợ; thuận để quan sát cảm xúc trước khi phản ứng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Venus",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.13,
+                "peakTimeIso": "2026-11-14T12:00:00.000Z",
+                "direction": "support",
+                "strength": 0.4681,
+                "contribution": 0.4681
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 50,
+            "level": "balanced",
+            "summary": "Không có góc chiếu sát nào nổi bật; nhịp hôm nay tương đối cân bằng.",
+            "evidence": []
+          },
+          "connection": {
+            "id": "connection",
+            "score": 57,
+            "level": "balanced",
+            "summary": "Mặt Trăng Tam hợp Sao Kim là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Venus",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.13,
+                "peakTimeIso": "2026-11-14T12:00:00.000Z",
+                "direction": "support",
+                "strength": 0.3121,
+                "contribution": 0.3121
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Kim · Mặt Trời",
+      "canChiEvidence": "Ngày Nhâm Thìn · Trực Chấp · Ngày Hoàng đạo (Tư Mệnh)",
+      "canChiDay": "Nhâm Thìn"
+    },
+    {
+      "day": 17,
+      "dayOffset": 16,
+      "date": "2026-11-15",
+      "message": "Năng lượng hợp với việc xác định mục tiêu và tiến từng bước có cấu trúc. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyColor": {
+        "id": "pisces-lavender",
+        "colorSign": "Pisces",
+        "colorSignLabel": "Song Ngư",
+        "variant": "companion",
+        "name": "Tím oải hương",
+        "swatchHex": "#A78BCA",
+        "textHex": "#604484",
+        "evidence": "Mặt Trăng Ma Kết × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Capricorn",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 23,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 13,
+        "endHour": 15,
+        "range": "13h–15h",
+        "canChi": "Kỷ Mùi",
+        "label": "Minh Đường"
+      },
+      "directions": {
+        "joy": "Đông Nam",
+        "wealth": "Tây Bắc"
+      },
+      "recommended": [
+        "Khám sức khỏe, chăm sóc y tế",
+        "Dọn dẹp, vứt đồ cũ"
+      ],
+      "avoid": [
+        "Cưới hỏi, hôn lễ",
+        "Khai trương, ra mắt",
+        "Nhận chức, bổ nhiệm",
+        "Nhập trạch, về nhà mới"
+      ],
+      "warning": "⚠️ Ngày Tam Nương — không nên cưới hỏi, khai trương",
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-15",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 50,
+            "level": "balanced",
+            "summary": "Sao Hỏa Lục hợp Mặt Trời là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Sun",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 1,
+                "peakTimeIso": "2026-11-14T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.0005,
+                "contribution": 0.0003
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 46,
+            "level": "balanced",
+            "summary": "Mặt Trăng Trùng tụ Hải Vương đang hội tụ; hãy quan sát cảm xúc trước khi phản ứng thay vì vội kết luận tốt hay xấu.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Neptune",
+                "aspectType": "conjunction",
+                "aspectName": "Trùng tụ",
+                "symbol": "☌",
+                "orb": 0.05,
+                "peakTimeIso": "2026-11-15T13:00:00.000Z",
+                "direction": "neutral",
+                "strength": 0.9455,
+                "contribution": 0
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Saturn",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.19,
+                "peakTimeIso": "2026-11-15T11:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.807,
+                "contribution": -0.6456
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Jupiter",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.04,
+                "peakTimeIso": "2026-11-15T02:00:00.000Z",
+                "direction": "support",
+                "strength": 0.6715,
+                "contribution": 0.47
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 50,
+            "level": "balanced",
+            "summary": "Không có góc chiếu sát nào nổi bật; nhịp hôm nay tương đối cân bằng.",
+            "evidence": []
+          },
+          "connection": {
+            "id": "connection",
+            "score": 50,
+            "level": "balanced",
+            "summary": "Không có góc chiếu sát nào nổi bật; nhịp hôm nay tương đối cân bằng.",
+            "evidence": []
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Kim · Mặt Trời",
+      "canChiEvidence": "Ngày Quý Tỵ · Trực Phá · Ngày Hắc đạo (Câu Trận)",
+      "canChiDay": "Quý Tỵ"
+    },
+    {
+      "day": 18,
+      "dayOffset": 17,
+      "date": "2026-11-16",
+      "message": "Ý tưởng khác biệt và kết nối cộng đồng có thể mở ra hướng đi mới. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyColor": {
+        "id": "aries-bright-red",
+        "colorSign": "Aries",
+        "colorSignLabel": "Bạch Dương",
+        "variant": "primary",
+        "name": "Đỏ tươi",
+        "swatchHex": "#EF4444",
+        "textHex": "#A61B2B",
+        "evidence": "Mặt Trăng Bảo Bình × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Aquarius",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 0,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 11,
+        "endHour": 13,
+        "range": "11h–13h",
+        "canChi": "Canh Ngọ",
+        "label": "Tư Mệnh"
+      },
+      "directions": {
+        "joy": "Đông Bắc",
+        "wealth": "Đông Nam"
+      },
+      "recommended": [
+        "Học tập, thi cử",
+        "Sáng tác, ra mắt tác phẩm",
+        "Họp hành, bàn việc",
+        "Nhận chức, bổ nhiệm",
+        "Cầu an, tĩnh dưỡng"
+      ],
+      "avoid": [
+        "Di chuyển, du lịch",
+        "Động thổ, khởi công",
+        "Mua bán, giao dịch",
+        "Công tác, xuất hành xa"
+      ],
+      "warning": null,
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-16",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 58,
+            "level": "balanced",
+            "summary": "Mặt Trăng Tam hợp Sao Hỏa là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mars",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.03,
+                "peakTimeIso": "2026-11-16T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.3499,
+                "contribution": 0.3499
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 71,
+            "level": "high",
+            "summary": "Mặt Trăng Lục hợp Diêm Vương tạo nhịp hỗ trợ; thuận để quan sát cảm xúc trước khi phản ứng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Uranus",
+                "aspectType": "conjunction",
+                "aspectName": "Trùng tụ",
+                "symbol": "☌",
+                "orb": 0.23,
+                "peakTimeIso": "2026-11-16T10:00:00.000Z",
+                "direction": "neutral",
+                "strength": 0.7679,
+                "contribution": 0
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Pluto",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.02,
+                "peakTimeIso": "2026-11-15T22:00:00.000Z",
+                "direction": "support",
+                "strength": 0.6891,
+                "contribution": 0.4824
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mars",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.03,
+                "peakTimeIso": "2026-11-16T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.5249,
+                "contribution": 0.5249
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 50,
+            "level": "balanced",
+            "summary": "Không có góc chiếu sát nào nổi bật; nhịp hôm nay tương đối cân bằng.",
+            "evidence": []
+          },
+          "connection": {
+            "id": "connection",
+            "score": 50,
+            "level": "balanced",
+            "summary": "Không có góc chiếu sát nào nổi bật; nhịp hôm nay tương đối cân bằng.",
+            "evidence": []
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Thiên Vương",
+      "canChiEvidence": "Ngày Giáp Ngọ · Trực Nguy · Ngày Hoàng đạo (Thanh Long)",
+      "canChiDay": "Giáp Ngọ"
+    },
+    {
+      "day": 19,
+      "dayOffset": 18,
+      "date": "2026-11-17",
+      "message": "Ý tưởng khác biệt và kết nối cộng đồng có thể mở ra hướng đi mới. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyColor": {
+        "id": "aries-ruby-red",
+        "colorSign": "Aries",
+        "colorSignLabel": "Bạch Dương",
+        "variant": "companion",
+        "name": "Đỏ ruby",
+        "swatchHex": "#B91C3C",
+        "textHex": "#8F1230",
+        "evidence": "Mặt Trăng Bảo Bình × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Aquarius",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 1,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 9,
+        "endHour": 11,
+        "range": "09h–11h",
+        "canChi": "Tân Tỵ",
+        "label": "Ngọc Đường"
+      },
+      "directions": {
+        "joy": "Tây Bắc",
+        "wealth": "Đông Nam"
+      },
+      "recommended": [
+        "Cưới hỏi, hôn lễ",
+        "Học tập, thi cử",
+        "Nhập trạch, về nhà mới",
+        "Sáng tác, ra mắt tác phẩm",
+        "Đầu tư, mở rộng"
+      ],
+      "avoid": [
+        "An táng, tang lễ",
+        "Động thổ, khởi công",
+        "Tranh tụng, kiện cáo"
+      ],
+      "warning": null,
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-17",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 65,
+            "level": "high",
+            "summary": "Mặt Trăng Tam hợp Sao Hỏa tạo nhịp hỗ trợ; thuận để điều chỉnh nhịp hành động và sức bền.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mars",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.03,
+                "peakTimeIso": "2026-11-16T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.3499,
+                "contribution": 0.3499
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.04,
+                "peakTimeIso": "2026-11-17T10:00:00.000Z",
+                "direction": "support",
+                "strength": 0.3457,
+                "contribution": 0.3457
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 64,
+            "level": "high",
+            "summary": "Mặt Trăng Tam hợp Sao Hỏa tạo nhịp hỗ trợ; thuận để quan sát cảm xúc trước khi phản ứng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mars",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.03,
+                "peakTimeIso": "2026-11-16T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.5249,
+                "contribution": 0.5249
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.04,
+                "peakTimeIso": "2026-11-17T10:00:00.000Z",
+                "direction": "support",
+                "strength": 0.5185,
+                "contribution": 0.5185
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Venus",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.16,
+                "peakTimeIso": "2026-11-17T00:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.5059,
+                "contribution": -0.4047
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 50,
+            "level": "balanced",
+            "summary": "Không có góc chiếu sát nào nổi bật; nhịp hôm nay tương đối cân bằng.",
+            "evidence": []
+          },
+          "connection": {
+            "id": "connection",
+            "score": 44,
+            "level": "balanced",
+            "summary": "Mặt Trăng Vuông góc Sao Kim là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Venus",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.16,
+                "peakTimeIso": "2026-11-17T00:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.3373,
+                "contribution": -0.2698
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Sao Kim",
+      "canChiEvidence": "Ngày Ất Mùi · Trực Thành · Ngày Hoàng đạo (Minh Đường)",
+      "canChiDay": "Ất Mùi"
+    },
+    {
+      "day": 20,
+      "dayOffset": 19,
+      "date": "2026-11-18",
+      "message": "Trực giác đang nhạy; khoảng lặng sẽ giúp bạn nghe rõ tín hiệu bên trong. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyColor": {
+        "id": "aries-ruby-red",
+        "colorSign": "Aries",
+        "colorSignLabel": "Bạch Dương",
+        "variant": "companion",
+        "name": "Đỏ ruby",
+        "swatchHex": "#B91C3C",
+        "textHex": "#8F1230",
+        "evidence": "Mặt Trăng Song Ngư × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Pisces",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 1,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 7,
+        "endHour": 9,
+        "range": "07h–09h",
+        "canChi": "Nhâm Thìn",
+        "label": "Kim Quỹ"
+      },
+      "directions": {
+        "joy": "Tây Nam",
+        "wealth": "Chính Đông"
+      },
+      "recommended": [
+        "Lập kế hoạch, nghiên cứu"
+      ],
+      "avoid": [
+        "Cưới hỏi, hôn lễ",
+        "Đầu tư, mở rộng",
+        "Khai trương, ra mắt",
+        "Ký kết hợp đồng"
+      ],
+      "warning": null,
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-18",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 67,
+            "level": "high",
+            "summary": "Mặt Trời Tam hợp Sao Mộc tạo nhịp hỗ trợ; thuận để điều chỉnh nhịp hành động và sức bền.",
+            "evidence": [
+              {
+                "transitPlanet": "Sun",
+                "natalPlanet": "Jupiter",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.03,
+                "peakTimeIso": "2026-11-18T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.7437,
+                "contribution": 0.7437
+              },
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.9,
+                "peakTimeIso": "2026-11-18T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.0312,
+                "contribution": 0.0312
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 53,
+            "level": "balanced",
+            "summary": "Mặt Trăng Vuông góc Diêm Vương là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Pluto",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.18,
+                "peakTimeIso": "2026-11-18T09:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.8157,
+                "contribution": -0.6526
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Moon",
+                "aspectType": "conjunction",
+                "aspectName": "Trùng tụ",
+                "symbol": "☌",
+                "orb": 0.19,
+                "peakTimeIso": "2026-11-17T20:00:00.000Z",
+                "direction": "neutral",
+                "strength": 0.6973,
+                "contribution": 0
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Saturn",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.25,
+                "peakTimeIso": "2026-11-17T22:00:00.000Z",
+                "direction": "support",
+                "strength": 0.527,
+                "contribution": 0.3689
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 56,
+            "level": "balanced",
+            "summary": "Mặt Trăng Tam hợp Sao Thủy là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mercury",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.23,
+                "peakTimeIso": "2026-11-17T22:00:00.000Z",
+                "direction": "support",
+                "strength": 0.2778,
+                "contribution": 0.2778
+              }
+            ]
+          },
+          "connection": {
+            "id": "connection",
+            "score": 51,
+            "level": "balanced",
+            "summary": "Sao Kim Tam hợp Mặt Trời là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.9,
+                "peakTimeIso": "2026-11-18T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.0468,
+                "contribution": 0.0468
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trời · Sao Mộc",
+      "canChiEvidence": "Ngày Bính Thân · Trực Thu · Ngày Hắc đạo (Thiên Hình)",
+      "canChiDay": "Bính Thân"
+    },
+    {
+      "day": 21,
+      "dayOffset": 20,
+      "date": "2026-11-19",
+      "message": "Trực giác đang nhạy; khoảng lặng sẽ giúp bạn nghe rõ tín hiệu bên trong. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyColor": {
+        "id": "taurus-ivory",
+        "colorSign": "Taurus",
+        "colorSignLabel": "Kim Ngưu",
+        "variant": "primary",
+        "name": "Trắng ngà",
+        "swatchHex": "#F3E6C8",
+        "textHex": "#705A2F",
+        "evidence": "Mặt Trăng Song Ngư × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Pisces",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 2,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 13,
+        "endHour": 15,
+        "range": "13h–15h",
+        "canChi": "Đinh Mùi",
+        "label": "Thiên Đức"
+      },
+      "directions": {
+        "joy": "Chính Nam",
+        "wealth": "Chính Đông"
+      },
+      "recommended": [
+        "Học tập, thi cử",
+        "Họp hành, bàn việc",
+        "Sáng tác, ra mắt tác phẩm",
+        "Công tác, xuất hành xa",
+        "Di chuyển, du lịch"
+      ],
+      "avoid": [
+        "An táng, tang lễ",
+        "Động thổ, khởi công",
+        "Tranh tụng, kiện cáo",
+        "Cưới hỏi, hôn lễ"
+      ],
+      "warning": null,
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-19",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 63,
+            "level": "high",
+            "summary": "Mặt Trời Tam hợp Sao Mộc tạo nhịp hỗ trợ; thuận để điều chỉnh nhịp hành động và sức bền.",
+            "evidence": [
+              {
+                "transitPlanet": "Sun",
+                "natalPlanet": "Jupiter",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.01,
+                "peakTimeIso": "2026-11-18T18:00:00.000Z",
+                "direction": "support",
+                "strength": 0.7541,
+                "contribution": 0.7541
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mars",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.23,
+                "peakTimeIso": "2026-11-19T03:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.3066,
+                "contribution": -0.2453
+              },
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.7,
+                "peakTimeIso": "2026-11-19T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.0922,
+                "contribution": 0.0922
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 47,
+            "level": "balanced",
+            "summary": "Mặt Trăng Vuông góc Sao Hỏa là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mars",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.23,
+                "peakTimeIso": "2026-11-19T03:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.4599,
+                "contribution": -0.368
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Venus",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.14,
+                "peakTimeIso": "2026-11-19T10:00:00.000Z",
+                "direction": "support",
+                "strength": 0.3616,
+                "contribution": 0.2531
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 50,
+            "level": "balanced",
+            "summary": "Không có góc chiếu sát nào nổi bật; nhịp hôm nay tương đối cân bằng.",
+            "evidence": []
+          },
+          "connection": {
+            "id": "connection",
+            "score": 57,
+            "level": "balanced",
+            "summary": "Mặt Trăng Lục hợp Sao Kim là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Venus",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.14,
+                "peakTimeIso": "2026-11-19T10:00:00.000Z",
+                "direction": "support",
+                "strength": 0.241,
+                "contribution": 0.1687
+              },
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.7,
+                "peakTimeIso": "2026-11-19T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.1384,
+                "contribution": 0.1384
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Sao Hỏa",
+      "canChiEvidence": "Ngày Đinh Dậu · Trực Khai · Ngày Hắc đạo (Chu Tước)",
+      "canChiDay": "Đinh Dậu"
+    },
+    {
+      "day": 22,
+      "dayOffset": 21,
+      "date": "2026-11-20",
+      "message": "Trực giác đang nhạy; khoảng lặng sẽ giúp bạn nghe rõ tín hiệu bên trong. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyColor": {
+        "id": "taurus-sage-green",
+        "colorSign": "Taurus",
+        "colorSignLabel": "Kim Ngưu",
+        "variant": "companion",
+        "name": "Xanh xô thơm",
+        "swatchHex": "#8FAF88",
+        "textHex": "#3F6347",
+        "evidence": "Mặt Trăng Song Ngư × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Pisces",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 3,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 9,
+        "endHour": 11,
+        "range": "09h–11h",
+        "canChi": "Đinh Tỵ",
+        "label": "Minh Đường"
+      },
+      "directions": {
+        "joy": "Đông Nam",
+        "wealth": "Chính Bắc"
+      },
+      "recommended": [
+        "Học tập, thi cử",
+        "Họp hành, bàn việc",
+        "Sáng tác, ra mắt tác phẩm",
+        "Lập kế hoạch, nghiên cứu",
+        "Thiền định, nghỉ sâu"
+      ],
+      "avoid": [
+        "Di chuyển, du lịch",
+        "Thu tài, nhận tiền",
+        "Công tác, xuất hành xa"
+      ],
+      "warning": null,
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-20",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 45,
+            "level": "balanced",
+            "summary": "Mặt Trăng Vuông góc Mặt Trời là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Sun",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.14,
+                "peakTimeIso": "2026-11-19T19:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.3454,
+                "contribution": -0.2763
+              },
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.46,
+                "peakTimeIso": "2026-11-20T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.1642,
+                "contribution": 0.1642
+              },
+              {
+                "transitPlanet": "Sun",
+                "natalPlanet": "Moon",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.75,
+                "peakTimeIso": "2026-11-20T16:59:59.999Z",
+                "direction": "challenge",
+                "strength": 0.1284,
+                "contribution": -0.1027
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 69,
+            "level": "high",
+            "summary": "Mặt Trăng Tam hợp Diêm Vương tạo nhịp hỗ trợ; thuận để quan sát cảm xúc trước khi phản ứng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Pluto",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.01,
+                "peakTimeIso": "2026-11-20T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.8867,
+                "contribution": 0.8867
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Jupiter",
+                "aspectType": "conjunction",
+                "aspectName": "Trùng tụ",
+                "symbol": "☌",
+                "orb": 0.16,
+                "peakTimeIso": "2026-11-19T23:00:00.000Z",
+                "direction": "neutral",
+                "strength": 0.8357,
+                "contribution": 0
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Neptune",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.01,
+                "peakTimeIso": "2026-11-20T09:00:00.000Z",
+                "direction": "support",
+                "strength": 0.6918,
+                "contribution": 0.4842
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 43,
+            "level": "balanced",
+            "summary": "Mặt Trăng Vuông góc Sao Thủy là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mercury",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.05,
+                "peakTimeIso": "2026-11-20T07:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.3804,
+                "contribution": -0.3043
+              }
+            ]
+          },
+          "connection": {
+            "id": "connection",
+            "score": 56,
+            "level": "balanced",
+            "summary": "Sao Kim Tam hợp Mặt Trời là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.46,
+                "peakTimeIso": "2026-11-20T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.2463,
+                "contribution": 0.2463
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Sao Thủy",
+      "canChiEvidence": "Ngày Mậu Tuất · Trực Bế · Ngày Hoàng đạo (Kim Quỹ)",
+      "canChiDay": "Mậu Tuất"
+    },
+    {
+      "day": 23,
+      "dayOffset": 22,
+      "date": "2026-11-21",
+      "message": "Cảm xúc nghiêng về hành động trực tiếp và quyết đoán. Hôm nay bạn dễ kết nối, lắng nghe và đưa mọi việc về trạng thái hài hòa.",
+      "luckyColor": {
+        "id": "gemini-bright-green",
+        "colorSign": "Gemini",
+        "colorSignLabel": "Song Tử",
+        "variant": "primary",
+        "name": "Xanh lá sáng",
+        "swatchHex": "#65C466",
+        "textHex": "#247A3D",
+        "evidence": "Mặt Trăng Bạch Dương × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Aries",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 4,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 13,
+        "endHour": 15,
+        "range": "13h–15h",
+        "canChi": "Tân Mùi",
+        "label": "Minh Đường"
+      },
+      "directions": {
+        "joy": "Đông Bắc",
+        "wealth": "Chính Nam"
+      },
+      "recommended": [
+        "Đầu tư, mở rộng",
+        "Họp hành, bàn việc",
+        "Ký kết hợp đồng",
+        "Sáng tác, ra mắt tác phẩm",
+        "Di chuyển, du lịch"
+      ],
+      "avoid": [
+        "Động thổ, khởi công",
+        "Cưới hỏi, hôn lễ",
+        "Khai trương, ra mắt",
+        "Nhận chức, bổ nhiệm"
+      ],
+      "warning": "⚠️ Ngày Tam Nương — không nên cưới hỏi, khai trương",
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-21",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 50,
+            "level": "balanced",
+            "summary": "Mặt Trời Vuông góc Mặt Trăng là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Sun",
+                "natalPlanet": "Moon",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.01,
+                "peakTimeIso": "2026-11-21T11:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.5055,
+                "contribution": -0.4044
+              },
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.19,
+                "peakTimeIso": "2026-11-21T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.2469,
+                "contribution": 0.2469
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mars",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.15,
+                "peakTimeIso": "2026-11-21T10:00:00.000Z",
+                "direction": "support",
+                "strength": 0.2382,
+                "contribution": 0.1667
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 78,
+            "level": "high",
+            "summary": "Mặt Trăng Tam hợp Diêm Vương tạo nhịp hỗ trợ; thuận để quan sát cảm xúc trước khi phản ứng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Pluto",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.01,
+                "peakTimeIso": "2026-11-20T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.8867,
+                "contribution": 0.8867
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Uranus",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0,
+                "peakTimeIso": "2026-11-21T04:00:00.000Z",
+                "direction": "support",
+                "strength": 0.6989,
+                "contribution": 0.4893
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mars",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.15,
+                "peakTimeIso": "2026-11-21T10:00:00.000Z",
+                "direction": "support",
+                "strength": 0.3573,
+                "contribution": 0.2501
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 50,
+            "level": "balanced",
+            "summary": "Không có góc chiếu sát nào nổi bật; nhịp hôm nay tương đối cân bằng.",
+            "evidence": []
+          },
+          "connection": {
+            "id": "connection",
+            "score": 58,
+            "level": "balanced",
+            "summary": "Sao Kim Tam hợp Mặt Trời là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.19,
+                "peakTimeIso": "2026-11-21T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.3703,
+                "contribution": 0.3703
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: harmony · Chủ đề nổi bật: Mặt Trời · Mặt Trăng",
+      "canChiEvidence": "Ngày Kỷ Hợi · Trực Kiến · Ngày Hoàng đạo (Thiên Đức)",
+      "canChiDay": "Kỷ Hợi"
+    },
+    {
+      "day": 24,
+      "dayOffset": 23,
+      "date": "2026-11-22",
+      "message": "Cảm xúc nghiêng về hành động trực tiếp và quyết đoán. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyColor": {
+        "id": "gemini-lemon-yellow",
+        "colorSign": "Gemini",
+        "colorSignLabel": "Song Tử",
+        "variant": "companion",
+        "name": "Vàng chanh",
+        "swatchHex": "#D8D34B",
+        "textHex": "#6C6500",
+        "evidence": "Mặt Trăng Bạch Dương × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Aries",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 5,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 17,
+        "endHour": 19,
+        "range": "17h–19h",
+        "canChi": "Ất Dậu",
+        "label": "Minh Đường"
+      },
+      "directions": {
+        "joy": "Tây Bắc",
+        "wealth": "Tây Nam"
+      },
+      "recommended": [
+        "Dọn dẹp, vứt đồ cũ",
+        "Cầu an, tĩnh dưỡng",
+        "Khám sức khỏe, chăm sóc y tế",
+        "Giải quyết mâu thuẫn"
+      ],
+      "avoid": [
+        "Cưới hỏi, hôn lễ",
+        "Đầu tư, mở rộng",
+        "Khai trương, ra mắt",
+        "Ký kết hợp đồng"
+      ],
+      "warning": "⚠️ Ngày Nguyệt Kỵ — nên hạn chế khởi sự việc lớn",
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-22",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 44,
+            "level": "balanced",
+            "summary": "Mặt Trời Vuông góc Mặt Trăng là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Sun",
+                "natalPlanet": "Moon",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.26,
+                "peakTimeIso": "2026-11-21T17:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.3768,
+                "contribution": -0.3015
+              },
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.01,
+                "peakTimeIso": "2026-11-22T09:00:00.000Z",
+                "direction": "support",
+                "strength": 0.3042,
+                "contribution": 0.3042
+              },
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Moon",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.47,
+                "peakTimeIso": "2026-11-22T16:59:59.999Z",
+                "direction": "challenge",
+                "strength": 0.271,
+                "contribution": -0.271
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 46,
+            "level": "balanced",
+            "summary": "Mặt Trăng Vuông góc Hải Vương là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Neptune",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.02,
+                "peakTimeIso": "2026-11-22T13:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.9756,
+                "contribution": -0.7805
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Saturn",
+                "aspectType": "conjunction",
+                "aspectName": "Trùng tụ",
+                "symbol": "☌",
+                "orb": 0.09,
+                "peakTimeIso": "2026-11-22T11:00:00.000Z",
+                "direction": "neutral",
+                "strength": 0.9064,
+                "contribution": 0
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Moon",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.18,
+                "peakTimeIso": "2026-11-22T09:00:00.000Z",
+                "direction": "support",
+                "strength": 0.4959,
+                "contribution": 0.3471
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 54,
+            "level": "balanced",
+            "summary": "Mặt Trăng Lục hợp Sao Thủy là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mercury",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.07,
+                "peakTimeIso": "2026-11-22T11:00:00.000Z",
+                "direction": "support",
+                "strength": 0.2591,
+                "contribution": 0.1814
+              }
+            ]
+          },
+          "connection": {
+            "id": "connection",
+            "score": 60,
+            "level": "high",
+            "summary": "Sao Kim Tam hợp Mặt Trời tạo nhịp hỗ trợ; thuận để chú ý cách bạn trao đổi và đón nhận người khác.",
+            "evidence": [
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.01,
+                "peakTimeIso": "2026-11-22T09:00:00.000Z",
+                "direction": "support",
+                "strength": 0.4563,
+                "contribution": 0.4563
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Hỏa · Mặt Trăng",
+      "canChiEvidence": "Ngày Canh Tý · Trực Trừ · Ngày Hắc đạo (Bạch Hổ)",
+      "canChiDay": "Canh Tý"
+    },
+    {
+      "day": 25,
+      "dayOffset": 24,
+      "date": "2026-11-23",
+      "message": "Bạn cần một nhịp ổn định và cảm giác an toàn để phát huy tốt nhất. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyColor": {
+        "id": "cancer-silver",
+        "colorSign": "Cancer",
+        "colorSignLabel": "Cự Giải",
+        "variant": "primary",
+        "name": "Bạc",
+        "swatchHex": "#C5CED8",
+        "textHex": "#4F5F72",
+        "evidence": "Mặt Trăng Kim Ngưu × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Taurus",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 6,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 9,
+        "endHour": 11,
+        "range": "09h–11h",
+        "canChi": "Quý Tỵ",
+        "label": "Ngọc Đường"
+      },
+      "directions": {
+        "joy": "Tây Nam",
+        "wealth": "Tây Nam"
+      },
+      "recommended": [
+        "Họp hành, bàn việc",
+        "Khai trương, ra mắt",
+        "Học tập, thi cử",
+        "Sáng tác, ra mắt tác phẩm",
+        "Mua bán, giao dịch"
+      ],
+      "avoid": [
+        "Động thổ, khởi công",
+        "Tranh tụng, kiện cáo"
+      ],
+      "warning": null,
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-23",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 52,
+            "level": "balanced",
+            "summary": "Sao Hỏa Đối đỉnh Mặt Trăng là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Moon",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.06,
+                "peakTimeIso": "2026-11-23T16:59:59.999Z",
+                "direction": "challenge",
+                "strength": 0.4818,
+                "contribution": -0.4818
+              },
+              {
+                "transitPlanet": "Sun",
+                "natalPlanet": "Neptune",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.3,
+                "peakTimeIso": "2026-11-23T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.4135,
+                "contribution": 0.2895
+              },
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.11,
+                "peakTimeIso": "2026-11-22T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.272,
+                "contribution": 0.272
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 32,
+            "level": "low",
+            "summary": "Mặt Trăng Vuông góc Thiên Vương tạo lực cản; nên chậm lại để quan sát cảm xúc trước khi phản ứng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Uranus",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.17,
+                "peakTimeIso": "2026-11-23T07:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.8339,
+                "contribution": -0.6671
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Venus",
+                "aspectType": "conjunction",
+                "aspectName": "Trùng tụ",
+                "symbol": "☌",
+                "orb": 0.62,
+                "peakTimeIso": "2026-11-23T16:59:59.999Z",
+                "direction": "neutral",
+                "strength": 0.2262,
+                "contribution": 0
+              },
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Moon",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.06,
+                "peakTimeIso": "2026-11-23T16:59:59.999Z",
+                "direction": "challenge",
+                "strength": 0.2088,
+                "contribution": -0.2088
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 38,
+            "level": "low",
+            "summary": "Sao Thủy Vuông góc Thiên Vương tạo lực cản; nên chậm lại để ưu tiên việc cần sự rõ ràng và tập trung.",
+            "evidence": [
+              {
+                "transitPlanet": "Mercury",
+                "natalPlanet": "Uranus",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.21,
+                "peakTimeIso": "2026-11-23T16:59:59.999Z",
+                "direction": "challenge",
+                "strength": 0.6729,
+                "contribution": -0.5383
+              }
+            ]
+          },
+          "connection": {
+            "id": "connection",
+            "score": 59,
+            "level": "balanced",
+            "summary": "Sao Kim Tam hợp Mặt Trời là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.11,
+                "peakTimeIso": "2026-11-22T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.4081,
+                "contribution": 0.4081
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Venus",
+                "aspectType": "conjunction",
+                "aspectName": "Trùng tụ",
+                "symbol": "☌",
+                "orb": 0.62,
+                "peakTimeIso": "2026-11-23T16:59:59.999Z",
+                "direction": "neutral",
+                "strength": 0.1508,
+                "contribution": 0
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Thiên Vương",
+      "canChiEvidence": "Ngày Tân Sửu · Trực Mãn · Ngày Hoàng đạo (Ngọc Đường)",
+      "canChiDay": "Tân Sửu"
+    },
+    {
+      "day": 26,
+      "dayOffset": 25,
+      "date": "2026-11-24",
+      "message": "Bạn cần một nhịp ổn định và cảm giác an toàn để phát huy tốt nhất. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyColor": {
+        "id": "cancer-pearl-blue",
+        "colorSign": "Cancer",
+        "colorSignLabel": "Cự Giải",
+        "variant": "companion",
+        "name": "Xanh ngọc trai",
+        "swatchHex": "#AFC8D8",
+        "textHex": "#3E6175",
+        "evidence": "Mặt Trăng Kim Ngưu × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Taurus",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 7,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 7,
+        "endHour": 9,
+        "range": "07h–09h",
+        "canChi": "Giáp Thìn",
+        "label": "Kim Quỹ"
+      },
+      "directions": {
+        "joy": "Chính Nam",
+        "wealth": "Chính Tây"
+      },
+      "recommended": [
+        "Cầu an, tĩnh dưỡng",
+        "Di chuyển, du lịch",
+        "Sửa chữa nhà cửa",
+        "Tập luyện thể thao",
+        "Giảng dạy, truyền nghề"
+      ],
+      "avoid": [
+        "Động thổ, khởi công",
+        "Cưới hỏi, hôn lễ",
+        "Đầu tư, mở rộng",
+        "Khai trương, ra mắt"
+      ],
+      "warning": null,
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-24",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 52,
+            "level": "balanced",
+            "summary": "Mặt Trời Lục hợp Hải Vương là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Sun",
+                "natalPlanet": "Neptune",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.01,
+                "peakTimeIso": "2026-11-24T00:00:00.000Z",
+                "direction": "support",
+                "strength": 0.5889,
+                "contribution": 0.4122
+              },
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Moon",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0,
+                "peakTimeIso": "2026-11-23T20:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.5079,
+                "contribution": -0.5079
+              },
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.45,
+                "peakTimeIso": "2026-11-23T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.1689,
+                "contribution": 0.1689
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 64,
+            "level": "high",
+            "summary": "Mặt Trăng Tam hợp Hải Vương tạo nhịp hỗ trợ; thuận để quan sát cảm xúc trước khi phản ứng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Neptune",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.06,
+                "peakTimeIso": "2026-11-24T14:00:00.000Z",
+                "direction": "support",
+                "strength": 0.8474,
+                "contribution": 0.8474
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Moon",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.14,
+                "peakTimeIso": "2026-11-24T10:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.7378,
+                "contribution": -0.5902
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Venus",
+                "aspectType": "conjunction",
+                "aspectName": "Trùng tụ",
+                "symbol": "☌",
+                "orb": 0.01,
+                "peakTimeIso": "2026-11-23T18:00:00.000Z",
+                "direction": "neutral",
+                "strength": 0.5965,
+                "contribution": 0
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 35,
+            "level": "low",
+            "summary": "Sao Thủy Vuông góc Thiên Vương tạo lực cản; nên chậm lại để ưu tiên việc cần sự rõ ràng và tập trung.",
+            "evidence": [
+              {
+                "transitPlanet": "Mercury",
+                "natalPlanet": "Uranus",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.01,
+                "peakTimeIso": "2026-11-23T21:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.8437,
+                "contribution": -0.675
+              }
+            ]
+          },
+          "connection": {
+            "id": "connection",
+            "score": 56,
+            "level": "balanced",
+            "summary": "Mặt Trăng Trùng tụ Sao Kim đang hội tụ; hãy chú ý cách bạn trao đổi và đón nhận người khác thay vì vội kết luận tốt hay xấu.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Venus",
+                "aspectType": "conjunction",
+                "aspectName": "Trùng tụ",
+                "symbol": "☌",
+                "orb": 0.01,
+                "peakTimeIso": "2026-11-23T18:00:00.000Z",
+                "direction": "neutral",
+                "strength": 0.3977,
+                "contribution": 0
+              },
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.45,
+                "peakTimeIso": "2026-11-23T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.2533,
+                "contribution": 0.2533
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Hỏa · Mặt Trăng",
+      "canChiEvidence": "Ngày Nhâm Dần · Trực Bình · Ngày Hắc đạo (Thiên Lao)",
+      "canChiDay": "Nhâm Dần"
+    },
+    {
+      "day": 27,
+      "dayOffset": 26,
+      "date": "2026-11-25",
+      "message": "Tâm trí muốn trao đổi, đặt câu hỏi và cập nhật điều mới. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyColor": {
+        "id": "leo-orange",
+        "colorSign": "Leo",
+        "colorSignLabel": "Sư Tử",
+        "variant": "primary",
+        "name": "Cam",
+        "swatchHex": "#F59E0B",
+        "textHex": "#8A4600",
+        "evidence": "Mặt Trăng Song Tử × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Gemini",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 8,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 13,
+        "endHour": 15,
+        "range": "13h–15h",
+        "canChi": "Kỷ Mùi",
+        "label": "Thiên Đức"
+      },
+      "directions": {
+        "joy": "Đông Nam",
+        "wealth": "Tây Bắc"
+      },
+      "recommended": [
+        "Giảng dạy, truyền nghề",
+        "Hẹn hò, gặp gỡ thân nhân",
+        "Học tập, thi cử",
+        "Họp hành, bàn việc",
+        "Cưới hỏi, hôn lễ"
+      ],
+      "avoid": [
+        "Tranh tụng, kiện cáo",
+        "Đầu tư, mở rộng",
+        "Khai trương, ra mắt",
+        "Thu tài, nhận tiền"
+      ],
+      "warning": null,
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-25",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 50,
+            "level": "balanced",
+            "summary": "Mặt Trăng Trùng tụ Sao Hỏa đang hội tụ; hãy điều chỉnh nhịp hành động và sức bền thay vì vội kết luận tốt hay xấu.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mars",
+                "aspectType": "conjunction",
+                "aspectName": "Trùng tụ",
+                "symbol": "☌",
+                "orb": 0.09,
+                "peakTimeIso": "2026-11-25T12:00:00.000Z",
+                "direction": "neutral",
+                "strength": 0.3641,
+                "contribution": 0
+              },
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Moon",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.35,
+                "peakTimeIso": "2026-11-24T17:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.33,
+                "contribution": -0.33
+              },
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Saturn",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.7,
+                "peakTimeIso": "2026-11-25T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.2259,
+                "contribution": 0.2259
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 44,
+            "level": "balanced",
+            "summary": "Mặt Trăng Đối đỉnh Diêm Vương là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Pluto",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.04,
+                "peakTimeIso": "2026-11-24T21:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.9629,
+                "contribution": -0.9629
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Uranus",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.05,
+                "peakTimeIso": "2026-11-25T07:00:00.000Z",
+                "direction": "support",
+                "strength": 0.8556,
+                "contribution": 0.8556
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mars",
+                "aspectType": "conjunction",
+                "aspectName": "Trùng tụ",
+                "symbol": "☌",
+                "orb": 0.09,
+                "peakTimeIso": "2026-11-25T12:00:00.000Z",
+                "direction": "neutral",
+                "strength": 0.5462,
+                "contribution": 0
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 51,
+            "level": "balanced",
+            "summary": "Sao Hỏa Lục hợp Sao Thủy là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Mercury",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.69,
+                "peakTimeIso": "2026-11-25T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.0748,
+                "contribution": 0.0523
+              }
+            ]
+          },
+          "connection": {
+            "id": "connection",
+            "score": 52,
+            "level": "balanced",
+            "summary": "Sao Kim Tam hợp Mặt Trời là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Venus",
+                "natalPlanet": "Sun",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.82,
+                "peakTimeIso": "2026-11-24T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.0839,
+                "contribution": 0.0839
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Hỏa · Mặt Trăng",
+      "canChiEvidence": "Ngày Quý Mão · Trực Định · Ngày Hắc đạo (Huyền Vũ)",
+      "canChiDay": "Quý Mão"
+    },
+    {
+      "day": 28,
+      "dayOffset": 27,
+      "date": "2026-11-26",
+      "message": "Tâm trí muốn trao đổi, đặt câu hỏi và cập nhật điều mới. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyColor": {
+        "id": "leo-golden",
+        "colorSign": "Leo",
+        "colorSignLabel": "Sư Tử",
+        "variant": "companion",
+        "name": "Vàng kim",
+        "swatchHex": "#D9A21B",
+        "textHex": "#765600",
+        "evidence": "Mặt Trăng Song Tử × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Gemini",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 9,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 7,
+        "endHour": 9,
+        "range": "07h–09h",
+        "canChi": "Mậu Thìn",
+        "label": "Thanh Long"
+      },
+      "directions": {
+        "joy": "Đông Bắc",
+        "wealth": "Đông Nam"
+      },
+      "recommended": [
+        "Học tập, thi cử",
+        "Sáng tác, ra mắt tác phẩm",
+        "Đầu tư, mở rộng",
+        "Họp hành, bàn việc",
+        "Ký kết hợp đồng"
+      ],
+      "avoid": [
+        "Cưới hỏi, hôn lễ",
+        "Động thổ, khởi công",
+        "Khai trương, ra mắt",
+        "Nhận chức, bổ nhiệm"
+      ],
+      "warning": "⚠️ Ngày Tam Nương — không nên cưới hỏi, khai trương",
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-26",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 63,
+            "level": "high",
+            "summary": "Sao Hỏa Tam hợp Sao Thổ tạo nhịp hỗ trợ; thuận để điều chỉnh nhịp hành động và sức bền.",
+            "evidence": [
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Saturn",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.31,
+                "peakTimeIso": "2026-11-26T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.5303,
+                "contribution": 0.5303
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Sun",
+                "aspectType": "conjunction",
+                "aspectName": "Trùng tụ",
+                "symbol": "☌",
+                "orb": 0.24,
+                "peakTimeIso": "2026-11-26T02:00:00.000Z",
+                "direction": "neutral",
+                "strength": 0.3028,
+                "contribution": 0
+              },
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Mercury",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.29,
+                "peakTimeIso": "2026-11-26T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.2542,
+                "contribution": 0.178
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 55,
+            "level": "balanced",
+            "summary": "Mặt Trăng Vuông góc Sao Mộc là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Jupiter",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.07,
+                "peakTimeIso": "2026-11-26T05:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.9261,
+                "contribution": -0.7409
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Saturn",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.13,
+                "peakTimeIso": "2026-11-26T12:00:00.000Z",
+                "direction": "support",
+                "strength": 0.611,
+                "contribution": 0.4277
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Moon",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.3,
+                "peakTimeIso": "2026-11-26T09:00:00.000Z",
+                "direction": "support",
+                "strength": 0.5446,
+                "contribution": 0.5446
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 53,
+            "level": "balanced",
+            "summary": "Mặt Trăng Trùng tụ Sao Thủy đang hội tụ; hãy ưu tiên việc cần sự rõ ràng và tập trung thay vì vội kết luận tốt hay xấu.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Mercury",
+                "aspectType": "conjunction",
+                "aspectName": "Trùng tụ",
+                "symbol": "☌",
+                "orb": 0.15,
+                "peakTimeIso": "2026-11-26T12:00:00.000Z",
+                "direction": "neutral",
+                "strength": 0.3416,
+                "contribution": 0
+              },
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Mercury",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.29,
+                "peakTimeIso": "2026-11-26T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.1695,
+                "contribution": 0.1186
+              }
+            ]
+          },
+          "connection": {
+            "id": "connection",
+            "score": 50,
+            "level": "balanced",
+            "summary": "Không có góc chiếu sát nào nổi bật; nhịp hôm nay tương đối cân bằng.",
+            "evidence": []
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Sao Mộc",
+      "canChiEvidence": "Ngày Giáp Thìn · Trực Chấp · Ngày Hoàng đạo (Tư Mệnh)",
+      "canChiDay": "Giáp Thìn"
+    },
+    {
+      "day": 29,
+      "dayOffset": 28,
+      "date": "2026-11-27",
+      "message": "Cảm xúc cần sự gần gũi và một không gian đủ an toàn để mở lòng. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyColor": {
+        "id": "virgo-olive-green",
+        "colorSign": "Virgo",
+        "colorSignLabel": "Xử Nữ",
+        "variant": "primary",
+        "name": "Xanh olive",
+        "swatchHex": "#7A8B3A",
+        "textHex": "#526025",
+        "evidence": "Mặt Trăng Cự Giải × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Cancer",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 10,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 13,
+        "endHour": 15,
+        "range": "13h–15h",
+        "canChi": "Quý Mùi",
+        "label": "Minh Đường"
+      },
+      "directions": {
+        "joy": "Tây Bắc",
+        "wealth": "Đông Nam"
+      },
+      "recommended": [
+        "Khám sức khỏe, chăm sóc y tế",
+        "Dọn dẹp, vứt đồ cũ"
+      ],
+      "avoid": [
+        "Cưới hỏi, hôn lễ",
+        "Đầu tư, mở rộng",
+        "Khai trương, ra mắt",
+        "Ký kết hợp đồng"
+      ],
+      "warning": null,
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-27",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 71,
+            "level": "high",
+            "summary": "Sao Hỏa Tam hợp Sao Thổ tạo nhịp hỗ trợ; thuận để điều chỉnh nhịp hành động và sức bền.",
+            "evidence": [
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Saturn",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0,
+                "peakTimeIso": "2026-11-27T12:00:00.000Z",
+                "direction": "support",
+                "strength": 0.7615,
+                "contribution": 0.7615
+              },
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Mercury",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.01,
+                "peakTimeIso": "2026-11-27T11:00:00.000Z",
+                "direction": "support",
+                "strength": 0.3544,
+                "contribution": 0.2481
+              },
+              {
+                "transitPlanet": "Sun",
+                "natalPlanet": "Pluto",
+                "aspectType": "conjunction",
+                "aspectName": "Trùng tụ",
+                "symbol": "☌",
+                "orb": 0.75,
+                "peakTimeIso": "2026-11-27T16:59:59.999Z",
+                "direction": "neutral",
+                "strength": 0.2151,
+                "contribution": 0
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 53,
+            "level": "balanced",
+            "summary": "Mặt Trăng Lục hợp Sao Kim là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Venus",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.56,
+                "peakTimeIso": "2026-11-27T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.1865,
+                "contribution": 0.1306
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 54,
+            "level": "balanced",
+            "summary": "Sao Hỏa Lục hợp Sao Thủy là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Mercury",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.01,
+                "peakTimeIso": "2026-11-27T11:00:00.000Z",
+                "direction": "support",
+                "strength": 0.2363,
+                "contribution": 0.1654
+              }
+            ]
+          },
+          "connection": {
+            "id": "connection",
+            "score": 52,
+            "level": "balanced",
+            "summary": "Mặt Trăng Lục hợp Sao Kim là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Venus",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.56,
+                "peakTimeIso": "2026-11-27T16:59:59.999Z",
+                "direction": "support",
+                "strength": 0.1243,
+                "contribution": 0.087
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Sao Hỏa · Sao Thổ",
+      "canChiEvidence": "Ngày Ất Tỵ · Trực Phá · Ngày Hắc đạo (Câu Trận)",
+      "canChiDay": "Ất Tỵ"
+    },
+    {
+      "day": 30,
+      "dayOffset": 29,
+      "date": "2026-11-28",
+      "message": "Cảm xúc cần sự gần gũi và một không gian đủ an toàn để mở lòng. Bạn có nhịp điệu cân bằng, thích hợp để quan sát rõ rồi tiến từng bước chắc chắn.",
+      "luckyColor": {
+        "id": "virgo-moss-green",
+        "colorSign": "Virgo",
+        "colorSignLabel": "Xử Nữ",
+        "variant": "companion",
+        "name": "Xanh rêu",
+        "swatchHex": "#5F7A48",
+        "textHex": "#3F5A2F",
+        "evidence": "Mặt Trăng Cự Giải × Mặt Trời Song Tử × Mặt Trăng bản mệnh Bảo Bình",
+        "basis": {
+          "version": "lucky-color-24-v1",
+          "transitMoonSign": "Cancer",
+          "natalSunSign": "Gemini",
+          "natalMoonSign": "Aquarius",
+          "phaseIndex": 11,
+          "precision": "dateOnly"
+        }
+      },
+      "luckyTime": {
+        "startHour": 11,
+        "endHour": 13,
+        "range": "11h–13h",
+        "canChi": "Giáp Ngọ",
+        "label": "Tư Mệnh"
+      },
+      "directions": {
+        "joy": "Tây Nam",
+        "wealth": "Chính Đông"
+      },
+      "recommended": [
+        "Học tập, thi cử",
+        "Họp hành, bàn việc",
+        "Nhận chức, bổ nhiệm",
+        "Sáng tác, ra mắt tác phẩm",
+        "Cầu an, tĩnh dưỡng"
+      ],
+      "avoid": [
+        "Di chuyển, du lịch",
+        "Động thổ, khởi công",
+        "Mua bán, giao dịch",
+        "Công tác, xuất hành xa"
+      ],
+      "warning": null,
+      "astroMetrics": {
+        "version": "daily-astro-metrics-v1",
+        "dateKey": "2026-11-28",
+        "timeZone": "Asia/Bangkok",
+        "confidence": "estimated",
+        "metrics": {
+          "energy": {
+            "id": "energy",
+            "score": 69,
+            "level": "high",
+            "summary": "Sao Hỏa Tam hợp Sao Thổ tạo nhịp hỗ trợ; thuận để điều chỉnh nhịp hành động và sức bền.",
+            "evidence": [
+              {
+                "transitPlanet": "Sun",
+                "natalPlanet": "Pluto",
+                "aspectType": "conjunction",
+                "aspectName": "Trùng tụ",
+                "symbol": "☌",
+                "orb": 0.01,
+                "peakTimeIso": "2026-11-28T11:00:00.000Z",
+                "direction": "neutral",
+                "strength": 0.8397,
+                "contribution": 0
+              },
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Saturn",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.09,
+                "peakTimeIso": "2026-11-27T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.6992,
+                "contribution": 0.6992
+              },
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Mercury",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.1,
+                "peakTimeIso": "2026-11-27T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.3196,
+                "contribution": 0.2237
+              }
+            ]
+          },
+          "emotion": {
+            "id": "emotion",
+            "score": 32,
+            "level": "low",
+            "summary": "Mặt Trăng Đối đỉnh Hải Vương tạo lực cản; nên chậm lại để quan sát cảm xúc trước khi phản ứng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Neptune",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.11,
+                "peakTimeIso": "2026-11-28T14:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.89,
+                "contribution": -0.89
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Saturn",
+                "aspectType": "square",
+                "aspectName": "Vuông góc",
+                "symbol": "□",
+                "orb": 0.2,
+                "peakTimeIso": "2026-11-28T12:00:00.000Z",
+                "direction": "challenge",
+                "strength": 0.8047,
+                "contribution": -0.6437
+              },
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Jupiter",
+                "aspectType": "trine",
+                "aspectName": "Tam hợp",
+                "symbol": "△",
+                "orb": 0.25,
+                "peakTimeIso": "2026-11-28T05:00:00.000Z",
+                "direction": "support",
+                "strength": 0.6733,
+                "contribution": 0.6733
+              }
+            ]
+          },
+          "focus": {
+            "id": "focus",
+            "score": 48,
+            "level": "balanced",
+            "summary": "Sao Thủy Đối đỉnh Sao Kim là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Mercury",
+                "natalPlanet": "Venus",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.56,
+                "peakTimeIso": "2026-11-28T16:59:59.999Z",
+                "direction": "challenge",
+                "strength": 0.2219,
+                "contribution": -0.2219
+              },
+              {
+                "transitPlanet": "Mars",
+                "natalPlanet": "Mercury",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.1,
+                "peakTimeIso": "2026-11-27T17:00:00.000Z",
+                "direction": "support",
+                "strength": 0.2131,
+                "contribution": 0.1491
+              }
+            ]
+          },
+          "connection": {
+            "id": "connection",
+            "score": 51,
+            "level": "balanced",
+            "summary": "Mặt Trăng Lục hợp Sao Kim là tín hiệu rõ nhất nhưng chưa đủ mạnh để lệch khỏi trạng thái cân bằng.",
+            "evidence": [
+              {
+                "transitPlanet": "Moon",
+                "natalPlanet": "Venus",
+                "aspectType": "sextile",
+                "aspectName": "Lục hợp",
+                "symbol": "⚹",
+                "orb": 0.06,
+                "peakTimeIso": "2026-11-27T18:00:00.000Z",
+                "direction": "support",
+                "strength": 0.2631,
+                "contribution": 0.1842
+              },
+              {
+                "transitPlanet": "Mercury",
+                "natalPlanet": "Venus",
+                "aspectType": "opposition",
+                "aspectName": "Đối đỉnh",
+                "symbol": "☍",
+                "orb": 0.56,
+                "peakTimeIso": "2026-11-28T16:59:59.999Z",
+                "direction": "challenge",
+                "strength": 0.1479,
+                "contribution": -0.1479
+              }
+            ]
+          }
+        }
+      },
+      "astroEvidence": "Tín hiệu chủ đạo: balanced · Chủ đề nổi bật: Mặt Trăng · Sao Mộc",
+      "canChiEvidence": "Ngày Bính Ngọ · Trực Nguy · Ngày Hoàng đạo (Thanh Long)",
+      "canChiDay": "Bính Ngọ"
+    }
+  ]
+}

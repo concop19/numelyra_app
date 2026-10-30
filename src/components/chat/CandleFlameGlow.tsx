@@ -1,10 +1,4 @@
 import React, { useEffect } from 'react';
-import {
-  Canvas,
-  Circle,
-  RadialGradient,
-  vec,
-} from '@shopify/react-native-skia';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -32,50 +26,84 @@ const STATE_INTENSITY: Record<CandleGlowState, number> = {
   speaking: 1.07,
 };
 
-const CANDLE_COLORS = {
+type ColorStop = {
+  position: number;
+  rgba: readonly [red: number, green: number, blue: number, alpha: number];
+};
+
+const CANDLE_STOPS: Record<'ambient' | 'core' | 'ground', readonly ColorStop[]> = {
   ambient: [
-    'rgba(255, 244, 194, 0.46)',
-    'rgba(255, 194, 89, 0.32)',
-    'rgba(255, 119, 38, 0.14)',
-    'rgba(255, 86, 24, 0)',
+    { position: 0, rgba: [255, 244, 194, 0.46] },
+    { position: 0.3, rgba: [255, 194, 89, 0.32] },
+    { position: 0.63, rgba: [255, 119, 38, 0.14] },
+    { position: 1, rgba: [255, 86, 24, 0] },
   ],
   core: [
-    'rgba(255, 255, 239, 0.98)',
-    'rgba(255, 236, 158, 0.88)',
-    'rgba(255, 162, 55, 0.5)',
-    'rgba(255, 111, 24, 0)',
+    { position: 0, rgba: [255, 255, 239, 0.98] },
+    { position: 0.2, rgba: [255, 236, 158, 0.88] },
+    { position: 0.56, rgba: [255, 162, 55, 0.5] },
+    { position: 1, rgba: [255, 111, 24, 0] },
   ],
   ground: [
-    'rgba(255, 224, 137, 0.58)',
-    'rgba(255, 159, 62, 0.3)',
-    'rgba(255, 104, 30, 0)',
+    { position: 0, rgba: [255, 224, 137, 0.58] },
+    { position: 0.44, rgba: [255, 159, 62, 0.3] },
+    { position: 1, rgba: [255, 104, 30, 0] },
   ],
-} as const;
-
-const GRADIENT_POSITIONS = {
-  ambient: [0, 0.3, 0.63, 1],
-  core: [0, 0.2, 0.56, 1],
-  ground: [0, 0.44, 1],
 };
+
+const GRADIENT_RING_COUNT = 20;
+
+function colorAt(stops: readonly ColorStop[], position: number): string {
+  const upperIndex = stops.findIndex(stop => stop.position >= position);
+  if (upperIndex <= 0) {
+    const [red, green, blue, alpha] = stops[0].rgba;
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+  }
+
+  const lower = stops[upperIndex - 1];
+  const upper = stops[upperIndex];
+  const progress = (position - lower.position) / (upper.position - lower.position);
+  const rgba = lower.rgba.map((value, index) =>
+    value + (upper.rgba[index] - value) * progress
+  );
+
+  return `rgba(${Math.round(rgba[0])}, ${Math.round(rgba[1])}, ${Math.round(rgba[2])}, ${rgba[3].toFixed(3)})`;
+}
 
 const GradientDisc: React.FC<{
   diameter: number;
-  colors: readonly string[];
-  positions: number[];
-}> = ({ diameter, colors, positions }) => {
-  const radius = diameter / 2;
+  stops: readonly ColorStop[];
+}> = ({ diameter, stops }) => {
+  const ringThickness = diameter / (GRADIENT_RING_COUNT * 2);
 
   return (
-    <Canvas style={StyleSheet.absoluteFill}>
-      <Circle cx={radius} cy={radius} r={radius}>
-        <RadialGradient
-          c={vec(radius, radius)}
-          r={radius}
-          colors={[...colors]}
-          positions={positions}
-        />
-      </Circle>
-    </Canvas>
+    <View style={StyleSheet.absoluteFill}>
+      {Array.from({ length: GRADIENT_RING_COUNT }, (_, index) => {
+        const ringDiameter = diameter * (GRADIENT_RING_COUNT - index) / GRADIENT_RING_COUNT;
+        const radialPosition = Math.max(0, (ringDiameter / 2 - ringThickness / 2) / (diameter / 2));
+
+        return (
+          <View
+            key={index}
+            style={[
+              styles.gradientRing,
+              {
+                width: ringDiameter,
+                height: ringDiameter,
+                left: (diameter - ringDiameter) / 2,
+                top: (diameter - ringDiameter) / 2,
+                borderRadius: ringDiameter / 2,
+                borderWidth: ringThickness + 0.5,
+                borderColor: colorAt(stops, radialPosition),
+                backgroundColor: index === GRADIENT_RING_COUNT - 1
+                  ? colorAt(stops, 0)
+                  : 'transparent',
+              },
+            ]}
+          />
+        );
+      })}
+    </View>
   );
 };
 
@@ -190,8 +218,7 @@ export const CandleFlameGlow: React.FC<Props> = ({ size, state, pressed }) => {
       >
         <GradientDisc
           diameter={ambientDiameter}
-          colors={CANDLE_COLORS.ambient}
-          positions={GRADIENT_POSITIONS.ambient}
+          stops={CANDLE_STOPS.ambient}
         />
       </Animated.View>
 
@@ -209,8 +236,7 @@ export const CandleFlameGlow: React.FC<Props> = ({ size, state, pressed }) => {
       >
         <GradientDisc
           diameter={groundDiameter}
-          colors={CANDLE_COLORS.ground}
-          positions={GRADIENT_POSITIONS.ground}
+          stops={CANDLE_STOPS.ground}
         />
       </Animated.View>
 
@@ -228,8 +254,7 @@ export const CandleFlameGlow: React.FC<Props> = ({ size, state, pressed }) => {
       >
         <GradientDisc
           diameter={coreDiameter}
-          colors={CANDLE_COLORS.core}
-          positions={GRADIENT_POSITIONS.core}
+          stops={CANDLE_STOPS.core}
         />
       </Animated.View>
     </View>
@@ -237,6 +262,9 @@ export const CandleFlameGlow: React.FC<Props> = ({ size, state, pressed }) => {
 };
 
 const styles = StyleSheet.create({
+  gradientRing: {
+    position: 'absolute',
+  },
   lightLayer: {
     position: 'absolute',
   },

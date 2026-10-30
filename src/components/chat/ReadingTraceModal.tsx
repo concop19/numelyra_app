@@ -10,7 +10,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NUMEROLOGY_CARDS, type NumerologyCardMeta } from '../../config/numerologyCards';
 import { DrawnCardResult, TAROT_SPREADS } from '../../services/tarotService';
@@ -20,8 +20,8 @@ import { CalculatedIndicator } from '../../services/numerologyEngine';
 import HighlightedAnswerText from './HighlightedAnswerText';
 import { useLocalization } from '../../i18n/LocalizationContext';
 
-const TRACE_BACKGROUND = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/readingTrace/reading_trace_background.png');
-const TRACE_LETTER = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/readingTrace/reading_trace_letter.png');
+const TRACE_BACKGROUND = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/readingTrace/reading_trace_background.webp');
+const TRACE_LETTER = require('../../../assets/giao_dien/giaodien1/chat_screen_asset/readingTrace/reading_trace_letter.webp');
 
 interface ReadingTraceMessage {
   id: string;

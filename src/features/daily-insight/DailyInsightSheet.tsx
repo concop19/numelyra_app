@@ -12,7 +12,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,8 +21,12 @@ import type { AstroFortuneSlip } from '../../services/astro/astroFortuneService'
 import type { DailyInsight } from './dailyInsight';
 import type { DailyAstroMetricId } from '../../services/astro/dailyMetricEngine';
 import { useLocalization } from '../../i18n/LocalizationContext';
+import {
+  AstrologyEstimateMark,
+  AstrologyEstimateNotice,
+} from '../astrology/AstrologyEstimateNotice';
 
-const JOURNAL_TEMPLATE = require('../../../assets/Dreamy Purple Lined Journal Template.png');
+const JOURNAL_TEMPLATE = require('../../../assets/Dreamy Purple Lined Journal Template.webp');
 const FLAME_MASCOT = require('../../../assets/giao_dien/daily-insight/flame-dreamy-mascot.png');
 const TITLE_ENERGY_ART = require('../../../assets/giao_dien/daily-insight/title-energy-art.png');
 const BADGE_VERSE = require('../../../assets/giao_dien/daily-insight/badge-verse.png');
@@ -68,6 +72,7 @@ export default function DailyInsightSheet({
   const insets = useSafeAreaInsets();
   const [currentPage, setCurrentPage] = useState<1 | 2>(1);
   const [selectedMetric, setSelectedMetric] = useState<DailyAstroMetricId | null>(null);
+  const [estimateNoticeOpen, setEstimateNoticeOpen] = useState(false);
 
   // 3D Flip animation value (0 = Page 1, 1 = Page 2)
   const flipAnim = useRef(new Animated.Value(0)).current;
@@ -86,6 +91,7 @@ export default function DailyInsightSheet({
     flipAnim.setValue(0);
     setCurrentPage(1);
     setSelectedMetric(null);
+    setEstimateNoticeOpen(false);
   }, [flipAnim, insight.dateKey, insight.profileKey, visible]);
 
   const flipToPage = async (target: 1 | 2) => {
@@ -166,6 +172,7 @@ export default function DailyInsightSheet({
   });
 
   return (
+    <>
     <Modal
       animationType="fade"
       onRequestClose={onClose}
@@ -325,6 +332,11 @@ export default function DailyInsightSheet({
                   <Text style={[styles.verseText, isCompact && styles.verseTextCompact]}>
                     {fortune?.verse || insight.personality}
                   </Text>
+                  {insight.astroDataQuality.isEstimated && (
+                    <View style={styles.estimateMarkEnd}>
+                      <AstrologyEstimateMark onPress={() => setEstimateNoticeOpen(true)} />
+                    </View>
+                  )}
                   <Text style={styles.verseHeartDoodle}>♡</Text>
                     </View>
 
@@ -348,6 +360,11 @@ export default function DailyInsightSheet({
                   <Text style={[styles.mirrorText, isCompact && styles.mirrorTextCompact]}>
                     {fortune?.mirror || insight.personality}
                   </Text>
+                  {insight.astroDataQuality.isEstimated && (
+                    <View style={styles.estimateMarkEnd}>
+                      <AstrologyEstimateMark onPress={() => setEstimateNoticeOpen(true)} />
+                    </View>
+                  )}
                     </View>
                   </>
                 )}
@@ -355,7 +372,12 @@ export default function DailyInsightSheet({
                 {/* Section 3: Four-pillar rhythm */}
                 <View style={styles.metricsBox}>
                   <View style={styles.metricsHeaderRow}>
-                    <Text style={styles.metricsTitle}>{locale === 'en' ? 'Four-pillar rhythm' : 'Nhịp điệu 4 trụ cột'}</Text>
+                    <View style={styles.metricsTitleRow}>
+                      <Text style={styles.metricsTitle}>{locale === 'en' ? 'Four-pillar rhythm' : 'Nhịp điệu 4 trụ cột'}</Text>
+                      {insight.astroDataQuality.isEstimated && (
+                        <AstrologyEstimateMark onPress={() => setEstimateNoticeOpen(true)} />
+                      )}
+                    </View>
                     <Text style={styles.metricsHint}>{locale === 'en' ? 'Tap to view aspects' : 'Chạm để xem góc chiếu'}</Text>
                   </View>
                   <View style={styles.metricsGrid}>
@@ -475,16 +497,21 @@ export default function DailyInsightSheet({
                 <View style={styles.luckyColorCard}>
                   <View style={styles.tapeMint} />
                   <View style={styles.luckyColorRow}>
-                    <View style={[styles.luckyColorDot, { backgroundColor: insight.luckyColor.hex }]} />
+                    <View style={[styles.luckyColorDot, { backgroundColor: insight.luckyColor.swatchHex }]} />
                     <View style={styles.luckyColorTextCol}>
-                      <Text style={styles.luckyColorTitle}>
-                        {t('daily.luckyColor')}:{' '}
-                        <Text style={[styles.luckyColorName, { color: insight.luckyColor.hex }]}>
-                          {insight.luckyColor.name}
+                      <View style={styles.luckyColorTitleRow}>
+                        <Text style={styles.luckyColorTitle}>
+                          {t('daily.luckyColor')}:{' '}
+                          <Text style={[styles.luckyColorName, { color: insight.luckyColor.textHex }]}>
+                            {insight.luckyColor.name}
+                          </Text>
                         </Text>
-                      </Text>
+                        {insight.astroDataQuality.isEstimated && (
+                          <AstrologyEstimateMark onPress={() => setEstimateNoticeOpen(true)} />
+                        )}
+                      </View>
                       {!!insight.luckyColor.evidence && (
-                        <Text numberOfLines={1} style={styles.luckyColorEvidence}>
+                        <Text numberOfLines={2} style={styles.luckyColorEvidence}>
                           ✦ {insight.luckyColor.evidence}
                         </Text>
                       )}
@@ -609,6 +636,13 @@ export default function DailyInsightSheet({
         </View>
       </View>
     </Modal>
+    <AstrologyEstimateNotice
+      visible={estimateNoticeOpen}
+      missingBirthTime={insight.astroDataQuality.missingBirthTime}
+      missingBirthLocation={insight.astroDataQuality.missingBirthLocation}
+      onClose={() => setEstimateNoticeOpen(false)}
+    />
+    </>
   );
 }
 
@@ -888,6 +922,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
   },
+  estimateMarkEnd: {
+    alignSelf: 'flex-end',
+    marginRight: 12,
+    marginTop: 3,
+  },
   verseHeartDoodle: {
     alignSelf: 'flex-end',
     marginRight: 16,
@@ -1067,6 +1106,10 @@ const styles = StyleSheet.create({
   luckyColorTextCol: {
     flex: 1,
   },
+  luckyColorTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   luckyColorTitle: {
     fontSize: 11,
     fontWeight: '700',
@@ -1201,6 +1244,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 8,
+  },
+  metricsTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   metricsTitle: {
     fontSize: 11.5,

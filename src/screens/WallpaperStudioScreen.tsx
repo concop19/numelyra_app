@@ -48,7 +48,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Image as ExpoImage } from 'expo-image';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect } from '@react-navigation/native';
@@ -75,15 +75,15 @@ const SNAP_INTERVAL = CARD_WIDTH + CARD_MARGIN * 2;
 // ==========================================
 // ASSETS TỪ THƯ MỤC WALLPAPER_ASSET
 // ==========================================
-const BG_LANDSCAPE = require('../../assets/giao_dien/giaodien1/wallpaper_asset/background/background.png');
+const BG_LANDSCAPE = require('../../assets/giao_dien/giaodien1/wallpaper_asset/background/background.webp');
 const MOON_DECOR = require('../../assets/giao_dien/giaodien1/wallpaper_asset/decorate/moon.png');
 const STAR_DECOR = require('../../assets/giao_dien/giaodien1/wallpaper_asset/decorate/star.png');
 const THREE_STARS_DECOR = require('../../assets/giao_dien/giaodien1/wallpaper_asset/decorate/3stars.png');
 
-const MOCK_IMG1 = require('../../assets/giao_dien/giaodien1/wallpaper_asset/mock_wrapper/img1.png');
-const MOCK_IMG2 = require('../../assets/giao_dien/giaodien1/wallpaper_asset/mock_wrapper/img2.png');
-const MOCK_IMG3 = require('../../assets/giao_dien/giaodien1/wallpaper_asset/mock_wrapper/img3.png');
-const MOCK_IMG4 = require('../../assets/giao_dien/giaodien1/wallpaper_asset/mock_wrapper/img4.png');
+const MOCK_IMG1 = require('../../assets/giao_dien/giaodien1/wallpaper_asset/mock_wrapper/img1.webp');
+const MOCK_IMG2 = require('../../assets/giao_dien/giaodien1/wallpaper_asset/mock_wrapper/img2.webp');
+const MOCK_IMG3 = require('../../assets/giao_dien/giaodien1/wallpaper_asset/mock_wrapper/img3.webp');
+const MOCK_IMG4 = require('../../assets/giao_dien/giaodien1/wallpaper_asset/mock_wrapper/img4.webp');
 
 interface Props {
   profile?: UserProfile | null;
