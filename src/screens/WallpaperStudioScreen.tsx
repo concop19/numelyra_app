@@ -697,11 +697,11 @@ export default function WallpaperStudioScreen({ profile: primaryProfile, onBack 
                     <ActivityIndicator size={12} color="#FFE38A" />
                   ) : (
                     <View style={styles.wallpaperQuotaAmountRow}>
-                      <Text style={styles.wallpaperQuotaRemaining}>
+                      <Text allowFontScaling={false} numberOfLines={1} style={styles.wallpaperQuotaRemaining}>
                         {wallpaperQuota ? formatNumber(wallpaperQuotaRemaining) : '—'}
                       </Text>
-                      <Text style={styles.wallpaperQuotaLimit}>
-                        / {wallpaperQuota ? formatNumber(wallpaperQuotaLimit) : '—'}
+                      <Text allowFontScaling={false} numberOfLines={1} style={styles.wallpaperQuotaLimit}>
+                        /{wallpaperQuota ? formatNumber(wallpaperQuotaLimit) : '—'}
                       </Text>
                     </View>
                   )}
@@ -1402,10 +1402,11 @@ const styles = StyleSheet.create({
   profileHeaderName: { flexShrink: 1, color: '#FFF7DF', fontSize: 12, fontWeight: '800' },
   profileHeaderBadge: { color: '#2B1A42', backgroundColor: '#F7CC6A', borderRadius: 8, paddingHorizontal: 5, paddingVertical: 2, fontSize: 8, fontWeight: '900', overflow: 'hidden' },
   wallpaperQuotaFrame: {
-    width: 76,
+    minWidth: 80,
     height: 40,
     borderRadius: 20,
     padding: 1.5,
+    flexShrink: 0,
     shadowColor: '#F179FF',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.72,
@@ -1456,6 +1457,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 16,
     fontWeight: '900',
+    includeFontPadding: false,
     textShadowColor: 'rgba(255,198,90,0.75)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 4,
@@ -1466,6 +1468,7 @@ const styles = StyleSheet.create({
     fontSize: 8,
     lineHeight: 11,
     fontWeight: '900',
+    includeFontPadding: false,
   },
   headerBackArrow: {
     color: '#FFFFFF',

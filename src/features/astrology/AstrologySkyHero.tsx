@@ -139,13 +139,17 @@ export function AstrologySkyHero({
                 end={{ x: 1, y: 1 }}
                 style={styles.planetCore}
               >
-                <Ionicons name="planet" size={17} color="#FFE38A" />
+                <Ionicons name="planet" size={15} color="#FFE38A" />
               </LinearGradient>
             </LinearGradient>
             {fortuneQuota ? (
               <View style={styles.quotaAmountRow}>
-                <Text style={styles.quotaRemaining}>{fortuneQuota.remaining}</Text>
-                <Text style={styles.quotaLimit}>/ {fortuneQuota.limit}</Text>
+                <Text allowFontScaling={false} numberOfLines={1} style={styles.quotaRemaining}>
+                  {fortuneQuota.remaining}
+                </Text>
+                <Text allowFontScaling={false} numberOfLines={1} style={styles.quotaLimit}>
+                  /{fortuneQuota.limit}
+                </Text>
               </View>
             ) : (
               <ActivityIndicator size={13} color="#FFE38A" style={styles.quotaLoader} />
@@ -155,7 +159,9 @@ export function AstrologySkyHero({
       </View>
 
       <TouchableOpacity
-        accessibilityLabel={l('Mở luận giải hôm nay', "Open today's reading")}
+        accessibilityLabel={fortune
+          ? l('Mở luận giải hôm nay', "Open today's reading")
+          : l('Tạo Fortune hôm nay', "Create today's Fortune")}
         accessibilityRole="button"
         activeOpacity={0.9}
         onPress={onInterpretationPress}
@@ -173,7 +179,9 @@ export function AstrologySkyHero({
           </Text>
         )}
         <View style={styles.interpretRow}>
-          <Text style={styles.interpretText}>{l('Xem luận giải', 'View reading')}</Text>
+          <Text style={styles.interpretText}>
+            {fortune ? l('Xem luận giải', 'View reading') : l('Tạo Fortune hôm nay', "Create today's Fortune")}
+          </Text>
           <Ionicons name="arrow-forward" size={15} color={ASTRO_COLORS.gold} />
         </View>
       </TouchableOpacity>
@@ -214,10 +222,11 @@ const styles = StyleSheet.create({
   profileMeta: { color: ASTRO_COLORS.muted, fontSize: 10.5, marginTop: 3 },
   primaryBadge: { color: '#251245', backgroundColor: ASTRO_COLORS.gold, borderRadius: 9, paddingHorizontal: 7, paddingVertical: 3, fontSize: 9, fontWeight: '900', overflow: 'hidden' },
   quotaFrame: {
-    width: 82,
+    minWidth: 90,
     height: 44,
     borderRadius: 22,
     padding: 1.5,
+    flexShrink: 0,
     shadowColor: '#F179FF',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.72,
@@ -229,16 +238,19 @@ const styles = StyleSheet.create({
     borderRadius: 20.5,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 5,
+    justifyContent: 'center',
+    paddingLeft: 5,
+    paddingRight: 8,
     borderWidth: 1,
     borderColor: 'rgba(255,221,248,0.34)',
   },
   planetFrame: {
-    width: 31,
-    height: 31,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     padding: 1.5,
-    marginRight: 5,
+    marginRight: 4,
+    flexShrink: 0,
     shadowColor: '#FFE486',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.72,
@@ -247,34 +259,36 @@ const styles = StyleSheet.create({
   },
   planetCore: {
     flex: 1,
-    borderRadius: 14,
+    borderRadius: 12.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
   quotaAmountRow: {
-    flex: 1,
-    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'baseline',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   quotaLoader: {
     flex: 1,
   },
   quotaRemaining: {
     color: '#FFE485',
-    fontSize: 17,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 18,
     fontWeight: '900',
+    includeFontPadding: false,
     textShadowColor: 'rgba(255,198,90,0.75)',
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 5,
+    textShadowRadius: 4,
   },
   quotaLimit: {
-    marginLeft: 2,
+    marginLeft: 1,
     color: '#D9CBFF',
-    fontSize: 10,
+    fontSize: 10.5,
     lineHeight: 14,
-    fontWeight: '900',
+    fontWeight: '800',
+    includeFontPadding: false,
   },
   quoteArea: {
     marginHorizontal: 16,

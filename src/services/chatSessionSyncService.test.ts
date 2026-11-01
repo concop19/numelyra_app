@@ -109,6 +109,24 @@ jest.mock('./supabaseClient', () => {
                         card_payload: null,
                         created_at: '2026-10-27T10:01:00Z',
                       },
+                      {
+                        id: 'msg-3',
+                        session_id: 'sess-1',
+                        turn_index: 1,
+                        sender: 'user',
+                        text: 'Câu hỏi tiếp nối',
+                        card_payload: null,
+                        created_at: '2026-10-27T10:02:00Z',
+                      },
+                      {
+                        id: 'msg-4',
+                        session_id: 'sess-1',
+                        turn_index: 1,
+                        sender: 'mascot',
+                        text: 'Câu trả lời tiếp nối',
+                        card_payload: null,
+                        created_at: '2026-10-27T10:03:00Z',
+                      },
                     ],
                     error: null,
                   }),
@@ -267,17 +285,26 @@ describe('chatSessionSyncService - 10-message batch sync & full download', () =>
     expect(userProfile.saveAllProfiles).toHaveBeenCalled();
   });
 
-  it('downloads all chat sessions and messages from cloud into SQLite and AsyncStorage', async () => {
+  it('stores all cloud messages in SQLite but only root messages in ChatScreen history', async () => {
     const result = await downloadAllCloudChatData('test-user-123');
 
-    expect(result).toEqual({ sessionsCount: 1, messagesCount: 2 });
-    expect(chatDb.bulkHydrateChatData).toHaveBeenCalled();
+    expect(result).toEqual({ sessionsCount: 1, messagesCount: 4 });
+    expect(chatDb.bulkHydrateChatData).toHaveBeenCalledWith(
+      expect.any(Array),
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'msg-1', turnIndex: 0 }),
+        expect.objectContaining({ id: 'msg-2', turnIndex: 0 }),
+        expect.objectContaining({ id: 'msg-3', turnIndex: 1 }),
+        expect.objectContaining({ id: 'msg-4', turnIndex: 1 }),
+      ]),
+    );
     expect(chatHistory.mergeCloudChatHistory).toHaveBeenCalledWith(
       'test-user-123',
-      expect.arrayContaining([
+      [
         expect.objectContaining({ id: 'msg-1', syncStatus: 'synced' }),
         expect.objectContaining({ id: 'msg-2', syncStatus: 'synced' }),
-      ])
+      ],
+      ['msg-3', 'msg-4'],
     );
   });
 

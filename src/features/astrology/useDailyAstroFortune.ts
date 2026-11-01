@@ -47,6 +47,11 @@ interface PendingFortuneRequest {
   promise: Promise<AstroFortuneSlip | null>;
 }
 
+interface FortuneSnapshot {
+  key: string;
+  fortune: AstroFortuneSlip;
+}
+
 // A screen can keep Chat mounted while Astrology mounts another copy of this
 // hook. Share the actual AI request across hook instances so a profile/date/
 // locale can never create two simultaneous Fortune requests.
@@ -71,7 +76,7 @@ export function useDailyAstroFortune(
   const autoGenerate = options.autoGenerate !== false;
   const loadQuota = options.loadQuota === true;
   const [currentDate, setCurrentDate] = useState(() => new Date());
-  const [fortune, setFortune] = useState<AstroFortuneSlip | null>(null);
+  const [fortuneSnapshot, setFortuneSnapshot] = useState<FortuneSnapshot | null>(null);
   const [quota, setQuota] = useState<AstroFortuneQuota | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,6 +91,10 @@ export function useDailyAstroFortune(
   const localDateKey = formatLocalDateKey(currentDate);
   const requestKey = `${locale}:${localDateKey}:${getAstrologyProfileFingerprint(cacheProfile)}`;
   activeRequestKey.current = requestKey;
+  // Never expose the previous profile's Fortune during the render in which the
+  // profile/date/locale key changes. The async effect below clears the stale
+  // snapshot, while this keyed projection keeps the render itself race-safe.
+  const fortune = fortuneSnapshot?.key === requestKey ? fortuneSnapshot.fortune : null;
 
   const localAstro = useMemo(() => {
     if (!profile?.fullName || !profile.birthDate) {
@@ -134,7 +143,7 @@ export function useDailyAstroFortune(
     setError(null);
 
     if (!metadata) {
-      setFortune(null);
+      setFortuneSnapshot(null);
       setLoading(false);
       return null;
     }
@@ -152,7 +161,7 @@ export function useDailyAstroFortune(
         }
       }
       if (requestVersion.current !== version || activeRequestKey.current !== requestKey) return null;
-      setFortune(refreshed.fortune);
+      setFortuneSnapshot({ key: requestKey, fortune: refreshed.fortune });
       return refreshed.fortune;
     } finally {
       if (requestVersion.current === version) setLoading(false);
@@ -178,7 +187,7 @@ export function useDailyAstroFortune(
     setError(null);
 
     if (!metadata) {
-      setFortune(null);
+      setFortuneSnapshot(null);
       setLoading(false);
       return null;
     }
@@ -220,11 +229,11 @@ export function useDailyAstroFortune(
       const result = await sharedRequest;
 
       if (requestVersion.current !== version || activeRequestKey.current !== requestKey) return null;
-      setFortune(result);
+      setFortuneSnapshot({ key: requestKey, fortune: result });
       return result;
     } catch (caught) {
       if (requestVersion.current === version) {
-        setFortune(null);
+        setFortuneSnapshot(null);
         setError(
           caught instanceof Error
             ? caught.message
@@ -258,7 +267,7 @@ export function useDailyAstroFortune(
   }, [fortune, generateFortune, readCache, requestKey]);
 
   useEffect(() => {
-    setFortune(null);
+    setFortuneSnapshot((current) => current?.key === requestKey ? current : null);
     // Primary profiles preserve the cache-first automatic bootstrap. Secondary
     // profiles only hydrate an existing result; a cache miss waits for the
     // user's explicit "view Fortune" action so browsing cannot consume a slot.

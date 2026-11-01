@@ -485,18 +485,22 @@ export default function ProfilePickerModal({
                           <Text style={{ fontSize: 24 }}>{zodiacEmoji}</Text>
                         </View>
                         <View style={styles.profileInfo}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Text style={styles.profileName}>{p.fullName}</Text>
+                          <View style={styles.profileHeaderRow}>
+                            <Text numberOfLines={1} ellipsizeMode="tail" style={styles.profileName}>
+                              {p.fullName}
+                            </Text>
                             {isSelected && (
                               <View style={[styles.activeBadge, isCoupleMode && styles.activeBadgeCouple]}>
-                                <Text style={styles.activeBadgeText}>
+                                <Text allowFontScaling={false} numberOfLines={1} style={styles.activeBadgeText}>
                                   {isCoupleMode ? `${l('Hồ sơ', 'Profile')} ${order}` : l('Đang chọn', 'Selected')}
                                 </Text>
                               </View>
                             )}
                             {p.id === primaryProfileId && (
                               <View style={styles.primaryProfileBadge}>
-                                <Text style={styles.primaryProfileBadgeText}>{l('Hồ sơ chính', 'Primary')}</Text>
+                                <Text allowFontScaling={false} numberOfLines={1} style={styles.primaryProfileBadgeText}>
+                                  {l('Hồ sơ chính', 'Primary')}
+                                </Text>
                               </View>
                             )}
                           </View>
@@ -992,7 +996,8 @@ const styles = StyleSheet.create({
   profileLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1
+    flex: 1,
+    minWidth: 0,
   },
   avatarCircle: {
     width: 40,
@@ -1001,7 +1006,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#282342',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10
+    marginRight: 10,
+    flexShrink: 0,
   },
   avatarCircleSelected: {
     backgroundColor: 'rgba(245, 186, 91, 0.25)',
@@ -1009,18 +1015,27 @@ const styles = StyleSheet.create({
     borderColor: '#F5BA5B'
   },
   profileInfo: {
-    flex: 1
+    flex: 1,
+    minWidth: 0,
+  },
+  profileHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minWidth: 0,
   },
   profileName: {
     color: '#F8FAFC',
     fontSize: 14,
-    fontWeight: '700'
+    fontWeight: '700',
+    flexShrink: 1,
   },
   activeBadge: {
     backgroundColor: '#F5BA5B',
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 8
+    borderRadius: 8,
+    flexShrink: 0,
   },
   activeBadgeCouple: {
     backgroundColor: '#F472B6'
@@ -1028,7 +1043,8 @@ const styles = StyleSheet.create({
   activeBadgeText: {
     color: '#000',
     fontSize: 10,
-    fontWeight: '700'
+    fontWeight: '700',
+    includeFontPadding: false,
   },
   primaryProfileBadge: {
     backgroundColor: 'rgba(147, 197, 253, 0.18)',
@@ -1037,11 +1053,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
+    flexShrink: 0,
   },
   primaryProfileBadgeText: {
     color: '#BFDBFE',
     fontSize: 9,
     fontWeight: '800',
+    includeFontPadding: false,
   },
   profileDetails: {
     color: '#94A3B8',

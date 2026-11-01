@@ -23,6 +23,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { DayActivities, DayDirection, HourInfo } from '../services/lunarService';
 import { buildHourlyActivities } from '../services/activityRuleEngine';
 import { useLocalization } from '../i18n/LocalizationContext';
+import {
+  localizeCanChi,
+  localizeDayOfficer,
+  localizeDirection,
+  localizeHourRange,
+  localizeHourStar,
+  localizeLyThuanPhong,
+  localizeZodiac,
+} from '../i18n/calendarPresentation';
 
 const HERO_BACKGROUND = require('../../assets/giao_dien/giaodien1/calender_asset/hoursDetailAsset/Celestial Moonlit Mountain Lake.webp');
 const SHEET_BACKGROUND = require('../../assets/giao_dien/giaodien1/setting/background.webp');
@@ -194,8 +203,8 @@ export default function HourDirectionSheet({
     ? l('CÁT HUNG TRONG GIỜ', 'GUIDANCE FOR SELECTED HOUR')
     : l('CÁT HUNG TRONG NGÀY', 'DAILY GUIDANCE');
   const activitiesSubtitle = hourlyActivities && activeHour
-    ? `${activeHour.canChi} · ${activeHour.range.replace('-', ' – ')} · ${l('Trực', 'Day officer')} ${activities?.trucName}`
-    : `${l('Trực', 'Day officer')} ${activities?.trucName ?? ''} · ${activityQualityLabel}`;
+    ? `${localizeCanChi(activeHour.canChi, locale)} · ${localizeHourRange(activeHour.range, locale)} · ${l('Trực', 'Day officer')} ${localizeDayOfficer(activities?.trucName, locale)}`
+    : `${l('Trực', 'Day officer')} ${localizeDayOfficer(activities?.trucName, locale)} · ${activityQualityLabel}`;
 
   const closeWithFeedback = () => {
     void Haptics.selectionAsync();
@@ -312,20 +321,20 @@ export default function HourDirectionSheet({
                 <View style={[styles.heroTop, compact && styles.heroTopCompact]}>
                   <View style={styles.heroCopy}>
                     <Text style={styles.heroLabel}>{heroTitle}</Text>
-                    <Text style={[styles.heroCanChi, compact && styles.heroCanChiCompact]}>{activeHour.canChi}</Text>
-                    <Text style={styles.heroRange}>{activeHour.range.replace('-', ' – ')}</Text>
+                    <Text style={[styles.heroCanChi, compact && styles.heroCanChiCompact]}>{localizeCanChi(activeHour.canChi, locale)}</Text>
+                    <Text style={styles.heroRange}>{localizeHourRange(activeHour.range, locale)}</Text>
                     <View style={styles.heroStarRow}>
                       <Ionicons name="sparkles" size={17} color="#82396F" />
                       <View style={styles.heroStarCopy}>
-                        <Text style={styles.heroStar}>{l('Sao', 'Star')} {activeHour.label}</Text>
-                        <Text style={styles.heroFortune}>{activeHour.lyThuanPhong} · Lý Thuần Phong</Text>
+                        <Text style={styles.heroStar}>{l('Sao', 'Star')} {localizeHourStar(activeHour.label, locale)}</Text>
+                        <Text style={styles.heroFortune}>{localizeLyThuanPhong(activeHour.lyThuanPhong, locale)} · {l('Lý Thuần Phong', 'Ly Thuan Phong')}</Text>
                       </View>
                     </View>
                     {(activeHour.isClash || activeHour.isDayClash) ? (
                       <View style={styles.heroWarningPill}>
                         <Ionicons name="warning" size={12} color="#8B1E45" />
                         <Text style={styles.heroWarningText}>
-                          {activeHour.isClash ? `${l('Xung tuổi', 'Clashes with')} ${userZodiac}` : l('Nhật Phá', 'Day clash')}
+                          {activeHour.isClash ? `${l('Xung tuổi', 'Clashes with')} ${localizeZodiac(userZodiac, locale)}` : l('Nhật Phá', 'Day clash')}
                         </Text>
                       </View>
                     ) : null}
@@ -366,7 +375,7 @@ export default function HourDirectionSheet({
                           onPress={openActivitiesModal}
                           style={styles.heroActivitiesLink}
                           accessibilityRole="button"
-                          accessibilityLabel={`${l('Xem hoạt động đề xuất', 'View suggested activities')} · ${activeHour.canChi}, ${activeHour.range}`}
+                          accessibilityLabel={`${l('Xem hoạt động đề xuất', 'View suggested activities')} · ${localizeCanChi(activeHour.canChi, locale)}, ${localizeHourRange(activeHour.range, locale)}`}
                         >
                           <Ionicons name="sparkles-outline" size={13} color="#7C2F68" />
                           <Text style={styles.heroActivitiesLinkText}>{l('Xem hoạt động đề xuất', 'View suggested activities')}</Text>
@@ -386,7 +395,7 @@ export default function HourDirectionSheet({
                       </View>
                       <View>
                         <Text style={styles.directionLabel}>{l('Hỷ Thần', 'Joy direction')}</Text>
-                        <Text style={styles.directionValue}>{direction.hyThan}</Text>
+                        <Text style={styles.directionValue}>{localizeDirection(direction.hyThan, locale)}</Text>
                       </View>
                     </View>
                     <View style={styles.directionDivider} />
@@ -396,13 +405,13 @@ export default function HourDirectionSheet({
                       </View>
                       <View>
                         <Text style={styles.directionLabel}>{l('Tài Thần', 'Wealth direction')}</Text>
-                        <Text style={styles.directionValue}>{direction.taiThan}</Text>
+                        <Text style={styles.directionValue}>{localizeDirection(direction.taiThan, locale)}</Text>
                       </View>
                     </View>
                     <View style={styles.hacThanRow}>
                       <Ionicons name={direction.hacThan ? 'alert-circle-outline' : 'shield-checkmark-outline'} size={13} color={direction.hacThan ? '#A13A57' : '#377A5D'} />
                       <Text style={[styles.hacThanText, !direction.hacThan && styles.hacThanSafe]}>
-                        {direction.hacThan ? `${l('Tránh Hạc Thần hướng', 'Avoid the harmful direction')} ${direction.hacThan}` : l('Hạc Thần tại thiên · Không có hướng cần tránh', 'No direction needs to be avoided')}
+                        {direction.hacThan ? `${l('Tránh Hạc Thần hướng', 'Avoid the harmful direction')} ${localizeDirection(direction.hacThan, locale)}` : l('Hạc Thần tại thiên · Không có hướng cần tránh', 'No direction needs to be avoided')}
                       </Text>
                     </View>
                   </View>
@@ -433,7 +442,7 @@ export default function HourDirectionSheet({
                         ]}
                         accessibilityRole="button"
                         accessibilityState={{ selected }}
-                        accessibilityLabel={`${hour.canChi}, ${hour.range}, ${hour.isHoangDao ? l('giờ tốt', 'favorable hour') : l('giờ xấu', 'cautious hour')}${hour.isClash ? `, ${l('xung tuổi', 'clashes with')} ${userZodiac}` : ''}${hour.isDayClash ? `, ${l('Nhật Phá', 'day clash')}` : ''}`}
+                        accessibilityLabel={`${localizeCanChi(hour.canChi, locale)}, ${localizeHourRange(hour.range, locale)}, ${hour.isHoangDao ? l('giờ tốt', 'favorable hour') : l('giờ xấu', 'cautious hour')}${hour.isClash ? `, ${l('xung tuổi', 'clashes with')} ${localizeZodiac(userZodiac, locale)}` : ''}${hour.isDayClash ? `, ${l('Nhật Phá', 'day clash')}` : ''}`}
                       >
                         <LinearGradient
                           colors={hour.isHoangDao
@@ -447,8 +456,8 @@ export default function HourDirectionSheet({
                             </View>
                           ) : null}
                           <Image source={HOUR_ASSETS[hour.name]} resizeMode="contain" style={[styles.cardAnimal, compact && styles.cardAnimalCompact]} />
-                          <Text style={styles.cardName}>{hour.name}</Text>
-                          <Text style={styles.cardRange}>{hour.range.replace('-', ' – ')}</Text>
+                          <Text style={styles.cardName}>{localizeZodiac(hour.name, locale)}</Text>
+                          <Text style={styles.cardRange}>{localizeHourRange(hour.range, locale)}</Text>
                           <View style={[styles.statusBadge, hour.isHoangDao ? styles.statusGood : styles.statusBad]}>
                             <Text style={styles.statusText}>{hour.isHoangDao ? l('Tốt', 'Good') : l('Xấu', 'Caution')}</Text>
                           </View>

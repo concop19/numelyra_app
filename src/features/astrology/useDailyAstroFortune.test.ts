@@ -181,6 +181,65 @@ describe('useDailyAstroFortune cache hydration', () => {
     expect(state?.fortune).toMatchObject(fortune);
   });
 
+  it('never returns the previous profile Fortune after switching profiles', async () => {
+    storage.getItem.mockResolvedValue(null);
+    const secondFortune: AstroFortuneSlip = {
+      ...fortune,
+      title: 'Tín hiệu của hồ sơ mới',
+      verse: 'Một câu thơ khác',
+    };
+    requestFortuneMock
+      .mockResolvedValueOnce(fortune)
+      .mockResolvedValueOnce(secondFortune);
+    let state: DailyAstroFortuneState | undefined;
+    const firstProfile = {
+      fullName: 'An Nguyễn',
+      birthDate: '1998-10-20',
+      gender: 'female' as const,
+    };
+    const secondProfile = {
+      fullName: 'Bình Nguyễn',
+      birthDate: '1996-04-11',
+      gender: 'male' as const,
+    };
+
+    function Harness({ profile, profileId }: {
+      profile: typeof firstProfile | typeof secondProfile;
+      profileId: string;
+    }) {
+      state = useDailyAstroFortune(profile, profileId, { autoGenerate: false });
+      return null;
+    }
+
+    await act(async () => {
+      renderer = create(React.createElement(Harness, { profile: firstProfile, profileId: 'profile-a' }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await state?.retry();
+    });
+    expect(state?.fortune?.title).toBe(fortune.title);
+
+    await act(async () => {
+      renderer?.update(React.createElement(Harness, { profile: secondProfile, profileId: 'profile-b' }));
+      await Promise.resolve();
+    });
+
+    expect(state?.fortune).toBeNull();
+
+    await act(async () => {
+      await state?.retry();
+    });
+
+    expect(requestFortuneMock).toHaveBeenCalledTimes(2);
+    expect(state?.fortune?.title).toBe(secondFortune.title);
+    const firstRequest = requestFortuneMock.mock.calls[0]![0]!;
+    const secondRequest = requestFortuneMock.mock.calls[1]![0]!;
+    expect(secondRequest.profileKey).not.toBe(firstRequest.profileKey);
+  });
+
   it('loads the server quota when the Astrology screen requests it', async () => {
     storage.getItem.mockResolvedValue(null);
     quotaMock.mockResolvedValue({ limit: 3, used: 1, remaining: 2, localDate: '2026-10-30' });

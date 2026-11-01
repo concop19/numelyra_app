@@ -28,6 +28,10 @@ import FallingCherryPetals from '../components/FallingCherryPetals';
 import HourDirectionSheet from '../components/HourDirectionSheet';
 import ProfilePickerModal from '../components/ProfilePickerModal';
 import { useLocalization } from '../i18n/LocalizationContext';
+import {
+  localizeCanChi,
+  localizeZodiac,
+} from '../i18n/calendarPresentation';
 
 const BG_CALENDAR = require('../../assets/giao_dien/giaodien1/calender_asset/background/calendar_background_v2.webp');
 
@@ -152,7 +156,10 @@ export default function CalendarScreen({ profile: primaryProfile, onBack }: Prop
   const today = new Date();
   const isToday = isSameDay(date, today);
   const currentHour = findCurrentHour(hours, clock.getHours());
-  const goodHourNames = hours.filter((item) => item.isHoangDao).map((item) => item.name).join(', ');
+  const goodHourNames = hours
+    .filter((item) => item.isHoangDao)
+    .map((item) => localizeZodiac(item.name, locale))
+    .join(', ');
   const quote = caDao?.content || l('Uống nước nhớ nguồn', 'Remember the source when drinking water');
   const quoteSource = caDao?.category || l('Ca dao Việt Nam', 'Vietnamese proverb');
   const displayMonth = locale === 'en'
@@ -321,7 +328,7 @@ export default function CalendarScreen({ profile: primaryProfile, onBack }: Prop
                 <View style={styles.cardIcon}><Ionicons name="time-outline" size={20} color="#38206F" /></View>
                 <View>
                   <Text style={styles.cardTitle}>{locale === 'en' ? 'TIME' : 'GIỜ'}</Text>
-                  <Text style={styles.cardSubTitle}>{currentHour ? `${locale === 'en' ? 'Hour' : 'Giờ'} ${currentHour.name}` : (locale === 'en' ? 'Now' : 'Hiện tại')}</Text>
+                  <Text style={styles.cardSubTitle}>{currentHour ? `${locale === 'en' ? 'Hour' : 'Giờ'} ${localizeZodiac(currentHour.name, locale)}` : (locale === 'en' ? 'Now' : 'Hiện tại')}</Text>
                 </View>
               </View>
               <Text style={[styles.clockText, compact && styles.clockTextCompact]}>{formatClock(clock)}</Text>
@@ -352,11 +359,11 @@ export default function CalendarScreen({ profile: primaryProfile, onBack }: Prop
                 <Text style={styles.cardTitle}>{locale === 'en' ? 'LUNAR DATE' : 'ÂM LỊCH'}</Text>
               </View>
               <View style={styles.lunarCopy}>
-                <Text style={styles.lunarLine} numberOfLines={2}>{locale === 'en' ? 'Year' : 'Năm'} {canChiYear}</Text>
+                <Text style={styles.lunarLine} numberOfLines={2}>{locale === 'en' ? 'Year' : 'Năm'} {localizeCanChi(canChiYear, locale)}</Text>
                 <View style={styles.lunarRule} />
-                <Text style={styles.lunarLine} numberOfLines={2}>{locale === 'en' ? 'Month' : 'Tháng'} {canChiMonth}</Text>
+                <Text style={styles.lunarLine} numberOfLines={2}>{locale === 'en' ? 'Month' : 'Tháng'} {localizeCanChi(canChiMonth, locale)}</Text>
                 <View style={styles.lunarRule} />
-                <Text style={[styles.lunarLine, styles.lunarLineStrong]} numberOfLines={2}>{locale === 'en' ? 'Day' : 'Ngày'} {canChiDay}</Text>
+                <Text style={[styles.lunarLine, styles.lunarLineStrong]} numberOfLines={2}>{locale === 'en' ? 'Day' : 'Ngày'} {localizeCanChi(canChiDay, locale)}</Text>
               </View>
             </TouchableOpacity>
           </View>

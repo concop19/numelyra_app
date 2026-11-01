@@ -14,6 +14,7 @@ import {
   getChatHistoryPage,
   loadChatHistory,
   MAX_STORED_CHAT_MESSAGES,
+  mergeCloudChatHistory,
   saveChatHistory,
   type StoredChatMessage,
 } from './chatHistoryStorage';
@@ -67,5 +68,32 @@ describe('chatHistoryStorage', () => {
 
     await expect(loadChatHistory('owner-a')).resolves.toEqual([]);
     await expect(loadChatHistory('owner-b')).resolves.toEqual([message('user-2')]);
+  });
+
+  it('removes previously merged follow-up messages while preserving unrelated local messages', async () => {
+    const pendingLocal = { ...message('local-pending'), syncStatus: 'pending' as const };
+    await saveChatHistory('owner-a', [
+      pendingLocal,
+      message('root-user'),
+      message('old-follow-up-user'),
+      message('old-follow-up-mascot', 'mascot'),
+    ]);
+
+    await mergeCloudChatHistory(
+      'owner-a',
+      [
+        { ...message('root-user'), syncStatus: 'synced' },
+        { ...message('root-mascot', 'mascot'), syncStatus: 'synced' },
+      ],
+      ['old-follow-up-user', 'old-follow-up-mascot'],
+    );
+
+    const history = await loadChatHistory('owner-a');
+    expect(history.map((item) => item.id)).toEqual([
+      'local-pending',
+      'root-user',
+      'root-mascot',
+    ]);
+    expect(history.find((item) => item.id === 'local-pending')?.syncStatus).toBe('pending');
   });
 });

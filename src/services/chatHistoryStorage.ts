@@ -301,9 +301,11 @@ export async function replaceChatHistory(
  */
 export async function mergeCloudChatHistory(
   ownerId: string,
-  cloudMessages: StoredChatMessage[]
+  cloudMessages: StoredChatMessage[],
+  hiddenCloudMessageIds: string[] = []
 ): Promise<StoredChatMessage[]> {
   const key = getHistoryKey(ownerId);
+  const hiddenIdSet = new Set(hiddenCloudMessageIds);
 
   try {
     return await enqueueWrite(key, async () => {
@@ -314,8 +316,10 @@ export async function mergeCloudChatHistory(
 
       const mergedMap = new Map<string, StoredChatMessage>();
 
-      // Đưa local messages vào map trước
+      // Keep unrelated local/pending messages, but remove cloud follow-up
+      // messages that older app versions incorrectly copied into ChatScreen.
       for (const msg of localList) {
+        if (hiddenIdSet.has(msg.id)) continue;
         mergedMap.set(msg.id, msg);
       }
 

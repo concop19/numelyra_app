@@ -427,7 +427,11 @@ export async function downloadAllCloudChatData(
   await bulkHydrateChatData(sessionList, messageList);
 
   // 4. Đồng bộ chuyển đổi sang AsyncStorage ChatHistory để ChatScreen hiển thị tức thì
-  const storedMessages: StoredChatMessage[] = messageList.map((m) => {
+  const rootMessages = messageList.filter((message) => message.turnIndex === 0);
+  const continuationMessageIds = messageList
+    .filter((message) => message.turnIndex > 0)
+    .map((message) => message.id);
+  const storedMessages: StoredChatMessage[] = rootMessages.map((m) => {
     const createdTime = new Date(m.createdAt);
     return {
       id: m.id,
@@ -441,7 +445,7 @@ export async function downloadAllCloudChatData(
       syncedAt: m.syncedAt,
     };
   });
-  await mergeCloudChatHistory(currentUserId, storedMessages);
+  await mergeCloudChatHistory(currentUserId, storedMessages, continuationMessageIds);
 
   return { sessionsCount: sessionList.length, messagesCount: messageList.length };
 }

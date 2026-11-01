@@ -18,6 +18,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { UserProfile, getNguHanhEmoji, getZodiacEmoji } from '../store/userProfile';
 import { useLocalization } from '../i18n/LocalizationContext';
+import {
+  localizeCalendarWarning,
+  localizeCanChi,
+  localizeDayQualityLabel,
+  localizeFiveElement,
+  localizeSolarTerm,
+  localizeZodiac,
+} from '../i18n/calendarPresentation';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_HEIGHT = Math.min(SCREEN_HEIGHT * 0.82, 720);
@@ -57,7 +65,7 @@ export default function BlocDetailModal({
   dayHoangDaoStatus,
   isLunarMonthFull,
 }: Props) {
-  const { t, l } = useLocalization();
+  const { t, l, locale } = useLocalization();
   if (!visible || type !== 'lunar_destiny') return null;
 
   const closeWithFeedback = () => {
@@ -108,7 +116,7 @@ export default function BlocDetailModal({
           >
             {warning ? (
               <View style={styles.warningBox}>
-                <Text style={styles.warningText}>{warning}</Text>
+                <Text style={styles.warningText}>{localizeCalendarWarning(warning, locale)}</Text>
               </View>
             ) : null}
 
@@ -116,24 +124,24 @@ export default function BlocDetailModal({
               <Text style={styles.destinyCardTitle}>🗓️ {l('TỔNG QUAN THỜI GIAN ÂM DƯƠNG', 'LUNAR TIME OVERVIEW')}</Text>
               <View style={styles.destinyRow}>
                 <Text style={styles.destinyLabel}>{l('Ngày Can Chi:', 'Day stem-branch:')}</Text>
-                <Text style={styles.destinyValue}>{canChiDay}</Text>
+                <Text style={styles.destinyValue}>{localizeCanChi(canChiDay, locale)}</Text>
               </View>
               <View style={styles.destinyRow}>
                 <Text style={styles.destinyLabel}>{l('Tháng Can Chi:', 'Month stem-branch:')}</Text>
-                <Text style={styles.destinyValue}>{canChiMonth}</Text>
+                <Text style={styles.destinyValue}>{localizeCanChi(canChiMonth, locale)}</Text>
               </View>
               <View style={styles.destinyRow}>
                 <Text style={styles.destinyLabel}>{l('Năm Can Chi:', 'Year stem-branch:')}</Text>
-                <Text style={styles.destinyValue}>{canChiYear}</Text>
+                <Text style={styles.destinyValue}>{localizeCanChi(canChiYear, locale)}</Text>
               </View>
               <View style={styles.destinyRow}>
                 <Text style={styles.destinyLabel}>{l('24 Tiết Khí:', 'Solar term:')}</Text>
-                <Text style={[styles.destinyValue, styles.solarTermValue]}>{solarTerm}</Text>
+                <Text style={[styles.destinyValue, styles.solarTermValue]}>{localizeSolarTerm(solarTerm, locale)}</Text>
               </View>
               {dayHoangDaoStatus ? (
                 <View style={styles.destinyRow}>
                   <Text style={styles.destinyLabel}>{l('Cát/Hắc nhật:', 'Day quality:')}</Text>
-                  <Text style={styles.destinyValue}>{dayHoangDaoStatus.label}</Text>
+                  <Text style={styles.destinyValue}>{localizeDayQualityLabel(dayHoangDaoStatus, locale)}</Text>
                 </View>
               ) : null}
               {typeof isLunarMonthFull === 'boolean' ? (
@@ -153,11 +161,11 @@ export default function BlocDetailModal({
                 </View>
                 <View style={styles.destinyRow}>
                   <Text style={styles.destinyLabel}>{l('Con giáp:', 'Zodiac:')}</Text>
-                  <Text style={styles.destinyValue}>{getZodiacEmoji(userZodiac)} {l('Tuổi', 'Sign')} {userZodiac}</Text>
+                  <Text style={styles.destinyValue}>{getZodiacEmoji(userZodiac)} {l('Tuổi', 'Sign')} {localizeZodiac(userZodiac, locale)}</Text>
                 </View>
                 <View style={styles.destinyRow}>
                   <Text style={styles.destinyLabel}>{l('Ngũ Hành:', 'Five element:')}</Text>
-                  <Text style={styles.destinyValue}>{getNguHanhEmoji(userNguHanh)} {l('Mệnh', 'Element')} {userNguHanh}</Text>
+                  <Text style={styles.destinyValue}>{getNguHanhEmoji(userNguHanh)} {l('Mệnh', 'Element')} {localizeFiveElement(userNguHanh, locale)}</Text>
                 </View>
                 {userNapAm ? (
                   <View style={styles.destinyRow}>

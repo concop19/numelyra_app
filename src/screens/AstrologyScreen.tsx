@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import ProfilePickerModal from '../components/ProfilePickerModal';
 import { AstrologyDetailView } from '../features/astrology/AstrologyDetailView';
 import { AstrologyInsightSheet } from '../features/astrology/AstrologyInsightSheet';
+import { AstrologyProfileFortunePrompt } from '../features/astrology/AstrologyProfileFortunePrompt';
 import { AstrologyTodayView } from '../features/astrology/AstrologyTodayView';
 import { BirthDataModal } from '../features/astrology/BirthDataModal';
 import { NatalChartView } from '../features/astrology/NatalChartView';
@@ -67,8 +68,12 @@ export default function AstrologyScreen({ profile, onBack, onOpenCalendar }: Pro
   const [profilePickerVisible, setProfilePickerVisible] = useState(false);
   const [birthDataVisible, setBirthDataVisible] = useState(false);
   const [insightVisible, setInsightVisible] = useState(false);
+  const [pendingProfileItem, setPendingProfileItem] = useState<ProfileItem | null>(null);
+  const [generationProfileId, setGenerationProfileId] = useState<string | null>(null);
   const primaryProfileRef = useRef<UserProfile | null>(profile ?? null);
+  const viewProfileIdRef = useRef(viewProfileId);
   primaryProfileRef.current = profile ?? null;
+  viewProfileIdRef.current = viewProfileId;
   const {
     currentDate,
     fortune,
@@ -91,6 +96,10 @@ export default function AstrologyScreen({ profile, onBack, onOpenCalendar }: Pro
     () => selectedProfileItem ? [selectedProfileItem] : [],
     [selectedProfileItem],
   );
+  const birthDataProfile = useMemo(
+    () => pendingProfileItem ? profileItemToUserProfile(pendingProfileItem) : activeProfile,
+    [activeProfile, pendingProfileItem],
+  );
   const astrologyDataQuality = useMemo(() => {
     const hasExactBirthTime = activeProfile?.birthTimeAccuracy
       ? activeProfile.birthTimeAccuracy === 'exact' && !!activeProfile.birthTime?.trim()
@@ -108,6 +117,8 @@ export default function AstrologyScreen({ profile, onBack, onOpenCalendar }: Pro
     setViewProfileId(primaryProfileId);
     setActiveProfile(primaryProfileRef.current);
     setInsightVisible(false);
+    setPendingProfileItem(null);
+    setGenerationProfileId(null);
   }, [primaryProfileId]));
 
   useEffect(() => {
@@ -139,12 +150,44 @@ export default function AstrologyScreen({ profile, onBack, onOpenCalendar }: Pro
     setInsightVisible(false);
   }, []);
 
+  const createFortuneForProfile = useCallback((item: ProfileItem) => {
+    if (!profileItemToUserProfile(item)) return;
+    applySelectedProfile(item);
+    setPendingProfileItem(null);
+    setGenerationProfileId(item.id);
+  }, [applySelectedProfile]);
+
   const saveBirthData = useCallback(async (next: UserProfile) => {
-    await saveAstrologyBirthData(next, viewProfileId ?? undefined);
+    const targetProfileId = pendingProfileItem?.id ?? viewProfileId ?? undefined;
+    await saveAstrologyBirthData(next, targetProfileId);
     await refreshProfiles();
+
+    if (pendingProfileItem) {
+      const updatedItem: ProfileItem = {
+        ...pendingProfileItem,
+        birthTime: next.birthTime,
+        birthPlace: next.birthPlace,
+        birthLocation: next.birthLocation,
+        birthTimeAccuracy: next.birthTimeAccuracy,
+      };
+      createFortuneForProfile(updatedItem);
+      return;
+    }
+
     setActiveProfile(next);
     setInsightVisible(false);
-  }, [refreshProfiles, viewProfileId]);
+  }, [createFortuneForProfile, pendingProfileItem, refreshProfiles, viewProfileId]);
+
+  useEffect(() => {
+    if (!generationProfileId || generationProfileId !== viewProfileId) return;
+    const requestedProfileId = generationProfileId;
+    setGenerationProfileId(null);
+    void retry().then((availableFortune) => {
+      if (availableFortune && viewProfileIdRef.current === requestedProfileId) {
+        setInsightVisible(true);
+      }
+    });
+  }, [generationProfileId, retry, viewProfileId]);
 
   return (
     <GestureHandlerRootView style={styles.root}>
@@ -223,20 +266,38 @@ export default function AstrologyScreen({ profile, onBack, onOpenCalendar }: Pro
         onClose={() => setProfilePickerVisible(false)}
         onProfilesSelected={(items) => {
           const selected = items[0];
-          if (selected) applySelectedProfile(selected);
+          if (!selected || selected.id === viewProfileId) return;
+          setPendingProfileItem(selected);
         }}
         managementMode="add-only"
         onProfilesChanged={refreshProfiles}
         primaryProfileId={primaryProfileId}
         title={l('Xem chiêm tinh cho ai?', 'Whose astrology?')}
+        promptNotice={l(
+          'Mỗi hồ sơ có một Fortune riêng. Chọn hồ sơ để xem thông tin trước khi tạo Fortune hôm nay.',
+          "Each profile has its own Fortune. Choose one to review its details before creating today's Fortune.",
+        )}
       />
 
-      {!!activeProfile && (
+      {!!pendingProfileItem && !birthDataVisible && (
+        <AstrologyProfileFortunePrompt
+          profile={pendingProfileItem}
+          quota={fortuneQuota}
+          onCancel={() => setPendingProfileItem(null)}
+          onCompleteBirthData={() => setBirthDataVisible(true)}
+          onCreate={() => createFortuneForProfile(pendingProfileItem)}
+        />
+      )}
+
+      {!!birthDataProfile && (
         <BirthDataModal
           visible={birthDataVisible}
-          profile={activeProfile}
+          profile={birthDataProfile}
           onSave={saveBirthData}
-          onClose={() => setBirthDataVisible(false)}
+          onClose={() => {
+            setBirthDataVisible(false);
+            if (pendingProfileItem) setPendingProfileItem(null);
+          }}
         />
       )}
 

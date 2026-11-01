@@ -5,7 +5,7 @@
  * 1. Kiểm tra profile → chưa có → OnboardingScreen
  * 2. Có profile → Chat là màn chính, các tính năng mở từ nút nổi trong cảnh chat
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, Image, ActivityIndicator, StyleSheet, TouchableOpacity
 } from 'react-native';
@@ -25,12 +25,13 @@ import LoginScreen from './src/screens/LoginScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import ChatContinuationScreen from './src/screens/ChatContinuationScreen';
 import { AuthProvider, useAuth } from './src/store/authContext';
-import { BillingProvider } from './src/store/billingContext';
+import { BillingProvider, useBilling } from './src/store/billingContext';
 import { ProfileProvider, useProfiles } from './src/store/profileContext';
 import { getNotifications } from './src/services/dailyNotifications';
 import { refreshDailyInsightNotifications } from './src/services/dailyNotifications';
 import { LocalizationProvider, useLocalization } from './src/i18n/LocalizationContext';
 import CloudSyncPill from './src/components/CloudSyncPill';
+import ProUpgradeCelebration from './src/components/ProUpgradeCelebration';
 
 type RootStackParamList = {
   Main: { dailyDate?: string } | undefined;
@@ -109,6 +110,7 @@ export default function App() {
 function AppContent() {
   const { locale, ready: isLocaleReady, t } = useLocalization();
   const { isReady: isAuthReady, user, signOut, isPasswordRecovery, clearPasswordRecovery } = useAuth();
+  const { billing } = useBilling();
   const {
     isReady: isProfileReady,
     primaryProfile: profile,
@@ -118,6 +120,27 @@ function AppContent() {
   } = useProfiles();
   const [continueAsGuest, setContinueAsGuest] = useState(false);
   const [loginRequested, setLoginRequested] = useState(false);
+  const [showProCelebration, setShowProCelebration] = useState(false);
+  const observedPlan = useRef<{ accountId: string; plan: 'free' | 'pro' } | null>(null);
+
+  useEffect(() => {
+    if (!user || !billing?.authenticated) {
+      observedPlan.current = null;
+      setShowProCelebration(false);
+      return;
+    }
+
+    const previous = observedPlan.current;
+    if (!previous || previous.accountId !== user.id) {
+      observedPlan.current = { accountId: user.id, plan: billing.plan };
+      return;
+    }
+
+    if (previous.plan === 'free' && billing.plan === 'pro') {
+      setShowProCelebration(true);
+    }
+    observedPlan.current = { accountId: user.id, plan: billing.plan };
+  }, [billing?.authenticated, billing?.plan, user?.id]);
 
   useEffect(() => {
     if (!profile || !isLocaleReady) return;
@@ -359,6 +382,10 @@ function AppContent() {
     <View style={styles.appRoot}>
       {content}
       {Boolean(user && profile && isProfileReady) && <CloudSyncPill />}
+      <ProUpgradeCelebration
+        visible={showProCelebration}
+        onClose={() => setShowProCelebration(false)}
+      />
     </View>
   );
 }
